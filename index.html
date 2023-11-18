@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>SURFACE</title>
+  <link rel="icon" type="image/png" href="/img/logo.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+  <link rel="stylesheet" href="css/surface.css">
+
+  <script src="js/glo.js" defer></script>
+  <script src="js/app.js" defer></script>
+  <script src="js/gui.js" defer></script>
+  <script src="js/bab.js" defer></script>
+  <script src="js/events.js" defer></script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
+  <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.js"></script>
+  <script src="https://rawgit.com/androdlang/Extensions/master/ClonerSystem/src/babylonx.cloner.js"></script>
+</head>
+
+<body>
+  <div id="univers_div">
+    <canvas id="renderCanvas" touch-action="none"></canvas>
+  </div>
+
+  <div id="helpModal" class="modal overflow-hidden" style="min-width: 95%; min-height: 85%; max-height: 95%; margin-top: -2%; ">
+    <div class="modal-content">
+      <h4 class="modal-title center-align" id="helpModalLabel" style="padding: 12px; ">HELP</h4>
+      <div id="intro">
+        <h5 class="center-align">Play with curved surfaces, write an equation f(u,v) in the x, y, z input fields</h5>
+      </div>
+      <div class="row">
+        <div class="col m10 s12 offset-m1">
+          <div id="help_interface_container">
+            <h5>Keyboard keys:</h5>
+            <div class="row" id="keyboard_keys_list">
+              <div class="col m6 s12">
+                <div class='helpSubTitle'>Main:</div>
+                <h6 class="fonction_title"><kbd class="keys">S</kbd></h6><span>Switch between Cartesian, spheric and cylindrical coordinates</span>
+                <h6 class="fonction_title"><kbd class="keys">E</kbd></h6><span>Export ribbon to babylon or obj file format, don't work with fractalized meshes</span>
+                <div class='helpSubTitle'>Construct:</div>
+                <h6 class="fonction_title"><kbd class="keys">G</kbd></h6><span>Build the lines step by step each time the key is pressed</span>
+                <h6 class="fonction_title"><kbd class="keys">W</kbd></h6><span>Switch between building automatically the lines step by step, and stop the building</span>
+                <h6 class="fonction_title"><kbd class="keys">R</kbd></h6><span>Reset the building of the lines step by step</span>
+                <div class='helpSubTitle'>Fractal:</div>
+                <h6 class="fonction_title"><kbd class="keys">F</kbd></h6><span>Fractalize the current mesh</span>
+                <h6 class="fonction_title"><kbd class="keys">(</kbd></h6><span>Save the mesh to "fractalize" with the current mesh</span>
+                <h6 class="fonction_title"><kbd class="keys">'</kbd></h6><span>Switch between different orientation of the fractalized meshes with the template mesh</span>
+                <h6 class="fonction_title"><kbd class="keys">q</kbd></h6><span>Decrease the size of the fractalized meshes</span>
+                <h6 class="fonction_title"><kbd class="keys">ù</kbd></h6><span>Increase the size of the fractalized meshes</span>
+                <div class='helpSubTitle'>Inputs fields equations:</div>
+                <h6 class="fonction_title"><kbd class="keys">&amp;</kbd></h6><span>Switch between cos and sin in the x,y,z inputs fields equations</span>
+                <h6 class="fonction_title"><kbd class="keys">é</kbd></h6><span>Switch between u and v in the x,y,z inputs fiels equations</span>
+                <h6 class="fonction_title"><kbd class="keys">;</kbd></h6><span>Shortens the writing of equations in x,y,z inputs fields, for example cos(u) becomes cu</span>
+                <h6 class="fonction_title"><kbd class="keys">:</kbd></h6><span>Extend the writing of equations in x,y,z inputs fields, for example co becomes cos(u)</span>
+                <h6 class="fonction_title"><kbd class="keys">$</kbd></h6><span>A random equation</span>
+                <div class='helpSubTitle'>Camera:</div>
+                <h6 class="fonction_title"><kbd class="keys">+</kbd></h6><span>Double the distance from the camera</span>
+                <h6 class="fonction_title"><kbd class="keys">-</kbd></h6><span>Halve the camera distance</span>
+              </div>
+              <div class="col m6 s12">
+                <div class='helpSubTitle'>Colors:</div>
+                <h6 class="fonction_title"><kbd class="keys">D</kbd></h6><span>Switch between dark and your theme</span>
+                <h6 class="fonction_title"><kbd class="keys">O</kbd></h6><span>Switch between different types of coloring</span>
+                <h6 class="fonction_title"><kbd class="keys">B</kbd></h6><span>Vertices coloring</span>
+                <h6 class="fonction_title"><kbd class="keys">"</kbd></h6><span>Randomize dark theme color</span>
+                <h6 class="fonction_title"><kbd class="keys">H</kbd></h6><span>Randomize theme color</span>
+                <div class='helpSubTitle'>Sliders:</div>
+                <h6 class="fonction_title"><kbd class="keys">l</kbd></h6><span>Sets the value of the slider u either to PI in Cartesian coordinates, or to 90 for the other coordinates</span>
+                <h6 class="fonction_title"><kbd class="keys">m</kbd></h6><span>Sets the value of the slider v either to PI in Cartesian coordinates, or to 90 for the other coordinates</span>
+                <h6 class="fonction_title"><kbd class="keys">7</kbd></h6><span>Decrease the value of u slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">8</kbd></h6><span>Increase the value of u slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">4</kbd></h6><span>Decrease the value of v slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">5</kbd></h6><span>Increase the value of v slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">è</kbd></h6><span>Decrease the value of steps u slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">_</kbd></h6><span>Increase the value of steps u slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">ç</kbd></h6><span>Decrease the value of steps v slider by 1</span>
+                <h6 class="fonction_title"><kbd class="keys">à</kbd></h6><span>Increase the value of steps v slider by 1</span>
+                <div class='helpSubTitle'>Plans:</div>
+                <h6 class="fonction_title"><kbd class="keys">X</kbd></h6><span>Show or hide the plan X</span>
+                <h6 class="fonction_title"><kbd class="keys">Y</kbd></h6><span>Show or hide the plan Y</span>
+                <h6 class="fonction_title"><kbd class="keys">Z</kbd></h6><span>Show or hide the plan Z</span>
+              </div>
+            </div>
+            <hr class="hr_line_help">
+            <div id="fonctions">
+              <h5>List of functions:</h5>
+              <div class="row" id="liste_fonctions">
+                <div class="row" name="cos(val)">
+                  <div class="col m6 s12">
+                    <h6 class="fonction_title"><kbd class="functions_list">cos(val)</kbd></h6><span>Cosine of val. cosh works also</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">sin(val)</kbd></h6><span>Sine of val. sinh works also</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">tan(val)</kbd></h6><span>Tangent of val. tanh, atanh, and atantwo work also</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">abs(val)</kbd></h6><span>Absolute value of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">exp(val)</kbd></h6><span>Exponential of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">hypot(val1, val2)</kbd></h6><span>Hypotenuse of val1 and val2</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">log(val)</kbd></h6><span>Logarithm of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">logten(val)</kbd></h6><span>Logarithm 10 of val</span>
+                  </div>
+                  <div class="col m6 s12">
+                    <h6 class="fonction_title"><kbd class="functions_list">pow(val, nb)</kbd></h6><span>Val to the power of nb. Works also with **, exemple 3**2 = 9</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">rnd()</kbd></h6><span>A random number between 0 and 1</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">sign(val)</kbd></h6><span>Returns 1 or -1 depending on the sign of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">sqrt(val)</kbd></h6><span>Square root of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">fact(val)</kbd></h6><span>Factorial of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">fib(val)</kbd></h6><span>Fibonacci of val</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">mx(index, default value)</kbd></h6><span>Return the value of f(x - index) with index = 1 by default, default value is returned if the index is negative, works with my and mz,
+                      useful to create a sequence like for example Un = Un-2 + Un-1</span>
+                    <h6 class="fonction_title"><kbd class="functions_list">u_mod(modulo, val_to_return)</kbd></h6><span>Returns either u or val_to_return (the return value if modulo different from 0, 0 by default) depending on the modulo, allows you
+                      to calculate certain values ​​only once on the modulo. Also works with v_mod</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="exportModal" class="modal overflow-hidden">
+    <div class="modal-content">
+      <h4 style="text-align:center;">Export mesh</h4>
+      <div class="row">
+        <div class="input-field col s8">
+          <input placeholder="Filename" id="filename" type="text">
+        </div>
+        <div class="input-field col s4">
+          <select id="selectExportFormat">
+            <option value="" disabled selected>Select the file type</option>
+            <option value="babylon">Babylon</option>
+            <option value="json">JSON file</option>
+            <option value="obj">Objet 3D</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="#" class="waves-effect waves-red btn-flat" onclick="$('#exportModal').modal('close'); return false;">Cancel</a>
+      <a href="#" class="waves-effect waves-green btn-flat" id="exportButton" onclick="exportMesh($('#selectExportFormat').val()); ">Export</a>
+    </div>
+  </div>
+
+  <div id="importModal" class="modal overflow-hidden">
+    <div class="modal-content">
+      <h4 style="text-align:center;">Import json from an export made here</h4>
+      <div class="file-field input-field">
+        <div class="btn">
+          <span>File</span>
+          <input type="file" id="jsonFileUpload" onChange="if($('#jsonFileUpload').val() != ''){ download_JSON_mesh(); }">
+        </div>
+        <div class="file-path-wrapper">
+          <input class="file-path validate" type="text">
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

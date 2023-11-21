@@ -72,10 +72,6 @@ $('#univers_div').keypress(function(e) {
           glo.camera.radius*=2;
 
   			break;
-  		case code_car("o"):
-        EdgeOrVertexColor();
-
-  			break;
   		case code_car("&"):
         invElemInInput("cos", "sin");
         invElemInInput("cu", "su");
@@ -215,7 +211,7 @@ $('#univers_div').keypress(function(e) {
   			break;
   		case code_car('b'):
         glo.params.playWithColors = !glo.params.playWithColors;
-        makeColors();
+        glo.params.playWithColors ? makeColors() : make_ribbon();
 
   			break;
   		case code_car(','):
@@ -237,6 +233,11 @@ $('#univers_div').keypress(function(e) {
         makeColors();
 
   			break;
+      case code_car("n"):
+        glo.voronoiMode = !glo.voronoiMode;
+        make_ribbon();
+
+        break;
   		case code_car('1'):
         glo.curves.paths[0].shift();
         make_ribbon();
@@ -268,6 +269,13 @@ $('#univers_div').keypress(function(e) {
           glo.scaleNorm*=sqrt(2);
           drawNormalEquations();
         }
+
+  			break;
+  		case code_car("p"):
+  		case code_car("P"):
+        glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
+        make_curves();
+        make_ribbon();
 
   			break;
   		case code_car("z"):

@@ -59,6 +59,7 @@ var glo = {
 			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 65,  fx: "5", fy: "v", fz: "5u", check: false, },
 			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "u*sin(fact(v))", fz: "6u*cos(v)*sin(60u)", check: false, },
 			{text: "Heart", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 96,  fx: "2uv", fy: "usv", fz: "cos(v)sin(60u)", alpha: "u", check: false, },
+			{text: "Jewel", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 256,  fx: "2uv", fy: "usv", fz: "cos(v)sin(60u)", alpha: "v-u", check: false, },
 			{text: "Hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "v²", fy: "u", fz: "v", check: false, },
 			{text: "Inverse hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v", check: false, },
 			{text: "Invsin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v+sin(6Gu)", check: false, },
@@ -222,7 +223,7 @@ var glo = {
 	colorsType: 'none',
 	colorType: function* (){
 	  var index = 0;
-	  var tab = ['none', 'edge', 'face'];
+	  var tab = ['none', 'edge'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }

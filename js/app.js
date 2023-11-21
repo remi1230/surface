@@ -225,6 +225,9 @@ f = {
 			var µ$N = µN*$N; var $µN = µN+$N;
 			var µµN = µ$N*$µN;
 
+			var θ = Math.acos(y/(h(x,y,z)));
+			var ϕ = Math.atan2(z, x) ;
+
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
@@ -274,6 +277,9 @@ f = {
 				var µ$N = µN*$N; var $µN = µN+$N;
 				var µµN = µ$N*$µN;
 
+				var θ = Math.acos(y/(h(x,y,z)));
+				var ϕ = Math.atan2(z, x) ;
+
 				if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 				if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 				if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
@@ -295,11 +301,14 @@ f = {
 				}
 
 				path.push(new BABYLON.Vector3(x, y, z));
-        index_v++; n++;
+        		index_v++; n++;
 			}
 			this.paths.push(path);
-      index_u++;
+      		index_u++;
 		}
+
+		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -447,6 +456,9 @@ function drawNormalEquations(){
 					var $P = (xP+yP+zP)/3; var µP = xP*yP*zP;
 
 					var mCol = (rCol + gCol + bCol) / 3;
+
+					var θ = Math.acos(y/(h(xP,yP,zP)));
+					var ϕ = Math.atan2(zP,xP);
 
 					x = eval(f.x);
 					y = eval(f.y);
@@ -659,6 +671,9 @@ f = {
 			var µ$N = µN*$N; var $µN = µN+$N;
 			var µµN = µ$N*$µN;
 
+			var θ = Math.acos(y/(h(x,y,z)));
+			var ϕ = Math.atan2(z, x) ;
+
 			if(isBeta2){
 				alpha2 = eval(f.alpha2);
 				beta2 = eval(f.beta2);
@@ -716,6 +731,9 @@ f = {
 				var $N = (xN+yN+zN)/3;
 				var µ$N = µN*$N; var $µN = µN+$N;
 				var µµN = µ$N*$µN;
+
+				var θ = Math.acos(y/(h(x,y,z)));
+				var ϕ = Math.atan2(z, x) ;
 
 				if(isBeta2){
 					alpha2 = eval(f.alpha2);
@@ -1149,7 +1167,8 @@ function test_equations(equations, dim_one = false, forCol = false){
 	var xN = 1; var yN = 1; var zN = 1;
 	var xP = 1; var yP = 1; var zP = 1; var µN = 1; var µP = 1; var $P = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
-	var rCol = 1; var gCol  = 1; var bCol  = 1;  var mCol  = 1;
+	var rCol = 1; var gCol  = 1; var bCol  = 1; var mCol  = 1;
+	var θ = 1; var ϕ = 1;
 	try{
 		x = eval(f.fx);
 		y = eval(f.fy);
@@ -1280,6 +1299,9 @@ function make_curves(u_params = {
 }
 
 function make_ribbon(){
+	glo.emissiveColorSave = {...glo.emissiveColor};
+	glo.diffuseColorSave  = {...glo.diffuseColor};
+
 	var nameRibbon = "Ribbon_" + glo.numRibbon;
 	glo.numRibbon++;
 
@@ -1294,11 +1316,14 @@ function make_ribbon(){
 
 	ribbonDispose();
 	if(!glo.params.playWithColors && glo.colorsType == 'none'){
-		if(!glo.voronoiMode){ glo.ribbon = BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, }, glo.scene, ); }
+		if(!glo.voronoiMode){
+			glo.ribbon = BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, }, glo.scene, );
+		}
 		else{
 			var colorsRibbon = voronoi();
 			var white = BABYLON.Color3.White();
-			glo.emissiveColor = white; glo.diffuseColor = white;
+			glo.emissiveColor = white;
+			glo.diffuseColor  = white;
 			glo.ribbon = BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: colorsRibbon, sideOrientation:1, updatable: true, }, glo.scene, );
 		}
 	}
@@ -1310,7 +1335,8 @@ function make_ribbon(){
 			objCols = {colsArr: colorsRibbon};
 			Object.assign(glo.colorsRibbonSave, objCols);
 			var white = BABYLON.Color3.White();
-			glo.emissiveColor = white; glo.diffuseColor = white;
+			glo.emissiveColor = white;
+			glo.diffuseColor  = white;
 			makeOtherColors(true);
 		}
 		else{
@@ -1333,6 +1359,9 @@ function make_ribbon(){
 
 	glo.is_ribbon = true;
   if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
+
+  	glo.emissiveColor = {...glo.emissiveColorSave};
+	glo.diffuseColor  = {...glo.diffuseColorSave};
 }
 
 function ribbonDispose(){
@@ -1485,6 +1514,10 @@ function makeColors(){
 					var µ$N = µN*$N; var $µN = µN+$N;
 					var µµN = µ$N*$µN;
 
+					const invRad = 180/PI;
+					var θ = Math.acos(y/(h(xP,yP,zP))) * invRad;
+					var ϕ = Math.atan2(zP, xP) * invRad;
+
 					ind_v = v;
 
 					x = eval(f.x);
@@ -1494,7 +1527,6 @@ function makeColors(){
 					if(glo.params.modCos){ x = !xEmpty ? c(x) : x; y = !yEmpty ? c(y) : y; z = !zEmpty ? c(z) : z; }
 
 					if(glo.params.colorsByRotate){
-						//var pos = {x: x+y+z, y: 0, z: 0};
 						var pos = {x: x, y: 0, z: 0};
 						pos = rotateByMatrix(pos, 0, y, z);
 						x = pos.x; y = pos.y; z = pos.z;

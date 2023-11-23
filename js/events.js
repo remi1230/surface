@@ -362,6 +362,14 @@ $('#univers_div').keypress(function(e) {
         makeColors();
 
         break;
+  		case code_car("V"):
+  		case code_car("v"):
+        glo.camera.alpha = glo.camera.start.alpha;
+        glo.camera.beta  = glo.camera.start.beta;
+        glo.camera.setPosition(glo.camera.start.pos.clone());
+        glo.camera.setTarget(glo.camera.start.target.clone());
+
+        break;
     }
   }
 });

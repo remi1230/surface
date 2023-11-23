@@ -225,8 +225,8 @@ f = {
 			var µ$N = µN*$N; var $µN = µN+$N;
 			var µµN = µ$N*$µN;
 
-			var θ = Math.acos(y/(h(x,y,z)));
-			var ϕ = Math.atan2(z, x) ;
+			var O = Math.acos(y/(h(x,y,z)));
+			var T = Math.atan2(z, x) ;
 
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
@@ -277,8 +277,8 @@ f = {
 				var µ$N = µN*$N; var $µN = µN+$N;
 				var µµN = µ$N*$µN;
 
-				var θ = Math.acos(y/(h(x,y,z)));
-				var ϕ = Math.atan2(z, x) ;
+				var O = Math.acos(y/(h(x,y,z)));
+				var T = Math.atan2(z, x) ;
 
 				if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 				if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
@@ -457,8 +457,8 @@ function drawNormalEquations(){
 
 					var mCol = (rCol + gCol + bCol) / 3;
 
-					var θ = Math.acos(y/(h(xP,yP,zP)));
-					var ϕ = Math.atan2(zP,xP);
+					var O = Math.acos(y/(h(xP,yP,zP)));
+					var T = Math.atan2(zP,xP);
 
 					x = eval(f.x);
 					y = eval(f.y);
@@ -671,8 +671,8 @@ f = {
 			var µ$N = µN*$N; var $µN = µN+$N;
 			var µµN = µ$N*$µN;
 
-			var θ = Math.acos(y/(h(x,y,z)));
-			var ϕ = Math.atan2(z, x) ;
+			var O = Math.acos(y/(h(x,y,z)));
+			var T = Math.atan2(z, x) ;
 
 			if(isBeta2){
 				alpha2 = eval(f.alpha2);
@@ -732,8 +732,8 @@ f = {
 				var µ$N = µN*$N; var $µN = µN+$N;
 				var µµN = µ$N*$µN;
 
-				var θ = Math.acos(y/(h(x,y,z)));
-				var ϕ = Math.atan2(z, x) ;
+				var O = Math.acos(y/(h(x,y,z)));
+				var T = Math.atan2(z, x) ;
 
 				if(isBeta2){
 					alpha2 = eval(f.alpha2);
@@ -1168,7 +1168,7 @@ function test_equations(equations, dim_one = false, forCol = false){
 	var xP = 1; var yP = 1; var zP = 1; var µN = 1; var µP = 1; var $P = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
 	var rCol = 1; var gCol  = 1; var bCol  = 1; var mCol  = 1;
-	var θ = 1; var ϕ = 1;
+	var O = 1; var T = 1;
 	try{
 		x = eval(f.fx);
 		y = eval(f.fy);
@@ -1246,6 +1246,8 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/gCol([^,%*+-/)])/g, 'gCol*$1');
 			f[prop] = f[prop].replace(/bCol([^,%*+-/)])/g, 'bCol*$1');
 			f[prop] = f[prop].replace(/mCol([^,%*+-/)])/g, 'mCol*$1');
+			f[prop] = f[prop].replace(/O([^,%*+-/)])/g, 'O*$1');
+			f[prop] = f[prop].replace(/T([^,%*+-/)])/g, 'T*$1');
 
 			f[prop] = f[prop].replace(/\)([^,%*+-/)'])/g, ')*$1');
 			f[prop] = f[prop].replace(/(\d+)([^,%*+-/.\d)])/g, '$1*$2');
@@ -1515,8 +1517,8 @@ function makeColors(){
 					var µµN = µ$N*$µN;
 
 					const invRad = 180/PI;
-					var θ = Math.acos(y/(h(xP,yP,zP))) * invRad;
-					var ϕ = Math.atan2(zP, xP) * invRad;
+					var O = Math.acos(y/(h(xP,yP,zP))) * invRad;
+					var T = Math.atan2(zP, xP) * invRad;
 
 					ind_v = v;
 

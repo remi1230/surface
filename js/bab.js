@@ -17,12 +17,21 @@ Player.prototype = {
       scene
     );
 
+    this.camera.start = {};
+
+    this.camera.start.pos = new BABYLON.Vector3(this.camera.position.x + 18, this.camera.position.y, this.camera.position.z);
+
     this.camera.attachControl(canvas, true);
     this.camera.setPosition(new BABYLON.Vector3(this.camera.position.x + 18, this.camera.position.y, this.camera.position.z));
     this.camera.lowerAlphaLimit = null;
     this.camera.upperAlphaLimit = null;
     this.camera.lowerBetaLimit = null;
     this.camera.upperBetaLimit = Math.PI;
+
+    this.camera.start.alpha   = this.camera.alpha;
+    this.camera.start.beta    = this.camera.beta;
+    this.camera.start.target  = this.camera.getTarget().clone();
+
     glo.camera = this.camera;
     glo.camera_target = this.camera.getTarget();
   }

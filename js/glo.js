@@ -22,23 +22,23 @@ var glo = {
 	formes:{
 		select:[
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, },
-			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "5cos(u)", fy: "5cos(v)", fz: "5cos(u+v)", check: false, },
+			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cos(u)", fy: "5cos(v)", fz: "5cos(u+v)", check: false, },
 			{text: "Dbl spiral", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 128, fx: "sinh(v)sin(u)", fy: "3u", fz: "-sinh(v)cos(u)", check: false, },
 			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "usin(v)", fz: "ucos(v)sin(u)", check: true, },
 			{text: "Hyperbola", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6cosh(v/2)cos(u)", fy: "3v", fz: "6cosh(v/2)sin(u)", check: false, },
 			{text: "Hyperbola loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6cosh(v/2)cos(u)", fy: "piv", fz: "6cosh(v/2)sin(u)", alpha: "cusu", beta:"cu", check: false, },
-			{text: "Hyperbola twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6cosh(v/2)cos(u)", fy: "piv", fz: "6cosh(v/2)sin(u)", alpha: "", beta:"G(cv + 1)", check: false, },
+			{text: "Hyperbola twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cos(u)", fy: "piv", fz: "6cosh(v/2)sin(u)", alpha: "", beta:"G(cv + 1)", check: false, },
 			{text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "h(u,v)+sv - 3", fz: "h(u,v)u/12", alpha: "h(u,v)/G", check: false, },
-			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, },
+			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: 1, nb_steps_u: 128, nb_steps_v: 128,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, },
 			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, },
 			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "u", fy: "v", fz: "uv", check: false, },
-			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "7cos(u)cos(v)", fy: "7sin(u)cos(v)", fz: "7sin(v)", check: false, },
-			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", check: false, },
+			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cos(u)cos(v)", fy: "7sin(u)cos(v)", fz: "7sin(v)", check: false, },
+			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", check: false, },
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", alpha: "u", check: false, },
-			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "7(cv + 2)cu", fy: "7(cv + 2)s(u+xNyN)", fz: "7sv", check: false, },
-			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "Gcv", beta:"Gcv", check: false, },
+			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)s(u+xNyN)", fz: "7sv", check: false, },
+			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "Gcv", beta:"Gcv", check: false, },
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5*sh(u,v)+cusvmz(1,1)0.1", alpha: "h(u,v)/20", check: false, },
-			{text: "Waves Buttons", typeCoords: 'cartesian', udef: 12*PI, vdef: 12*PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "u", fy: "v", fz: "-0.5*sh(u,v,cusv0.1)", alpha: "h(u,v)/20", check: false, },
+			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5*ch(uxN,vyN)+cusvmz(1,1)0.1", alpha: "h(u,v)/20", check: false, },
 			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4u", fy: "v", fz: "2cos(u+v)cv", check: false, },
 			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cusv", fy: "ucusv", fz: "vcusv", check: false, },
 			{text: "Flower", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "8vhypot(cos(u8),sin(12vlog(Gv/10+H/100+0.04)))", fy: "v+pi/4", fz: "3u", check: false, },
@@ -64,9 +64,13 @@ var glo = {
 			{text: "Inverse hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v", check: false, },
 			{text: "Invsin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v+sin(6Gu)", check: false, },
 			{text: "Invspin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 63, nb_steps_v: 161,  fx: "1/(12v)", fy: "u", fz: "(8+2/3)v", alpha: "3vsign(v)/2", check: false, },
+			{text: "Moebius", typeCoords: 'cylindrical', udef: PI, vdef: 1, nb_steps_u: 132, nb_steps_v: 132,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, },
 			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "3u", fy: "v", fz: "3v", check: false, },
 			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", alpha: "cos(60u)/12", check: false, },
 			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "ucos(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, },
+			{text: "Helix", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uv", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
+			{text: "Sphere", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "7cucv", fz: "7sucv", alpha: "7sv", beta: "pi", check: false, },
+			{text: "Ying-Yang", typeCoords: 'quaternion', udef: 2*PI, vdef: (11/6)*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
 		],
 		setFormeSelect: function(txt, coordsType, draw = true){
 			this.select.map(sel => {
@@ -199,26 +203,44 @@ var glo = {
 	  }
 	},
 	coordsType: 'cartesian',
-	coordinatesType: function* (){
+	/*coordinatesType: function* (){
 	  var index = -1;
-	  var tab = ['spheric', 'cylindrical', 'cartesian'];
+	  var tab = ['spheric', 'cylindrical', 'cartesian', 'quaternion'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
 			this.coordsType = tab[index];
 	    yield tab[index];
 	  }
+	},*/
+	coordinatesType: function* (){
+		const coordinates = ['spheric', 'cylindrical', 'quaternion', 'cartesian'];
+		while (true) {
+			for (const coord of coordinates) {
+				this.coordsType = coord;
+				yield coord;
+			}
+		}
 	},
 	coordsNomrType: 'cartesian',
-	coordinatesNomrType: function* (){
+	/*coordinatesNomrType: function* (){
 	  var index = -1;
-	  var tab = ['spheric', 'cylindrical', 'cartesian'];
+	  var tab = ['spheric', 'cylindrical', 'cartesian', 'quaternion'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
 			this.coordsNomrType = tab[index];
 	    yield tab[index];
 	  }
+	},*/
+	coordinatesNomrType: function* (){
+		const coordinates = ['spheric', 'cylindrical', 'quaternion', 'cartesian'];
+		while (true) {
+			for (const coord of coordinates) {
+				this.coordsNomrType = coord;
+				yield coord;
+			}
+		}
 	},
 	colorsType: 'none',
 	colorType: function* (){

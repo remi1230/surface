@@ -764,6 +764,220 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
 }
+function CurvesByQuaternion(parametres = {
+	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
+	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
+},
+f = {
+	r: glo.params.text_input_x,
+	x: glo.params.text_input_y,
+	y: glo.params.text_input_z,
+	z: glo.params.text_input_alpha,
+	w: glo.params.text_input_beta,
+}, dim_one = glo.dim_one)
+{
+	function mx(index = 1, val_to_return = 0, p = path){
+		index = parseInt(index);
+		if(index <= 0){ index = 1; }
+    if(p.length == 0){ return val_to_return; }
+    if(p.length < index){ return val_to_return; }
+
+    return p[p.length - index].x;
+  };
+  function my(index = 1, val_to_return = 0, p = path){
+		index = parseInt(index);
+		if(index <= 0){ index = 1; }
+    if(p.length == 0){ return val_to_return; }
+    if(p.length < index){ return val_to_return; }
+
+    return p[p.length - index].y;
+  };
+  function mz(index = 1, val_to_return = 0, p = path){
+		index = parseInt(index);
+		if(index <= 0){ index = 1; }
+    if(p.length == 0){ return val_to_return; }
+    if(p.length < index){ return val_to_return; }
+
+    return p[p.length - index].z;
+  };
+
+  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
+    if(index%modulo == 0){ return variable; }
+
+    return val_to_return;
+  }
+  function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
+    if(index%modulo == 0){ return variable; }
+
+    return val_to_return;
+  }
+	function mod(index, ...args){ return args[index%args.length]; }
+
+	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
+		var funcR = func;
+		var f = {toInv:func};
+		for(var i = 0; i < it; i++){
+			var index = funcR.length - (i+1);
+			var fInvUV = reg_inv(f, 'u', 'v').toInv;
+			f.toInv = fInvUV;
+			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
+		}
+		func = funcR;
+		return eval(func);
+	}
+
+	reg(f, dim_one);
+
+	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
+	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
+
+	this.p1_first = new BABYLON.Vector3.Zero;
+	this.p2_first = new BABYLON.Vector3(1,0,0);
+
+	this.min_u = parametres.u.min;
+	this.max_u = parametres.u.max;
+	this.nb_steps_u = parametres.u.nb_steps;
+	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+
+	this.min_v = parametres.v.min;
+	this.max_v = parametres.v.max;
+	this.nb_steps_v = parametres.v.nb_steps;
+	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+
+	this.paths = [];
+	this.lines = [];
+
+  var is_v = false;
+  if(f.r.lastIndexOf('v') != -1 || f.r.lastIndexOf('V') != -1 ||
+     f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
+     f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
+     f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
+     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1)
+     { is_v = true; }
+
+  var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
+	var r = 0; var w = 0;
+	var x = 0.5; var y = 0.5; var z = 0.5;
+	var xN = 1; var yN = 1; var zN = 1;
+	var µN = 1;
+	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
+
+	if(f.r == ""){ f.r = 0; }
+	if(f.x == ""){ f.x = 0; }
+	if(f.y == ""){ f.y = 0; }
+	if(f.z == ""){ f.z = 0; }
+	if(f.w == ""){ f.w = 0; }
+
+	var n = 0;
+	var path = [];
+	var line_visible = glo.lines_visible;
+  var index_u = 0;
+  if(!is_v){
+		path = [];
+		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+			ind_u = u;
+
+			r = eval(f.r);
+			x = eval(f.x);
+			y = eval(f.y);
+			z = eval(f.z);
+			w = eval(f.w);
+
+			if(r == Infinity || r == -Infinity){ r = 0; }
+			if(x == Infinity || x == -Infinity){ x = 0; }
+			if(y == Infinity || y == -Infinity){ y = 0; }
+			if(z == Infinity || z == -Infinity){ z = 0; }
+			if(w == Infinity || w == -Infinity){ w = 0; }
+
+			let point 			= new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			let axis  			= new BABYLON.Vector3(x, y, z);
+			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
+			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
+			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+
+			/*let rotatedVector = point.rotateByQuaternionAroundPointToRef(quaternion, BABYLON.Vector3.Zero(), new BABYLON.Vector3());
+			let pos           = rotatedVector.add(point);*/
+
+			var x = pos.x; var y = pos.y; var z = pos.z;
+			var vect3 = new BABYLON.Vector3(x,y,z);
+			vect3 = BABYLON.Vector3.Normalize(vect3);
+			xN = vect3.x; yN = vect3.y; zN = vect3.z;
+			var µN = xN*yN*zN;
+			var $N = (xN+yN+zN)/3;
+			var µ$N = µN*$N; var $µN = µN+$N;
+			var µµN = µ$N*$µN;
+
+			var O = Math.acos(y/(h(x,y,z)));
+			var T = Math.atan2(z, x) ;
+
+			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+			path.push(this.p1_first);
+			path.push(this.new_p2);
+			this.paths.push(path);
+			path = [];
+      		index_u++; n++;
+		}
+		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		this.lineSystem.color = glo.lineColor;
+		this.lineSystem.alpha = glo.ribbon_alpha;
+		this.lineSystem.alphaIndex = 999;
+		this.lineSystem.visibility = line_visible;
+  }
+  else {
+	for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		var index_v = 0; ind_u = u;
+		for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
+			ind_v = v;
+
+			r = eval(f.r);
+			x = eval(f.x);
+			y = eval(f.y);
+			z = eval(f.z);
+			w = eval(f.w);
+
+			if(r == Infinity || r == -Infinity){ r = 0; }
+			if(x == Infinity || x == -Infinity){ x = 0; }
+			if(y == Infinity || y == -Infinity){ y = 0; }
+			if(z == Infinity || z == -Infinity){ z = 0; }
+			if(w == Infinity || w == -Infinity){ w = 0; }
+
+			let point 			= new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			let axis  			= new BABYLON.Vector3(x, y, z);
+			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
+			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
+			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+
+			/*let rotatedVector = point.rotateByQuaternionAroundPointToRef(quaternion, BABYLON.Vector3.Zero(), new BABYLON.Vector3());
+			let pos           = rotatedVector.add(point);*/
+
+			var x = pos.x; var y = pos.y; var z = pos.z;
+			var vect3 = new BABYLON.Vector3(x,y,z);
+			vect3 = BABYLON.Vector3.Normalize(vect3);
+			xN = vect3.x; yN = vect3.y; zN = vect3.z;
+			var µN = xN*yN*zN;
+			var $N = (xN+yN+zN)/3;
+			var µ$N = µN*$N; var $µN = µN+$N;
+			var µµN = µ$N*$µN;
+
+			var O = Math.acos(y/(h(x,y,z)));
+			var T = Math.atan2(z, x) ;
+
+			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+
+			path.push(this.new_p2);
+			index_v++; n++;
+		}
+		this.paths.push(path);
+		path = [];
+      	index_u++;
+	}
+	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+	this.lineSystem.color = glo.lineColor;
+	this.lineSystem.alpha = glo.ribbon_alpha;
+	this.lineSystem.alphaIndex = 999;
+	this.lineSystem.visibility = line_visible;
+  }
+}
 var curve_step_by_step = function* (parametres = {
 	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
 	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
@@ -1291,7 +1505,8 @@ function make_curves(u_params = {
 			glo.curves = {}; delete glo.curves
 		}
 
-		if(glo.coordsType == 'cartesian'){ glo.curves = new Curves(); }
+		if(glo.coordsType == 'quaternion'){ glo.curves = new CurvesByQuaternion(); }
+		else if(glo.coordsType == 'cartesian'){ glo.curves = new Curves(); }
 		else{ glo.curves = new CurvesByRot(); }
 
 		make_ribbon();
@@ -2884,6 +3099,13 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Bêta');
 			changeHeaderText('header_inputAlpha', 'Alpha 2');
 			changeHeaderText('header_inputBeta', 'Bêta 2');
+			break;
+		case 'quaternion':
+			changeHeaderText('header_inputX', 'R');
+			changeHeaderText('header_inputY', 'X');
+			changeHeaderText('header_inputZ', 'Y');
+			changeHeaderText('header_inputAlpha', 'Z');
+			changeHeaderText('header_inputBeta', 'W');
 			break;
 		case 'cylindrical':
 			changeHeaderText('header_inputX', 'R');

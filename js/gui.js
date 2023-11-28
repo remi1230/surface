@@ -296,17 +296,21 @@ function add_axis_and_rot_buttons(){
     }
   });
   add_button("but_rot", "Rot α", 70, 100/3, 10, 0, function(){
-    if(glo.allControls.getByName("but_rot").textBlock.text == "Rot α"){
-      glo.rotateType = "alpha";
-      glo.allControls.getByName("but_rot").textBlock.text = "Rot β"
-    }
-    else if(glo.allControls.getByName("but_rot").textBlock.text == "Rot β"){
-      glo.rotateType = "beta";
-      glo.allControls.getByName("but_rot").textBlock.text = "Stop"
-    }
-    else if(glo.allControls.getByName("but_rot").textBlock.text == "Stop"){
-      glo.rotateType = "none";
-      glo.allControls.getByName("but_rot").textBlock.text = "Rot α"
+    const rotType = glo.rotType.next().value;
+
+    switch(rotType.next){
+      case 'alpha':
+        glo.allControls.getByName("but_rot").textBlock.text = "Rot α";
+      break;
+      case 'beta' :
+        glo.allControls.getByName("but_rot").textBlock.text = "Rot β";
+      break;
+      case 'teta' :
+        glo.allControls.getByName("but_rot").textBlock.text = "Rot θ";
+      break;
+      case 'none' :
+        glo.allControls.getByName("but_rot").textBlock.text = "Stop";
+      break;
     }
   });
 }

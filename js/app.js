@@ -1462,6 +1462,7 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/mCol([^,%*+-/)])/g, 'mCol*$1');
 			f[prop] = f[prop].replace(/O([^,%*+-/)])/g, 'O*$1');
 			f[prop] = f[prop].replace(/T([^,%*+-/)])/g, 'T*$1');
+			f[prop] = f[prop].replace(/e([^,%*+-/)])/g, 'e*$1');
 
 			f[prop] = f[prop].replace(/\)([^,%*+-/)'])/g, ')*$1');
 			f[prop] = f[prop].replace(/(\d+)([^,%*+-/.\d)])/g, '$1*$2');
@@ -1470,6 +1471,7 @@ function reg(f, dim_one){
 			}
 			f[prop] = f[prop].replace(/u\*_mod/g,"u_mod");
 			f[prop] = f[prop].replace(/v\*_mod/g,"v_mod");
+			f[prop] = f[prop].replace(/be\*ta/g,"beta");
 			f[prop] = f[prop].replace(/sin\*/g,"sin");
 			f[prop] = f[prop].replace(/tan\*/g,"tan");
 			f[prop] = f[prop].replace(/sign\*/g,"sign");
@@ -2553,11 +2555,18 @@ function rotateMeshesOnZ(direction = 1){
 
 function rotate_camera(){
 	if(glo.is_ribbon){
-		if(glo.rotateType == "alpha"){
-			glo.camera.alpha += glo.rotate_speed;
-		}
-		else if(glo.rotateType == "beta"){
-			glo.camera.beta += glo.rotate_speed;
+		const speed = glo.rotate_speed;
+		switch(glo.rotateType.current){
+			case 'alpha':
+				glo.camera.alpha += speed;
+			break;
+			case 'beta':
+				glo.camera.beta += speed;
+			break;
+			case 'teta':
+				glo.camera.alpha += speed;
+				glo.camera.beta += speed;
+			break;
 		}
 	}
 }
@@ -3403,4 +3412,36 @@ function ifNeg(res, varForSign){
 	const theSign = sign(varForSign);
 
 	return sign(varForSign) === sign(res) ? res : -res;
+}
+
+function updInputsToQuaternion(){
+	glo.input_beta.text  = 'pi';
+	glo.input_alpha.text = glo.input_z.text;
+	glo.input_z.text 	 = glo.input_y.text;
+	glo.input_y.text 	 = glo.input_x.text;
+	glo.input_x.text 	 = 12;
+
+	glo.params.text_input_beta 	= 'pi';
+	glo.params.text_input_alpha = glo.input_alpha.text;
+	glo.params.text_input_z 	= glo.input_z.text;
+	glo.params.text_input_y 	= glo.input_y.text;
+	glo.params.text_input_x 	= 12;
+
+	make_curves();
+}
+
+function firstInputToOthers(){
+	const val = glo.input_x.text;
+
+	glo.input_beta.text  = val;
+	glo.input_alpha.text = val;
+	glo.input_z.text 	 = val;
+	glo.input_y.text 	 = val;
+
+	glo.params.text_input_beta 	= val;
+	glo.params.text_input_alpha = val;
+	glo.params.text_input_z 	= val;
+	glo.params.text_input_y 	= val;
+
+	make_curves();
 }

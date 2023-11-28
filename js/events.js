@@ -370,6 +370,16 @@ $('#univers_div').keypress(function(e) {
         glo.camera.setTarget(glo.camera.start.target.clone());
 
         break;
+  		case code_car("Y"):
+  		case code_car("y"):
+        updInputsToQuaternion();
+
+        break;
+  		case code_car("Q"):
+  		case code_car("Q"):
+        firstInputToOthers();
+
+        break;
     }
   }
 });

@@ -18,6 +18,7 @@ const deepCopy = (inObject) => {
 var num_mesh = 0;
 var r = 1;
 const PI = Math.PI;
+const e  = Math.E;
 var glo = {
 	formes:{
 		select:[
@@ -25,7 +26,7 @@ var glo = {
 			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cos(u)", fy: "5cos(v)", fz: "5cos(u+v)", check: false, },
 			{text: "Dbl spiral", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 128, fx: "sinh(v)sin(u)", fy: "3u", fz: "-sinh(v)cos(u)", check: false, },
 			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "usin(v)", fz: "ucos(v)sin(u)", check: true, },
-			{text: "Hyperbola", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6cosh(v/2)cos(u)", fy: "3v", fz: "6cosh(v/2)sin(u)", check: false, },
+			{text: "Hyperbola", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cos(u)", fy: "3v", fz: "6cosh(v/2)sin(u)", check: false, },
 			{text: "Hyperbola loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6cosh(v/2)cos(u)", fy: "piv", fz: "6cosh(v/2)sin(u)", alpha: "cusu", beta:"cu", check: false, },
 			{text: "Hyperbola twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cos(u)", fy: "piv", fz: "6cosh(v/2)sin(u)", alpha: "", beta:"G(cv + 1)", check: false, },
 			{text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "h(u,v)+sv - 3", fz: "h(u,v)u/12", alpha: "h(u,v)/G", check: false, },
@@ -68,8 +69,14 @@ var glo = {
 			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "3u", fy: "v", fz: "3v", check: false, },
 			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", alpha: "cos(60u)/12", check: false, },
 			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "ucos(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, },
+			{text: "Flower", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "8cupv", fy: "8cupv", fz: "cupvu", alpha: "cupvv", beta: "u+v", check: true, },
 			{text: "Helix", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uv", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
+			{text: "Horn", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "6v", fy: "u²+v²", fz: "u²-v²", alpha: "h(u,v)", beta: "u", check: false, },
+			{text: "Line", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "vcu/8", check: false, },
+			{text: "Shell", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "u", check: false, },
+			{text: "Spaceship", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "h(u+v, u-v)", fy: "u", fz: "v", alpha: "uv", beta: "piG", check: false, },
 			{text: "Sphere", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "7cucv", fz: "7sucv", alpha: "7sv", beta: "pi", check: false, },
+			{text: "Sphere tetra", typeCoords: 'quaternion', udef: PI, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "12", fy: "12cu", fz: "12cv", alpha: "12cupv", beta: "pi", check: false, },
 			{text: "Ying-Yang", typeCoords: 'quaternion', udef: 2*PI, vdef: (11/6)*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
 		],
 		setFormeSelect: function(txt, coordsType, draw = true){
@@ -263,6 +270,20 @@ var glo = {
 			this.guiSelect = tab[index];
 	    yield tab[index];
 	  }
+	},
+	rotateTypeGen: function* (){
+		const rotType = [
+			{current: 'alpha', next: 'beta'},
+			{current: 'beta', next: 'teta'},
+			{current: 'teta', next: 'none'},
+			{current: 'none', next: 'alpha'},
+		];
+		while (true) {
+			for (const rot of rotType) {
+				this.rotateType = rot;
+				yield rot;
+			}
+		}
 	},
 	histo: {
 		init: function(){ this.content[0].params = deepCopy(glo.params); },
@@ -599,11 +620,11 @@ var glo = {
 		text_input_z: "u*cos(v)*sin(u)",
 		text_input_alpha: "",
 		text_input_beta: "",
-		text_input_color_x: "xN",
-		text_input_color_y: "yN",
-		text_input_color_z: "zN",
-		text_input_color_alpha: "su",
-		text_input_color_beta: "cu",
+		text_input_color_x: "cu",
+		text_input_color_y: "cv",
+		text_input_color_z: "",
+		text_input_color_alpha: "",
+		text_input_color_beta: "",
 		playWithColorMode: "xyz",
 		playWithColors: false,
 		playWithColorsAll: false,
@@ -748,8 +769,9 @@ glo.radios_formes.changeColor = function (newColor){
 	});
 };
 
-glo.switchGuiSelect = glo.switchGuiSelect();
-glo.colorType = glo.colorType();
-glo.drawType = glo.draw_type();
-glo.coordinatesType = glo.coordinatesType();
+glo.switchGuiSelect 	= glo.switchGuiSelect();
+glo.colorType 			= glo.colorType();
+glo.drawType 		    = glo.draw_type();
+glo.coordinatesType 	= glo.coordinatesType();
 glo.coordinatesNomrType = glo.coordinatesNomrType();
+glo.rotType             = glo.rotateTypeGen();

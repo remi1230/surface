@@ -288,12 +288,7 @@ $('#univers_div').keypress(function(e) {
   			break;
   		case code_car("H"):
   		case code_car("h"):
-        console.log("Height: " + $("#renderCanvas").attr("height"));
-        console.log("Width : " + $("#renderCanvas").attr("width"));
-        console.log("Window innerHeight : " + window.innerHeight);
-        console.log("Window innerWidth : " + window.innerWidth);
-        console.log("Window outerHeight : " + window.outerHeight);
-        console.log("Window outerWidth : " + window.outerWidth);
+         cameraOnPos({x: 0, y: 0, z: 0});
 
   			break;
   		case code_car("S"):
@@ -373,6 +368,11 @@ $('#univers_div').keypress(function(e) {
   		case code_car("Y"):
   		case code_car("y"):
         updInputsToQuaternion();
+
+        break;
+  		case code_car("Q"):
+  		case code_car("Q"):
+        firstInputToOthers();
 
         break;
   		case code_car("Q"):

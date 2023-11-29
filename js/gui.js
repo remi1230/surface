@@ -707,11 +707,11 @@ function add_inputs_equations(){
   add_input(panel, "Alpha", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
   add_input(panel, "Bêta", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
 
-  add_input(panelColorsEquations, "    R", "xN", "inputColorX", "header right third", "input equation right third", "text_input_color_x", "input_color_x", true);
-  add_input(panelColorsEquations, "G", "yN", "inputColorY", "header right third", "input equation right third", "text_input_color_y", "input_color_y", true);
-  add_input(panelColorsEquations, "B", "zN", "inputColorZ", "header right third", "input equation right third", "text_input_color_z", "input_color_z", true);
-  add_input(panelColorsEquations, "Alpha", "su", "inputColorAlpha", "header right third", "input equation right third", "text_input_color_alpha", "input_color_alpha", true);
-  add_input(panelColorsEquations, "Bêta", "cu", "inputColorBeta", "header right third", "input equation right third", "text_input_color_beta", "input_color_beta", true);
+  add_input(panelColorsEquations, "    R", "cu", "inputColorX", "header right third", "input equation right third", "text_input_color_x", "input_color_x", true);
+  add_input(panelColorsEquations, "G", "cv", "inputColorY", "header right third", "input equation right third", "text_input_color_y", "input_color_y", true);
+  add_input(panelColorsEquations, "B", "", "inputColorZ", "header right third", "input equation right third", "text_input_color_z", "input_color_z", true);
+  add_input(panelColorsEquations, "Alpha", "", "inputColorAlpha", "header right third", "input equation right third", "text_input_color_alpha", "input_color_alpha", true);
+  add_input(panelColorsEquations, "Bêta", "", "inputColorBeta", "header right third", "input equation right third", "text_input_color_beta", "input_color_beta", true);
 }
 
 function add_radios(){
@@ -793,7 +793,7 @@ function add_step_uv_slider(){
     panel.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
-    parmamControl(slider, name, "slider right first", {minimum: 1, maximum: 256, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify], updating: false});
+    parmamControl(slider, name, "slider right first", {minimum: 1, maximum: 264, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify], updating: false});
 
     slider.onValueChangedObservable.add(function (value) {
       value = parseInt(value);

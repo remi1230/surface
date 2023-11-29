@@ -180,10 +180,10 @@ f = {
      f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1)
      { is_v = true; }
 
-  var x = 0.5; var y = 0.5; var z = 0.5;
+    var x = 0.5; var y = 0.5; var z = 0.5;
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
+	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
 
 	if(f.x == ""){ f.x = 0; }
 	if(f.y == ""){ f.y = 0; }
@@ -261,7 +261,7 @@ f = {
   else {
 		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
 			var path = [];
-      var index_v = 0; ind_u = u;
+      		var index_v = 0; ind_u = u;
 			for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
 				ind_v = v;
 
@@ -616,12 +616,12 @@ f = {
      f.beta2.lastIndexOf('v') != -1 || f.beta2.lastIndexOf('V') != -1)
      { is_v = true; }
 
-  var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
+    var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
 	var r = 0; var alpha = 0; var beta = 0; var alpha2 = 0; var beta2 = 0;
 	var x = 0.5; var y = 0.5; var z = 0.5;
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
+	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
 
 	var isAlpha2 = false;
 	if(glo.params.text_input_alpha != ""){
@@ -751,12 +751,15 @@ f = {
 				this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
 				path.push(this.new_p2);
-        index_v++; n++;
+        		index_v++; n++;
 			}
 			this.paths.push(path);
 			path = [];
-      index_u++;
+      		index_u++;
 		}
+
+		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -855,12 +858,12 @@ f = {
      f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1)
      { is_v = true; }
 
-  var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
+  	var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
 	var r = 0; var w = 0;
 	var x = 0.5; var y = 0.5; var z = 0.5;
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
+	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.x == ""){ f.x = 0; }
@@ -894,9 +897,6 @@ f = {
 			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
 			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
-
-			/*let rotatedVector = point.rotateByQuaternionAroundPointToRef(quaternion, BABYLON.Vector3.Zero(), new BABYLON.Vector3());
-			let pos           = rotatedVector.add(point);*/
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
@@ -947,9 +947,6 @@ f = {
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
 			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
 
-			/*let rotatedVector = point.rotateByQuaternionAroundPointToRef(quaternion, BABYLON.Vector3.Zero(), new BABYLON.Vector3());
-			let pos           = rotatedVector.add(point);*/
-
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
 			vect3 = BABYLON.Vector3.Normalize(vect3);
@@ -971,6 +968,9 @@ f = {
 		path = [];
       	index_u++;
 	}
+
+	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
 	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
 	this.lineSystem.alpha = glo.ribbon_alpha;
@@ -1103,7 +1103,12 @@ f = {
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0; var ind_u = 0; var ind_v = 0;
+	var x = 0; var y = 0; var z = 0; var r = 0; var w = 0; var alpha = 0; var beta = 0; var ind_u = 0; var ind_v = 0;
+
+	var ind_u = 0; var ind_v = 0;
+	var xN = 1; var yN = 1; var zN = 1;
+	var µN = 1;
+	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
 
 	var isAlpha = false;
 	if(glo.params.text_input_alpha != ""){
@@ -1151,6 +1156,16 @@ f = {
 				if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
 				if(glo.coordsType == 'cartesian'){
+					var vect3 = new BABYLON.Vector3(x,y,z);
+					vect3 = BABYLON.Vector3.Normalize(vect3);
+					xN = vect3.x; yN = vect3.y; zN = vect3.z;
+					var µN = xN*yN*zN;
+					var $N = (xN+yN+zN)/3;
+					var µ$N = µN*$N; var $µN = µN+$N;
+					var µµN = µ$N*$µN;
+
+					var O = Math.acos(y/(h(x,y,z)));
+					var T = Math.atan2(z, x) ;
 					if(isBeta){
 						alpha = eval(f.alpha);
 						beta = eval(f.beta);
@@ -1167,6 +1182,47 @@ f = {
 						pos = rotateByMatrix(pos, 0, alpha, 0);
 						x = pos.x; y = pos.y; z = pos.z;
 					}
+
+					path.push(new BABYLON.Vector3(x, y, z));
+					paths.push(new BABYLON.Vector3(x, y, z));
+					if(n_dim%2==0){
+						line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
+						line.color = color_line;
+						glo.lines_v.push(line);
+						yield u;
+					}
+				}
+				else if(glo.coordsType == 'quaternion'){
+					x = eval(f.y);
+					y = eval(f.z);
+					z = eval(f.alpha);
+					w = eval(f.beta);
+					r = eval(f.x);
+
+					if(r == Infinity || r == -Infinity){ r = 0; }
+					if(x == Infinity || x == -Infinity){ x = 0; }
+					if(y == Infinity || y == -Infinity){ y = 0; }
+					if(z == Infinity || z == -Infinity){ z = 0; }
+					if(w == Infinity || w == -Infinity){ w = 0; }
+
+					let point 			= new BABYLON.Vector3(p2_first.x * r, 0, 0);
+					let axis  			= new BABYLON.Vector3(x, y, z);
+					let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
+					let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
+					let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+
+					var x = pos.x; var y = pos.y; var z = pos.z;
+					var vect3 = new BABYLON.Vector3(x,y,z);
+					vect3 = BABYLON.Vector3.Normalize(vect3);
+					xN = vect3.x; yN = vect3.y; zN = vect3.z;
+					var µN = xN*yN*zN;
+					var $N = (xN+yN+zN)/3;
+					var µ$N = µN*$N; var $µN = µN+$N;
+					var µµN = µ$N*$µN;
+
+					var O = Math.acos(y/(h(x,y,z)));
+					var T = Math.atan2(z, x) ;
+
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
 					if(n_dim%2==0){
@@ -1183,6 +1239,17 @@ f = {
 						pos = rotateByMatrix(pos, 0, 0, y);
 						pos.z = z;
 					}
+					x = pos.x; y = pos.y; z = pos.z;
+					var vect3 = new BABYLON.Vector3(x,y,z);
+					vect3 = BABYLON.Vector3.Normalize(vect3);
+					xN = vect3.x; yN = vect3.y; zN = vect3.z;
+					var µN = xN*yN*zN;
+					var $N = (xN+yN+zN)/3;
+					var µ$N = µN*$N; var $µN = µN+$N;
+					var µµN = µ$N*$µN;
+
+					var O = Math.acos(y/(h(x,y,z)));
+					var T = Math.atan2(z, x) ;
 					if(isBeta){
 						alpha = eval(f.alpha);
 						beta = eval(f.beta);
@@ -1203,7 +1270,7 @@ f = {
 					yield u;
 				}
 				n_dim++; n++;
-	    }
+	    	}
 			else{
 				for(var v = min_v; v < max_v; v+=step_v){
 					ind_v = v;
@@ -1218,6 +1285,16 @@ f = {
 					if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
 					if(glo.coordsType == 'cartesian'){
+						var vect3 = new BABYLON.Vector3(x,y,z);
+						vect3 = BABYLON.Vector3.Normalize(vect3);
+						xN = vect3.x; yN = vect3.y; zN = vect3.z;
+						var µN = xN*yN*zN;
+						var $N = (xN+yN+zN)/3;
+						var µ$N = µN*$N; var $µN = µN+$N;
+						var µµN = µ$N*$µN;
+
+						var O = Math.acos(y/(h(x,y,z)));
+						var T = Math.atan2(z, x) ;
 						if(isBeta){
 							alpha = eval(f.alpha);
 							beta = eval(f.beta);
@@ -1234,6 +1311,7 @@ f = {
 							pos = rotateByMatrix(pos, 0, alpha, 0);
 							x = pos.x; y = pos.y; z = pos.z;
 						}
+
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
 						if(n%2==0){
@@ -1244,6 +1322,46 @@ f = {
 							yield u;
 						}
 					}
+					else if(glo.coordsType == 'quaternion'){
+						x = eval(f.y);
+						y = eval(f.z);
+						z = eval(f.alpha);
+						w = eval(f.beta);
+						r = eval(f.x);
+	
+						if(r == Infinity || r == -Infinity){ r = 0; }
+						if(x == Infinity || x == -Infinity){ x = 0; }
+						if(y == Infinity || y == -Infinity){ y = 0; }
+						if(z == Infinity || z == -Infinity){ z = 0; }
+						if(w == Infinity || w == -Infinity){ w = 0; }
+	
+						let point 			= new BABYLON.Vector3(p2_first.x * r, 0, 0);
+						let axis  			= new BABYLON.Vector3(x, y, z);
+						let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
+						let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
+						let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+	
+						var x = pos.x; var y = pos.y; var z = pos.z;
+						var vect3 = new BABYLON.Vector3(x,y,z);
+						vect3 = BABYLON.Vector3.Normalize(vect3);
+						xN = vect3.x; yN = vect3.y; zN = vect3.z;
+						var µN = xN*yN*zN;
+						var $N = (xN+yN+zN)/3;
+						var µ$N = µN*$N; var $µN = µN+$N;
+						var µµN = µ$N*$µN;
+	
+						var O = Math.acos(y/(h(x,y,z)));
+						var T = Math.atan2(z, x) ;
+	
+						path.push(new BABYLON.Vector3(x, y, z));
+						paths.push(new BABYLON.Vector3(x, y, z));
+						if(n%2==0){
+							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
+							line.color = color_line;
+							glo.lines_v.push(line);
+							yield u;
+						}
+					}
 					else{
 						var pos = {x: p2_first.x * x, y: 0, z: 0};
 						if(glo.coordsType == 'spheric'){ pos = rotateByMatrix(pos, 0, y, z); }
@@ -1251,6 +1369,17 @@ f = {
 							pos = rotateByMatrix(pos, 0, 0, y);
 							pos.z = z;
 						}
+						x = pos.x; y = pos.y; z = pos.z;
+						var vect3 = new BABYLON.Vector3(x,y,z);
+						vect3 = BABYLON.Vector3.Normalize(vect3);
+						xN = vect3.x; yN = vect3.y; zN = vect3.z;
+						var µN = xN*yN*zN;
+						var $N = (xN+yN+zN)/3;
+						var µ$N = µN*$N; var $µN = µN+$N;
+						var µµN = µ$N*$µN;
+
+						var O = Math.acos(y/(h(x,y,z)));
+						var T = Math.atan2(z, x) ;
 						if(isBeta){
 							alpha = eval(f.alpha);
 							beta = eval(f.beta);
@@ -1265,8 +1394,8 @@ f = {
 						}
 
 						this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-	  				path.push(this.new_p2);
-	  				paths.push(this.new_p2);
+						path.push(this.new_p2);
+						paths.push(this.new_p2);
 						if(nMod%2==0){
 							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 							line.color = color_line;
@@ -2994,9 +3123,7 @@ function exportMesh(exportFormat){
   }
 
 	if(exportFormat != "json"){
-	  var serializedMesh = BABYLON.SceneSerializer.SerializeMesh(glo.ribbon);
-
-	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(serializedMesh); }
+	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon)); }
 	  else if(exportFormat == "obj"){ var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]); }
 
 		var filename = $("#filename").val();
@@ -3444,4 +3571,9 @@ function firstInputToOthers(){
 	glo.params.text_input_y 	= val;
 
 	make_curves();
+}
+
+function cameraOnPos(pos){
+	glo.camera.setTarget(new BABYLON.Vector3(pos.x, pos.y, pos.z));
+	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 }

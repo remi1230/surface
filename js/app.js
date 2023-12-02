@@ -1185,7 +1185,7 @@ f = {
 
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
-					if(n_dim%2==0){
+					if(n_dim%2==0 || glo.stepByStepFast){
 						line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 						line.color = color_line;
 						glo.lines_v.push(line);
@@ -1225,7 +1225,7 @@ f = {
 
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
-					if(n_dim%2==0){
+					if(n_dim%2==0 || glo.stepByStepFast){
 						line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 						line.color = color_line;
 						glo.lines_v.push(line);
@@ -1314,7 +1314,7 @@ f = {
 
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
-						if(n%2==0){
+						if(n%2==0 || glo.stepByStepFast){
 							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 							line.color = color_line;
 							glo.lines_v.push(line);
@@ -1355,7 +1355,7 @@ f = {
 	
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
-						if(n%2==0){
+						if(n%2==0 || glo.stepByStepFast){
 							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 							line.color = color_line;
 							glo.lines_v.push(line);
@@ -1396,7 +1396,7 @@ f = {
 						this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 						path.push(this.new_p2);
 						paths.push(this.new_p2);
-						if(nMod%2==0){
+						if(nMod%2==0 || glo.stepByStepFast){
 							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
 							line.color = color_line;
 							glo.lines_v.push(line);
@@ -1591,7 +1591,7 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/mCol([^,%*+-/)])/g, 'mCol*$1');
 			f[prop] = f[prop].replace(/O([^,%*+-/)])/g, 'O*$1');
 			f[prop] = f[prop].replace(/T([^,%*+-/)])/g, 'T*$1');
-			f[prop] = f[prop].replace(/e([^,%*+-/)])/g, 'e*$1');
+			f[prop] = f[prop].replace(/e([^,%*+-/)pi])/g, 'e*$1');
 
 			f[prop] = f[prop].replace(/\)([^,%*+-/)'])/g, ')*$1');
 			f[prop] = f[prop].replace(/(\d+)([^,%*+-/.\d)])/g, '$1*$2');
@@ -1604,14 +1604,18 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/sin\*/g,"sin");
 			f[prop] = f[prop].replace(/tan\*/g,"tan");
 			f[prop] = f[prop].replace(/sign\*/g,"sign");
-			f[prop] = f[prop].replace(/logten\*/g,"logten");
+			f[prop] = f[prop].replace(/logte\*n\*/g,"logten");
 			f[prop] = f[prop].replace(/hy\*pot/g,"hypot");
+			f[prop] = f[prop].replace(/fact_de\*c/g,"fact_dec");
 			f[prop] = f[prop].replace(/mx\*/g,"mx");
 			f[prop] = f[prop].replace(/my\*/g,"my");
 			f[prop] = f[prop].replace(/mz\*/g,"mz");
+			f[prop] = f[prop].replace(/e\*x/g,"ex");
 			f[prop] = f[prop].replace(/ex\*/g,"ex");
+			f[prop] = f[prop].replace(/ep\*i/g, 'e*pi');
 		}
 	}
+	return f;
 }
 
 function make_curves(u_params = {

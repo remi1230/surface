@@ -371,13 +371,13 @@ $('#univers_div').keypress(function(e) {
 
         break;
   		case code_car("Q"):
-  		case code_car("Q"):
+  		case code_car("q"):
         firstInputToOthers();
 
         break;
-  		case code_car("Q"):
-  		case code_car("Q"):
-        firstInputToOthers();
+  		case code_car("N"):
+  		case code_car("n"):
+        glo.stepByStepFast = !glo.stepByStepFast;
 
         break;
     }

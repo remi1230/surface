@@ -702,8 +702,8 @@ function add_inputs_equations(){
   }
 
   add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
-  add_input(panel, "Y", "u*sin(v)", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
-  add_input(panel, "Z", "u*cos(v)*sin(u)", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
+  add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
+  add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
   add_input(panel, "Alpha", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
   add_input(panel, "Bêta", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
 

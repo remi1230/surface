@@ -2319,6 +2319,7 @@ function switchCoords(){
 	glo.coordinatesType.next();
 	switchDrawCoordsType();
 	add_radios();
+	glo.formesSuit = false;
 }
 
 function make_planes(){

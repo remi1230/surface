@@ -201,6 +201,11 @@ $('#univers_div').keypress(function(e) {
         resetEquationsParamSliders();
 
   			break;
+  		case code_car('<'):
+         glo.formesSuit = !glo.formesSuit;
+         add_radios(true);
+
+  			break;
   		case code_car('a'):
         if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
         glo.playWithColMode.next();

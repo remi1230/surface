@@ -338,7 +338,7 @@ function add_lines_and_dim_buttons(){
   add_button("but_grid", "GRID", 60, 30, 0, 0, function(){
     glo.grid_visible = !glo.grid_visible;
     if(glo.first_axis_visible){ showAxis(glo.axis_size, 1); glo.first_axis_visible = false; glo.axis_visible = true; }
-    if(glo.first_grid_visible){ showGrid(20, 10, 20, 1); glo.first_grid_visible = false; glo.grid_visible = true; }
+    if(glo.first_grid_visible){ showGrid(20, 20, 20, 1); glo.first_grid_visible = false; glo.grid_visible = true; }
     else{ switch_grid(); }
   });
   add_button("but_plan", "PLAN", 60, 30, 10, 0, function(){
@@ -714,7 +714,7 @@ function add_inputs_equations(){
   add_input(panelColorsEquations, "Bêta", "", "inputColorBeta", "header right third", "input equation right third", "text_input_color_beta", "input_color_beta", true);
 }
 
-function add_radios(){
+function add_radios(suit = false){
   var topShift = 0;
   var topShiftLineDim = 0;
   glo.formes.select.map( forme => {
@@ -765,18 +765,28 @@ function add_radios(){
     glo.allControls.getByName('panelRadios').top = top_panel + '%';
     glo.allControls.getByName('lineDim').top = top_panel_line_dim + '%';
     glo.formes.select.map( forme => {
-      if(forme.typeCoords != glo.coordsType){
         var radio_form = glo.radios_formes.getByName("Radio " + forme.text);
         if(radio_form != false){
           radio_form.button.dispose();
           radio_form.header.dispose();
         }
-      }
     });
   }
 
   glo.formes.select.map( forme => {
-    if(forme.typeCoords == glo.coordsType){ addRadio(forme.text, panel, "forms", forme.check); }
+    if(forme.typeCoords == glo.coordsType){
+      if(!suit){
+        if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+      }
+      else{
+        if(glo.formesSuit){
+          if(forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+        }
+        else{
+          if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+        }
+      }
+    }
   });
 
   glo.first_radio = false;

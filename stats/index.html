@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Thingiverse STATS</title>
+    <link rel="icon" type="image/png" href="../logo.png">
+    <link rel="stylesheet" href="stats.css">
+    <script src="stats.js" defer></script>
+  </head>
+  <body>
+    <h2 id="pageTitle" class="centerContentH">Thingiverse Statistiques</h2>
+    <div class="centerContentH">
+      <table id="statsTable">
+          <thead>
+              <tr id="trTheadStatsTable" class="cursorPointer" onclick="sortDatasStatsOnClick(event); ">
+                  <th data-order="0" data-desc="true">Nom</th>
+                  <th class="sort_desc" data-order="1" data-desc="false">Vues</th>
+                  <th data-order="2" data-desc="true">Donws</th>
+                  <th data-order="3" data-desc="true">Likes</th>
+                  <th data-order="4" data-desc="true">D/V</th>
+                  <th data-order="5" data-desc="true">L/V</th>
+                  <th data-order="6" data-desc="true">L/D</th>
+                  <th data-order="7" data-desc="true">VDL</th>
+              </tr>
+          </thead>
+          <tbody id="statsBodyTable"></tbody>
+          <tfoot id="statsFootTable"></tbody>
+      </table>
+    </div>
+  </body>
+</html>

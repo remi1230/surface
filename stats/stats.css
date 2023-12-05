@@ -1,0 +1,54 @@
+body{
+  background-color: #313131;
+}
+table{
+    border: 2px maroon solid;
+    border-collapse: separate;
+    text-align: center;
+    border-spacing: 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+td, th{
+  border-left: 1px #ccc solid;
+  border-top: 1px #ccc solid;
+  padding: 5px;
+  width: 60px;
+}
+tbody tr:hover {
+  background-color: CadetBlue;
+  color: #eee;
+}
+.alignLeft{
+  text-align: left;
+  width: 190px
+}
+.centerContentH{
+  display: flex;
+  justify-content: center;
+}
+.cursorPointer{
+  cursor: pointer;
+}
+.sort_asc::after{
+  font-size: 12px;
+  padding-left: 5px;
+  content: '▲';
+}
+.sort_desc::after{
+  font-size: 12px;
+  padding-left: 5px;
+  content: '▼';
+}
+.oddTr{
+  background-color: rgb(250, 255, 255);
+}
+.evenTr{
+  background-color: rgb(255, 255, 250);
+}
+#pageTitle{
+  color: #eee;
+}
+#trTheadStatsTable, #totauxStatsTable{
+  background-color: #eee;
+}

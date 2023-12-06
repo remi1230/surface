@@ -2,7 +2,7 @@ const glo = {
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
-                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594],
+                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673],
     res        : [],   
     datasStats : [],   
 };
@@ -10,6 +10,8 @@ const glo = {
 const round2 = val => Math.round(10000 * (val), 2) / 100;
 
 let statsBodyTable = document.getElementById('statsBodyTable');
+
+const nanToZero = val => !isNaN(val) ? val : 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
     await getStats();
@@ -23,12 +25,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         let LonV = round2(likes/views);
         let LonD = round2(likes/downs);
         let VDL  = views + (downs*5) + (likes*50);
+        let time = Math.round((new Date() - new Date(r.modified)) / 1000 / 3600 / .24, 1) / 100;
+        let VDLT = Math.round(100 * VDL/time, 2) / 100;
 
-        DonV = !isNaN(DonV) ? DonV : 0; 
-        LonV = !isNaN(LonV) ? LonV : 0; 
-        LonD = !isNaN(LonD) ? LonD : 0; 
+        DonV = nanToZero(DonV); 
+        LonV = nanToZero(LonV); 
+        LonD = nanToZero(LonD); 
+        VDL  = nanToZero(VDL); 
+        time = nanToZero(time); 
+        VDLT = nanToZero(VDLT); 
 
-        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL]);
+        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT]);
     });
 
     sortDatasStats();
@@ -82,19 +89,22 @@ function datasToTable(){
 function totauxStats(){
     const datasLength = glo.datasStats.length;
 
-    let totV = 0, totD = 0, totL = 0, totDV = 0, totLV = 0, totLD = 0, totVDL = 0;
+    let totV = 0, totD = 0, totL = 0, totDV = 0, totLV = 0, totLD = 0, totVDL = 0, totTime = 0, totVDLT = 0;
     glo.datasStats.forEach(rowDatas => {
-        totV   += rowDatas[1];
-        totD   += rowDatas[2];
-        totL   += rowDatas[3];
-        totDV  += rowDatas[4];
-        totLV  += rowDatas[5];
-        totLD  += rowDatas[6];
-        totVDL += rowDatas[7];
+        totV    += rowDatas[1];
+        totD    += rowDatas[2];
+        totL    += rowDatas[3];
+        totDV   += rowDatas[4];
+        totLV   += rowDatas[5];
+        totLD   += rowDatas[6];
+        totVDL  += rowDatas[7];
+        totTime += rowDatas[8];
+        totVDLT += rowDatas[9];
     });
 
     return [totV, totD, totL, Math.round(100 * totDV/datasLength, 2) / 100, Math.round(100 * totLV/datasLength, 2)/100,
-            Math.round(100 * totLD/datasLength, 2)/100, Math.round(100 * totVDL/datasLength, 2)/100];
+            Math.round(100 * totLD/datasLength, 2)/100, Math.round(100 * totVDL/datasLength, 2)/100,
+            Math.round(100 * totTime/datasLength, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
 }
 
 function sortDatasStats(numOrder = 1, desc = 'true'){

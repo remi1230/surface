@@ -84,9 +84,11 @@ var glo = {
 			{text: "Sphere tetra", typeCoords: 'quaternion', udef: PI, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "12", fy: "12cu", fz: "12cv", alpha: "12cupv", beta: "pi", check: false, },
 			{text: "Spiral", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uv", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
 			{text: "Ying-Yang", typeCoords: 'quaternion', udef: 2*PI, vdef: (11/6)*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, },
-			{text: "Flower", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "8h(u,v)", fy: "1", fz: "sh(u,v)u", alpha: "sh(u,v)v", beta: "sh(u,v)vu", check: false, },
-			{text: "Flower2", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "8sh(c(0.5u)G,c(0.5v)G)", fy: "1", fz: "sh(cu,cv)v", alpha: "sh(u,v)u", beta: "sh(u,v)vu", check: false, },
-			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "12", fz: "u", alpha: "v", beta: "pi", check: false, },
+			{text: "Jewel", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "12u²", fy: "u", fz: "v", alpha: "pi", beta: "cusv", check: false, },
+			{text: "Flower", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "8h(u,v)", fy: "sh(u,v)u", fz: "sh(u,v)v", alpha: "sh(u,v)vu", beta: "", check: false, },
+			{text: "Flower2", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "8sh(c(0.5u)G,c(0.5v)G)", fy: "sh(cu,cv)v", fz: "sh(u,v)u", alpha: "sh(u,v)vu", beta: "", check: false, },
+			{text: "Shell", typeCoords: 'quaternionRotAxis', udef: 4.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "u", fy: "u", fz: "v", alpha: "1", beta: "", check: false, },
+			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, },
 		],
 		setFormeSelect: function(txt, coordsType, draw = true){
 			this.select.map(sel => {

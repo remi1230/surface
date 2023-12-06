@@ -983,11 +983,11 @@ function CurvesByQuaternionRotAxis(parametres = {
 	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
 },
 f = {
-	r     : glo.params.text_input_x,
-	r2    : glo.params.text_input_y,
-	alpha : glo.params.text_input_z,
-	beta  : glo.params.text_input_alpha,
-	w     : glo.params.text_input_beta,
+	r      : glo.params.text_input_x,
+	alpha  : glo.params.text_input_y,
+	beta   : glo.params.text_input_z,
+	w      : glo.params.text_input_alpha,
+	alpha2 : glo.params.text_input_beta,
 }, dim_one = glo.dim_one)
 {
 	function mx(index = 1, val_to_return = 0, p = path){
@@ -1061,9 +1061,14 @@ f = {
 	this.paths = [];
 	this.lines = [];
 
+	var isAlpha2 = false;
+	if(glo.params.text_input_beta != ""){
+		isAlpha2 = true;
+	}
+
   var is_v = false;
   if(f.r.lastIndexOf('v') != -1 || f.r.lastIndexOf('V') != -1 ||
-     f.r2.lastIndexOf('v') != -1 || f.r2.lastIndexOf('V') != -1 ||
+     f.alpha2.lastIndexOf('v') != -1 || f.alpha2.lastIndexOf('V') != -1 ||
      f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
      f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
      f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1)
@@ -1077,10 +1082,10 @@ f = {
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
 
 	if(f.r == ""){ f.r = 0; }
-	if(f.x == ""){ f.x = 0; }
-	if(f.y == ""){ f.y = 0; }
-	if(f.z == ""){ f.z = 0; }
+	if(f.alpha == ""){ f.alpha = 0; }
+	if(f.beta == ""){ f.beta = 0; }
 	if(f.w == ""){ f.w = 0; }
+	if(f.alpha2 == ""){ f.alpha2 = 0; }
 
 	var n = 0;
 	var path = [];
@@ -1091,19 +1096,19 @@ f = {
 		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
 			ind_u = u;
 
-			r     = eval(f.r);
-			r2 	  = eval(f.r2);
-			alpha = eval(f.alpha);
-			beta  = eval(f.beta);
-			w     = eval(f.w);
+			r      = eval(f.r);
+			alpha  = eval(f.alpha);
+			beta   = eval(f.beta);
+			w      = eval(f.w);
+			alpha2 = eval(f.alpha2);
 
 			if(r == Infinity || r == -Infinity){ r = 0; }
-			if(r2 == Infinity || r2 == -Infinity){ r2 = 0; }
+			if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 			if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 			if(beta == Infinity || beta == -Infinity){ beta = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r2, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x, 0, 0);
 			let pointRot        = rotateByMatrix(point, 0, alpha, beta);
 			let axis  			= new BABYLON.Vector3(pointRot.x, pointRot.y, pointRot.z);
 
@@ -1124,6 +1129,12 @@ f = {
 
 			var O = Math.acos(y/(h(x,y,z)));
 			var T = Math.atan2(z, x) ;
+
+			if(isAlpha2){
+				alpha2 = eval(f.alpha2);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, 0);
+			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 			path.push(this.p1_first);
@@ -1144,19 +1155,19 @@ f = {
 		for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
 			ind_v = v;
 
-			r     = eval(f.r);
-			r2 	  = eval(f.r2);
-			alpha = eval(f.alpha);
-			beta  = eval(f.beta);
-			w     = eval(f.w);
+			r      = eval(f.r);
+			alpha  = eval(f.alpha);
+			beta   = eval(f.beta);
+			w      = eval(f.w);
+			alpha2 = eval(f.alpha2);
 
 			if(r == Infinity || r == -Infinity){ r = 0; }
-			if(r2 == Infinity || r2 == -Infinity){ r2 = 0; }
+			if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 			if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 			if(beta == Infinity || beta == -Infinity){ beta = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r2, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x, 0, 0);
 			let pointRot        = rotateByMatrix(point, 0, alpha, beta);
 			let axis  			= new BABYLON.Vector3(pointRot.x, pointRot.y, pointRot.z);
 
@@ -1176,7 +1187,13 @@ f = {
 			var µµN = µ$N*$µN;
 
 			var O = Math.acos(y/(h(x,y,z)));
-			var T = Math.atan2(z, x) ;
+			var T = Math.atan2(z, x);
+
+			if(isAlpha2){
+				alpha2 = eval(f.alpha2);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, 0);
+			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -2535,8 +2552,20 @@ function switchEqSphericToCylindrical(){
 	switchCoords();
 }
 
-function switchCoords(){
-	glo.coordinatesType.next();
+function switchCoords(normalSens = true){
+	if(normalSens){ glo.coordinatesType.next(); }
+	else{
+		const currentCoordType = glo.coordsType;
+		
+		let nextCoordstype = '';
+		while(glo.coordinatesType.next().value !== currentCoordType){
+			nextCoordstype = glo.coordsType;
+		}
+		glo.coordsType = nextCoordstype;
+
+		while(glo.coordinatesType.next().value !== nextCoordstype){}
+	}
+
 	switchDrawCoordsType();
 	add_radios();
 	glo.formesSuit = false;
@@ -3470,10 +3499,10 @@ function switchDrawCoordsType(update_slider_uv = true){
 			break;
 		case 'quaternionRotAxis':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'R2');
-			changeHeaderText('header_inputZ', 'Alpha');
-			changeHeaderText('header_inputAlpha', 'Bêta');
-			changeHeaderText('header_inputBeta', 'W');
+			changeHeaderText('header_inputY', 'Alpha');
+			changeHeaderText('header_inputZ', 'Bêta');
+			changeHeaderText('header_inputAlpha', 'W');
+			changeHeaderText('header_inputBeta', 'Alpha 2');
 			break;
 		case 'cylindrical':
 			changeHeaderText('header_inputX', 'R');
@@ -3757,6 +3786,10 @@ function replaceLast(x, y, z){
 function cpow(val, exp){
 	if(parseInt(exp) == exp){ return val < 0 && exp%2 == 0 ? -pow(val, exp) : pow(val, exp); }
 	else{ return val < 0 ? -pow(-val, exp) : pow(val, exp); }
+}
+
+function cpowi(val, exp){
+	return pow(Math.abs(val), exp);
 }
 
 function cpowh(...dists){

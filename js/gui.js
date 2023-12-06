@@ -326,11 +326,12 @@ function add_lines_and_dim_buttons(){
   parmamControl(panel, 'lineDim', 'panel left first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, event){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     parmamControl(button, name, 'button left first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
-    button.onPointerUpObservable.add(function() {
-      event();
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
     });
     panel.addControl(button);
   }
@@ -345,9 +346,7 @@ function add_lines_and_dim_buttons(){
     glo.planes_visible = !glo.planes_visible;
     make_planes();
   });
-  add_button("but_coord", "COORD", 70, 30, 10, 0, function(){
-    switchCoords();
-  });
+  add_button("but_coord", "COORD", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
   add_button("but_lines_state", "LINES", 60, 30, 10, 0, function(){
     glo.allControls.getByName("but_lines_state").textBlock.text = glo.drawType.next().value;
     if(glo.ribbon_visible){ glo.ribbon.visibility = 1; }

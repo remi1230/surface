@@ -27,8 +27,8 @@ function addCommonTools(obj){
 
 	obj.cp = function(val, coeff = 1){ return cos(coeff*PI*val); };
 	obj.sp = function(val, coeff = 1){ return sin(coeff*PI*val); };
-	obj.ch = function(val1, val2, coeff = 1){ return cos(h(coeff*PI*val1, coeff*PI*val2)); };
-	obj.sh = function(val1, val2, coeff = 1){ return sin(h(coeff*PI*val1, coeff*PI*val2)); };
+	obj.ch = function(val1, val2, val3 = 0, coeff = 1){ return cos(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
+	obj.sh = function(val1, val2, val3 = 0, coeff = 1){ return sin(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
 
 	obj.b = function(val){
 		if(val > 0){ return val < 1 ? val + 1 : val; }
@@ -1828,6 +1828,7 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/O([^,%*+-/)])/g, 'O*$1');
 			f[prop] = f[prop].replace(/T([^,%*+-/)])/g, 'T*$1');
 			f[prop] = f[prop].replace(/e([^,%*+-/)pi])/g, 'e*$1');
+			f[prop] = f[prop].replace(/Z([^,%*+-/)])/g, 'Z*$1');
 
 			f[prop] = f[prop].replace(/\)([^,%*+-/)'])/g, ')*$1');
 			f[prop] = f[prop].replace(/(\d+)([^,%*+-/.\d)])/g, '$1*$2');
@@ -3378,7 +3379,10 @@ function exportMesh(exportFormat){
 
 	if(exportFormat != "json"){
 	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon)); }
-	  else if(exportFormat == "obj"){ var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]); }
+	  else if(exportFormat == "obj"){
+		var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]);
+		//var strMLT = BABYLON.OBJExport.MTL(glo.ribbon, $("#filename").val(), true);
+	}
 
 		var filename = $("#filename").val();
 	  if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1){
@@ -3404,6 +3408,15 @@ function exportMesh(exportFormat){
 
 	$("#exportButton").attr("href", objectUrl);
 	$("#exportButton").attr("download", filename);
+
+	/*if(strMLT){
+		var blob = new Blob ( [ strMLT ], { type : "octet/stream" } );
+		objectUrl = (window.webkitURL || window.URL).createObjectURL(blob);
+
+		$("#exportButton").attr("href", objectUrl);
+		$("#exportButton").attr("download", $("#filename").val() + ".mlt");
+	}*/
+
 	$('#exportModal').modal('close');
 
 	return false;

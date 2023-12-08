@@ -2,7 +2,7 @@ const glo = {
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
-                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673],
+                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673, 6359424],
     res        : [],   
     datasStats : [],   
 };
@@ -11,7 +11,7 @@ const round2 = val => Math.round(10000 * (val), 2) / 100;
 
 let statsBodyTable = document.getElementById('statsBodyTable');
 
-const nanToZero = val => !isNaN(val) ? val : 0;
+const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
     await getStats();
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let LonD = round2(likes/downs);
         let VDL  = views + (downs*5) + (likes*50);
         let time = Math.round((new Date() - new Date(r.modified)) / 1000 / 3600 / .24, 1) / 100;
-        let VDLT = Math.round(100 * VDL/time, 2) / 100;
+        let VDLT = Math.round(100 * VDL/(time > 1 ? time : 1), 2) / 100;
 
         DonV = nanToZero(DonV); 
         LonV = nanToZero(LonV); 

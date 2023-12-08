@@ -19,6 +19,7 @@ var num_mesh = 0;
 var r = 1;
 const PI = Math.PI;
 const e  = Math.E;
+const Z = (1+Math.sqrt(5))*0.5;
 var glo = {
 	formes:{
 		select:[
@@ -40,6 +41,7 @@ var glo = {
 			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "Gcv", beta:"Gcv", check: false, },
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", alpha: "h(u,v)/20", check: false, },
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxN,vyN)+cusvmz(1,1)0.1", alpha: "h(u,v)/20", check: false, },
+			{text: "Horn", typeCoords: 'cartesian', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "usv", fy: "ucv", fz: "2u²-3", alpha: "u²", check: false, suit: true},
 			{text: "CircleSpi", typeCoords: 'spheric', udef: 1.5*PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "4u", fy: "v", fz: "exp(1/l(2u))", check: false, },
 			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4u", fy: "v", fz: "2cupvcv", check: false, },
 			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cusv", fy: "ucusv", fz: "vcusv", check: false, },
@@ -232,7 +234,7 @@ var glo = {
 	},
 	coordsNomrType: 'cartesian',
 	coordinatesNomrType: function* (){
-		const coordinates = ['spheric', 'cylindrical', 'quaternion', 'quaternionRotAxis', 'cartesian'];
+		const coordinates = ['spheric', 'cylindrical', 'cartesian'];
 		while (true) {
 			for (const coord of coordinates) {
 				this.coordsNomrType = coord;

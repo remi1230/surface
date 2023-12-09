@@ -60,6 +60,7 @@ var glo = {
 			{text: "Spiral penta curve", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 5,  fx: "6u", fy: "pi/4", fz: "2(u+v)", alpha: "u/(3+2/3)", check: false, },
 			{text: "Twisted weathercock", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "pi+c(12(u+v))", fy: "u", fz: "v", alpha: "u/1.1", check: false, },
 			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256, fx: "4u", fy: "v", fz: "6.3cv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, suit: true},
+			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "12c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true},
 			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "5", fy: "v", fz: "5u", check: false, },
 			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "us(fact(v))", fz: "6ucvs(60u)", check: false},
 			{text: "Heart", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 96,  fx: "2uv", fy: "usv", fz: "cvs(60u)", alpha: "u", check: false, },

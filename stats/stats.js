@@ -14,6 +14,12 @@ let statsBodyTable = document.getElementById('statsBodyTable');
 const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
+    await getDatas();
+    sortDatasStats();
+    datasToTable();
+});
+
+async function getDatas(){
     await getStats();
     glo.res.forEach(r => {
         const name  = r.name;
@@ -37,10 +43,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT]);
     });
-
-    sortDatasStats();
-    datasToTable();
-});
+}
 
 function datasToTable(){
     removeAllChildren(statsBodyTable);
@@ -144,6 +147,8 @@ function sortDatasStatsOnClick(e){
         }
     });
 
+    glo.sortNumber = [e.target.dataset.order, e.target.dataset.desc];
+
     sortDatasStats(e.target.dataset.order, e.target.dataset.desc);
     e.target.dataset.desc = desc ? 'false' : 'true';
 
@@ -169,4 +174,12 @@ function removeAllChildren(element) {
     while (element.firstChild) {
         element.removeChild(element.firstChild);
     }
+}
+
+async function refreshDatas(){
+    glo.res        = [];
+    glo.datasStats = [];
+    await getDatas();
+    sortDatasStats(...glo.sortNumber);
+    datasToTable();
 }

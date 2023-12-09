@@ -52,3 +52,7 @@ tbody tr:hover {
 #trTheadStatsTable, #totauxStatsTable{
   background-color: #eee;
 }
+#refresh{
+  margin: -3px 0 0 20px;
+  cursor: pointer;
+}

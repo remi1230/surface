@@ -132,7 +132,7 @@ $('#univers_div').keypress(function(e) {
         switchWritingType(false);
 
   			break;
-  		case code_car(":"):
+  		case code_car(","):
         switchWritingType(true);
 
   			break;
@@ -253,6 +253,18 @@ $('#univers_div').keypress(function(e) {
         makeColors();
 
   			break;
+      case code_car(":"):
+         glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
+
+      break;
+      case code_car("!"):
+         glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
+
+      break;
+      case code_car(")"):
+         glo.lineSystem = !glo.lineSystem;
+
+      break;
   	}
   }
   else{
@@ -385,6 +397,11 @@ $('#univers_div').keypress(function(e) {
         glo.stepByStepFast = !glo.stepByStepFast;
 
         break;
+      case code_car("?"):
+      glo.meshWithTubes = !glo.meshWithTubes;
+      meshWithTubes();
+
+         break;
     }
   }
 });

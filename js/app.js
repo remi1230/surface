@@ -109,12 +109,12 @@ f = {
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	this.min_u = parametres.u.min;
+	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
 	this.nb_steps_u = parametres.u.nb_steps;
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
-	this.min_v = parametres.v.min;
+	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
 	this.nb_steps_v = parametres.v.nb_steps;
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
@@ -250,8 +250,11 @@ f = {
 
 			path.push(new BABYLON.Vector3(x, y, z));
 			this.paths.push(path);
-      index_u++; n++;
+      		index_u++; n++;
 		}
+
+		glo.lines = this.paths;
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -308,6 +311,8 @@ f = {
 		}
 
 		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
+		glo.lines = this.paths;
 
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
@@ -510,6 +515,9 @@ function drawNormalEquations(){
 				}
 				glo.curves.pathsSecond.push(pathNow);
 			}
+
+			glo.lines = glo.curves.pathsSecond;
+
 			glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.pathsSecond, }, glo.scene);
 			glo.curves.lineSystem.color = glo.lineColor;
 			glo.curves.lineSystem.alpha = glo.ribbon_alpha;
@@ -595,12 +603,12 @@ f = {
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = new BABYLON.Vector3(1,0,0);
 
-	this.min_u = parametres.u.min;
+	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
 	this.nb_steps_u = parametres.u.nb_steps;
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
-	this.min_v = parametres.v.min;
+	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
 	this.nb_steps_v = parametres.v.nb_steps;
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
@@ -647,9 +655,9 @@ f = {
 		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
 			ind_u = u;
 
-			r = eval(f.r);
+			r     = eval(f.r);
 			alpha = eval(f.alpha);
-			beta = eval(f.beta);
+			beta  = eval(f.beta);
 
 			if(r == Infinity || r == -Infinity){ r = 0; }
 			if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
@@ -694,6 +702,9 @@ f = {
 			path = [];
       index_u++; n++;
 		}
+
+		glo.lines = this.paths;
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -706,11 +717,9 @@ f = {
 			for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
 				ind_v = v;
 
-				r = eval(f.r);
-				alpha = eval(f.alpha);
-				beta = eval(f.beta);
-				alpha2 = eval(f.alpha);
-				beta2 = eval(f.beta);
+				r      = eval(f.r);
+				alpha  = eval(f.alpha);
+				beta   = eval(f.beta);
 
 				if(r == Infinity || r == -Infinity){ r = 0; }
 				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
@@ -759,6 +768,8 @@ f = {
 		}
 
 		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
+		glo.lines = this.paths;
 
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
@@ -837,12 +848,12 @@ f = {
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = new BABYLON.Vector3(1,0,0);
 
-	this.min_u = parametres.u.min;
+	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
 	this.nb_steps_u = parametres.u.nb_steps;
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
-	this.min_v = parametres.v.min;
+	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
 	this.nb_steps_v = parametres.v.nb_steps;
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
@@ -917,6 +928,9 @@ f = {
 			path = [];
       		index_u++; n++;
 		}
+
+		glo.lines = this.paths;
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -970,6 +984,8 @@ f = {
 	}
 
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
+	glo.lines = this.paths;
 
 	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
@@ -1048,12 +1064,12 @@ f = {
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = new BABYLON.Vector3(1,0,0);
 
-	this.min_u = parametres.u.min;
+	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
 	this.nb_steps_u = parametres.u.nb_steps;
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
-	this.min_v = parametres.v.min;
+	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
 	this.nb_steps_v = parametres.v.nb_steps;
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
@@ -1143,6 +1159,9 @@ f = {
 			path = [];
       		index_u++; n++;
 		}
+
+		glo.lines = this.paths;
+
 		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
@@ -1206,6 +1225,8 @@ f = {
 	}
 
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+
+	glo.lines = this.paths;
 
 	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
@@ -1371,11 +1392,11 @@ f = {
   while(true){
 		setParams();
 		var is_v = false;
-		if(f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
-	     f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
-	     f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
-	     f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
-	     f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1)
+		if(f.x != 0 || f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
+		   f.y != 0 || f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
+		   f.z != 0 || f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
+		   f.alpha != 0 || f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
+		   f.beta != 0 || f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1)
 	     { is_v = true; }
 		if(is_v){ paths = []; }
 		var nMod = 1;
@@ -3372,7 +3393,7 @@ function download_JSON_mesh(){
 }
 
 var objectUrl;
-function exportMesh(exportFormat){
+async function exportMesh(exportFormat){
 	if(objectUrl) {
     window.URL.revokeObjectURL(objectUrl);
   }
@@ -3380,8 +3401,39 @@ function exportMesh(exportFormat){
 	if(exportFormat != "json"){
 	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon)); }
 	  else if(exportFormat == "obj"){
-		var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]);
-		//var strMLT = BABYLON.OBJExport.MTL(glo.ribbon, $("#filename").val(), true);
+		if(!glo.lineSystem){ var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]); }
+		else{
+			/*let meshesToExport = [];
+			glo.lines.forEach(line => {
+				meshesToExport.push(BABYLON.MeshBuilder.CreateTube("tube", {path: line}, glo.scene));
+			});
+			let meshToExport = BABYLON.Mesh.MergeMeshes(meshesToExport, true);
+			BABYLON.OBJExport.OBJ([meshToExport]);*/
+
+			let meshesToExport = [];
+			glo.lines.forEach(line => {
+				if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
+					let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: 0.1}, glo.scene);
+					if (tube) {
+						meshesToExport.push(tube);
+					} else {
+						console.log("Tube creation failed for line:", line);
+					}
+				}
+			});
+
+			if (meshesToExport.length > 0) {
+				let meshToExport = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
+				if (meshToExport) {
+					var strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
+					glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshToExport], true, true);
+				} else {
+					console.log("Mesh fusion failed");
+				}
+			} else {
+				console.log("No meshes to export");
+			}
+		}
 	}
 
 		var filename = $("#filename").val();
@@ -3420,6 +3472,37 @@ function exportMesh(exportFormat){
 	$('#exportModal').modal('close');
 
 	return false;
+}
+
+async function meshWithTubes(){
+	if(glo.meshWithTubes){
+		let meshesTubes = [];
+		glo.lines.forEach(line => {
+			if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
+				let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: 0.1}, glo.scene);
+				if (tube) {
+					meshesTubes.push(tube);
+				} else {
+					console.log("Tube creation failed for line:", line);
+				}
+			}
+		});
+
+		if (meshesTubes.length > 0) {
+			let meshTubes = await BABYLON.Mesh.MergeMeshes(meshesTubes, true, true);
+			if (meshTubes) {
+				glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshTubes], true, true);
+			} else {
+				console.log("Mesh fusion failed");
+			}
+		} else {
+			console.log("No meshes to export");
+		}
+	}
+	else{
+		make_curves();
+		make_ribbon();
+	}
 }
 
 function paramsToControls(){
@@ -3502,6 +3585,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Bêta');
 			changeHeaderText('header_inputAlpha', 'Alpha 2');
 			changeHeaderText('header_inputBeta', 'Bêta 2');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "SPHE"; 
 			break;
 		case 'quaternion':
 			changeHeaderText('header_inputX', 'R');
@@ -3509,6 +3594,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Y');
 			changeHeaderText('header_inputAlpha', 'Z');
 			changeHeaderText('header_inputBeta', 'W');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "QUAC"; 
 			break;
 		case 'quaternionRotAxis':
 			changeHeaderText('header_inputX', 'R');
@@ -3516,6 +3603,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Bêta');
 			changeHeaderText('header_inputAlpha', 'W');
 			changeHeaderText('header_inputBeta', 'Alpha 2');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "QUAR"; 
 			break;
 		case 'cylindrical':
 			changeHeaderText('header_inputX', 'R');
@@ -3523,6 +3612,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Z');
 			changeHeaderText('header_inputAlpha', 'Alpha 2');
 			changeHeaderText('header_inputBeta', 'Bêta 2');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "CYL"; 
 			break;
 		case 'cartesian':
 			changeHeaderText('header_inputX', 'X');
@@ -3530,6 +3621,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Z');
 			changeHeaderText('header_inputAlpha', 'Alpha');
 			changeHeaderText('header_inputBeta', 'Bêta');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "CART"; 
 			break;
 	}
 }

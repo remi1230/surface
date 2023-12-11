@@ -2,9 +2,11 @@ const glo = {
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
-                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673, 6359424],
+                  6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
+                  6359424, 6366276, 6368457],
     res        : [],   
-    datasStats : [],   
+    datasStats : [],
+    sortNumber : ['1', 'true'],  
 };
 
 const round2 = val => Math.round(10000 * (val), 2) / 100;
@@ -142,6 +144,7 @@ function sortDatasStatsOnClick(e){
             th.dataset.desc = 'true';
         }
         else{
+           
             th.classList.remove(desc ? 'sort_asc' : 'sort_desc');
             th.classList.add(desc ? 'sort_desc' : 'sort_asc');
         }
@@ -152,6 +155,20 @@ function sortDatasStatsOnClick(e){
     sortDatasStats(e.target.dataset.order, e.target.dataset.desc);
     e.target.dataset.desc = desc ? 'false' : 'true';
 
+    datasToTable();
+}
+
+function removeAllChildren(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+async function refreshDatas(){
+    glo.res        = [];
+    glo.datasStats = [];
+    await getDatas();
+    sortDatasStats(...glo.sortNumber);
     datasToTable();
 }
 
@@ -168,18 +185,4 @@ async function getStat(id) {
     } catch (error) {
         console.log('error', error);
     }
-}
-
-function removeAllChildren(element) {
-    while (element.firstChild) {
-        element.removeChild(element.firstChild);
-    }
-}
-
-async function refreshDatas(){
-    glo.res        = [];
-    glo.datasStats = [];
-    await getDatas();
-    sortDatasStats(...glo.sortNumber);
-    datasToTable();
 }

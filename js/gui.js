@@ -319,7 +319,7 @@ function add_lines_and_dim_buttons(){
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftLineDim; }
   });
-  var top_panel = glo.topLineDimStart - topShift;
+  var top_panel = -3;
 
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: top_panel, pL: 2};
@@ -329,6 +329,7 @@ function add_lines_and_dim_buttons(){
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     parmamControl(button, name, 'button left first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+
     button.onPointerUpObservable.add(function(event) {
       if (event.buttonIndex !== 2){ eventLeft(); }
       else{ eventRight(); }
@@ -346,8 +347,8 @@ function add_lines_and_dim_buttons(){
     glo.planes_visible = !glo.planes_visible;
     make_planes();
   });
-  add_button("but_coord", "COORD", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
-  add_button("but_lines_state", "LINES", 60, 30, 10, 0, function(){
+  add_button("but_coord", "CART", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
+  add_button("but_lines_state", "LINE", 60, 30, 10, 0, function(){
     glo.allControls.getByName("but_lines_state").textBlock.text = glo.drawType.next().value;
     if(glo.ribbon_visible){ glo.ribbon.visibility = 1; }
     else{ glo.ribbon.visibility = 0; }
@@ -506,8 +507,15 @@ function add_uv_sliders(){
 
     slider.onValueChangedObservable.add(function (value) {
       if(value == 0){ value = 0.00001; }
+
       var min = -value.toFixed(2);
-      var max = value.toFixed(2);
+      var max =  value.toFixed(2);
+
+      if(glo.slidersUVOnOneSign[name]){
+        min = 0;
+        this.min = 0;
+      }
+
       glo['params'][gloPropToModify] = value;
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
@@ -719,8 +727,8 @@ function add_radios(suit = false){
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftRadios; topShiftLineDim+=glo.shiftLineDim; }
   });
-  var top_panel = glo.topRadiosStart - topShift;
-  var top_panel_line_dim = glo.topLineDimStart - topShiftLineDim;
+  var top_panel = 50;
+  var top_panel_line_dim = -3;
 
   if(glo.first_radio){
     var panel = new BABYLON.GUI.StackPanel();
@@ -744,6 +752,7 @@ function add_radios(suit = false){
 
     button.onIsCheckedChangedObservable.add(function(state) {
       if (state  && !glo.fromHisto) {
+        glo.meshWithTubes = false;
         resetClones();
         glo.formes.setFormeSelect(text, glo.coordsType);
         glo.histo.save();

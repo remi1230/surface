@@ -2,18 +2,42 @@ body{
   background-color: #313131;
 }
 table{
-    border: 2px maroon solid;
-    border-collapse: separate;
+    border-top: 2px maroon solid;
+    border-left: 2px maroon solid;
+    border-right: 2px maroon solid;
+    border-collapse: collapse;
     text-align: center;
-    border-spacing: 0;
-    border-radius: 10px;
-    overflow: hidden;
-  }
+}
+thead{
+  position: absolute;
+  top: 60px;
+  border-top: 2px maroon solid;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom: 1px #ccc solid;
+  background-color: #eee;
+  margin-left: -2px;
+  border-bottom: none;
+}
+tbody{
+  height: 100%;
+}
+tfoot{
+  position: absolute;
+  top: 889px;
+  border-bottom: 2px maroon solid;
+  border-left: 2px maroon solid;
+  border-right: 2px maroon solid;
+  margin-left: -2px;
+  background-color: #eee;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
 td, th{
   border-left: 1px #ccc solid;
   border-top: 1px #ccc solid;
   padding: 5px;
-  width: 60px;
+  width: 66px;
 }
 tbody tr:hover {
   background-color: CadetBlue;
@@ -48,11 +72,33 @@ tbody tr:hover {
 }
 #pageTitle{
   color: #eee;
+  margin-bottom: 40px;
 }
-#trTheadStatsTable, #totauxStatsTable{
-  background-color: #eee;
+#statsTableContainer{
+  height: 800px;
+  overflow-y: auto;
+}
+#nomColStatsTable{
+  width: 190px;
+  border-top-left-radius: 10px;
+  border-left: 2px maroon solid;
+  border-top: none;
+}
+#lastColStatsTable{
+  border-top-right-radius: 10px;
+  border-right: 2px maroon solid;
+  border-top: none;
 }
 #refresh{
-  margin: -3px 0 0 20px;
+  margin: -3px 20px 0 5px;
+  cursor: pointer;
+}
+#filterSymbol{
+  margin: 2px 5px 0 20px;
+  font-size: 16px;
+}
+#filterOnLikeSymbol{
+  margin: 2px 5px 0 50px;
+  font-size: 16px;
   cursor: pointer;
 }

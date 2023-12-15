@@ -752,7 +752,6 @@ function add_radios(suit = false){
 
     button.onIsCheckedChangedObservable.add(function(state) {
       if (state  && !glo.fromHisto) {
-        glo.meshWithTubes = false;
         resetClones();
         glo.formes.setFormeSelect(text, glo.coordsType);
         glo.histo.save();
@@ -890,6 +889,11 @@ function add_color_pickers(){
   picker2.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     if(glo.cloneSystem){ ribbonToColorize = glo.ribbon_clone_1; }
+    if(!ribbonToColorize.material){
+      var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+	    material.backFaceCulling  = false;
+      ribbonToColorize.material = material;
+    }
     ribbonToColorize.material.diffuseColor = value;
     glo.diffuseColor = value;
   });
@@ -899,6 +903,11 @@ function add_color_pickers(){
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     if(glo.cloneSystem){ ribbonToColorize = glo.ribbon_clone_1; }
+    if(!ribbonToColorize.material){
+      var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+	    material.backFaceCulling  = false;
+      ribbonToColorize.material = material;
+    }
     ribbonToColorize.material.emissiveColor = value;
     glo.emissiveColor = value;
   });

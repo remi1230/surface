@@ -3,22 +3,33 @@ const glo = {
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
-                  6359424, 6366276, 6368457],
+                  6359424, 6366276, 6368457, 6370511, 6370771, 6376904],
     res        : [],   
     datasStats : [],
-    sortNumber : ['1', 'true'],  
+    sortNumber : ['1', 'true'],
+    heartType  : 'all',
+	heartTypes : function* (){
+		const hTypes = ['heart', 'noHeart', 'all'];
+		while (true) {
+			for (const hType of hTypes) {
+				this.heartType = hType;
+				yield hType;
+			}
+		}
+	},  
 };
+
+glo.heartTypes = glo.heartTypes();
 
 const round2 = val => Math.round(10000 * (val), 2) / 100;
 
-let statsBodyTable = document.getElementById('statsBodyTable');
+let statsBodyTable   = document.getElementById('statsBodyTable');
+let filterDatasStats = document.getElementById('filterDatasStats');
 
 const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
-    await getDatas();
-    sortDatasStats();
-    datasToTable();
+    refreshDatas();
 });
 
 async function getDatas(){
@@ -47,10 +58,10 @@ async function getDatas(){
     });
 }
 
-function datasToTable(){
+function datasToTable(datas = glo.datasStats){
     removeAllChildren(statsBodyTable);
 
-    glo.datasStats.forEach((rowDatas, n) => {
+    datas.forEach((rowDatas, n) => {
         let tr = document.createElement("tr");
         rowDatas.forEach((rowData, i) => {
             let td = document.createElement("td");
@@ -66,10 +77,13 @@ function datasToTable(){
     });
 
     //**************** TOTAUX ****************//
-    const totaux = totauxStats();
+    const totaux = totauxStats(datas);
     let tr       = document.createElement("tr");
     let td       = document.createElement("td");
     let tdTxt    = document.createTextNode('Total');
+
+    td.style.width      = "190px";
+    td.style.borderLeft = "none";
 
     let statsFootTable = document.getElementById('statsFootTable');
 
@@ -78,7 +92,7 @@ function datasToTable(){
     td.appendChild(tdTxt);
     td.style.fontWeight = 900;
     tr.appendChild(td);
-    totaux.forEach(totalCol => {
+    totaux.forEach((totalCol, i) => {
         let td    = document.createElement("td");
         let tdTxt = document.createTextNode(totalCol);
 
@@ -91,11 +105,11 @@ function datasToTable(){
     statsFootTable.appendChild(tr);
 }
 
-function totauxStats(){
-    const datasLength = glo.datasStats.length;
+function totauxStats(datas = glo.datasStats){
+    const datasLength = datas.length;
 
     let totV = 0, totD = 0, totL = 0, totDV = 0, totLV = 0, totLD = 0, totVDL = 0, totTime = 0, totVDLT = 0;
-    glo.datasStats.forEach(rowDatas => {
+    datas.forEach(rowDatas => {
         totV    += rowDatas[1];
         totD    += rowDatas[2];
         totL    += rowDatas[3];
@@ -112,19 +126,19 @@ function totauxStats(){
             Math.round(100 * totTime/datasLength, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
 }
 
-function sortDatasStats(numOrder = 1, desc = 'true'){
+function sortDatasStats(numOrder = 1, desc = 'true', datas = glo.datasStats){
     desc = desc === 'true' ? true : false;
     numOrder = parseInt(numOrder);
-    if(numOrder){ desc ? glo.datasStats.sort((a,b) => b[numOrder] - a[numOrder]) : glo.datasStats.sort((a,b) => a[numOrder] - b[numOrder]); }
+    if(numOrder){ desc ? datas.sort((a,b) => b[numOrder] - a[numOrder]) : glo.datasStats.sort((a,b) => a[numOrder] - b[numOrder]); }
     else{ desc ?
-        glo.datasStats.sort((a,b) => {if (a[0] < b[0]) {
+        datas.sort((a,b) => {if (a[0] < b[0]) {
             return -1;
         }
         if (a[0] > b[0]) {
             return 1;
         }
         return 0;}) :
-        glo.datasStats.sort((a,b) => {if (a[0] > b[0]) {
+        datas.sort((a,b) => {if (a[0] > b[0]) {
             return -1;
         }
         if (a[0] < b[0]) {
@@ -132,6 +146,7 @@ function sortDatasStats(numOrder = 1, desc = 'true'){
         }
         return 0;});
     }
+    filterStatsTable(filterDatasStats.value);
 }
 
 function sortDatasStatsOnClick(e){
@@ -144,7 +159,6 @@ function sortDatasStatsOnClick(e){
             th.dataset.desc = 'true';
         }
         else{
-           
             th.classList.remove(desc ? 'sort_asc' : 'sort_desc');
             th.classList.add(desc ? 'sort_desc' : 'sort_asc');
         }
@@ -154,8 +168,47 @@ function sortDatasStatsOnClick(e){
 
     sortDatasStats(e.target.dataset.order, e.target.dataset.desc);
     e.target.dataset.desc = desc ? 'false' : 'true';
+}
 
-    datasToTable();
+function filterStatsTable(val){
+    let datasFiltered = [];
+    if(isNaN(parseInt(val))){
+        datasFiltered = glo.datasStats.filter(data => data[0].toLowerCase().includes(val.toLowerCase()));
+    }
+    else{
+        const valNum = parseInt(val);
+        datasFiltered = glo.datasStats.filter(data => 
+            data[1] >= valNum || data[2] >= valNum || data[3] >= valNum 
+        );
+    }
+
+    switch(glo.heartType){
+        case 'heart':
+            datasFiltered = datasFiltered.filter(data => data[3]);
+        break;
+        case 'noHeart':
+            datasFiltered = datasFiltered.filter(data => !data[3]);
+        break;
+    }
+    
+    datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
+}
+
+function filterDatasStatsOnLike(){
+    const filterType = glo.heartTypes.next().value;
+
+    switch(filterType){
+        case 'heart':
+            document.getElementById('filterOnLikeSymbol').textContent = "💘";
+        break;
+        case 'noHeart':
+            document.getElementById('filterOnLikeSymbol').textContent = " 💞";
+        break;
+        case 'all':
+            document.getElementById('filterOnLikeSymbol').textContent = "❤️";
+        break;
+    }
+    filterStatsTable(filterDatasStats.value);
 }
 
 function removeAllChildren(element) {
@@ -169,7 +222,6 @@ async function refreshDatas(){
     glo.datasStats = [];
     await getDatas();
     sortDatasStats(...glo.sortNumber);
-    datasToTable();
 }
 
 async function getStats() {

@@ -323,7 +323,11 @@ f = {
 }
 
 function drawNormalEquations(){
-	if(typeof(glo.verticesNormals) == "undefined"){ glo.verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind); }
+	if(typeof(glo.verticesNormals) == "undefined"){
+		glo.verticesNormals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		glo.verticesPositions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		glo.verticesUVs       = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
+	}
 	if(typeof(glo.verticesColors) == "undefined" || glo.verticesColors == null){ glo.verticesColors = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.ColorKind); }
 	var isVerticesColors = glo.verticesColors != null ? true : false;
 	var verticesColors = [];
@@ -334,6 +338,9 @@ function drawNormalEquations(){
 	}
 	var verticesNormals = glo.verticesNormals;
 	var verticesNormalsLength = verticesNormals.length;
+
+	var vertices = glo.vertexsType === 'normal' ? glo.verticesNormals : (glo.vertexsType === 'uv' ? glo.verticesUVs : glo.verticesPositions);
+	var verticesLength = glo.vertexsType === 'normal' ? glo.verticesNormals.length : (glo.vertexsType === 'uv' ? glo.verticesUVs.length : glo.verticesPositions.length);
 
 	var dim_one = false;
 
@@ -450,8 +457,8 @@ function drawNormalEquations(){
 				for(var v = 0; v < pathLength; v++){
 					ind_v = v;
 					var p = path[v];
-					if(n*3 + 2 > verticesNormalsLength){ n = 0; }
-					var xN = verticesNormals[n*3]; var yN = verticesNormals[n*3 + 1]; var zN = verticesNormals[n*3 + 2];
+					if(n*3 + 2 > verticesLength){ n = 0; }
+					var xN = vertices[n*3]; var yN = vertices[n*3 + 1]; var zN = vertices[n*3 + 2];
 					var µN = xN*yN*zN;
 					var $N = (xN+yN+zN)/3;
 					var µ$N = µN*$N; var $µN = µN+$N;
@@ -1806,6 +1813,7 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/su/g,"sin(u)");
 			f[prop] = f[prop].replace(/sv/g,"sin(v)");
 			f[prop] = f[prop].replace(/²/g,"**2");
+			f[prop] = f[prop].replace(/³/g,"**3");
 			f[prop] = f[prop].replace(/uu([^,%*+-/)])/g, 'uu*$1');
 			f[prop] = f[prop].replace(/vv([^,%*+-/)])/g, 'vv*$1');
 			f[prop] = f[prop].replace(/u([^,%*+-/)])/g, 'u*$1');
@@ -1921,7 +1929,11 @@ function make_ribbon(){
 
 	var paths = glo.curves.paths;
 	if(glo.normalMode && !glo.fromSlider){ paths = glo.curves.pathsSecond; }
-	else if(typeof(glo.verticesNormals) != "undefined") { delete glo.verticesNormals; }
+	else{
+		delete glo.verticesNormals;
+		delete glo.verticesPositions;
+		delete glo.verticesUVs;
+	}
 
 	if(glo.fromSlider){ delete glo.verticesColors; }
 
@@ -1973,6 +1985,8 @@ function make_ribbon(){
 
   	glo.emissiveColor = {...glo.emissiveColorSave};
 	glo.diffuseColor  = {...glo.diffuseColorSave};
+
+	if(glo.meshWithTubes){ meshWithTubes(); }
 }
 
 function ribbonDispose(){
@@ -3240,19 +3254,27 @@ function randomize_colors_app(){
 		picker_color.value = BABYLON.Color3.Random();
 	});
 }
-function special_randomize_colors_app(){
-	var backColor = getRndDarkColor(5);
-	var emissiveColor = getComplementaryColor(backColor, 8);
-	var diffuseColor = getComplementaryColor(emissiveColor, 0.7);
-	var lineColor = getComplementaryColor(backColor);
+function special_randomize_colors_app(first = false){
+	if(!first){
+		var backColor = getRndDarkColor(5);
+		var emissiveColor = getComplementaryColor(backColor, 8);
+		var diffuseColor = getComplementaryColor(emissiveColor, 0.7);
+		var lineColor = getComplementaryColor(backColor);
 
-	diffuseColor = darkingColor(diffuseColor, 2);
-	lineColor = darkingColor(lineColor, 1.12);
+		diffuseColor = darkingColor(diffuseColor, 2);
+		lineColor = darkingColor(lineColor, 1.12);
 
-	glo.allControls.getByName('pickerColorBackground').value = backColor;
-	glo.allControls.getByName('pickerColorEmissive').value = new BABYLON.Color3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
-	glo.allControls.getByName('pickerColorDiffuse').value = new BABYLON.Color3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
-	glo.allControls.getByName('pickerColorLine').value = lineColor;
+		glo.allControls.getByName('pickerColorBackground').value = backColor;
+		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
+		glo.allControls.getByName('pickerColorDiffuse').value    = new BABYLON.Color3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
+		glo.allControls.getByName('pickerColorLine').value       = lineColor;
+	}
+	else{
+		glo.allControls.getByName('pickerColorBackground').value = new BABYLON.Color3(0.1, 0.1, 0.1);
+		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(0.3, 0.5, 0.5);
+		glo.allControls.getByName('pickerColorDiffuse').value 	 = new BABYLON.Color3(0.6, 0.5, 0.5);
+		glo.allControls.getByName('pickerColorLine').value 		 = new BABYLON.Color3(1, 1, 1);
+	}
 }
 
 function getComplementaryColor(color3, darkForce = 1){
@@ -3475,11 +3497,12 @@ async function exportMesh(exportFormat){
 }
 
 async function meshWithTubes(){
-	if(glo.meshWithTubes){
+	if(glo.meshWithTubes || glo.onlyTubes){
+		if(glo.onlyTubes){ ribbonDispose(); }
 		let meshesTubes = [];
 		glo.lines.forEach(line => {
 			if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
-				let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: 0.1}, glo.scene);
+				let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: glo.tubes.radius}, glo.scene);
 				if (tube) {
 					meshesTubes.push(tube);
 				} else {
@@ -3491,17 +3514,24 @@ async function meshWithTubes(){
 		if (meshesTubes.length > 0) {
 			let meshTubes = await BABYLON.Mesh.MergeMeshes(meshesTubes, true, true);
 			if (meshTubes) {
-				glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshTubes], true, true);
+				glo.ribbon = !glo.onlyTubes ? await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshTubes], true, true) : meshTubes;
+				if(glo.onlyTubes){ 
+					var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+	    			material.backFaceCulling = false;
+					glo.ribbon.material = material;
+					glo.ribbon.material.emissiveColor = glo.emissiveColor;
+					glo.ribbon.material.diffuseColor = glo.diffuseColor;
+					glo.ribbon.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+					glo.ribbon.material.alpha = glo.ribbon_alpha;
+					glo.ribbon.alphaIndex = 998;
+					glo.ribbon.material.wireframe = glo.wireframe;
+				 }
 			} else {
 				console.log("Mesh fusion failed");
 			}
 		} else {
 			console.log("No meshes to export");
 		}
-	}
-	else{
-		make_curves();
-		make_ribbon();
 	}
 }
 
@@ -3652,8 +3682,8 @@ function darkTheme(){
 		glo.bSave = {}; glo.dSave = {}; glo.eSave = {};
 		Object.assign(glo.bSave, glo.backgroundColor); Object.assign(glo.dSave, glo.diffuseColor); Object.assign(glo.eSave, glo.emissiveColor);
 		glo.allControls.getByName('pickerColorBackground').value = new BABYLON.Color3(0, 0.05415, 0.01882);
-		glo.allControls.getByName('pickerColorDiffuse').value = new BABYLON.Color3(0.93942, 1, 0);
-		glo.allControls.getByName('pickerColorEmissive').value = new BABYLON.Color3(0.36702, 0, 0);
+		glo.allControls.getByName('pickerColorDiffuse').value = new BABYLON.Color3(0.6, 0.5, 0.5);
+		glo.allControls.getByName('pickerColorEmissive').value = new BABYLON.Color3(0.3, 0.5, 0.5);
 	}
 	else{
 		glo.allControls.getByName('pickerColorBackground').value = glo.bSave;

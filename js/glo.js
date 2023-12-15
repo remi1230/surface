@@ -75,8 +75,7 @@ var glo = {
 			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, },
 			{text: "Spiral 4", typeCoords: 'cylindrical', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "12uv", fy: "pi", fz: "u", alpha: "v", beta: "ch(u,v)pi", check: false, },
 			{text: "Ashtray", typeCoords: 'quaternion', udef: 4*PI, vdef: PI, nb_steps_u: 266, nb_steps_v: 264,  fx: "u", fy: "usv", fz: "ucvsu", alpha: "u", beta: "pi", check: true, },
-			{text: "Curve", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "ch(u,v)12", fy: "ch(u,v)12", fz: "sh(u,v)12", alpha: "ch(u,v)12", beta: "pih(u,v)12", check: true, },
-			{text: "Flower", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "8cupv", fy: "8cupv", fz: "cupvu", alpha: "cupvv", beta: "u+v", check: true, },
+			{text: "Curve", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "ch(u,v)12", fy: "ch(u,v)", fz: "sh(u,v)", alpha: "ch(u,v)", beta: "pih(u,v)12", check: true, },
 			{text: "Helix", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4v", fy: "u", fz: "v", alpha: "G", beta: "pi", check: false, },
 			{text: "Horn", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "6v", fy: "u²+v²", fz: "u²-v²", alpha: "h(u,v)", beta: "u", check: false, },
 			{text: "Line", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "vcu/8", check: false, },
@@ -222,6 +221,16 @@ var glo = {
 			if(index == tab.length){ index = 0; }
 	    yield tab[index];
 	  }
+	},
+	vertexsType: 'normal',
+	vertexsTypes: function* (){
+		const vertexs = ['uv', 'position', 'normal'];
+		while (true) {
+			for (const vertex of vertexs) {
+				this.vertexsType = vertex;
+				yield vertex;
+			}
+		}
 	},
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
@@ -635,6 +644,10 @@ var glo = {
 			text_input_beta: "",
 		},
 	},
+	tubes: {
+		radius: 0.1,
+		coeffRadiusVariation: Math.pow(2, 1/3),
+	},
 	rotate_speed: 0.5/180 * PI,
 	ribbon_alpha: 1,
 	rot_z: 0,
@@ -661,9 +674,9 @@ var glo = {
 	labelGridColor: "black",
 	buttons_radius: 10,
 	buttons_fontsize: "14px",
-	diffuseColor: new BABYLON.Color3(1, 0.10765, 0),
-	emissiveColor: new BABYLON.Color3(0, 0, 0),
-	backgroundColor: new BABYLON.Color3(0.77655, 0.91947, 0.82623),
+	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
+	emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
+	backgroundColor: new BABYLON.Color3(0, 77/2048, 77/4096),
 	lineColor: new BABYLON.Color3(1, 1, 1),
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	pickers_size: 118,
@@ -767,6 +780,7 @@ glo.radios_formes.changeColor = function (newColor){
 glo.switchGuiSelect 	= glo.switchGuiSelect();
 glo.colorType 			= glo.colorType();
 glo.drawType 		    = glo.draw_type();
+glo.vertexsTypes 	    = glo.vertexsTypes();
 glo.coordinatesType 	= glo.coordinatesType();
 glo.coordinatesNomrType = glo.coordinatesNomrType();
 glo.rotType             = glo.rotateTypeGen();

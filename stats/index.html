@@ -9,12 +9,18 @@
     <script src="stats.js" defer></script>
   </head>
   <body>
-    <h2 id="pageTitle" class="centerContentH">Thingiverse Statistiques<span id="refresh" onclick="refreshDatas(); ">⟲</span></h2>
-    <div class="centerContentH">
+    <h2 id="pageTitle" class="centerContentH">
+      <span>Thingiverse Statistiques</span>
+      <span id="refresh" onclick="refreshDatas(); ">⟲</span>
+      <span id="filterSymbol">🔍</span>
+      <input id="filterDatasStats" type="text" placeholder="" value="" oninput="filterStatsTable(this.value); ">
+      <span id="filterOnLikeSymbol" onclick="filterDatasStatsOnLike(); ">❤️</span>
+    </h2>
+    <div id="statsTableContainer" class="centerContentH">
       <table id="statsTable">
           <thead>
               <tr id="trTheadStatsTable" class="cursorPointer" onclick="sortDatasStatsOnClick(event); ">
-                  <th data-order="0" data-desc="true">Nom</th>
+                  <th id="nomColStatsTable" data-order="0" data-desc="true">Nom</th>
                   <th class="sort_desc" data-order="1" data-desc="false">Vues</th>
                   <th data-order="2" data-desc="true">Donws</th>
                   <th data-order="3" data-desc="true">Likes</th>
@@ -23,7 +29,7 @@
                   <th data-order="6" data-desc="true">L/D</th>
                   <th data-order="7" data-desc="true">VDL</th>
                   <th data-order="8" data-desc="true">Time</th>
-                  <th data-order="9" data-desc="true">VDL/T</th>
+                  <th id="lastColStatsTable" data-order="9" data-desc="true">VDL/T</th>
               </tr>
           </thead>
           <tbody id="statsBodyTable"></tbody>

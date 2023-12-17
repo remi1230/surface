@@ -184,6 +184,9 @@ f = {
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
+	var xT = 1; var yT = 1; var zT = 1;
+	var µT = 1;
+	var $T= 1; var µ$T = 1; var $µT = 1; var µµT = 1;
 
 	if(f.x == ""){ f.x = 0; }
 	if(f.y == ""){ f.y = 0; }
@@ -218,15 +221,23 @@ f = {
 			z = eval(f.z);
 
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
 			var µ$N = µN*$N; var $µN = µN+$N;
 			var µµN = µ$N*$µN;
 
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
+
 			var O = Math.acos(y/(h(x,y,z)));
-			var T = Math.atan2(z, x) ;
+			var T = Math.atan2(z, x);
 
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
@@ -273,7 +284,7 @@ f = {
 				z = eval(f.z);
 
 				var vect3 = new BABYLON.Vector3(x,y,z);
-				vect3 = BABYLON.Vector3.Normalize(vect3);
+				vect3 = getNormalVector(vect3);
 				xN = vect3.x; yN = vect3.y; zN = vect3.z;
 				var µN = xN*yN*zN;
 				var $N = (xN+yN+zN)/3;
@@ -282,6 +293,14 @@ f = {
 
 				var O = Math.acos(y/(h(x,y,z)));
 				var T = Math.atan2(z, x) ;
+
+				var vectT = new BABYLON.Vector3(x,y,z);
+				vectT = BABYLON.Vector3.Normalize(vectT);
+				xT = vectT.x; yT = vectT.y; zT = vectT.z;
+				var µT = xT*yT*zT;
+				var $T = (xT+yT+zT)/3;
+				var µ$T = µT*$T; var $µT = µT+$T;
+				var µµT = µ$T*$µT;
 
 				if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 				if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
@@ -322,6 +341,28 @@ f = {
   }
 }
 
+// Fonction pour obtenir un vecteur normal (perpendiculaire) à un vecteur donné
+function getNormalVector(originalVector) {
+	if(originalVector.x === 0 && originalVector.y === 0 && originalVector.z === 0){ return  originalVector; }
+    // Choisissez un vecteur arbitraire
+    var arbitraryVector = new BABYLON.Vector3(1, 0, 0);
+
+    // Calcul du produit croisé entre les deux vecteurs
+    var normalVector = BABYLON.Vector3.Cross(originalVector, arbitraryVector);
+
+    // Vérification de la colinéarité
+    while (normalVector.length() === 0) {
+        // Si les vecteurs sont colinéaires, ajustez arbitraryVector
+        arbitraryVector = new BABYLON.Vector3(Math.random(), Math.random(), Math.random());
+        normalVector = BABYLON.Vector3.Cross(originalVector, arbitraryVector);
+    }
+
+    // Normalisation du vecteur résultant
+    normalVector.normalize();
+
+    return normalVector;
+}
+
 function drawNormalEquations(){
 	if(typeof(glo.verticesNormals) == "undefined"){
 		glo.verticesNormals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
@@ -333,14 +374,14 @@ function drawNormalEquations(){
 	var verticesColors = [];
 	if(isVerticesColors){
 		glo.verticesColors.map(vc => {
-			if(!isNaN(vc)){ verticesColors.push(vc); }
+			verticesColors.push(!isNaN(vc) ? vc : 0);
 		});
 	}
-	var verticesNormals = glo.verticesNormals;
+	var verticesNormals       = glo.verticesNormals;
 	var verticesNormalsLength = verticesNormals.length;
 
-	var vertices = glo.vertexsType === 'normal' ? glo.verticesNormals : (glo.vertexsType === 'uv' ? glo.verticesUVs : glo.verticesPositions);
-	var verticesLength = glo.vertexsType === 'normal' ? glo.verticesNormals.length : (glo.vertexsType === 'uv' ? glo.verticesUVs.length : glo.verticesPositions.length);
+	var vertices = glo.vertexsType === 'normal' ? verticesNormals : (glo.vertexsType === 'uv' ? glo.verticesUVs : glo.verticesPositions);
+	var verticesLength = glo.vertexsType === 'normal' ? verticesNormalsLength : (glo.vertexsType === 'uv' ? glo.verticesUVs.length : glo.verticesPositions.length);
 
 	var dim_one = false;
 
@@ -463,7 +504,7 @@ function drawNormalEquations(){
 					var $N = (xN+yN+zN)/3;
 					var µ$N = µN*$N; var $µN = µN+$N;
 					var µµN = µ$N*$µN;
-					var rCol = isVerticesColors ? verticesColors[n*3] : 1; var gCol = isVerticesColors ? verticesColors[n*3 + 1] : 1; var bCol = isVerticesColors ? verticesColors[n*3 + 2] : 1;
+					var rCol = isVerticesColors ? verticesColors[n*4] : 1; var gCol = isVerticesColors ? verticesColors[n*4 + 1] : 1; var bCol = isVerticesColors ? verticesColors[n*4 + 2] : 1;
 					var xP = p.x; var yP = p.y; var zP = p.z;
 					var $P = (xP+yP+zP)/3; var µP = xP*yP*zP;
 
@@ -471,6 +512,14 @@ function drawNormalEquations(){
 
 					var O = Math.acos(y/(h(xP,yP,zP)));
 					var T = Math.atan2(zP,xP);
+
+					var vectT = getNormalVector(new BABYLON.Vector3(xN, yN, zN));
+					vectT = BABYLON.Vector3.Normalize(vectT);
+					xT = vectT.x; yT = vectT.y; zT = vectT.z;
+					var µT = xT*yT*zT;
+					var $T = (xT+yT+zT)/3;
+					var µ$T = µT*$T; var $µT = µT+$T;
+					var µµT = µ$T*$µT;
 
 					x = eval(f.x);
 					y = eval(f.y);
@@ -637,6 +686,9 @@ f = {
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
+	var xT = 1; var yT= 1; var zT = 1;
+	var T = 1;
+	var $T = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
 
 	var isAlpha2 = false;
 	if(glo.params.text_input_alpha != ""){
@@ -679,7 +731,7 @@ f = {
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
@@ -688,6 +740,14 @@ f = {
 
 			var O = Math.acos(y/(h(x,y,z)));
 			var T = Math.atan2(z, x) ;
+
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
 			if(isBeta2){
 				alpha2 = eval(f.alpha2);
@@ -741,7 +801,7 @@ f = {
 
 				var x = pos.x; var y = pos.y; var z = pos.z;
 				var vect3 = new BABYLON.Vector3(x,y,z);
-				vect3 = BABYLON.Vector3.Normalize(vect3);
+				vect3 = getNormalVector(vect3);
 				xN = vect3.x; yN = vect3.y; zN = vect3.z;
 				var µN = xN*yN*zN;
 				var $N = (xN+yN+zN)/3;
@@ -750,6 +810,14 @@ f = {
 
 				var O = Math.acos(y/(h(x,y,z)));
 				var T = Math.atan2(z, x) ;
+
+				var vectT = new BABYLON.Vector3(x,y,z);
+				vectT = BABYLON.Vector3.Normalize(vectT);
+				xT = vectT.x; yT = vectT.y; zT = vectT.z;
+				var µT = xT*yT*zT;
+				var $T = (xT+yT+zT)/3;
+				var µ$T = µT*$T; var $µT = µT+$T;
+				var µµT = µ$T*$µT;
 
 				if(isBeta2){
 					alpha2 = eval(f.alpha2);
@@ -882,6 +950,9 @@ f = {
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
+	var xT = 1; var yT = 1; var zT = 1;
+	var µT = 1;
+	var $T = 1; var µ$T= 1; var $µT = 1; var µµT = 1;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.x == ""){ f.x = 0; }
@@ -918,7 +989,7 @@ f = {
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
@@ -927,6 +998,14 @@ f = {
 
 			var O = Math.acos(y/(h(x,y,z)));
 			var T = Math.atan2(z, x) ;
+
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 			path.push(this.p1_first);
@@ -970,7 +1049,7 @@ f = {
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
@@ -979,6 +1058,14 @@ f = {
 
 			var O = Math.acos(y/(h(x,y,z)));
 			var T = Math.atan2(z, x) ;
+
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -1103,6 +1190,9 @@ f = {
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
+	var xT = 1; var yT = 1; var zT = 1;
+	var µ$T = 1;
+	var $NT = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.alpha == ""){ f.alpha = 0; }
@@ -1143,7 +1233,7 @@ f = {
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
@@ -1152,6 +1242,14 @@ f = {
 
 			var O = Math.acos(y/(h(x,y,z)));
 			var T = Math.atan2(z, x) ;
+
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
 			if(isAlpha2){
 				alpha2 = eval(f.alpha2);
@@ -1205,7 +1303,7 @@ f = {
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
-			vect3 = BABYLON.Vector3.Normalize(vect3);
+			vect3 = getNormalVector(vect3);
 			xN = vect3.x; yN = vect3.y; zN = vect3.z;
 			var µN = xN*yN*zN;
 			var $N = (xN+yN+zN)/3;
@@ -1213,7 +1311,15 @@ f = {
 			var µµN = µ$N*$µN;
 
 			var O = Math.acos(y/(h(x,y,z)));
-			var T = Math.atan2(z, x);
+			var T = Math.atan2(z, x) ;
+
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
 			if(isAlpha2){
 				alpha2 = eval(f.alpha2);
@@ -1420,8 +1526,9 @@ f = {
 				if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
 				if(glo.coordsType == 'cartesian'){
+					var x = pos.x; var y = pos.y; var z = pos.z;
 					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = BABYLON.Vector3.Normalize(vect3);
+					vect3 = getNormalVector(vect3);
 					xN = vect3.x; yN = vect3.y; zN = vect3.z;
 					var µN = xN*yN*zN;
 					var $N = (xN+yN+zN)/3;
@@ -1430,6 +1537,14 @@ f = {
 
 					var O = Math.acos(y/(h(x,y,z)));
 					var T = Math.atan2(z, x) ;
+
+					var vectT = new BABYLON.Vector3(x,y,z);
+					vectT = BABYLON.Vector3.Normalize(vectT);
+					xT = vectT.x; yT = vectT.y; zT = vectT.z;
+					var µT = xT*yT*zT;
+					var $T = (xT+yT+zT)/3;
+					var µ$T = µT*$T; var $µT = µT+$T;
+					var µµT = µ$T*$µT;
 					if(isBeta){
 						alpha = eval(f.alpha);
 						beta = eval(f.beta);
@@ -1477,7 +1592,7 @@ f = {
 
 					var x = pos.x; var y = pos.y; var z = pos.z;
 					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = BABYLON.Vector3.Normalize(vect3);
+					vect3 = getNormalVector(vect3);
 					xN = vect3.x; yN = vect3.y; zN = vect3.z;
 					var µN = xN*yN*zN;
 					var $N = (xN+yN+zN)/3;
@@ -1486,6 +1601,14 @@ f = {
 
 					var O = Math.acos(y/(h(x,y,z)));
 					var T = Math.atan2(z, x) ;
+
+					var vectT = new BABYLON.Vector3(x,y,z);
+					vectT = BABYLON.Vector3.Normalize(vectT);
+					xT = vectT.x; yT = vectT.y; zT = vectT.z;
+					var µT = xT*yT*zT;
+					var $T = (xT+yT+zT)/3;
+					var µ$T = µT*$T; var $µT = µT+$T;
+					var µµT = µ$T*$µT;
 
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
@@ -1503,9 +1626,9 @@ f = {
 						pos = rotateByMatrix(pos, 0, 0, y);
 						pos.z = z;
 					}
-					x = pos.x; y = pos.y; z = pos.z;
+					var x = pos.x; var y = pos.y; var z = pos.z;
 					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = BABYLON.Vector3.Normalize(vect3);
+					vect3 = getNormalVector(vect3);
 					xN = vect3.x; yN = vect3.y; zN = vect3.z;
 					var µN = xN*yN*zN;
 					var $N = (xN+yN+zN)/3;
@@ -1514,6 +1637,14 @@ f = {
 
 					var O = Math.acos(y/(h(x,y,z)));
 					var T = Math.atan2(z, x) ;
+
+					var vectT = new BABYLON.Vector3(x,y,z);
+					vectT = BABYLON.Vector3.Normalize(vectT);
+					xT = vectT.x; yT = vectT.y; zT = vectT.z;
+					var µT = xT*yT*zT;
+					var $T = (xT+yT+zT)/3;
+					var µ$T = µT*$T; var $µT = µT+$T;
+					var µµT = µ$T*$µT;
 					if(isBeta){
 						alpha = eval(f.alpha);
 						beta = eval(f.beta);
@@ -1549,8 +1680,9 @@ f = {
 					if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
 					if(glo.coordsType == 'cartesian'){
+						var x = pos.x; var y = pos.y; var z = pos.z;
 						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = BABYLON.Vector3.Normalize(vect3);
+						vect3 = getNormalVector(vect3);
 						xN = vect3.x; yN = vect3.y; zN = vect3.z;
 						var µN = xN*yN*zN;
 						var $N = (xN+yN+zN)/3;
@@ -1559,6 +1691,14 @@ f = {
 
 						var O = Math.acos(y/(h(x,y,z)));
 						var T = Math.atan2(z, x) ;
+
+						var vectT = new BABYLON.Vector3(x,y,z);
+						vectT = BABYLON.Vector3.Normalize(vectT);
+						xT = vectT.x; yT = vectT.y; zT = vectT.z;
+						var µT = xT*yT*zT;
+						var $T = (xT+yT+zT)/3;
+						var µ$T = µT*$T; var $µT = µT+$T;
+						var µµT = µ$T*$µT;
 						if(isBeta){
 							alpha = eval(f.alpha);
 							beta = eval(f.beta);
@@ -1607,15 +1747,23 @@ f = {
 	
 						var x = pos.x; var y = pos.y; var z = pos.z;
 						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = BABYLON.Vector3.Normalize(vect3);
+						vect3 = getNormalVector(vect3);
 						xN = vect3.x; yN = vect3.y; zN = vect3.z;
 						var µN = xN*yN*zN;
 						var $N = (xN+yN+zN)/3;
 						var µ$N = µN*$N; var $µN = µN+$N;
 						var µµN = µ$N*$µN;
-	
+
 						var O = Math.acos(y/(h(x,y,z)));
 						var T = Math.atan2(z, x) ;
+
+						var vectT = new BABYLON.Vector3(x,y,z);
+						vectT = BABYLON.Vector3.Normalize(vectT);
+						xT = vectT.x; yT = vectT.y; zT = vectT.z;
+						var µT = xT*yT*zT;
+						var $T = (xT+yT+zT)/3;
+						var µ$T = µT*$T; var $µT = µT+$T;
+						var µµT = µ$T*$µT;
 	
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -1633,9 +1781,9 @@ f = {
 							pos = rotateByMatrix(pos, 0, 0, y);
 							pos.z = z;
 						}
-						x = pos.x; y = pos.y; z = pos.z;
+						var x = pos.x; var y = pos.y; var z = pos.z;
 						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = BABYLON.Vector3.Normalize(vect3);
+						vect3 = getNormalVector(vect3);
 						xN = vect3.x; yN = vect3.y; zN = vect3.z;
 						var µN = xN*yN*zN;
 						var $N = (xN+yN+zN)/3;
@@ -1644,6 +1792,14 @@ f = {
 
 						var O = Math.acos(y/(h(x,y,z)));
 						var T = Math.atan2(z, x) ;
+
+						var vectT = new BABYLON.Vector3(x,y,z);
+						vectT = BABYLON.Vector3.Normalize(vectT);
+						xT = vectT.x; yT = vectT.y; zT = vectT.z;
+						var µT = xT*yT*zT;
+						var $T = (xT+yT+zT)/3;
+						var µ$T = µT*$T; var $µT = µT+$T;
+						var µµT = µ$T*$µT;
 						if(isBeta){
 							alpha = eval(f.alpha);
 							beta = eval(f.beta);
@@ -1772,8 +1928,10 @@ function test_equations(equations, dim_one = false, forCol = false){
 	var x = 1; var y = 1; var z = 1;
 	var r = 1; var alpha = 1; var beta = 0;
 	var xN = 1; var yN = 1; var zN = 1;
-	var xP = 1; var yP = 1; var zP = 1; var µN = 1; var µP = 1; var $P = 1;
+	var xT = 1; var yT = 1; var zT = 1;
+	var xP = 1; var yP = 1; var zP = 1; var µN = 1; var µP = 1; var µT = 1; var $P = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1;
+	var $T = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
 	var rCol = 1; var gCol  = 1; var bCol  = 1; var mCol  = 1;
 	var O = 1; var T = 1;
 	try{
@@ -1822,9 +1980,9 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/µN([^,%*+-/)])/g, 'µN*$1');
 			f[prop] = f[prop].replace(/\$N([^,%*+-/)])/g, '$N*$1');
 			f[prop] = f[prop].replace(/\$P([^,%*+-/)])/g, '$P*$1');
-			f[prop] = f[prop].replace(/x([^,%*+-/NP)])/g, 'x*$1');
-			f[prop] = f[prop].replace(/y([^,%*+-/NP)])/g, 'y*$1');
-			f[prop] = f[prop].replace(/z([^,%*+-/NP)])/g, 'z*$1');
+			f[prop] = f[prop].replace(/x([^,%*+-/NPT)])/g, 'x*$1');
+			f[prop] = f[prop].replace(/y([^,%*+-/NPT)])/g, 'y*$1');
+			f[prop] = f[prop].replace(/z([^,%*+-/NPT)])/g, 'z*$1');
 			f[prop] = f[prop].replace(/n([^,%*+-/d)])/g, 'n*$1');
 			f[prop] = f[prop].replace(/r([^,%*+-/nmC)])/g, 'r*$1');
 			f[prop] = f[prop].replace(/alpha([^,%*+-/nt)])/g, 'alpha*$1');
@@ -1990,7 +2148,12 @@ function make_ribbon(){
 }
 
 function ribbonDispose(){
-	if(typeof(glo.ribbon) != "undefined" && glo.ribbon != null){ glo.ribbon.dispose(); glo.ribbon = null; }
+	if(typeof(glo.ribbon)    != "undefined" && glo.ribbon != null){ glo.ribbon.dispose(); glo.ribbon = null; }
+	if(typeof(glo.meshTubes) != "undefined" && glo.meshTubes != null){ glo.meshTubes.dispose(); glo.meshTubes = null; }
+
+	glo.scene.meshes.forEach(mesh => {
+		if(mesh.name !== 'lineSystem'){ mesh.dispose(); }
+	});
 }
 
 function makeOtherColors(){
@@ -2142,6 +2305,14 @@ function makeColors(){
 					const invRad = 180/PI;
 					var O = Math.acos(y/(h(xP,yP,zP))) * invRad;
 					var T = Math.atan2(zP, xP) * invRad;
+
+					var vectT = new BABYLON.Vector3(xP,yP,zP);
+					vectT = BABYLON.Vector3.Normalize(vectT);
+					xT = vectT.x; yT = vectT.y; zT = vectT.z;
+					var µT = xT*yT*zT;
+					var $T = (xT+yT+zT)/3;
+					var µ$T = µT*$T; var $µT = µT+$T;
+					var µµT = µ$T*$µT;
 
 					ind_v = v;
 
@@ -3360,22 +3531,26 @@ var afterAnimation = function() {
 };
 
 function exportModal(){
+	glo.modalOpen = true;
 	event.stopPropagation();
 	event.preventDefault();
 	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 	$('#exportModal').modal('open', {
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
+			glo.modalOpen = false;
 		},
 	});
 }
 function importModal(){
+	glo.modalOpen = true;
 	event.stopPropagation();
 	event.preventDefault();
 	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 	$('#importModal').modal('open', {
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
+			glo.modalOpen = false;
 		},
 	});
 }
@@ -3512,9 +3687,9 @@ async function meshWithTubes(){
 		});
 
 		if (meshesTubes.length > 0) {
-			let meshTubes = await BABYLON.Mesh.MergeMeshes(meshesTubes, true, true);
-			if (meshTubes) {
-				glo.ribbon = !glo.onlyTubes ? await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshTubes], true, true) : meshTubes;
+			glo.meshTubes = await BABYLON.Mesh.MergeMeshes(meshesTubes, true, true);
+			if (glo.meshTubes) {
+				glo.ribbon = !glo.onlyTubes ? await BABYLON.Mesh.MergeMeshes([glo.ribbon, glo.meshTubes], true, true) : glo.meshTubes;
 				if(glo.onlyTubes){ 
 					var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 	    			material.backFaceCulling = false;

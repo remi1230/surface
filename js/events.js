@@ -20,6 +20,9 @@ $("#univers_div").mouseenter(function(){
 $("#univers_div").mouseleave(function(){
 	$("#univers_div").css('cursor', 'auto');
 });
+$("#univers_div").click(function(){
+	glo.modalOpen = false;
+});
 
 document.addEventListener("fullscreenchange", function( event ) {
     if (!document.fullscreen ) {
@@ -36,396 +39,413 @@ $("#renderCanvas").on('pointermove', function(e){
     if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
 });
 
-$('#univers_div').keypress(function(e) {
-  var key = e.key;
-  if(!e.shiftKey){
-  	switch (key) {
-  		case "g":
-        glo.curve_step.next();
-
-  			break;
-  		case "r":
-        reset_curve_step_by_step();
-
-  			break;
-  		case "w":
-        glo.anim_construct_mesh = !glo.anim_construct_mesh;
-
-  			break;
-  		case "h":
-        randomize_colors_app();
-
-  			break;
-  		case "e":
-          exportModal();
-
-  			break;
-  		case "p":
-          importModal();
-
-  			break;
-  		case "+":
-          glo.camera.radius/=2;
-
-  			break;
-  		case "-":
-          glo.camera.radius*=2;
-
-  			break;
-  		case "&":
-        invElemInInput("cos", "sin");
-        invElemInInput("cu", "su");
-        invElemInInput("cv", "sv");
-        if(glo.cloneSystem){ cloneSystem(); }
-        glo.histo.save();
-
-  			break;
-  		case "é":
-        invElemInInput("u", "v");
-        if(glo.cloneSystem){ cloneSystem();  }
-        glo.histo.save();
-
-  			break;
-  		case "7":
-        slidersAnim('u', 0, -0.01);
-
-  			break;
-  		case "8":
-        slidersAnim('u', 0, 0.01);
-
-  			break;
-  		case "4":
-        slidersAnim('v', 0, -0.01);
-
-  			break;
-  		case "5":
-        slidersAnim('v', 0, 0.01);
-
-  			break;
-  		case "è":
-        slidersAnim('stepU', 0, -1);
-
-  			break;
-  		case "_":
-        slidersAnim('stepU', 0, 1);
-
-  			break;
-  		case "ç":
-        slidersAnim('stepV', 0, -1);
-
-  			break;
-  		case "à":
-        slidersAnim('stepV', 0, 1);
-
-  			break;
-  		case "k":
-        glo.slider_nb_steps_u.maximum/=2;
-        glo.slider_nb_steps_v.maximum/=2;
-
-  			break;
-  		case "l":
-        glo.slider_nb_steps_u.maximum*=2;
-        glo.slider_nb_steps_v.maximum*=2;
-
-  			break;
-  		case ";":
-        switchWritingType(false);
-
-  			break;
-  		case ",":
-        switchWritingType(true);
-
-  			break;
-  		case "x":
-        glo.planeXYvisible = !glo.planeXYvisible;
-        showPlane(glo.planeXYvisible, 'xy');
-
-  			break;
-  		case "y":
-        glo.planeYZvisible = !glo.planeYZvisible;
-        showPlane(glo.planeYZvisible, 'yz');
-
-  			break;
-  		case "z":
-        glo.planeXZvisible = !glo.planeXZvisible;
-        showPlane(glo.planeXZvisible, 'xz');
-
-  			break;
-  		case "s":
-        switchCoords();
-
-  			break;
-  		case "t":
-        switchEqSphericToCylindrical();
-
-  			break;
-  		case "d":
-        darkTheme();
-
-  			break;
-  		case "f":
-        if(glo.ribbonCloneHistoDone){ delete glo.ribbonSaveToClone; glo.ribbonCloneHistoDone = false; }
-        cloneSystem();
-        glo.cloneToSave = true;
-        glo.histo.save();
-        glo.cloneToSave = false;
-
-  			break;
-  		case "q":
-        if(glo.cloneScale >= 0.2){ cloneScale(-0.1); }
-
-  			break;
-  		case "ù":
-        cloneScale(0.1);
-
-  			break;
-  		case "'":
-        if(typeof(glo.orientationClone ) == "undefined"){  glo.orientationClone = orientationClone(); }
-        glo.orientationClone.next();
-        orientClone(glo.cloneAxis);
-
-  			break;
-  		case "(":
-        saveRibbonToClone();
-
-  			break;
-  		case '"':
-        special_randomize_colors_app();
-
-  			break;
-  		case '$':
-        makeRndSurface();
-
-  			break;
-  		case '*':
-        resetEquationsParamSliders();
-
-  			break;
-  		case '<':
-         glo.formesSuit = !glo.formesSuit;
-         add_radios(true);
-
-  			break;
-  		case 'a':
-        if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-        glo.playWithColMode.next();
-        if(glo.params.playWithColors){
-          makeColors();
-        }
-
-  			break;
-  		case 'b':
-        glo.params.playWithColors = !glo.params.playWithColors;
-        glo.params.playWithColors ? makeColors() : make_ribbon();
-
-  			break;
-  		case ',':
-        reset_camera();
-
-  			break;
-  		case 'u':
-        glo.params.colors2 = !glo.params.colors2;
-        makeColors();
-
-  			break;
-  		case 'j':
-        glo.params.colorsByRotate = !glo.params.colorsByRotate;
-        makeColors();
-
-  			break;
-  		case 'm':
-        glo.params.colorsAbs = !glo.params.colorsAbs;
-        makeColors();
-
-  			break;
-      case "n":
-        glo.voronoiMode = !glo.voronoiMode;
-        make_ribbon();
-
-        break;
-  		case '1':
-        glo.curves.paths[0].shift();
-        make_ribbon();
-
-  			break;
-  		case '2':
-        glo.params.colorMove = !glo.params.colorMove;
-        makeColors();
-
-  			break;
-      case "3":
-         glo.onlyTubes = !glo.onlyTubes;
-         meshWithTubes();
-
-         break;
-      case "6":
-         glo.vertexsTypes.next();
-         if(glo.normalMode){ drawNormalEquations(); }
-
-         break;
-      case ":":
-         glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
-
-      break;
-      case "!":
-         glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
-
-      break;
-      case ")":
-         glo.lineSystem = !glo.lineSystem;
-
-      break;
-  	}
-  }
-  else{
-    switch (key) {
-  		case "w":
-  		case "W":
-        glo.normalMode = !glo.normalMode;
-        if(glo.normalMode){ resetInputsRibbonEquations(); drawNormalEquations(); }
-        else{ restoreInputsRibbonEquations(); make_curves(); }
-
-  			break;
-  		case "C":
-        glo.normalColorMode = !glo.normalColorMode;
-
-  			break;
-  		case "a":
-  		case "A":
-        if(glo.normalMode){
-          glo.scaleNorm*=sqrt(2);
-          drawNormalEquations();
-        }
-
-  			break;
-  		case "p":
-  		case "P":
-        glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
-        make_curves();
-        make_ribbon();
-
-  			break;
-  		case "z":
-  		case "Z":
-        if(glo.normalMode){
-          glo.scaleNorm/=sqrt(2);
-          drawNormalEquations();
-        }
-
-  			break;
-  		case "H":
-  		case "h":
-         cameraOnPos({x: 0, y: 0, z: 0});
-
-  			break;
-  		case "S":
-  		case "s":
-        glo.normalOnNormalMode = !glo.normalOnNormalMode;
-
-  			break;
-  		case "E":
-  		case "e":
-        glo.coordinatesNomrType.next();
-        if(glo.normalMode){ drawNormalEquations(); }
-
-  			break;
-  		case "D":
-  		case "d":
-        accuade();
-
-  			break;
-  		case "F":
-  		case "f":
-        testCol();
-
-  			break;
-  		case "I":
-  		case "i":
-        glo.params.invCol = !glo.params.invCol;
-        invCol();
-
-  			break;
-  		case "R":
-  		case "r":
-        colByMid(0.5);
-
-  			break;
-  		case "T":
-  		case "t":
-        colByMid(2);
-  		case "U":
-  		case "u":
-        glo.transCol = !glo.transCol;
-        if(glo.params.playWithColors){
-          makeColors();
-        }
-        break;
-  		case "B":
-  		case "b":
-        glo.wireframe = !glo.wireframe;
-        glo.ribbon.material.wireframe = glo.wireframe;
-
-        break;
-  		case "L":
-  		case "l":
-        glo.slider_u.maximum*=2;
-        glo.slider_v.maximum*=2;
-
-        break;
-  		case "K":
-  		case "K":
-        glo.slider_u.maximum/=2;
-        glo.slider_v.maximum/=2;
-
-        break;
-  		case "O":
-  		case "o":
-        glo.params.modCos = !glo.params.modCos;
-        makeColors();
-
-        break;
-  		case "V":
-  		case "v":
-        glo.camera.alpha = glo.camera.start.alpha;
-        glo.camera.beta  = glo.camera.start.beta;
-        glo.camera.setPosition(glo.camera.start.pos.clone());
-        glo.camera.setTarget(glo.camera.start.target.clone());
-
-        break;
-  		case "Y":
-  		case "y":
-        updInputsToQuaternion();
-
-        break;
-  		case "Q":
-  		case "q":
-        firstInputToOthers();
-
-        break;
-  		case "N":
-  		case "n":
-        glo.stepByStepFast = !glo.stepByStepFast;
-
-        break;
-      case "?":
-      glo.meshWithTubes = !glo.meshWithTubes;
-      make_ribbon();
-
-         break;
-      case ".":
-      glo.meshWithTubes = true;
-      glo.tubes.radius /= glo.tubes.coeffRadiusVariation;
-      make_ribbon();
-
-         break;
-      case "§":
-      glo.meshWithTubes = true;
-      glo.tubes.radius *= glo.tubes.coeffRadiusVariation;
-      make_ribbon();
-
-         break;
-    }
-  }
+//$('#univers_div').keypress(function(e) {
+window.addEventListener("keydown", function (e) {
+   if(!glo.modalOpen){ 
+      var key = e.key;
+      if(!e.shiftKey){
+         if(!e.altKey){
+            switch (key) {
+               case "g":
+               glo.curve_step.next();
+
+                  break;
+               case "r":
+               reset_curve_step_by_step();
+
+                  break;
+               case "w":
+               glo.anim_construct_mesh = !glo.anim_construct_mesh;
+
+                  break;
+               case "h":
+               randomize_colors_app();
+
+                  break;
+               case "e":
+                  exportModal();
+
+                  break;
+               case "p":
+                  importModal();
+
+                  break;
+               case "+":
+                  glo.camera.radius/=2;
+
+                  break;
+               case "-":
+                  glo.camera.radius*=2;
+
+                  break;
+               case "&":
+               invElemInInput("cos", "sin");
+               invElemInInput("cu", "su");
+               invElemInInput("cv", "sv");
+               if(glo.cloneSystem){ cloneSystem(); }
+               glo.histo.save();
+
+                  break;
+               case "é":
+               invElemInInput("u", "v");
+               if(glo.cloneSystem){ cloneSystem();  }
+               glo.histo.save();
+
+                  break;
+               case "7":
+               slidersAnim('u', 0, -0.01);
+
+                  break;
+               case "8":
+               slidersAnim('u', 0, 0.01);
+
+                  break;
+               case "4":
+               slidersAnim('v', 0, -0.01);
+
+                  break;
+               case "5":
+               slidersAnim('v', 0, 0.01);
+
+                  break;
+               case "è":
+               slidersAnim('stepU', 0, -1);
+
+                  break;
+               case "_":
+               slidersAnim('stepU', 0, 1);
+
+                  break;
+               case "ç":
+               slidersAnim('stepV', 0, -1);
+
+                  break;
+               case "à":
+               slidersAnim('stepV', 0, 1);
+
+                  break;
+               case "k":
+               glo.slider_nb_steps_u.maximum/=2;
+               glo.slider_nb_steps_v.maximum/=2;
+
+                  break;
+               case "l":
+               glo.slider_nb_steps_u.maximum*=2;
+               glo.slider_nb_steps_v.maximum*=2;
+
+                  break;
+               case ";":
+               switchWritingType(false);
+
+                  break;
+               case ",":
+               switchWritingType(true);
+
+                  break;
+               case "x":
+               glo.planeXYvisible = !glo.planeXYvisible;
+               showPlane(glo.planeXYvisible, 'xy');
+
+                  break;
+               case "y":
+               glo.planeYZvisible = !glo.planeYZvisible;
+               showPlane(glo.planeYZvisible, 'yz');
+
+                  break;
+               case "z":
+               glo.planeXZvisible = !glo.planeXZvisible;
+               showPlane(glo.planeXZvisible, 'xz');
+
+                  break;
+               case "s":
+               switchCoords();
+
+                  break;
+               case "t":
+               switchEqSphericToCylindrical();
+
+                  break;
+               case "d":
+               darkTheme();
+
+                  break;
+               case "f":
+               if(glo.ribbonCloneHistoDone){ delete glo.ribbonSaveToClone; glo.ribbonCloneHistoDone = false; }
+               cloneSystem();
+               glo.cloneToSave = true;
+               glo.histo.save();
+               glo.cloneToSave = false;
+
+                  break;
+               case "q":
+               if(glo.cloneScale >= 0.2){ cloneScale(-0.1); }
+
+                  break;
+               case "ù":
+               cloneScale(0.1);
+
+                  break;
+               case "'":
+               if(typeof(glo.orientationClone ) == "undefined"){  glo.orientationClone = orientationClone(); }
+               glo.orientationClone.next();
+               orientClone(glo.cloneAxis);
+
+                  break;
+               case "(":
+               saveRibbonToClone();
+
+                  break;
+               case '"':
+               special_randomize_colors_app();
+
+                  break;
+               case '$':
+               makeRndSurface();
+
+                  break;
+               case '*':
+               resetEquationsParamSliders();
+
+                  break;
+               case '<':
+                  glo.formesSuit = !glo.formesSuit;
+                  add_radios(true);
+
+                  break;
+               case 'a':
+               if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
+               glo.playWithColMode.next();
+               if(glo.params.playWithColors){
+                  makeColors();
+               }
+
+                  break;
+               case 'b':
+               glo.params.playWithColors = !glo.params.playWithColors;
+               glo.params.playWithColors ? makeColors() : make_ribbon();
+
+                  break;
+               case ',':
+               reset_camera();
+
+                  break;
+               case 'u':
+               glo.params.colors2 = !glo.params.colors2;
+               makeColors();
+
+                  break;
+               case 'j':
+               glo.params.colorsByRotate = !glo.params.colorsByRotate;
+               makeColors();
+
+                  break;
+               case 'm':
+               glo.params.colorsAbs = !glo.params.colorsAbs;
+               makeColors();
+
+                  break;
+               case "n":
+               glo.voronoiMode = !glo.voronoiMode;
+               make_ribbon();
+
+               break;
+               case '1':
+               glo.curves.paths[0].shift();
+               make_ribbon();
+
+                  break;
+               case '2':
+               glo.params.colorMove = !glo.params.colorMove;
+               makeColors();
+
+                  break;
+               case "3":
+                  glo.onlyTubes = !glo.onlyTubes;
+                  meshWithTubes();
+
+                  break;
+               case "6":
+                  glo.vertexsTypes.next();
+                  if(glo.normalMode){ drawNormalEquations(); }
+
+                  break;
+               case ":":
+                  glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
+
+               break;
+               case "!":
+                  glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
+
+               break;
+               case ")":
+                  glo.lineSystem = !glo.lineSystem;
+
+               break;
+            }
+         }
+         else{
+            switch (key) {
+               case "+":
+                  glo.rotate_speed*=1.2;
+
+                  break;
+               case "-":
+                  glo.rotate_speed/=1.2;
+
+                  break;
+            }
+         }
+      }
+      else{
+         switch (key) {
+            case "w":
+            case "W":
+            glo.normalMode = !glo.normalMode;
+            if(glo.normalMode){ resetInputsRibbonEquations(); drawNormalEquations(); }
+            else{ restoreInputsRibbonEquations(); make_curves(); }
+
+               break;
+            case "C":
+            glo.normalColorMode = !glo.normalColorMode;
+
+               break;
+            case "a":
+            case "A":
+            if(glo.normalMode){
+               glo.scaleNorm*=sqrt(2);
+               drawNormalEquations();
+            }
+
+               break;
+            case "p":
+            case "P":
+            glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
+            make_curves();
+            make_ribbon();
+
+               break;
+            case "z":
+            case "Z":
+            if(glo.normalMode){
+               glo.scaleNorm/=sqrt(2);
+               drawNormalEquations();
+            }
+
+               break;
+            case "H":
+            case "h":
+               cameraOnPos({x: 0, y: 0, z: 0});
+
+               break;
+            case "S":
+            case "s":
+            glo.normalOnNormalMode = !glo.normalOnNormalMode;
+
+               break;
+            case "E":
+            case "e":
+            glo.coordinatesNomrType.next();
+            if(glo.normalMode){ drawNormalEquations(); }
+
+               break;
+            case "D":
+            case "d":
+            accuade();
+
+               break;
+            case "F":
+            case "f":
+            testCol();
+
+               break;
+            case "I":
+            case "i":
+            glo.params.invCol = !glo.params.invCol;
+            invCol();
+
+               break;
+            case "R":
+            case "r":
+            colByMid(0.5);
+
+               break;
+            case "T":
+            case "t":
+            colByMid(2);
+            case "U":
+            case "u":
+            glo.transCol = !glo.transCol;
+            if(glo.params.playWithColors){
+               makeColors();
+            }
+            break;
+            case "B":
+            case "b":
+            glo.wireframe = !glo.wireframe;
+            glo.ribbon.material.wireframe = glo.wireframe;
+
+            break;
+            case "L":
+            case "l":
+            glo.slider_u.maximum*=2;
+            glo.slider_v.maximum*=2;
+
+            break;
+            case "K":
+            case "K":
+            glo.slider_u.maximum/=2;
+            glo.slider_v.maximum/=2;
+
+            break;
+            case "O":
+            case "o":
+            glo.params.modCos = !glo.params.modCos;
+            makeColors();
+
+            break;
+            case "V":
+            case "v":
+            glo.camera.alpha = glo.camera.start.alpha;
+            glo.camera.beta  = glo.camera.start.beta;
+            glo.camera.setPosition(glo.camera.start.pos.clone());
+            glo.camera.setTarget(glo.camera.start.target.clone());
+
+            break;
+            case "Y":
+            case "y":
+            updInputsToQuaternion();
+
+            break;
+            case "Q":
+            case "q":
+            firstInputToOthers();
+
+            break;
+            case "N":
+            case "n":
+            glo.stepByStepFast = !glo.stepByStepFast;
+
+            break;
+            case "?":
+            glo.meshWithTubes = !glo.meshWithTubes;
+            make_ribbon();
+
+               break;
+            case ".":
+            glo.meshWithTubes = true;
+            glo.tubes.radius /= glo.tubes.coeffRadiusVariation;
+            make_ribbon();
+
+               break;
+            case "§":
+            glo.meshWithTubes = true;
+            glo.tubes.radius *= glo.tubes.coeffRadiusVariation;
+            make_ribbon();
+
+               break;
+         }
+      }
+   }
 });
 
 

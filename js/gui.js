@@ -530,7 +530,7 @@ function add_uv_sliders(){
       if(e.buttonIndex == 2){ slider.value = slider.startValue; }
     });
     slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = pi/2 : val = -pi/2; slider.value += val;
+      var val = e.y < 0 ? val = pi/4 : val = -pi/4; slider.value += val;
     });
     slider.onPointerUpObservable.add(function (e) {
       glo.histo.save();
@@ -633,7 +633,16 @@ function add_inputs_equations(){
       if(colorEquation){ glo.params.playWithColors = true; }
       if(glo.normalMode){
         if(!colorEquation && !glo.params.playWithColors){ drawNormalEquations(); }
-        else{ glo.fromSlider = true; make_ribbon(); glo.fromSlider = false; drawNormalEquations(); }
+        else{
+          var equations = {
+            fx: glo.params.text_input_color_x,
+            fy: glo.params.text_input_color_y,
+            fz: glo.params.text_input_color_z,
+            falpha: glo.params.text_input_color_alpha,
+            fbeta: glo.params.text_input_color_beta,
+          };
+          if(test_equations(equations, false)){ glo.fromSlider = true; make_ribbon(); glo.fromSlider = false; drawNormalEquations(); } 
+        }
       }
       else{
         if(!colorEquation){
@@ -643,9 +652,16 @@ function add_inputs_equations(){
           glo.advancedTexture.moveFocusToControl(input);
         }
         else{
+          var equations = {
+            fx: glo.params.text_input_color_x,
+            fy: glo.params.text_input_color_y,
+            fz: glo.params.text_input_color_z,
+            falpha: glo.params.text_input_color_alpha,
+            fbeta: glo.params.text_input_color_beta,
+          };
           glo.params.playWithColors = true;
           glo.histoColo.save();
-          makeColors();
+          if(test_equations(equations, false)){ makeColors(); }
         }
       }
     }
@@ -818,7 +834,7 @@ function add_step_uv_slider(){
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
         else{
-          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); make_ribbon();
         }
       }
       reMakeClones();

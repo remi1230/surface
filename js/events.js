@@ -79,8 +79,8 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "&":
-               invElemInInput("cos", "sin");
-               invElemInInput("cu", "su");
+               invElemInInput("cos", "sin", false);
+               invElemInInput("cu", "su", false);
                invElemInInput("cv", "sv");
                if(glo.cloneSystem){ cloneSystem(); }
                glo.histo.save();
@@ -293,6 +293,10 @@ window.addEventListener("keydown", function (e) {
                   glo.rotate_speed/=1.2;
 
                   break;
+               case "g":
+                  toggleDataTable();
+
+                  break;
             }
          }
       }
@@ -320,8 +324,12 @@ window.addEventListener("keydown", function (e) {
             case "p":
             case "P":
             glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
-            make_curves();
-            make_ribbon();
+            if(!glo.normalMode){ 
+               make_curves();
+            }
+            else{
+               drawNormalEquations();
+            }
 
                break;
             case "z":

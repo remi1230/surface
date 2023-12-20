@@ -92,6 +92,7 @@ function addCommonTools(obj){
 	};
 }
 addCommonTools(this);
+
 function Curves(parametres = {
 	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
 	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
@@ -187,6 +188,7 @@ f = {
 	var xT = 1; var yT = 1; var zT = 1;
 	var µT = 1;
 	var $T= 1; var µ$T = 1; var $µT = 1; var µµT = 1;
+	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	if(f.x == ""){ f.x = 0; }
 	if(f.y == ""){ f.y = 0; }
@@ -213,7 +215,9 @@ f = {
   var index_u = 0;
   if(!is_v){
 		var path = [];
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		let u = this.min_u - this.step_u;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+			u += this.step_u;
 			ind_u = u;
 
 			x = eval(f.x);
@@ -273,71 +277,74 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
-			var path = [];
-      		var index_v = 0; ind_u = u;
-			for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
-				ind_v = v;
+	let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+	for (let i = 0; i <= this.nb_steps_u; i++) {
+		u += this.step_u;
+		var path = [];
+		var index_v = 0; ind_u = u; v = this.min_v - this.step_v;
+		for (let j = 0; j <= this.nb_steps_v; j++) {
+			v += this.step_v;
+			ind_v = v;
 
-				x = eval(f.x);
-				y = eval(f.y);
-				z = eval(f.z);
+			x = eval(f.x);
+			y = eval(f.y);
+			z = eval(f.z);
 
-				var vect3 = new BABYLON.Vector3(x,y,z);
-				vect3 = getNormalVector(vect3);
-				xN = vect3.x; yN = vect3.y; zN = vect3.z;
-				var µN = xN*yN*zN;
-				var $N = (xN+yN+zN)/3;
-				var µ$N = µN*$N; var $µN = µN+$N;
-				var µµN = µ$N*$µN;
+			var vect3 = new BABYLON.Vector3(x,y,z);
+			vect3 = getNormalVector(vect3);
+			xN = vect3.x; yN = vect3.y; zN = vect3.z;
+			var µN = xN*yN*zN;
+			var $N = (xN+yN+zN)/3;
+			var µ$N = µN*$N; var $µN = µN+$N;
+			var µµN = µ$N*$µN;
 
-				var O = Math.acos(y/(h(x,y,z)));
-				var T = Math.atan2(z, x) ;
+			var O = Math.acos(y/(h(x,y,z)));
+			var T = Math.atan2(z, x) ;
 
-				var vectT = new BABYLON.Vector3(x,y,z);
-				vectT = BABYLON.Vector3.Normalize(vectT);
-				xT = vectT.x; yT = vectT.y; zT = vectT.z;
-				var µT = xT*yT*zT;
-				var $T = (xT+yT+zT)/3;
-				var µ$T = µT*$T; var $µT = µT+$T;
-				var µµT = µ$T*$µT;
+			var vectT = new BABYLON.Vector3(x,y,z);
+			vectT = BABYLON.Vector3.Normalize(vectT);
+			xT = vectT.x; yT = vectT.y; zT = vectT.z;
+			var µT = xT*yT*zT;
+			var $T = (xT+yT+zT)/3;
+			var µ$T = µT*$T; var $µT = µT+$T;
+			var µµT = µ$T*$µT;
 
-				if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
-				if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
-				if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-				if(isBeta){
-					alpha = eval(f.alpha);
-					beta = eval(f.beta);
-					if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-					if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-					var pos = {x: x, y: y, z: z};
-					pos = rotateByMatrix(pos, 0, alpha, beta);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
-				else if(isAlpha){
-					alpha = eval(f.alpha);
-					if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-					var pos = {x: x, y: y, z: z};
-					pos = rotateByMatrix(pos, 0, alpha, 0);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
-
-				path.push(new BABYLON.Vector3(x, y, z));
-        		index_v++; n++;
+			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
+			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
+			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
+			if(isBeta){
+				alpha = eval(f.alpha);
+				beta = eval(f.beta);
+				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
+				var pos = {x: x, y: y, z: z};
+				pos = rotateByMatrix(pos, 0, alpha, beta);
+				x = pos.x; y = pos.y; z = pos.z;
 			}
-			this.paths.push(path);
-      		index_u++;
+			else if(isAlpha){
+				alpha = eval(f.alpha);
+				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+				var pos = {x: x, y: y, z: z};
+				pos = rotateByMatrix(pos, 0, alpha, 0);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+
+			path.push(new BABYLON.Vector3(x, y, z));
+			index_v++; n++;
 		}
+		this.paths.push(path);
+		index_u++;
+	}
 
-		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
+	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 
-		glo.lines = this.paths;
+	glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-		this.lineSystem.color = glo.lineColor;
-		this.lineSystem.alpha = glo.ribbon_alpha;
-		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+	this.lineSystem.color = glo.lineColor;
+	this.lineSystem.alpha = glo.ribbon_alpha;
+	this.lineSystem.alphaIndex = 999;
+	this.lineSystem.visibility = line_visible;
   }
 }
 
@@ -572,6 +579,8 @@ function drawNormalEquations(){
 				glo.curves.pathsSecond.push(pathNow);
 			}
 
+			if(glo.closeFirstWithLastPath){ glo.curves.pathsSecond.push(glo.curves.pathsSecond[0]); }
+
 			glo.lines = glo.curves.pathsSecond;
 
 			glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.pathsSecond, }, glo.scene);
@@ -689,6 +698,7 @@ f = {
 	var xT = 1; var yT= 1; var zT = 1;
 	var T = 1;
 	var $T = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
+	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	var isAlpha2 = false;
 	if(glo.params.text_input_alpha != ""){
@@ -711,7 +721,9 @@ f = {
   var index_u = 0;
   if(!is_v){
 		path = [];
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		let u = this.min_u - this.step_u;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+			u += this.step_u;
 			ind_u = u;
 
 			r     = eval(f.r);
@@ -767,7 +779,7 @@ f = {
 			path.push(this.new_p2);
 			this.paths.push(path);
 			path = [];
-      index_u++; n++;
+      		index_u++; n++;
 		}
 
 		glo.lines = this.paths;
@@ -779,9 +791,13 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
-      var index_v = 0; ind_u = u;
-			for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
+		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+			u += this.step_u;
+      		var index_v = 0; ind_u = u;
+			v = this.min_v - this.step_v
+			for (let j = 0; j <= this.nb_steps_v; j++) {
+				v += this.step_v;
 				ind_v = v;
 
 				r      = eval(f.r);
@@ -953,6 +969,7 @@ f = {
 	var xT = 1; var yT = 1; var zT = 1;
 	var µT = 1;
 	var $T = 1; var µ$T= 1; var $µT = 1; var µµT = 1;
+	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.x == ""){ f.x = 0; }
@@ -966,7 +983,9 @@ f = {
   var index_u = 0;
   if(!is_v){
 		path = [];
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		let u = this.min_u - this.step_u;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+			u += this.step_u;
 			ind_u = u;
 
 			r = eval(f.r);
@@ -1024,9 +1043,14 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
-	for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+	    let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+		u += this.step_u;
 		var index_v = 0; ind_u = u;
-		for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
+
+		v = this.min_v - this.step_v
+		for (let j = 0; j <= this.nb_steps_v; j++) {
+			v += this.step_v;
 			ind_v = v;
 
 			r = eval(f.r);
@@ -1193,6 +1217,7 @@ f = {
 	var xT = 1; var yT = 1; var zT = 1;
 	var µ$T = 1;
 	var $NT = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
+	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.alpha == ""){ f.alpha = 0; }
@@ -1206,7 +1231,9 @@ f = {
   var index_u = 0;
   if(!is_v){
 		path = [];
-		for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		let u = this.min_u - this.step_u;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+			u += this.step_u;
 			ind_u = u;
 
 			r      = eval(f.r);
@@ -1274,9 +1301,14 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
-	for (var u = this.min_u; u <= this.max_u; u+=this.step_u) {
+		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+		for (let i = 0; i <= this.nb_steps_u; i++) {
+		u += this.step_u;
 		var index_v = 0; ind_u = u;
-		for (var v = this.min_v; v <= this.max_v; v+=this.step_v) {
+
+		v = this.min_v - this.step_v;
+		for (let j = 0; j <= this.nb_steps_v; j++) {
+			v += this.step_v;
 			ind_v = v;
 
 			r      = eval(f.r);
@@ -1479,6 +1511,7 @@ f = {
 	var xN = 1; var yN = 1; var zN = 1;
 	var µN = 1;
 	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
+	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	var isAlpha = false;
 	if(glo.params.text_input_alpha != ""){
@@ -2037,6 +2070,7 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/e\*x/g,"ex");
 			f[prop] = f[prop].replace(/ex\*/g,"ex");
 			f[prop] = f[prop].replace(/ep\*i/g, 'e*pi');
+			f[prop] = f[prop].replace(/se\*/g, 'se');
 		}
 	}
 	return f;
@@ -2151,8 +2185,10 @@ function ribbonDispose(){
 	if(typeof(glo.ribbon)    != "undefined" && glo.ribbon != null){ glo.ribbon.dispose(); glo.ribbon = null; }
 	if(typeof(glo.meshTubes) != "undefined" && glo.meshTubes != null){ glo.meshTubes.dispose(); glo.meshTubes = null; }
 
+	const notToDispose = ['axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane'];
+
 	glo.scene.meshes.forEach(mesh => {
-		if(mesh.name !== 'lineSystem'){ mesh.dispose(); }
+		if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
 	});
 }
 
@@ -2260,7 +2296,7 @@ function makeColors(){
 
 		reg(f, dim_one);
 
-	  var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
+	  	var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
 
 		if(f.x == ""){ f.x = 0; }
 		if(f.y == ""){ f.y = 0; }
@@ -3382,7 +3418,7 @@ function switchWritingType(long){
 	glo.params.text_input_beta = f.beta;
 }
 
-function invElemInInput(toInv_1, toInv_2){
+function invElemInInput(toInv_1, toInv_2, makeCurve = true){
 	var f = {
 		x: glo.input_x.text,
 		y: glo.input_y.text,
@@ -3403,7 +3439,12 @@ function invElemInInput(toInv_1, toInv_2){
 	glo.params.text_input_alpha = f.alpha;
 	glo.params.text_input_beta = f.beta;
 
-	make_curves();
+	if(makeCurve){
+		 if(!glo.normalMode){ make_curves(); }
+		 else{
+			glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); make_ribbon();
+		 }
+	}
 }
 
 function slidersAnim(name, speed = 1, dir = 1){
@@ -4152,4 +4193,49 @@ function firstInputToOthers(){
 function cameraOnPos(pos){
 	glo.camera.setTarget(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
+}
+
+function toggleDataTable(){
+	dataTableBody.innerHTML = '';
+
+	let vertices = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+
+	const uStep   = (glo.params.u*2) / glo.params.steps_u;
+	const vStep   = (glo.params.v*2) / glo.params.steps_v;
+
+	const uFirst = -round(0.5 * uStep * glo.params.steps_u, 2);
+	const vFirst = -round(0.5 * vStep * glo.params.steps_v, 2);
+
+	const datas = [];
+	let n       = 0;
+	for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
+		const u = round(uFirst + (stepU*uStep), 2);
+		for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
+			const v = round(vFirst + (stepV*vStep), 2);
+			const x = round(vertices[n*3], 2);
+			const y = round(vertices[n*3 + 1], 2);
+			const z = round(vertices[n*3 + 2], 2);
+
+			datas.push([u, v, x, y, z]);
+			n++;
+		}
+	}
+
+	datas.forEach(datasTr => {
+		let tr = document.createElement('tr');
+		datasTr.forEach(dataTd => {
+			let td 		= document.createElement('td');
+			const tdTxt = document.createTextNode(dataTd);
+
+			td.appendChild(tdTxt);
+			tr.appendChild(td);
+		});
+		dataTableBody.appendChild(tr);
+	});
+	$('#dataModal').modal('open');
+}
+
+function round(val, pre){
+	prePow = 10**pre;
+	return Math.round(val * prePow, pre) / prePow;
 }

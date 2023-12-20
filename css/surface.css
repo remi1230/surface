@@ -5,6 +5,9 @@ html, body {
     margin: 0;
     padding: 0;
 }
+td{
+  text-align: center;
+}
 
 kbd.keys {
   background-color: #eee;

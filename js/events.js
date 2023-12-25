@@ -5,6 +5,7 @@ $( document ).ready(function() {
   add_gui_controls();
   toggle_gui_controls_suit(false);
   toggle_gui_controls_third(false);
+  toggleGuiControlsByClass(false, 'fourth');
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();
@@ -281,6 +282,30 @@ window.addEventListener("keydown", function (e) {
                   glo.lineSystem = !glo.lineSystem;
 
                break;
+               case "PageUp":
+                  glo.firstPoint.y++;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
+               case "PageDown":
+                  glo.firstPoint.y--;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
+               case "Home":
+                  glo.firstPoint = {x: 1, y: 0, z: 0};
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
             }
          }
          else{
@@ -293,10 +318,40 @@ window.addEventListener("keydown", function (e) {
                   glo.rotate_speed/=1.2;
 
                   break;
+               case "1":
+                  glo.camera.radius/=1.2;
+
+                  break;
+               case "2":
+                  glo.camera.radius*=1.2;
+
+                  break;
                case "g":
                   toggleDataTable();
 
                   break;
+               case "z":
+                  glo.noLinkToZero = !glo.noLinkToZero;
+                  if(!glo.normalMode){ make_curves(); }
+                  else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
+
+                  break;
+               case "PageUp":
+                  glo.firstPoint.z++;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
+               case "PageDown":
+                  glo.firstPoint.z--;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
             }
          }
       }
@@ -451,6 +506,22 @@ window.addEventListener("keydown", function (e) {
             make_ribbon();
 
                break;
+            case "PageUp":
+               glo.firstPoint.x++;
+               if(!glo.normalMode){  make_curves(); }
+               else{
+                  glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+               }
+
+            break;
+            case "PageDown":
+               glo.firstPoint.x--;
+               if(!glo.normalMode){  make_curves(); }
+               else{
+                  glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+               }
+
+            break;
          }
       }
    }

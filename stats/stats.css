@@ -98,7 +98,10 @@ tbody tr:hover {
   font-size: 16px;
 }
 #filterOnLikeSymbol{
-  margin: 2px 5px 0 50px;
+  margin: 2px 5px 0 75px;
   font-size: 16px;
   cursor: pointer;
+}
+#nbThings{
+  margin-left: 65px;
 }

@@ -4,7 +4,8 @@ const glo = {
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
-                  6386074, 6388308, 6389108],
+                  6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
+                  6397564, 6398300, 6398371],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -104,6 +105,8 @@ function datasToTable(datas = glo.datasStats){
     });
     tr.id = "totauxStatsTable";
     statsFootTable.appendChild(tr);
+
+    document.getElementById('nbThings').innerHTML = datas.length + " / " + glo.res.length;
 }
 
 function totauxStats(datas = glo.datasStats){

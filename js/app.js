@@ -6,24 +6,24 @@ function addCommonTools(obj){
 	obj.ep = 0.0000001;
 	obj.mu = glo.params.u + 1;
 
-	obj.cos = Math.cos; obj.sin = Math.sin; obj.tan = Math.tan;  obj.atan = Math.atan; obj.atantwo = Math.atan2;
-	obj.cosh = Math.cosh; obj.sinh = Math.sinh; obj.tanh = Math.tanh;  obj.atanh = Math.atanh;
-	obj.c = obj.cos; obj.s = obj.sin;
-	obj.abs = Math.abs;
-	obj.a = Math.abs;
-	obj.ceil = Math.ceil;
-	obj.exp = Math.exp;
-	obj.e = Math.exp;
-	obj.hypot = Math.hypot;
-	obj.h = Math.hypot;
-	obj.log = Math.log;
-	obj.l = Math.log;
+	obj.cos    = Math.cos; obj.sin = Math.sin; obj.tan = Math.tan;  obj.atan = Math.atan; obj.atantwo = Math.atan2;
+	obj.cosh   = Math.cosh; obj.sinh = Math.sinh; obj.tanh = Math.tanh;  obj.atanh = Math.atanh;
+	obj.c 	   = obj.cos; obj.s = obj.sin;
+	obj.abs    = Math.abs;
+	obj.a 	   = Math.abs;
+	obj.ceil   = Math.ceil;
+	obj.exp    = Math.exp;
+	obj.e 	   = Math.exp;
+	obj.hypot  = Math.hypot;
+	obj.h 	   = Math.hypot;
+	obj.log    = Math.log;
+	obj.l      = Math.log;
 	obj.logten = Math.log10;
-	obj.pow = Math.pow;
-	obj.rnd = Math.random;
-	obj.sign = Math.sign;
-	obj.si = Math.sign;
-	obj.sq = Math.sqrt;
+	obj.pow    = Math.pow;
+	obj.rnd    = Math.random;
+	obj.sign   = Math.sign;
+	obj.si     = Math.sign;
+	obj.sq     = Math.sqrt;
 
 	obj.cp = function(val, coeff = 1){ return cos(coeff*PI*val); };
 	obj.sp = function(val, coeff = 1){ return sin(coeff*PI*val); };
@@ -103,9 +103,17 @@ f = {
 	z: glo.params.text_input_z,
 	alpha: glo.params.text_input_alpha,
 	beta: glo.params.text_input_beta,
+}, f2 = {
+	x: glo.params.text_input_suit_x,
+	y: glo.params.text_input_suit_y,
+	z: glo.params.text_input_suit_z,
+	alpha: glo.params.text_input_suit_alpha,
+	beta: glo.params.text_input_suit_beta,
+	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one)
 {
 	reg(f, dim_one);
+	reg(f2, dim_one);
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
@@ -178,7 +186,13 @@ f = {
      f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
      f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
      f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
-     f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1)
+     f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
+	 f2.alpha.lastIndexOf('v') != -1 || f2.alpha.lastIndexOf('V') != -1 ||
+     f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
+     f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
+	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') ||
+	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') ||
+	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V'))
      { is_v = true; }
 
     var x = 0.5; var y = 0.5; var z = 0.5;
@@ -195,16 +209,39 @@ f = {
 	if(f.z == ""){ f.z = 0; }
 	if(f.alpha == ""){ f.alpha = 0; }
 	if(f.beta == ""){ f.beta = 0; }
+	if(f2.alpha == ""){ f2.alpha = 0; }
+	if(f2.beta == ""){ f2.beta = 0; }
+	if(f2.theta == ""){ f2.theta = 0; }
+	if(f2.x == ""){ f2.x = 0; }
+	if(f2.y == ""){ f2.y = 0; }
+	if(f2.z == ""){ f2.z = 0; }
+
+	var isX = glo.params.text_input_suit_x != "" ? true : false;
+	var isY = glo.params.text_input_suit_y != "" ? true : false;
+	var isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	var isAlpha = false;
-	var alpha = 0;
+	var alpha   = 0;
 	if(glo.params.text_input_alpha != ""){
 		isAlpha = true;
 	}
 	var isBeta = false;
-	var beta = 0;
+	var beta   = 0;
 	if(glo.params.text_input_beta != ""){
 		isBeta = true;
+	}
+	var isAlpha2 = false;
+	if(glo.params.text_input_suit_alpha != ""){
+		isAlpha2 = true;
+	}
+	var isBeta2 = false;
+	if(glo.params.text_input_suit_beta != ""){
+		isBeta2 = true;
+	}
+	var isTheta = false;
+	var theta   = 0;
+	if(glo.params.text_input_suit_theta != ""){
+		isTheta = true;
 	}
 
 	var minU = this.min_u; var maxU = this.max_u; var stepU = this.step_u;
@@ -246,20 +283,50 @@ f = {
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-			if(isBeta){
+
+			if(isX){ const x2 = eval(f2.x); x += x2; }
+			if(isY){ const y2 = eval(f2.y); y += y2; }
+			if(isZ){ const z2 = eval(f2.z); z += z2; }
+
+			let pos = {x: x, y: y, z: z};
+
+			if(isTheta){
 				alpha = eval(f.alpha);
-				beta = eval(f.beta);
+				beta  = eval(f.beta);
+				theta = eval(f2.theta);
 				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
 				if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-				var pos = {x: x, y: y, z: z};
+				if(theta == Infinity || theta == -Infinity || isNaN(theta)){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha, beta);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+			else if(isBeta){
+				alpha = eval(f.alpha);
+				beta  = eval(f.beta);
+				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
 				pos = rotateByMatrix(pos, 0, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 			else if(isAlpha){
 				alpha = eval(f.alpha);
 				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-				var pos = {x: x, y: y, z: z};
 				pos = rotateByMatrix(pos, 0, alpha, 0);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+
+			if(isBeta2){
+				alpha2 = eval(f2.alpha);
+				beta2  = eval(f2.beta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, beta2);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+			else if(isAlpha2){
+				alpha2 = eval(f2.alpha);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, 0);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
@@ -312,20 +379,50 @@ f = {
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-			if(isBeta){
+
+			if(isX){ const x2 = eval(f2.x); x += x2; }
+			if(isY){ const y2 = eval(f2.y); y += y2; }
+			if(isZ){ const z2 = eval(f2.z); z += z2; }
+
+			var pos = {x: x, y: y, z: z};
+
+			if(isTheta){
+				alpha = eval(f.alpha);
+				beta  = eval(f.beta);
+				theta = eval(f2.theta);
+				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
+				if(theta == Infinity || theta == -Infinity || isNaN(theta)){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha, beta);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+			else if(isBeta){
 				alpha = eval(f.alpha);
 				beta = eval(f.beta);
 				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
 				if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-				var pos = {x: x, y: y, z: z};
 				pos = rotateByMatrix(pos, 0, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 			else if(isAlpha){
 				alpha = eval(f.alpha);
 				if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-				var pos = {x: x, y: y, z: z};
 				pos = rotateByMatrix(pos, 0, alpha, 0);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+
+			if(isBeta2){
+				alpha2 = eval(f2.alpha);
+				beta2  = eval(f2.beta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, beta2);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
+			else if(isAlpha2){
+				alpha2 = eval(f2.alpha);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, 0);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
@@ -484,7 +581,7 @@ function drawNormalEquations(){
 			isBeta = true;
 		}
 
-		if(!glo.normalOnNormalMode){ var paths = glo.curves.paths; }
+		if(!glo.normalOnNormalMode || !glo.curves.pathsSecond){ var paths = glo.curves.paths; }
 		else{ var paths = Object.assign([], glo.curves.pathsSecond) }
 
 		glo.curves.pathsSecond = [];
@@ -605,6 +702,13 @@ f = {
 	beta: glo.params.text_input_z,
 	alpha2: glo.params.text_input_alpha,
 	beta2: glo.params.text_input_beta,
+}, f2 = {
+	x: glo.params.text_input_suit_x,
+	y: glo.params.text_input_suit_y,
+	z: glo.params.text_input_suit_z,
+	alpha: glo.params.text_input_suit_alpha,
+	beta: glo.params.text_input_suit_beta,
+	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one)
 {
 	var cyl = false;
@@ -660,13 +764,14 @@ f = {
 		return eval(func);
 	}
 
-	reg(f, dim_one);
+	reg(f,  dim_one);
+	reg(f2, dim_one);
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
 	this.p1_first = new BABYLON.Vector3.Zero;
-	this.p2_first = new BABYLON.Vector3(1,0,0);
+	this.p2_first = glo.firstPoint;
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
@@ -686,7 +791,13 @@ f = {
      f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
      f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
      f.alpha2.lastIndexOf('v') != -1 || f.alpha2.lastIndexOf('V') != -1 ||
-     f.beta2.lastIndexOf('v') != -1 || f.beta2.lastIndexOf('V') != -1)
+     f.beta2.lastIndexOf('v') != -1 || f.beta2.lastIndexOf('V') != -1 ||
+	 f2.alpha.lastIndexOf('v') != -1 || f2.alpha.lastIndexOf('V') != -1 ||
+     f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
+	 f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
+	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') != -1 ||
+	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') != -1 ||
+	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V') != -1)
      { is_v = true; }
 
     var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
@@ -708,12 +819,28 @@ f = {
 	if(glo.params.text_input_beta != ""){
 		isBeta2 = true;
 	}
+	var isTheta = false;
+	if(glo.params.text_input_suit_theta != ""){
+		isTheta = true;
+	}
+	var isAlpha3 = glo.params.text_input_suit_alpha != "" ? true : false;
+	var isBeta3  = glo.params.text_input_suit_beta  != "" ? true : false;
+
+	var isX = glo.params.text_input_suit_x != "" ? true : false;
+	var isY = glo.params.text_input_suit_y != "" ? true : false;
+	var isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	if(f.r == ""){ f.r = 0; }
 	if(f.alpha == ""){ f.alpha = 0; }
 	if(f.beta == ""){ f.beta = 0; }
 	if(f.alpha2 == ""){ f.alpha2 = 0; }
 	if(f.beta2 == ""){ f.beta2 = 0; }
+	if(f2.alpha == ""){ f2.alpha = 0; }
+	if(f2.beta == ""){ f2.beta = 0; }
+	if(f2.theta == ""){ f2.theta = 0; }
+	if(f2.x == ""){ f2.x = 0; }
+	if(f2.y == ""){ f2.y = 0; }
+	if(f2.z == ""){ f2.z = 0; }
 
 	var n = 0;
 	var path = [];
@@ -734,7 +861,7 @@ f = {
 			if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 			if(beta == Infinity || beta == -Infinity){ beta = 0; }
 
-			var pos = {x: this.p2_first.x * r, y: 0, z: 0};
+			var pos = {x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r};
 			if(!cyl){ pos = rotateByMatrix(pos, 0, alpha, beta); }
 			else{
 				pos = rotateByMatrix(pos, 0, 0, alpha);
@@ -761,9 +888,22 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isBeta2){
+			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+			if(isTheta){
 				alpha2 = eval(f.alpha2);
-				beta2 = eval(f.beta2);
+				beta2  = eval(f.beta2);
+				theta  = eval(f2.theta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
+				if(theta == Infinity || theta == -Infinity){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha2, beta2);
+			}
+			else if(isBeta2){
+				alpha2 = eval(f.alpha2);
+				beta2  = eval(f.beta2);
 				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 				if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
 				pos = rotateByMatrix(pos, 0, alpha2, beta2);
@@ -774,9 +914,21 @@ f = {
 				pos = rotateByMatrix(pos, 0, alpha2, 0);
 			}
 
-			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-			path.push(this.p1_first);
-			path.push(this.new_p2);
+			if(isBeta3){
+				alpha3 = eval(f2.alpha);
+				beta3  = eval(f2.beta);
+				if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+				if(beta3 == Infinity || beta3 == -Infinity){ beta3 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha3, beta3);
+			}
+			else if(isAlpha3){
+				alpha3 = eval(f2.alpha);
+				if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha3, 0);
+			}
+
+			if(!glo.noLinkToZero){ path.push(this.p1_first); }
+			path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 			this.paths.push(path);
 			path = [];
       		index_u++; n++;
@@ -808,7 +960,7 @@ f = {
 				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 				if(beta == Infinity || beta == -Infinity){ beta = 0; }
 
-				var pos = {x: this.p2_first.x * r, y: 0, z: 0};
+				var pos = {x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r};
 				if(!cyl){ pos = rotateByMatrix(pos, 0, alpha, beta); }
 				else{
 					pos = rotateByMatrix(pos, 0, 0, alpha);
@@ -835,9 +987,22 @@ f = {
 				var µ$T = µT*$T; var $µT = µT+$T;
 				var µµT = µ$T*$µT;
 
-				if(isBeta2){
+				if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+				if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+				if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+				if(isTheta){
 					alpha2 = eval(f.alpha2);
-					beta2 = eval(f.beta2);
+					beta2  = eval(f.beta2);
+					theta  = eval(f2.theta);
+					if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+					if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
+					if(theta == Infinity || theta == -Infinity){ theta = 0; }
+					pos = rotateByMatrix(pos, theta, alpha2, beta2);
+				}
+				else if(isBeta2){
+					alpha2 = eval(f.alpha2);
+					beta2  = eval(f.beta2);
 					if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 					if(beta2 == Infinity || beta2 == -Infinity){ beta2 = 0; }
 					pos = rotateByMatrix(pos, 0, alpha2, beta2);
@@ -846,6 +1011,19 @@ f = {
 					alpha2 = eval(f.alpha2);
 					if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 					pos = rotateByMatrix(pos, 0, alpha2, 0);
+				}
+
+				if(isBeta3){
+					alpha3 = eval(f2.alpha);
+					beta3  = eval(f2.beta);
+					if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+					if(beta3 == Infinity || beta3 == -Infinity){ beta3 = 0; }
+					pos = rotateByMatrix(pos, 0, alpha3, beta3);
+				}
+				else if(isAlpha3){
+					alpha3 = eval(f2.alpha);
+					if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+					pos = rotateByMatrix(pos, 0, alpha3, 0);
 				}
 
 				this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
@@ -879,6 +1057,14 @@ f = {
 	y: glo.params.text_input_z,
 	z: glo.params.text_input_alpha,
 	w: glo.params.text_input_beta,
+},
+f2 = {
+	x: glo.params.text_input_suit_x,
+	y: glo.params.text_input_suit_y,
+	z: glo.params.text_input_suit_z,
+	alpha: glo.params.text_input_suit_alpha,
+	beta: glo.params.text_input_suit_beta,
+	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one)
 {
 	function mx(index = 1, val_to_return = 0, p = path){
@@ -931,13 +1117,31 @@ f = {
 		return eval(func);
 	}
 
-	reg(f, dim_one);
+	reg(f,  dim_one);
+	reg(f2, dim_one);
+
+	var isAlpha = false;
+	if(glo.params.text_input_suit_alpha != ""){
+		isAlpha = true;
+	}
+	var isBeta = false;
+	if(glo.params.text_input_suit_beta != ""){
+		isBeta = true;
+	}
+	var isTheta = false;
+	if(glo.params.text_input_suit_theta != ""){
+		isTheta = true;
+	}
+
+	var isX = glo.params.text_input_suit_x != "" ? true : false;
+	var isY = glo.params.text_input_suit_y != "" ? true : false;
+	var isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
 	this.p1_first = new BABYLON.Vector3.Zero;
-	this.p2_first = new BABYLON.Vector3(1,0,0);
+	this.p2_first = glo.firstPoint;
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
@@ -957,7 +1161,13 @@ f = {
      f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
      f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
      f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
-     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1)
+     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1 || 
+	 f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
+	 f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
+	 f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
+	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') ||
+	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') ||
+	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V'))
      { is_v = true; }
 
   	var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
@@ -976,10 +1186,16 @@ f = {
 	if(f.y == ""){ f.y = 0; }
 	if(f.z == ""){ f.z = 0; }
 	if(f.w == ""){ f.w = 0; }
+	if(f2.alpha == ""){ f2.alpha = 0; }
+	if(f2.beta  == ""){ f2.beta  = 0; }
+	if(f2.tetha == ""){ f2.tetha = 0; }
+	if(f2.x == ""){ f2.x = 0; }
+	if(f2.y == ""){ f2.y = 0; }
+	if(f2.z == ""){ f2.z = 0; }
 
-	var n = 0;
-	var path = [];
-	var line_visible = glo.lines_visible;
+  var n = 0;
+  var path = [];
+  var line_visible = glo.lines_visible;
   var index_u = 0;
   if(!is_v){
 		path = [];
@@ -1000,7 +1216,7 @@ f = {
 			if(z == Infinity || z == -Infinity){ z = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
 			let axis  			= new BABYLON.Vector3(x, y, z);
 			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
@@ -1026,8 +1242,34 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
+			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+			if(isTheta){
+				alpha = eval(f2.alpha);
+				beta  = eval(f2.beta);
+				theta = eval(f2.theta);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				if(theta == Infinity || theta == -Infinity){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha, beta);
+			}
+			else if(isBeta){
+				alpha = eval(f2.alpha);
+				beta  = eval(f2.beta);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				pos = rotateByMatrix(pos, 0, alpha, beta2);
+			}
+			else if(isAlpha){
+				alpha = eval(f2.alpha);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				pos = rotateByMatrix(pos, 0, alpha, 0);
+			}
+
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-			path.push(this.p1_first);
+			if(!glo.noLinkToZero){ path.push(this.p1_first); }
 			path.push(this.new_p2);
 			this.paths.push(path);
 			path = [];
@@ -1065,7 +1307,7 @@ f = {
 			if(z == Infinity || z == -Infinity){ z = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
 			let axis  			= new BABYLON.Vector3(x, y, z);
 			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
@@ -1090,6 +1332,32 @@ f = {
 			var $T = (xT+yT+zT)/3;
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
+
+			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+			if(isTheta){
+				alpha = eval(f2.alpha);
+				beta  = eval(f2.beta);
+				theta = eval(f2.theta);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				if(theta == Infinity || theta == -Infinity){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha, beta);
+			}
+			else if(isBeta){
+				alpha = eval(f2.alpha);
+				beta  = eval(f2.beta);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				pos = rotateByMatrix(pos, 0, alpha, beta);
+			}
+			else if(isAlpha){
+				alpha = eval(f2.alpha);
+				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
+				pos = rotateByMatrix(pos, 0, alpha, 0);
+			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -1122,6 +1390,14 @@ f = {
 	beta   : glo.params.text_input_z,
 	w      : glo.params.text_input_alpha,
 	alpha2 : glo.params.text_input_beta,
+},
+f2 = {
+	x: glo.params.text_input_suit_x,
+	y: glo.params.text_input_suit_y,
+	z: glo.params.text_input_suit_z,
+	alpha: glo.params.text_input_suit_alpha,
+	beta: glo.params.text_input_suit_beta,
+	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one)
 {
 	function mx(index = 1, val_to_return = 0, p = path){
@@ -1174,13 +1450,14 @@ f = {
 		return eval(func);
 	}
 
-	reg(f, dim_one);
+	reg(f,  dim_one);
+	reg(f2, dim_one);
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
 	this.p1_first = new BABYLON.Vector3.Zero;
-	this.p2_first = new BABYLON.Vector3(1,0,0);
+	this.p2_first = glo.firstPoint;
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
@@ -1195,9 +1472,25 @@ f = {
 	this.paths = [];
 	this.lines = [];
 
+	var isX = glo.params.text_input_suit_x != "" ? true : false;
+	var isY = glo.params.text_input_suit_y != "" ? true : false;
+	var isZ = glo.params.text_input_suit_z != "" ? true : false;
+
 	var isAlpha2 = false;
 	if(glo.params.text_input_beta != ""){
 		isAlpha2 = true;
+	}
+	var isAlpha3 = false;
+	if(glo.params.text_input_suit_alpha != ""){
+		isAlpha3 = true;
+	}
+	var isBeta = false;
+	if(glo.params.text_input_suit_beta != ""){
+		isBeta = true;
+	}
+	var isTheta = false;
+	if(glo.params.text_input_suit_theta != ""){
+		isTheta = true;
 	}
 
   var is_v = false;
@@ -1205,7 +1498,13 @@ f = {
      f.alpha2.lastIndexOf('v') != -1 || f.alpha2.lastIndexOf('V') != -1 ||
      f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
      f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
-     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1)
+     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1 ||
+	 f2.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
+	 f2.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
+	 f2.theta.lastIndexOf('v') != -1 || f.theta.lastIndexOf('V') != -1 ||
+	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') ||
+	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') ||
+	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V'))
      { is_v = true; }
 
   	var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
@@ -1224,6 +1523,12 @@ f = {
 	if(f.beta == ""){ f.beta = 0; }
 	if(f.w == ""){ f.w = 0; }
 	if(f.alpha2 == ""){ f.alpha2 = 0; }
+	if(f2.alpha == ""){ f2.alpha = 0; }
+	if(f2.beta == ""){ f2.beta = 0; }
+	if(f2.theta == ""){ f2.theta = 0; }
+	if(f2.x == ""){ f2.x = 0; }
+	if(f2.y == ""){ f2.y = 0; }
+	if(f2.z == ""){ f2.z = 0; }
 
 	var n = 0;
 	var path = [];
@@ -1248,13 +1553,13 @@ f = {
 			if(beta == Infinity || beta == -Infinity){ beta = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x, this.p2_first.y * r, this.p2_first.z * r);
 			let pointRot        = rotateByMatrix(point, 0, alpha, beta);
 			let axis  			= new BABYLON.Vector3(pointRot.x, pointRot.y, pointRot.z);
 
 			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
 
-			point 			    = new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			point 			    = new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
 			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
 
@@ -1278,14 +1583,40 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isAlpha2){
+			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+			if(isTheta){
+				alpha2 = eval(f.alpha2);
+				beta   = eval(f2.beta);
+				theta  = eval(f2.theta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				if(theta == Infinity || theta == -Infinity){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha2, beta);
+			}
+			else if(isBeta){
+				alpha2 = eval(f.alpha2);
+				beta   = eval(f2.beta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, beta);
+			}
+			else if(isAlpha2){
 				alpha2 = eval(f.alpha2);
 				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 				pos = rotateByMatrix(pos, 0, alpha2, 0);
 			}
 
+			if(isAlpha3){
+				alpha3 = eval(f2.alpha);
+				if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha3, 0);
+			}
+
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-			path.push(this.p1_first);
+			if(!glo.noLinkToZero){ path.push(this.p1_first); }
 			path.push(this.new_p2);
 			this.paths.push(path);
 			path = [];
@@ -1323,13 +1654,13 @@ f = {
 			if(beta == Infinity || beta == -Infinity){ beta = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x, 0, 0);
+			let point 			= new BABYLON.Vector3(this.p2_first.x, this.p2_first.y * r, this.p2_first.z * r);
 			let pointRot        = rotateByMatrix(point, 0, alpha, beta);
 			let axis  			= new BABYLON.Vector3(pointRot.x, pointRot.y, pointRot.z);
 
 			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
 
-			point 			    = new BABYLON.Vector3(this.p2_first.x * r, 0, 0);
+			point 			    = new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
 			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
 			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
 
@@ -1353,10 +1684,36 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isAlpha2){
+			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
+			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
+			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+
+			if(isTheta){
+				alpha2 = eval(f.alpha2);
+				beta   = eval(f2.beta);
+				theta  = eval(f2.theta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				if(theta == Infinity || theta == -Infinity){ theta = 0; }
+				pos = rotateByMatrix(pos, theta, alpha2, beta);
+			}
+			else if(isBeta){
+				alpha2 = eval(f.alpha2);
+				beta   = eval(f2.beta);
+				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
+				if(beta == Infinity || beta == -Infinity){ beta = 0; }
+				pos = rotateByMatrix(pos, 0, alpha2, beta);
+			}
+			else if(isAlpha2){
 				alpha2 = eval(f.alpha2);
 				if(alpha2 == Infinity || alpha2 == -Infinity){ alpha2 = 0; }
 				pos = rotateByMatrix(pos, 0, alpha2, 0);
+			}
+
+			if(isAlpha3){
+				alpha3 = eval(f2.alpha);
+				if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
+				pos = rotateByMatrix(pos, 0, alpha3, 0);
 			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
@@ -1947,6 +2304,12 @@ function test_equations(equations, dim_one = false, forCol = false){
 	if(f.fz == ""){ f.fz = 0; }
 	if(f.falpha == ""){ f.falpha = 0; }
 	if(f.fbeta == ""){ f.fbeta = 0; }
+	if(!f.fSuitAlpha){ f.fSuitAlpha = 0; }
+	if(!f.fSuitBeta){ f.fSuitBeta = 0; }
+	if(!f.fSuitTheta){ f.fSuitTheta = 0; }
+	if(!f.fSuitX){ f.fSuitX = 0; }
+	if(!f.fSuitY){ f.fSuitY = 0; }
+	if(!f.fSuitZ){ f.fSuitZ = 0; }
 
 	reg(f, dim_one);
 
@@ -1972,8 +2335,15 @@ function test_equations(equations, dim_one = false, forCol = false){
 		y = eval(f.fy);
 		z = eval(f.fz);
 		alpha = eval(f.falpha);
-		beta = eval(f.fbeta);
-		if(isNaN(x) || isNaN(y) || isNaN(z) || isNaN(alpha) || isNaN(beta)){ x = eval(undefine); }
+		beta  = eval(f.fbeta);
+		suitAlpha = eval(f.fSuitAlpha);
+		suitBeta  = eval(f.fSuitBeta);
+		suitTheta = eval(f.fSuitTheta);
+		suitX = eval(f.fSuitX);
+		suitY = eval(f.fSuitY);
+		suitZ = eval(f.fSuitZ);
+		if(isNaN(x) || isNaN(y) || isNaN(z) || isNaN(alpha) || isNaN(beta) || isNaN(suitAlpha) ||
+		   isNaN(suitAlpha) || isNaN(suitTheta) || isNaN(suitX) || isNaN(suitY) || isNaN(suitZ)){ x = eval(undefine); }
 	}
 	catch(error){
 		glo.toHisto = false;
@@ -2087,6 +2457,12 @@ function make_curves(u_params = {
 	fz: glo.params.text_input_z,
 	falpha: glo.params.text_input_alpha,
 	fbeta: glo.params.text_input_beta,
+	fSuitAlpha: glo.params.text_input_suit_alpha,
+	fSuitBeta: glo.params.text_input_suit_beta,
+	fSuitTheta: glo.params.text_input_suit_theta,
+	fSuitX: glo.params.text_input_suit_x,
+	fSuitY: glo.params.text_input_suit_y,
+	fSuitZ: glo.params.text_input_suit_z,
 }, dim_one = glo.dim_one){
 
 	var good = test_equations(equations, dim_one);
@@ -2395,6 +2771,7 @@ function makeColors(){
 					n++;
 				}
 			}
+			if(glo.closeFirstWithLastPath){ colors.push(colors[0]); }
 		}
 
 		var maxX = max(colorsNumbersX); var maxY = max(colorsNumbersY); var maxZ = max(colorsNumbersZ);
@@ -2752,10 +3129,9 @@ function whellSwitchForm(){
 	if(formSelect){
 	  var numFormSelect = formSelect.num;
 	  var numFormSelectInCoordType = formSelect.numFormInCoorType;
-		var formsLength = glo.formes.select.length;
 		var formsLengthInCoordType = glo.formes.getNbFormsInThisCoordtype();
 		var numFirstFormInCoorType = glo.formes.getNumFirstFormInCoordType();
-		var numLastFormInCoorType = glo.formes.getNumLastFormInCoordType();
+		var numLastFormInCoorType  = glo.formes.getNumLastFormInCoordType();
 		if(glo.whellSwitchFormDown){
 			var numFormToSelect = numFirstFormInCoorType;
 			if(numFormSelectInCoordType < formsLengthInCoordType - 1){ numFormToSelect = numFormSelect + 1; }
@@ -3074,9 +3450,10 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 	}
 };
 
-function viewOnX(orient = 1){
-	glo.camera.alpha = 0;
-	glo.camera.beta = PI/2;
+function viewOnX(orient = 1, alpha = 0, beta = PI/2){
+	glo.camera.alpha = alpha;
+	glo.camera.beta  = beta;
+
 	if(orient == 1){
 		glo.camera.upVector = new BABYLON.Vector3(0,1,0);
 	}
@@ -3084,27 +3461,51 @@ function viewOnX(orient = 1){
 		glo.camera.upVector = new BABYLON.Vector3(0,0,1);
 	}
 }
-function viewOnY(orient = 1){
+function viewOnY(orient = 1, alpha = -PI, beta = PI/2){
+	glo.camera.beta = beta;
+
 	if(orient == 1){
-		glo.camera.alpha = -PI/2;
-		glo.camera.beta = PI/2;
+		glo.camera.alpha = alpha/2;
 		glo.camera.upVector = new BABYLON.Vector3(0,0,1);
 	}
 	else{
-		glo.camera.alpha = -PI;
-		glo.camera.beta = PI/2;
+		glo.camera.alpha = alpha;
 		glo.camera.upVector = new BABYLON.Vector3(1,0,0);
 	}
 }
-function viewOnZ(orient = 1){
-	glo.camera.alpha = PI/2;
-	glo.camera.beta = PI/2;
+function viewOnZ(orient = 1, alpha = PI/2, beta = PI/2){
+	glo.camera.alpha = alpha;
+	glo.camera.beta  = beta;
 	if(orient == 1){
 		glo.camera.upVector = new BABYLON.Vector3(1,0,0);
 	}
 	else{
 		glo.camera.upVector = new BABYLON.Vector3(0,1,0);
 	}
+}
+
+function viewOnAxis(options = {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}){
+	if(!options.axis){ options.axis = "X"; }
+	if(!options.direction){ options.direction = -1; }
+	if(!options.alpha && options.alpha !== 0){ options.alpha = PI/4; }
+	if(!options.beta && options.beta !== 0){ options.beta = -PI/4; }
+	if(!options.distance && options.distance !== 0){ options.distance = 60; }
+
+	switch(options.axis){
+		case "X":{
+			viewOnX(options.direction, options.alpha, PI/2 + options.beta);
+			break;
+		}
+		case "Y":{
+			viewOnY(options.direction, -PI + options.alpha, PI/2 + options.beta);
+			break;
+		}
+		case "Z":{
+			viewOnZ(options.direction, PI/2 + options.alpha, PI/2 + options.beta);
+			break;
+		}
+	}
+	glo.camera.radius = options.distance;
 }
 
 function EdgeOrVertexColor(){
@@ -4206,11 +4607,39 @@ function toggleDataTable(){
 	const uFirst = -round(0.5 * uStep * glo.params.steps_u, 2);
 	const vFirst = -round(0.5 * vStep * glo.params.steps_v, 2);
 
+	const UV = isUV();
+
 	const datas = [];
 	let n       = 0;
-	for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
-		const u = round(uFirst + (stepU*uStep), 2);
+	if(UV.isU && UV.isV){
+		for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
+			const u = round(uFirst + (stepU*uStep), 2);
+			for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
+				const v = round(vFirst + (stepV*vStep), 2);
+				const x = round(vertices[n*3], 2);
+				const y = round(vertices[n*3 + 1], 2);
+				const z = round(vertices[n*3 + 2], 2);
+
+				datas.push([u, v, x, y, z]);
+				n++;
+			}
+		}
+	}
+	else if(UV.isU){
+		for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
+			const u = round(uFirst + (stepU*uStep), 2);
+			const v = 'none';
+			const x = round(vertices[n*3], 2);
+			const y = round(vertices[n*3 + 1], 2);
+			const z = round(vertices[n*3 + 2], 2);
+
+			datas.push([u, v, x, y, z]);
+			n++;
+		}
+	}
+	else if(UV.isV){
 		for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
+			const u = 'none';
 			const v = round(vFirst + (stepV*vStep), 2);
 			const x = round(vertices[n*3], 2);
 			const y = round(vertices[n*3 + 1], 2);
@@ -4219,6 +4648,9 @@ function toggleDataTable(){
 			datas.push([u, v, x, y, z]);
 			n++;
 		}
+	}
+	else{
+		datas.push(['none', 'none', 'none', 'none', 'none']);
 	}
 
 	datas.forEach(datasTr => {
@@ -4238,4 +4670,10 @@ function toggleDataTable(){
 function round(val, pre){
 	prePow = 10**pre;
 	return Math.round(val * prePow, pre) / prePow;
+}
+
+function isUV(){
+	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z, glo.params.text_input_alpha, glo.params.text_input_beta];
+	
+	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }

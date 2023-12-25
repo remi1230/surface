@@ -240,6 +240,25 @@ function add_switch_and_help_buttons(){
         }
         glo.gui_suit_visible = !glo.gui_suit_visible;
         break;
+      case 'fourth':
+        if(glo.gui_suit_visible == false){ glo.allControls.getByName('but_hide').textBlock.text = "SHOW"; }
+        else { glo.allControls.getByName('but_hide').textBlock.text = "HIDE"; }
+        if(!glo.gui_suit_visible){
+          toggle_gui_controls(glo.gui_suit_visible);
+          toggle_gui_controls_suit(glo.gui_suit_visible);
+          toggle_gui_controls_for_switch(glo.gui_suit_visible);
+          toggle_gui_controls_third(glo.gui_suit_visible);
+          toggleGuiControlsByClass(glo.gui_suit_visible, 'fourth');
+        }
+        else{
+          toggle_gui_controls(glo.gui_suit_visible);
+          toggle_gui_controls_suit(!glo.gui_suit_visible);
+          toggle_gui_controls_for_switch(!glo.gui_suit_visible);
+          toggle_gui_controls_third(!glo.gui_suit_visible);
+          toggleGuiControlsByClass(glo.gui_suit_visible, 'fourth');
+        }
+        glo.gui_suit_visible = !glo.gui_suit_visible;
+        break;
     }
   });
   add_button("but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
@@ -248,17 +267,26 @@ function add_switch_and_help_buttons(){
       case "main":
         toggle_gui_controls_suit(false);
         toggle_gui_controls_third(false);
+        toggleGuiControlsByClass(false, 'fourth');
         toggle_gui_controls_for_switch(true);
         break;
       case "second":
         toggle_gui_controls_for_switch(false);
         toggle_gui_controls_third(false);
+        toggleGuiControlsByClass(false, 'fourth');
         toggle_gui_controls_suit(true);
         break;
       case "third":
         toggle_gui_controls_for_switch(false);
         toggle_gui_controls_suit(false);
         toggle_gui_controls_third(true);
+        toggleGuiControlsByClass(false, 'fourth');
+        break;
+      case "fourth":
+        toggle_gui_controls_for_switch(false);
+        toggle_gui_controls_suit(false);
+        toggle_gui_controls_third(false);
+        toggleGuiControlsByClass(true, 'fourth');
         break;
     }
   });
@@ -530,7 +558,7 @@ function add_uv_sliders(){
       if(e.buttonIndex == 2){ slider.value = slider.startValue; }
     });
     slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = pi/4 : val = -pi/4; slider.value += val;
+      var val = e.y < 0 ? val = pi/8 : val = -pi/8; slider.value += val;
     });
     slider.onPointerUpObservable.add(function (e) {
       glo.histo.save();
@@ -603,21 +631,25 @@ function add_alpha_slider(){
   panel.addControl(slider);
 }
 function add_inputs_equations(){
-  var panel = new BABYLON.GUI.StackPanel();
+  var panel                = new BABYLON.GUI.StackPanel();
   var panelColorsEquations = new BABYLON.GUI.StackPanel();
+  var panelSuitsEquations  = new BABYLON.GUI.StackPanel();
   parmamControl(panel, "inputsEquations", 'panel left first');
   parmamControl(panelColorsEquations, "inputsColorsEquations", 'panel right third', {w: 24, pR: 1});
+  parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth', {w: 24, pR: 1});
 
   panel.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histo.goTo() : glo.histo.goBack(); });
   panelColorsEquations.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histoColo.goTo() : glo.histoColo.goBack(); });
 
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelColorsEquations);
+  glo.advancedTexture.addControl(panelSuitsEquations);
 
   glo.text_input_alpha = "";
-  glo.text_input_beta = "";
+  glo.text_input_beta  = "";
 
   var indexInInputsEquations = 0;
+
   function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
@@ -667,7 +699,7 @@ function add_inputs_equations(){
     }
 
     input.onKeyboardEventProcessedObservable.add((event) => {
-      let key = event.key;
+      let key  = event.key;
       let text = input.text;
 
       if(key != "Control" && key != "c" && key != "v" && key != "F12"){
@@ -735,6 +767,13 @@ function add_inputs_equations(){
   add_input(panelColorsEquations, "B", "", "inputColorZ", "header right third", "input equation right third", "text_input_color_z", "input_color_z", true);
   add_input(panelColorsEquations, "Alpha", "", "inputColorAlpha", "header right third", "input equation right third", "text_input_color_alpha", "input_color_alpha", true);
   add_input(panelColorsEquations, "Bêta", "", "inputColorBeta", "header right third", "input equation right third", "text_input_color_beta", "input_color_beta", true);
+
+  add_input(panelSuitsEquations, "X", "", "inputSuitX", "header right fourth", "input equation right fourth", "text_input_suit_x", "input_suit_x");
+  add_input(panelSuitsEquations, "Y", "", "inputSuitY", "header right fourth", "input equation right fourth", "text_input_suit_y", "input_suit_y");
+  add_input(panelSuitsEquations, "Z", "", "inputSuitZ", "header right fourth", "input equation right fourth", "text_input_suit_z", "input_suit_z");
+  add_input(panelSuitsEquations, "Alpha", "", "inputSuitAlpha", "header right fourth", "input equation right fourth", "text_input_suit_alpha", "input_suit_alpha");
+  add_input(panelSuitsEquations, "Bêta", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
+  add_input(panelSuitsEquations, "Thêta", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
 }
 
 function add_radios(suit = false){
@@ -834,7 +873,7 @@ function add_step_uv_slider(){
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
         else{
-          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); make_ribbon();
+          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
       }
       reMakeClones();
@@ -1063,6 +1102,13 @@ function param_controls(){
   glo.allControls.haveTheseClasses('input', 'right', 'third').map(inp => {
     parmamControl(inp, '', '', { hAlign: 'right', vAlign: 'top', h: 22.5, color: '#003399', background: 'grey', }, true, false);
   });
+  glo.allControls.haveTheseClasses('panel', 'right', 'fourth').haveNotThisClass('noAutoParam').map(pr => {
+    parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', t: 35, }, false, false);
+    if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }
+  });
+  glo.allControls.haveTheseClasses('input', 'right', 'fourth').map(inp => {
+    parmamControl(inp, '', '', { hAlign: 'right', vAlign: 'top', h: 22.5, color: '#003399', background: 'grey', }, true, false);
+  });
 }
 
 function toggle_gui_controls(state){
@@ -1080,4 +1126,7 @@ function toggle_gui_controls_suit(state){
 }
 function toggle_gui_controls_third(state){
   glo.allControls.haveThisClass('third').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
+}
+function toggleGuiControlsByClass(state, theClass){
+  glo.allControls.haveThisClass(theClass).map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }

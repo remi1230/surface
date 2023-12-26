@@ -29,7 +29,7 @@
                   <th data-order="5" data-desc="true">L/V</th>
                   <th data-order="6" data-desc="true">L/D</th>
                   <th data-order="7" data-desc="true">VDL</th>
-                  <th data-order="8" data-desc="true">Time</th>
+                  <th data-order="8" data-desc="true">Days</th>
                   <th id="lastColStatsTable" data-order="9" data-desc="true">VDL/T</th>
               </tr>
           </thead>
@@ -37,5 +37,19 @@
           <tfoot id="statsFootTable"></tbody>
       </table>
     </div>
+    <dialog id="thingThumbnailDialog">
+      <div id="thingThumbnailTitleContainer"></div>
+      <div id="thingThumbnailImageContainer"></div>
+      <div style="display: flex; justify-content: center; ">
+        <div id="thingInfosContainer">
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Date de création :</span><span id="thingInfo-date"></span></div>
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Id :</span><span id="thingInfo-id"></span></div>
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Tags :</span><span id="thingInfo-tags"></span></div>
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Collections :</span><span id="thingInfo-collections"></span></div>
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Fichiers :</span><span id="thingInfo-files"></span></div>
+          <div class="thingInfoContainer"><span class="thingInfoTitle">Commentaires :</span><span id="thingInfo-comments"></span></div>
+      </div>
+    </div>
+    </dialog>
   </body>
 </html>

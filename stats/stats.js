@@ -21,6 +21,10 @@ const glo = {
 	},  
 };
 
+let thingThumbnailDialog         = document.getElementById('thingThumbnailDialog');
+let thingThumbnailImageContainer = document.getElementById('thingThumbnailImageContainer');
+let thingThumbnailTitleContainer = document.getElementById('thingThumbnailTitleContainer');
+
 glo.heartTypes = glo.heartTypes();
 
 const round2 = val => Math.round(10000 * (val), 2) / 100;
@@ -32,6 +36,9 @@ const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
 
 document.addEventListener('DOMContentLoaded', async function() {
     refreshDatas();
+});
+document.addEventListener('click', function() {
+    thingThumbnailDialog.close();
 });
 
 async function getDatas(){
@@ -68,7 +75,11 @@ function datasToTable(datas = glo.datasStats){
         rowDatas.forEach((rowData, i) => {
             let td = document.createElement("td");
 
-            if(!i){ td.classList.add('alignLeft'); }
+            if(!i){
+                td.classList.add('alignLeft');
+                td.style.cursor = 'pointer';
+                td.addEventListener('click', showThingDetail);
+            }
 
             let tdTxt = document.createTextNode(rowData);
             td.appendChild(tdTxt);
@@ -121,13 +132,13 @@ function totauxStats(datas = glo.datasStats){
         totLV   += rowDatas[5];
         totLD   += rowDatas[6];
         totVDL  += rowDatas[7];
-        totTime += rowDatas[8];
+        totTime  = rowDatas[8] > totTime ? rowDatas[8] : totTime;
         totVDLT += rowDatas[9];
     });
 
     return [totV, totD, totL, Math.round(100 * totDV/datasLength, 2) / 100, Math.round(100 * totLV/datasLength, 2)/100,
             Math.round(100 * totLD/datasLength, 2)/100, Math.round(100 * totVDL/datasLength, 2)/100,
-            Math.round(100 * totTime/datasLength, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
+            Math.round(100 * totTime, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
 }
 
 function sortDatasStats(numOrder = 1, desc = 'true', datas = glo.datasStats){
@@ -221,6 +232,33 @@ function removeAllChildren(element) {
     }
 }
 
+async function showThingDetail(event){
+    let tdClicked = event.target;
+
+    let name = tdClicked.innerText;
+    const thing = glo.res.find(r => r.name === name);
+
+    const thumbnailURL = thing.thumbnail;
+
+    await getImg(thumbnailURL);
+
+    if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
+
+    glo.img.style.height = '500px';
+    thingThumbnailImageContainer.appendChild(glo.img);
+
+    thingThumbnailTitleContainer.innerText = thing.name;
+
+    document.getElementById('thingInfo-date').innerText = (new Date(thing.added)).toLocaleDateString();
+    document.getElementById('thingInfo-id').innerText   = thing.id;
+    document.getElementById('thingInfo-tags').innerText = thing.tags.map(tag => " " + tag.name).toString();
+    document.getElementById('thingInfo-collections').innerText = thing.collect_count;
+    document.getElementById('thingInfo-files').innerText = thing.file_count;
+    document.getElementById('thingInfo-comments').innerText = thing.comment_count;
+
+    thingThumbnailDialog.showModal();
+}
+
 async function refreshDatas(){
     glo.res        = [];
     glo.datasStats = [];
@@ -236,9 +274,26 @@ async function getStats() {
 async function getStat(id) {
     try {
         const response = await fetch(glo.url.replace('id', id), { cache: 'no-cache' });
-        const result = await response.json();
+        const result   = await response.json();
         glo.res.push(result);
     } catch (error) {
         console.log('error', error);
     }
 }
+
+async function getImg(url) {
+    try {
+        const response = await fetch(url);
+        let img        = await response.blob();
+
+        let imgUrlObject = URL.createObjectURL(img);
+        glo.img          = document.createElement("img");
+        glo.img.src      = imgUrlObject;
+
+        URL.revokeObjectURL(imgUrlObject);
+
+    } catch (error) {
+        console.log('error', error);
+    }
+}
+

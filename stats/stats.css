@@ -70,6 +70,13 @@ tbody tr:hover {
 .evenTr{
   background-color: rgb(255, 255, 250);
 }
+.thingInfoTitle{
+  font-weight: bold;
+  margin-right: 5px;
+}
+.thingInfoContainer{
+  display: block;
+}
 #pageTitle{
   color: #eee;
   margin-bottom: 40px;
@@ -105,3 +112,27 @@ tbody tr:hover {
 #nbThings{
   margin-left: 65px;
 }
+#thingThumbnailImageContainer, #thingThumbnailTitleContainer{
+  display: flex;
+  justify-content: center;
+}
+#thingThumbnailTitleContainer{
+  font-size: 22px;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+#thingInfosContainer{
+  display: grid;
+  grid-template-columns: 215px 105px 346px;
+  row-gap: 20px;
+  width: 666px;
+  margin-top: 20px;
+}
+#thingThumbnailDialog{
+  width: 50%;
+  height: 70%;
+  position: absolute;
+  border: none;
+  border-radius: 5px;
+  overflow: hidden;
+} 

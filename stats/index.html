@@ -38,16 +38,22 @@
       </table>
     </div>
     <dialog id="thingThumbnailDialog">
-      <div id="thingThumbnailTitleContainer"></div>
-      <div id="thingThumbnailImageContainer"></div>
-      <div style="display: flex; justify-content: center; ">
-        <div id="thingInfosContainer">
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Date de création :</span><span id="thingInfo-date"></span></div>
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Id :</span><span id="thingInfo-id"></span></div>
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Tags :</span><span id="thingInfo-tags"></span></div>
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Collections :</span><span id="thingInfo-collections"></span></div>
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Fichiers :</span><span id="thingInfo-files"></span></div>
-          <div class="thingInfoContainer"><span class="thingInfoTitle">Commentaires :</span><span id="thingInfo-comments"></span></div>
+      <div id="thingThumbnailDialogContainer">
+        <div id="thingThumbnailTitleContainer">
+          <div class="imgChevron" onclick="updThingImg(event, -1); ">&lt;</div>
+          <div id="thingThumbnailTitle"></div>
+          <div class="imgChevron" onclick="updThingImg(event, 1); ">&gt;</div>
+        </div>
+        <div id="thingThumbnailImageContainer"></div>
+        <div style="display: flex; justify-content: center; ">
+          <div id="thingInfosContainer">
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Date de création :</span><span id="thingInfo-date"></span></div>
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Id :</span><span id="thingInfo-id"></span></div>
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Tags :</span><span id="thingInfo-tags"></span></div>
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Collections :</span><span id="thingInfo-collections"></span></div>
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Fichiers :</span><span id="thingInfo-files"></span></div>
+            <div class="thingInfoContainer"><span class="thingInfoTitle">Commentaires :</span><span id="thingInfo-comments"></span></div>
+        </div>
       </div>
     </div>
     </dialog>

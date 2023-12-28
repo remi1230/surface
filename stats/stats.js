@@ -5,7 +5,7 @@ const glo = {
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
-                  6397564, 6398300, 6398371],
+                  6397564, 6398300, 6398371, 6403971],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -21,9 +21,11 @@ const glo = {
 	},  
 };
 
-let thingThumbnailDialog         = document.getElementById('thingThumbnailDialog');
-let thingThumbnailImageContainer = document.getElementById('thingThumbnailImageContainer');
-let thingThumbnailTitleContainer = document.getElementById('thingThumbnailTitleContainer');
+let thingThumbnailDialogContainer = document.getElementById('thingThumbnailDialogContainer');
+let thingThumbnailDialog          = document.getElementById('thingThumbnailDialog');
+let thingThumbnailImageContainer  = document.getElementById('thingThumbnailImageContainer');
+let thingThumbnailTitleContainer  = document.getElementById('thingThumbnailTitleContainer');
+let thingThumbnailTitle           = document.getElementById('thingThumbnailTitle');
 
 glo.heartTypes = glo.heartTypes();
 
@@ -39,6 +41,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 document.addEventListener('click', function() {
     thingThumbnailDialog.close();
+});
+thingThumbnailDialogContainer.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
 });
 
 async function getDatas(){
@@ -247,7 +253,9 @@ async function showThingDetail(event){
     glo.img.style.height = '500px';
     thingThumbnailImageContainer.appendChild(glo.img);
 
-    thingThumbnailTitleContainer.innerText = thing.name;
+    thingThumbnailTitle.innerText    = thing.name;
+    thingThumbnailTitle.style.cursor = 'pointer';
+    thingThumbnailTitle.addEventListener('click', function(){ window.open(thing.public_url, '_blank'); } );
 
     document.getElementById('thingInfo-date').innerText = (new Date(thing.added)).toLocaleDateString();
     document.getElementById('thingInfo-id').innerText   = thing.id;
@@ -255,6 +263,8 @@ async function showThingDetail(event){
     document.getElementById('thingInfo-collections').innerText = thing.collect_count;
     document.getElementById('thingInfo-files').innerText = thing.file_count;
     document.getElementById('thingInfo-comments').innerText = thing.comment_count;
+
+    document.getElementById('thingThumbnailTitle').dataset.numchevron = '1';
 
     thingThumbnailDialog.showModal();
 }
@@ -294,6 +304,31 @@ async function getImg(url) {
 
     } catch (error) {
         console.log('error', error);
+    }
+}
+
+async function updThingImg(e, direction){
+    const thing = glo.res.find(r => r.id === parseInt(document.getElementById('thingInfo-id').innerText));
+
+    const zipData         = thing.zip_data;
+    const imagesLastIndex = zipData.images.length - 1;
+
+    if(imagesLastIndex){
+        let numChevron = parseInt(document.getElementById('thingThumbnailTitle').dataset.numchevron);
+        await getImg(zipData.images[numChevron].url);
+        if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
+        glo.img.style.height = '500px';
+        thingThumbnailImageContainer.appendChild(glo.img);
+
+        if(direction === 1){
+            if(numChevron < imagesLastIndex){ numChevron++; }
+            else{ numChevron = 0; }
+        }
+        else{
+            if(numChevron > 0){ numChevron--; }
+            else{ numChevron = imagesLastIndex; }
+        }
+        document.getElementById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
     }
 }
 

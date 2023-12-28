@@ -326,6 +326,40 @@ window.addEventListener("keydown", function (e) {
                   glo.camera.radius*=1.2;
 
                   break;
+               case "3":
+                  updRibbon();
+
+                  break;
+               case "4":
+                  updRibbon(-1);
+
+                  break;
+               case "5":
+                  updRibbon(1);
+
+                  break;
+               case "7":
+                  glo.angleToUpdateRibbon.x -= PI/8;
+
+                  break;
+               case "8":
+                  glo.angleToUpdateRibbon.x += PI/8;
+
+                  break;
+               case "0":
+                  glo.angleToUpdateRibbon.y -= PI/8;
+
+                  break;
+               case "9":
+                  glo.angleToUpdateRibbon.y += PI/8;
+
+                  break;
+               case "!":
+                  glo.angleToUpdateRibbon.x = 0;
+                  glo.angleToUpdateRibbon.y = 0;
+
+                  make_curves();
+                  break;
                case "g":
                   toggleDataTable();
 

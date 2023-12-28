@@ -4677,3 +4677,52 @@ function isUV(){
 	
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }
+
+function updRibbon(positive = 1){
+	const distFirstPointToZero = glo.distanceToUpdateRibbon;
+
+	glo.curves.paths.forEach((line, i) => {
+		line.forEach((path, j) => {
+			let angleXY = getAzimuthElevationAngles(glo.curves.paths[i][j]);
+
+			const dist = 1 + 1/BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**0.5;
+
+			angleXY.x += glo.angleToUpdateRibbon.x;
+			angleXY.y += glo.angleToUpdateRibbon.y;
+
+			glo.curves.paths[i][j].x += Math.cos(angleXY.y) * Math.cos(angleXY.x) * distFirstPointToZero * positive * dist;
+			glo.curves.paths[i][j].y += Math.sin(angleXY.y) * distFirstPointToZero * positive * dist;
+			glo.curves.paths[i][j].z += Math.cos(angleXY.y) * Math.sin(angleXY.x) * distFirstPointToZero * positive * dist;
+		});
+	});
+
+	glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
+	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.paths, }, glo.scene);
+	glo.curves.lineSystem.color = glo.lineColor;
+	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
+	glo.curves.lineSystem.alphaIndex = 999;
+	glo.curves.lineSystem.visibility = glo.lines_visible;
+
+	make_ribbon();
+}
+
+function getMaxDistanceVerticeToOrigin(){
+	let maxDist = 0;
+	glo.curves.paths.forEach((line, i) => {
+		line.forEach((path, j) => {
+			const dist = BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero());
+			if(maxDist < dist){ maxDist = dist; }
+		});
+	});
+	return maxDist;
+}
+
+function getAzimuthElevationAngles(vector) {
+    // Calcul de l'angle d'azimut (angleX)
+    var azimuth = Math.atan2(vector.z, vector.x);
+
+    // Calcul de l'angle d'élévation (angleY)
+    var elevation = Math.atan2(vector.y, Math.sqrt(vector.x * vector.x + vector.z * vector.z));
+
+    return { x: azimuth, y: elevation };
+}

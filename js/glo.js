@@ -695,6 +695,8 @@ var glo = {
 	lineColor: new BABYLON.Color3(1, 1, 1),
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
+	distanceToUpdateRibbon: 12,
+	angleToUpdateRibbon: {x: 0, y: 0},
 	pickers_size: 118,
 	indexSaveToclone: -999,
 	indexCloneToHisto: -999,

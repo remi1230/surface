@@ -77,6 +77,10 @@ tbody tr:hover {
 .thingInfoContainer{
   display: block;
 }
+.imgChevron{
+  padding: 0 50px;
+  cursor: pointer;
+}
 #pageTitle{
   color: #eee;
   margin-bottom: 40px;
@@ -101,7 +105,7 @@ tbody tr:hover {
   cursor: pointer;
 }
 #filterSymbol{
-  margin: 2px 5px 0 20px;
+  margin: 2px 5px 0 49px;
   font-size: 16px;
 }
 #filterOnLikeSymbol{

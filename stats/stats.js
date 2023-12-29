@@ -1,3 +1,4 @@
+//****************** VARIABLES GLOBALES ******************//
 const glo = {
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
@@ -5,7 +6,7 @@ const glo = {
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
-                  6397564, 6398300, 6398371, 6403971],
+                  6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -20,22 +21,21 @@ const glo = {
 		}
 	},  
 };
-
-let thingThumbnailDialogContainer = document.getElementById('thingThumbnailDialogContainer');
-let thingThumbnailDialog          = document.getElementById('thingThumbnailDialog');
-let thingThumbnailImageContainer  = document.getElementById('thingThumbnailImageContainer');
-let thingThumbnailTitleContainer  = document.getElementById('thingThumbnailTitleContainer');
-let thingThumbnailTitle           = document.getElementById('thingThumbnailTitle');
-
 glo.heartTypes = glo.heartTypes();
 
-const round2 = val => Math.round(10000 * (val), 2) / 100;
-
-let statsBodyTable   = document.getElementById('statsBodyTable');
-let filterDatasStats = document.getElementById('filterDatasStats');
-
+const getById   = function(id){ return document.getElementById(id); };
+const round2    = val => Math.round(10000 * (val), 2) / 100;
 const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
 
+let thingThumbnailDialogContainer = getById('thingThumbnailDialogContainer');
+let thingThumbnailDialog          = getById('thingThumbnailDialog');
+let thingThumbnailImageContainer  = getById('thingThumbnailImageContainer');
+let thingThumbnailTitleContainer  = getById('thingThumbnailTitleContainer');
+let thingThumbnailTitle           = getById('thingThumbnailTitle');
+let statsBodyTable                = getById('statsBodyTable');
+let filterDatasStats              = getById('filterDatasStats');
+
+//****************** ÉVÈNEMENTS ******************//
 document.addEventListener('DOMContentLoaded', async function() {
     refreshDatas();
 });
@@ -47,32 +47,7 @@ thingThumbnailDialogContainer.addEventListener('click', function(e) {
     e.stopPropagation();
 });
 
-async function getDatas(){
-    await getStats();
-    glo.res.forEach(r => {
-        const name  = r.name;
-        const views = r.view_count;
-        const downs = r.download_count;
-        const likes = r.like_count;
-
-        let DonV = round2(downs/views);
-        let LonV = round2(likes/views);
-        let LonD = round2(likes/downs);
-        let VDL  = views + (downs*5) + (likes*50);
-        let time = Math.round((new Date() - new Date(r.modified)) / 1000 / 3600 / .24, 1) / 100;
-        let VDLT = Math.round(100 * VDL/(time > 1 ? time : 1), 2) / 100;
-
-        DonV = nanToZero(DonV); 
-        LonV = nanToZero(LonV); 
-        LonD = nanToZero(LonD); 
-        VDL  = nanToZero(VDL); 
-        time = nanToZero(time); 
-        VDLT = nanToZero(VDLT); 
-
-        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT]);
-    });
-}
-
+//****************** MAIN FUNCTIONS ******************//
 function datasToTable(datas = glo.datasStats){
     removeAllChildren(statsBodyTable);
 
@@ -95,7 +70,12 @@ function datasToTable(datas = glo.datasStats){
         statsBodyTable.appendChild(tr);
     });
 
-    //**************** TOTAUX ****************//
+    insertTotals(datas);
+
+    getById('nbThings').innerHTML = datas.length + " / " + glo.res.length;
+}
+
+function insertTotals(datas){
     const totaux = totauxStats(datas);
     let tr       = document.createElement("tr");
     let td       = document.createElement("td");
@@ -104,7 +84,7 @@ function datasToTable(datas = glo.datasStats){
     td.style.width      = "190px";
     td.style.borderLeft = "none";
 
-    let statsFootTable = document.getElementById('statsFootTable');
+    let statsFootTable = getById('statsFootTable');
 
     statsFootTable.firstChild.remove();
 
@@ -122,29 +102,53 @@ function datasToTable(datas = glo.datasStats){
     });
     tr.id = "totauxStatsTable";
     statsFootTable.appendChild(tr);
-
-    document.getElementById('nbThings').innerHTML = datas.length + " / " + glo.res.length;
 }
 
-function totauxStats(datas = glo.datasStats){
-    const datasLength = datas.length;
+function filterDatasStatsOnLike(){
+    const filterType = glo.heartTypes.next().value;
 
-    let totV = 0, totD = 0, totL = 0, totDV = 0, totLV = 0, totLD = 0, totVDL = 0, totTime = 0, totVDLT = 0;
-    datas.forEach(rowDatas => {
-        totV    += rowDatas[1];
-        totD    += rowDatas[2];
-        totL    += rowDatas[3];
-        totDV   += rowDatas[4];
-        totLV   += rowDatas[5];
-        totLD   += rowDatas[6];
-        totVDL  += rowDatas[7];
-        totTime  = rowDatas[8] > totTime ? rowDatas[8] : totTime;
-        totVDLT += rowDatas[9];
-    });
+    switch(filterType){
+        case 'heart':
+            getById('filterOnLikeSymbol').textContent = "💘";
+        break;
+        case 'noHeart':
+            getById('filterOnLikeSymbol').textContent = " 💞";
+        break;
+        case 'all':
+            getById('filterOnLikeSymbol').textContent = "❤️";
+        break;
+    }
+    filterStatsTable(filterDatasStats.value);
+}
 
-    return [totV, totD, totL, Math.round(100 * totDV/datasLength, 2) / 100, Math.round(100 * totLV/datasLength, 2)/100,
-            Math.round(100 * totLD/datasLength, 2)/100, Math.round(100 * totVDL/datasLength, 2)/100,
-            Math.round(100 * totTime, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
+function filterStatsTable(val){
+    let datasFiltered = [];
+    if(isNaN(parseInt(val))){
+        datasFiltered = glo.datasStats.filter(data => data[0].toLowerCase().includes(val.toLowerCase()));
+    }
+    else{
+        const valNum = parseInt(val);
+        datasFiltered = glo.datasStats.filter(data => 
+            data[1] >= valNum || data[2] >= valNum || data[3] >= valNum 
+        );
+    }
+
+    switch(glo.heartType){
+        case 'heart':
+            datasFiltered = datasFiltered.filter(data => data[3]);
+        break;
+        case 'noHeart':
+            datasFiltered = datasFiltered.filter(data => !data[3]);
+        break;
+    }
+    
+    datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
+}
+
+function removeAllChildren(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
 }
 
 function sortDatasStats(numOrder = 1, desc = 'true', datas = glo.datasStats){
@@ -173,7 +177,7 @@ function sortDatasStats(numOrder = 1, desc = 'true', datas = glo.datasStats){
 function sortDatasStatsOnClick(e){
     const desc = e.target.dataset.desc === 'true' ? true : false;
 
-    [...document.getElementById('trTheadStatsTable').children].forEach(th => {
+    [...getById('trTheadStatsTable').children].forEach(th => {
         if(e.target !== th){
             th.classList.remove('sort_asc');
             th.classList.remove('sort_desc');
@@ -191,51 +195,90 @@ function sortDatasStatsOnClick(e){
     e.target.dataset.desc = desc ? 'false' : 'true';
 }
 
-function filterStatsTable(val){
-    let datasFiltered = [];
-    if(isNaN(parseInt(val))){
-        datasFiltered = glo.datasStats.filter(data => data[0].toLowerCase().includes(val.toLowerCase()));
-    }
-    else{
-        const valNum = parseInt(val);
-        datasFiltered = glo.datasStats.filter(data => 
-            data[1] >= valNum || data[2] >= valNum || data[3] >= valNum 
-        );
-    }
+function totauxStats(datas = glo.datasStats){
+    const datasLength = datas.length;
 
-    switch(glo.heartType){
-        case 'heart':
-            datasFiltered = datasFiltered.filter(data => data[3]);
-        break;
-        case 'noHeart':
-            datasFiltered = datasFiltered.filter(data => !data[3]);
-        break;
-    }
-    
-    datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
+    let totV = 0, totD = 0, totL = 0, totDV = 0, totLV = 0, totLD = 0, totVDL = 0, totTime = 0, totVDLT = 0;
+    datas.forEach(rowDatas => {
+        totV    += rowDatas[1];
+        totD    += rowDatas[2];
+        totL    += rowDatas[3];
+        totDV   += rowDatas[4];
+        totLV   += rowDatas[5];
+        totLD   += rowDatas[6];
+        totVDL  += rowDatas[7];
+        totTime  = rowDatas[8] > totTime ? rowDatas[8] : totTime;
+        totVDLT += rowDatas[9];
+    });
+
+    return [totV, totD, totL, Math.round(100 * totDV/datasLength, 2) / 100, Math.round(100 * totLV/datasLength, 2)/100,
+            Math.round(100 * totLD/datasLength, 2)/100, Math.round(100 * totVDL/datasLength, 2)/100,
+            Math.round(100 * totTime, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
 }
 
-function filterDatasStatsOnLike(){
-    const filterType = glo.heartTypes.next().value;
+//****************** ASYNC FUNCTION ******************//
+async function getDatas(){
+    await getStats();
+    glo.res.forEach(r => {
+        const name  = r.name;
+        const views = r.view_count;
+        const downs = r.download_count;
+        const likes = r.like_count;
 
-    switch(filterType){
-        case 'heart':
-            document.getElementById('filterOnLikeSymbol').textContent = "💘";
-        break;
-        case 'noHeart':
-            document.getElementById('filterOnLikeSymbol').textContent = " 💞";
-        break;
-        case 'all':
-            document.getElementById('filterOnLikeSymbol').textContent = "❤️";
-        break;
-    }
-    filterStatsTable(filterDatasStats.value);
+        let DonV = round2(downs/views);
+        let LonV = round2(likes/views);
+        let LonD = round2(likes/downs);
+        let VDL  = views + (downs*5) + (likes*50);
+        let time = Math.round((new Date() - new Date(r.modified)) / 1000 / 3600 / .24, 1) / 100;
+        let VDLT = Math.round(100 * VDL/(time > 1 ? time : 1), 2) / 100;
+
+        DonV = nanToZero(DonV); 
+        LonV = nanToZero(LonV); 
+        LonD = nanToZero(LonD); 
+        VDL  = nanToZero(VDL); 
+        time = nanToZero(time); 
+        VDLT = nanToZero(VDLT); 
+
+        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT]);
+    });
 }
 
-function removeAllChildren(element) {
-    while (element.firstChild) {
-        element.removeChild(element.firstChild);
+async function getImg(url) {
+    try {
+        const response = await fetch(url);
+        let img        = await response.blob();
+
+        let imgUrlObject = URL.createObjectURL(img);
+        glo.img          = document.createElement("img");
+        glo.img.src      = imgUrlObject;
+
+        URL.revokeObjectURL(imgUrlObject);
+
+    } catch (error) {
+        console.log('error', error);
     }
+}
+
+async function getStat(id) {
+    try {
+        const response = await fetch(glo.url.replace('id', id), { cache: 'no-cache' });
+        const result   = await response.json();
+        glo.res.push(result);
+    } catch (error) {
+        console.log('error', error);
+    }
+}
+
+async function getStats() {
+    const promises = glo.ids.map(id => getStat(id));
+    await Promise.all(promises);
+}
+
+async function refreshDatas(){
+    glo.res        = [];
+    glo.datasStats = [];
+    await getDatas();
+    sortDatasStats(...glo.sortNumber);
 }
 
 async function showThingDetail(event){
@@ -257,64 +300,26 @@ async function showThingDetail(event){
     thingThumbnailTitle.style.cursor = 'pointer';
     thingThumbnailTitle.addEventListener('click', function(){ window.open(thing.public_url, '_blank'); } );
 
-    document.getElementById('thingInfo-date').innerText = (new Date(thing.added)).toLocaleDateString();
-    document.getElementById('thingInfo-id').innerText   = thing.id;
-    document.getElementById('thingInfo-tags').innerText = thing.tags.map(tag => " " + tag.name).toString();
-    document.getElementById('thingInfo-collections').innerText = thing.collect_count;
-    document.getElementById('thingInfo-files').innerText = thing.file_count;
-    document.getElementById('thingInfo-comments').innerText = thing.comment_count;
+    getById('thingInfo-date').innerText        = (new Date(thing.added)).toLocaleDateString();
+    getById('thingInfo-id').innerText          = thing.id;
+    getById('thingInfo-tags').innerText        = thing.tags.map(tag => " " + tag.name).toString();
+    getById('thingInfo-collections').innerText = thing.collect_count;
+    getById('thingInfo-files').innerText       = thing.file_count;
+    getById('thingInfo-comments').innerText    = thing.comment_count;
 
-    document.getElementById('thingThumbnailTitle').dataset.numchevron = '1';
+    getById('thingThumbnailTitle').dataset.numchevron = '1';
 
     thingThumbnailDialog.showModal();
 }
 
-async function refreshDatas(){
-    glo.res        = [];
-    glo.datasStats = [];
-    await getDatas();
-    sortDatasStats(...glo.sortNumber);
-}
-
-async function getStats() {
-    const promises = glo.ids.map(id => getStat(id));
-    await Promise.all(promises);
-}
-
-async function getStat(id) {
-    try {
-        const response = await fetch(glo.url.replace('id', id), { cache: 'no-cache' });
-        const result   = await response.json();
-        glo.res.push(result);
-    } catch (error) {
-        console.log('error', error);
-    }
-}
-
-async function getImg(url) {
-    try {
-        const response = await fetch(url);
-        let img        = await response.blob();
-
-        let imgUrlObject = URL.createObjectURL(img);
-        glo.img          = document.createElement("img");
-        glo.img.src      = imgUrlObject;
-
-        URL.revokeObjectURL(imgUrlObject);
-
-    } catch (error) {
-        console.log('error', error);
-    }
-}
-
 async function updThingImg(e, direction){
-    const thing = glo.res.find(r => r.id === parseInt(document.getElementById('thingInfo-id').innerText));
+    const thing = glo.res.find(r => r.id === parseInt(getById('thingInfo-id').innerText));
 
     const zipData         = thing.zip_data;
     const imagesLastIndex = zipData.images.length - 1;
 
     if(imagesLastIndex){
-        let numChevron = parseInt(document.getElementById('thingThumbnailTitle').dataset.numchevron);
+        let numChevron = parseInt(getById('thingThumbnailTitle').dataset.numchevron);
         await getImg(zipData.images[numChevron].url);
         if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
         glo.img.style.height = '500px';
@@ -328,7 +333,7 @@ async function updThingImg(e, direction){
             if(numChevron > 0){ numChevron--; }
             else{ numChevron = imagesLastIndex; }
         }
-        document.getElementById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
+        getById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
     }
 }
 

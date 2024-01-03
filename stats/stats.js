@@ -6,7 +6,8 @@ const glo = {
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
-                  6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333],
+                  6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
+                  6414571, 6414905],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -19,13 +20,18 @@ const glo = {
 				yield hType;
 			}
 		}
-	},  
+	},
+    nbThingsOnGraphs : 10,
+    barGraph         : false,
 };
-glo.heartTypes = glo.heartTypes();
+glo.heartTypes = glo.heartTypes();  
 
-const getById   = function(id){ return document.getElementById(id); };
-const round2    = val => Math.round(10000 * (val), 2) / 100;
-const nanToZero = val => !isNaN(val) && isFinite(val) ? val : 0;
+const getById         = function(id){ return document.getElementById(id); };
+const round2          = val => Math.round(10000 * (val), 2) / 100;
+const nanToZero       = val => !isNaN(val) && isFinite(val) ? val : 0;
+const openThingWindow = (url) => window.open(url, '_blank');
+
+let openWindowDyn = false;
 
 let thingThumbnailDialogContainer = getById('thingThumbnailDialogContainer');
 let thingThumbnailDialog          = getById('thingThumbnailDialog');
@@ -216,6 +222,81 @@ function totauxStats(datas = glo.datasStats){
             Math.round(100 * totTime, 2)/100, , Math.round(100 * totVDLT/datasLength, 2)/100];
 }
 
+function toggleTabGraph(){
+    let statsTable     = getById('statsTable');
+    let statsGraph     = getById('statsGraph');
+    let toggleTabGraph = getById('toggleTabGraph');
+
+    const colors = ['Tomato', 'DarkSalmon', 'HotPink', 'DarkKhaki', 'Plum', 'Maroon', 'RebeccaPurple', 'MediumAquamarine', 'DarkTurquoise', 'RoyalBlue'];
+
+    if(statsTable.style.display === 'none'){
+        statsTable.style.display = '';
+        statsGraph.style.display = 'none';
+        toggleTabGraph.innerText = '📊';
+    }
+    else{
+        statsTable.style.display = 'none';
+        statsGraph.style.display = '';
+        toggleTabGraph.innerText = '📋';
+
+        const label = [...getById('trTheadStatsTable').children][glo.sortNumber[0]].innerText;
+
+        let labels = [], datas = [], total = 0;
+        for(let i = 0; i < glo.nbThingsOnGraphs - 1; i++){
+            labels.push(glo.datasStats[i][0]);
+            const val = parseInt(glo.datasStats[i][glo.sortNumber[0]]);
+            total+=val;
+            datas.push(val);
+        }
+
+        if(glo.statsGraph){ glo.statsGraph.destroy(); }
+
+        const ctx = getById('statsGraph');
+        glo.statsGraph = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label           : 'Nombre de ' + label,
+                    backgroundColor : colors,
+                    data            : datas,
+                    borderWidth     : 1,
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#eee' // Définit la couleur des labels de la légende
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label;
+                                let value = context.parsed;
+
+                                const percent = Math.round(10000 * value / total, 2) / 100;
+                                
+                                return label + ': ' + percent + ' %';
+                            },
+                        }
+                    },
+                    title: {
+                        display: true,         // Affiche le titre
+                        text: 'Statistiques sur les ' + label + ' - ' + 'pourcentage par rapport aux 10 premiers', // Le texte du titre
+                        font: {
+                            size: 18          // Taille de la police pour le titre
+                        },
+                        color: '#eee',        // Couleur du texte du titre
+                        position: 'top'       // Position du titre ('top', 'bottom', 'left', 'right')
+                    }
+                }
+            }            
+        });
+    }
+}
+
 //****************** ASYNC FUNCTION ******************//
 async function getDatas(){
     await getStats();
@@ -298,7 +379,10 @@ async function showThingDetail(event){
 
     thingThumbnailTitle.innerText    = thing.name;
     thingThumbnailTitle.style.cursor = 'pointer';
-    thingThumbnailTitle.addEventListener('click', function(){ window.open(thing.public_url, '_blank'); } );
+
+    if(openWindowDyn){ thingThumbnailTitle.removeEventListener("click", openWindowDyn); }
+    openWindowDyn = () => openThingWindow(thing.public_url);
+    thingThumbnailTitle.addEventListener("click", openWindowDyn);
 
     getById('thingInfo-date').innerText        = (new Date(thing.added)).toLocaleDateString();
     getById('thingInfo-id').innerText          = thing.id;
@@ -321,6 +405,7 @@ async function updThingImg(e, direction){
     if(imagesLastIndex){
         let numChevron = parseInt(getById('thingThumbnailTitle').dataset.numchevron);
         await getImg(zipData.images[numChevron].url);
+        
         if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
         glo.img.style.height = '500px';
         thingThumbnailImageContainer.appendChild(glo.img);
@@ -336,4 +421,3 @@ async function updThingImg(e, direction){
         getById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
     }
 }
-

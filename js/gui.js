@@ -23,6 +23,7 @@ function add_gui_controls(){
   add_color_pickers();
 
   add_step_ABCD_sliders();
+  add_symmetrize_sliders();
 
   guiControls_AddIdentificationFunctions();
 
@@ -759,8 +760,8 @@ function add_inputs_equations(){
   add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
   add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
   add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
-  add_input(panel, "Alpha", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
-  add_input(panel, "Bêta", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
+  add_input(panel, "Rot Y", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
+  add_input(panel, "Rot Z", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
 
   add_input(panelColorsEquations, "    R", "cu", "inputColorX", "header right third", "input equation right third", "text_input_color_x", "input_color_x", true);
   add_input(panelColorsEquations, "G", "cv", "inputColorY", "header right third", "input equation right third", "text_input_color_y", "input_color_y", true);
@@ -771,9 +772,9 @@ function add_inputs_equations(){
   add_input(panelSuitsEquations, "X", "", "inputSuitX", "header right fourth", "input equation right fourth", "text_input_suit_x", "input_suit_x");
   add_input(panelSuitsEquations, "Y", "", "inputSuitY", "header right fourth", "input equation right fourth", "text_input_suit_y", "input_suit_y");
   add_input(panelSuitsEquations, "Z", "", "inputSuitZ", "header right fourth", "input equation right fourth", "text_input_suit_z", "input_suit_z");
-  add_input(panelSuitsEquations, "Alpha", "", "inputSuitAlpha", "header right fourth", "input equation right fourth", "text_input_suit_alpha", "input_suit_alpha");
-  add_input(panelSuitsEquations, "Bêta", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
-  add_input(panelSuitsEquations, "Thêta", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
+  add_input(panelSuitsEquations, "Rot Y", "", "inputSuitAlpha", "header right fourth", "input equation right fourth", "text_input_suit_alpha", "input_suit_alpha");
+  add_input(panelSuitsEquations, "Rot Z", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
+  add_input(panelSuitsEquations, "Rot X", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
 }
 
 function add_radios(suit = false){
@@ -1063,6 +1064,50 @@ function add_step_ABCD_sliders(){
   addSlider(panelColors, "gColorSlider", "Shell", 0, 2, -1, 1, 0.01, function(value){ glo.params.gColor = value; }, false, mColorShell);
   addSlider(panelColors, "bColorSlider", "B", 0, 2, -1, 1, 0.01, function(value){ glo.params.bColor = value; }, false, mColorB);
   addSlider(panelColors, "itColorsSlider", "IT", 1, 0, 1, 256, 1, function(value){ glo.params.itColors = value; }, false);
+}
+
+function add_symmetrize_sliders(){
+  var panel = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 63, pR: 1});
+  glo.advancedTexture.addControl(panel);
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, color: '#003399', background: 'grey'};
+    parmamControl(slider, name, 'slider right fourth', options, true);
+
+    slider.onValueChangedObservable.add(function(value) {
+      header.text = text + ": " + value.toFixed(decimalPrecision);
+      slider.lastValue = value;
+
+      event(value);
+      updRibbon2(name);
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        updRibbon2(name);
+      }
+    });
+    slider.onWheelObservable.add(function (e) {
+      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+    });
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  addSlider(panel, "symmetrizeX", "symmetrize X", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeX = value; });
+  addSlider(panel, "symmetrizeY", "symmetrize Y", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeY = value; });
+  addSlider(panel, "symmetrizeZ", "symmetrize Z", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeXY", "symmetrize XY", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeXZ", "symmetrize XZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeYZ", "symmetrize YZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeXYZ", "symmetrize XYZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
 }
 
 function param_buttons(){

@@ -6,6 +6,7 @@
     <title>Thingiverse STATS</title>
     <link rel="icon" type="image/png" href="../logo.png">
     <link rel="stylesheet" href="stats.css">
+    <script src="/cdn/js/chartjs/chartjs.min.js" defer></script>
     <script src="stats.js" defer></script>
   </head>
   <body>
@@ -16,6 +17,7 @@
       <input id="filterDatasStats" type="text" placeholder="" value="" oninput="filterStatsTable(this.value); ">
       <span id="filterOnLikeSymbol" onclick="filterDatasStatsOnLike(); ">❤️</span>
       <span id="nbThings"></span>
+      <span id="toggleTabGraph" onclick="toggleTabGraph(); ">📊</span>
     </h2>
     <div id="statsTableContainer" class="centerContentH">
       <table id="statsTable">
@@ -36,6 +38,7 @@
           <tbody id="statsBodyTable"></tbody>
           <tfoot id="statsFootTable"></tbody>
       </table>
+      <canvas id="statsGraph" style="display: none; "></canvas>
     </div>
     <dialog id="thingThumbnailDialog">
       <div id="thingThumbnailDialogContainer">

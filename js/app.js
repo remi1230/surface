@@ -1260,7 +1260,7 @@ f2 = {
 				beta  = eval(f2.beta);
 				if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 				if(beta == Infinity || beta == -Infinity){ beta = 0; }
-				pos = rotateByMatrix(pos, 0, alpha, beta2);
+				pos = rotateByMatrix(pos, 0, alpha, beta);
 			}
 			else if(isAlpha){
 				alpha = eval(f2.alpha);
@@ -2470,6 +2470,7 @@ function make_curves(u_params = {
 		if(glo.resetClones){ resetClones(); }
 
 		if(typeof(glo.curves) != "undefined"){
+			if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 			glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
 			glo.curves = {}; delete glo.curves;
 		}
@@ -2771,7 +2772,6 @@ function makeColors(){
 					n++;
 				}
 			}
-			if(glo.closeFirstWithLastPath){ colors.push(colors[0]); }
 		}
 
 		var maxX = max(colorsNumbersX); var maxY = max(colorsNumbersY); var maxZ = max(colorsNumbersZ);
@@ -4228,37 +4228,37 @@ function switchDrawCoordsType(update_slider_uv = true){
 	switch (glo.coordsType) {
 		case 'spheric':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Alpha');
-			changeHeaderText('header_inputZ', 'Bêta');
-			changeHeaderText('header_inputAlpha', 'Alpha 2');
-			changeHeaderText('header_inputBeta', 'Bêta 2');
+			changeHeaderText('header_inputY', 'Rot Y');
+			changeHeaderText('header_inputZ', 'Rot Z');
+			changeHeaderText('header_inputAlpha', 'Rot Y2');
+			changeHeaderText('header_inputBeta', 'Rot Z2');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "SPHE"; 
 			break;
 		case 'quaternion':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'X');
-			changeHeaderText('header_inputZ', 'Y');
-			changeHeaderText('header_inputAlpha', 'Z');
+			changeHeaderText('header_inputY', 'Axis X');
+			changeHeaderText('header_inputZ', 'Axis Y');
+			changeHeaderText('header_inputAlpha', 'Axis Z');
 			changeHeaderText('header_inputBeta', 'W');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "QUAC"; 
 			break;
 		case 'quaternionRotAxis':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Alpha');
-			changeHeaderText('header_inputZ', 'Bêta');
+			changeHeaderText('header_inputY', 'Axis Rot Y');
+			changeHeaderText('header_inputZ', 'Axis Rot Z');
 			changeHeaderText('header_inputAlpha', 'W');
-			changeHeaderText('header_inputBeta', 'Alpha 2');
+			changeHeaderText('header_inputBeta', 'ROT Y');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "QUAR"; 
 			break;
 		case 'cylindrical':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Alpha');
+			changeHeaderText('header_inputY', 'Rot Y');
 			changeHeaderText('header_inputZ', 'Z');
-			changeHeaderText('header_inputAlpha', 'Alpha 2');
-			changeHeaderText('header_inputBeta', 'Bêta 2');
+			changeHeaderText('header_inputAlpha', 'Rot Y2');
+			changeHeaderText('header_inputBeta', 'Rot Z');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "CYL"; 
 			break;
@@ -4266,8 +4266,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputX', 'X');
 			changeHeaderText('header_inputY', 'Y');
 			changeHeaderText('header_inputZ', 'Z');
-			changeHeaderText('header_inputAlpha', 'Alpha');
-			changeHeaderText('header_inputBeta', 'Bêta');
+			changeHeaderText('header_inputAlpha', 'Rot Y');
+			changeHeaderText('header_inputBeta', 'Rot Z');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "CART"; 
 			break;
@@ -4678,32 +4678,124 @@ function isUV(){
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }
 
-function updRibbon(positive = 1){
-	const distFirstPointToZero = glo.distanceToUpdateRibbon;
-
+function updRibbon(positive = 1, remakeLine = true, remakeRibbon = true){
 	glo.curves.paths.forEach((line, i) => {
 		line.forEach((path, j) => {
-			let angleXY = getAzimuthElevationAngles(glo.curves.paths[i][j]);
+			if(h(path.x, path.y, path.z) > ep/10000){
+				let angleXY = getAzimuthElevationAngles(glo.curves.paths[i][j]);
 
-			const dist = 1 + 1/BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**0.5;
+				let dist;
+				if(positive === 1){
+					dist = 1 + 0.001*BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**-1;
+				}
+				else{
+					dist = 1 + 0.01*BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**1;
+				}
 
-			angleXY.x += glo.angleToUpdateRibbon.x;
-			angleXY.y += glo.angleToUpdateRibbon.y;
+				angleXY.x += glo.angleToUpdateRibbon.x;
+				angleXY.y += glo.angleToUpdateRibbon.y;
 
-			glo.curves.paths[i][j].x += Math.cos(angleXY.y) * Math.cos(angleXY.x) * distFirstPointToZero * positive * dist;
-			glo.curves.paths[i][j].y += Math.sin(angleXY.y) * distFirstPointToZero * positive * dist;
-			glo.curves.paths[i][j].z += Math.cos(angleXY.y) * Math.sin(angleXY.x) * distFirstPointToZero * positive * dist;
+				glo.curves.paths[i][j].x += Math.cos(angleXY.y) * Math.cos(angleXY.x) * positive * dist;
+				glo.curves.paths[i][j].y += Math.sin(angleXY.y) * positive * dist;
+				glo.curves.paths[i][j].z += Math.cos(angleXY.y) * Math.sin(angleXY.x) * positive * dist;
+			}
 		});
 	});
 
+	if(remakeLine){ makeLineSystem(); }
+	if(remakeRibbon){
+		if(!glo.normalMode){ make_ribbon(); }
+		else{ drawNormalEquations(); }
+	}
+}
+
+async function updRibbon2(axisVarName, remakeLine = true, remakeRibbon = true){
+	let curvesPathsSave = [...glo.curves.paths];
+
+	const nbSyms    = glo.params[axisVarName];
+	const axis      = axisVarName.slice(-3);
+	const stepAngle = 1*PI/nbSyms;
+
+	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
+
+	let newRibbons           = [];
+	let newCurves           = [];
+	glo.curves.linesSystems = [];
+	for(let k = 1; k <= nbSyms; k++){
+		newCurves[k] = [];
+		curvesPathsSave.forEach((line, i) => {
+			newCurves[k][i] = [];
+			line.forEach((path, j) => {
+					const angle = k * stepAngle;
+
+					let newPt;
+					switch(axis){
+						case 'zeX':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], angle, 0, 0);
+						break;
+						case 'zeY':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], 0, angle, 0);
+						break;
+						case 'zeZ':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], 0, 0, angle);
+						break;
+						case 'eXY':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], angle, angle, 0);
+						break;
+						case 'eXZ':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], angle, 0, angle);
+						break;
+						case 'eYZ':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], 0, angle, angle);
+						break;
+						case 'XYZ':
+							newPt = rotateByMatrix(glo.curves.paths[i][j], angle, angle, angle);
+						break;
+					}
+					newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
+			});
+		});
+		newRibbons.push(BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
+	}
+
+	glo.curves.paths = newCurves.flat();
+	makeLineSystem();
+
+	glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, ...newRibbons], true, true);
+}
+
+function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind)){
+	let paths = [];
+	let n = 0;
+	for(let i = 0; i <= glo.params.steps_u; i++){
+		paths[i] = [];
+		for(let j = 0; j <= glo.params.steps_v; j++){
+			const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
+			paths[i].push(new BABYLON.Vector3(v.x, v.y, v.z));
+
+			n++;
+		}
+	}
+	return paths;
+}
+
+function makeLineSystem(){
 	glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
 	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.paths, }, glo.scene);
 	glo.curves.lineSystem.color = glo.lineColor;
 	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
 	glo.curves.lineSystem.alphaIndex = 999;
 	glo.curves.lineSystem.visibility = glo.lines_visible;
+}
 
-	make_ribbon();
+function makeSimpleLineSystem(lines){
+	let lineSystem        = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: lines, }, glo.scene);
+	lineSystem.color      = glo.lineColor;
+	lineSystem.alpha      = glo.ribbon_alpha;
+	lineSystem.alphaIndex = 999;
+	lineSystem.visibility = glo.lines_visible;
+
+	return lineSystem;
 }
 
 function getMaxDistanceVerticeToOrigin(){

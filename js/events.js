@@ -338,6 +338,13 @@ window.addEventListener("keydown", function (e) {
                   updRibbon(1);
 
                   break;
+               case "6":
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+                  break;
                case "7":
                   glo.angleToUpdateRibbon.x -= PI/8;
 

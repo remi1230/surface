@@ -147,4 +147,9 @@ img{
   outline: none;
   border-radius: 5px;
   overflow: hidden;
-} 
+}
+#toggleTabGraph{
+  font-size: 20px;
+  margin-left: 50px;
+  cursor: pointer;
+}

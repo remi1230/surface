@@ -7,7 +7,7 @@ const glo = {
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
                   6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
-                  6414571, 6414905],
+                  6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -242,7 +242,7 @@ function toggleTabGraph(){
         const label = [...getById('trTheadStatsTable').children][glo.sortNumber[0]].innerText;
 
         let labels = [], datas = [], total = 0;
-        for(let i = 0; i < glo.nbThingsOnGraphs - 1; i++){
+        for(let i = 0; i < glo.nbThingsOnGraphs; i++){
             labels.push(glo.datasStats[i][0]);
             const val = parseInt(glo.datasStats[i][glo.sortNumber[0]]);
             total+=val;
@@ -391,7 +391,7 @@ async function showThingDetail(event){
     getById('thingInfo-files').innerText       = thing.file_count;
     getById('thingInfo-comments').innerText    = thing.comment_count;
 
-    getById('thingThumbnailTitle').dataset.numchevron = '1';
+    getById('thingThumbnailTitle').dataset.numchevron = '0';
 
     thingThumbnailDialog.showModal();
 }
@@ -402,14 +402,8 @@ async function updThingImg(e, direction){
     const zipData         = thing.zip_data;
     const imagesLastIndex = zipData.images.length - 1;
 
+    let numChevron = parseInt(getById('thingThumbnailTitle').dataset.numchevron);
     if(imagesLastIndex){
-        let numChevron = parseInt(getById('thingThumbnailTitle').dataset.numchevron);
-        await getImg(zipData.images[numChevron].url);
-        
-        if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
-        glo.img.style.height = '500px';
-        thingThumbnailImageContainer.appendChild(glo.img);
-
         if(direction === 1){
             if(numChevron < imagesLastIndex){ numChevron++; }
             else{ numChevron = 0; }
@@ -419,5 +413,11 @@ async function updThingImg(e, direction){
             else{ numChevron = imagesLastIndex; }
         }
         getById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
+
+        await getImg(zipData.images[numChevron].url);
+        
+        if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
+        glo.img.style.height = '500px';
+        thingThumbnailImageContainer.appendChild(glo.img);
     }
 }

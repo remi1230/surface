@@ -327,6 +327,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "3":
+                  //FREE
                   updRibbon();
 
                   break;
@@ -391,6 +392,18 @@ window.addEventListener("keydown", function (e) {
                   else{
                      glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
                   }
+
+               break;
+               case "b":
+                  glo.addSymmetry = !glo.addSymmetry;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
+
+               break;
+               case "c":
+                  $('#rotationConventionsModal').modal('open');
 
                break;
             }

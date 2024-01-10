@@ -635,9 +635,13 @@ function add_inputs_equations(){
   var panel                = new BABYLON.GUI.StackPanel();
   var panelColorsEquations = new BABYLON.GUI.StackPanel();
   var panelSuitsEquations  = new BABYLON.GUI.StackPanel();
+  var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   parmamControl(panel, "inputsEquations", 'panel left first');
   parmamControl(panelColorsEquations, "inputsColorsEquations", 'panel right third', {w: 24, pR: 1});
   parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth', {w: 24, pR: 1});
+
+  var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 81, pR: 1};
+  parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   panel.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histo.goTo() : glo.histo.goBack(); });
   panelColorsEquations.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histoColo.goTo() : glo.histoColo.goBack(); });
@@ -645,13 +649,14 @@ function add_inputs_equations(){
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelColorsEquations);
   glo.advancedTexture.addControl(panelSuitsEquations);
+  glo.advancedTexture.addControl(panelSymsEquations);
 
   glo.text_input_alpha = "";
   glo.text_input_beta  = "";
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, event = true){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
     parent.addControl(header);
@@ -716,8 +721,10 @@ function add_inputs_equations(){
         else{
           glo['params'][gloPropToModify] = text;
         }
-        if(!glo.normalOnNormalMode){ inputChangeEvent(); }
-        else if(key == "Enter"){ inputChangeEvent(); }
+        if(event){
+          if(!glo.normalOnNormalMode){ inputChangeEvent(); }
+          else if(key == "Enter"){ inputChangeEvent(); }
+        }
       }
       else if (key == "Tab") {
         var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
@@ -749,7 +756,7 @@ function add_inputs_equations(){
       else{
         glo['params'][gloPropToModify] = text;
       }
-      inputChangeEvent();
+      if(event){ inputChangeEvent(); }
       glo.advancedTexture.moveFocusToControl(input);
     });
     parent.addControl(input);
@@ -775,6 +782,8 @@ function add_inputs_equations(){
   add_input(panelSuitsEquations, "Rot Y", "", "inputSuitAlpha", "header right fourth", "input equation right fourth", "text_input_suit_alpha", "input_suit_alpha");
   add_input(panelSuitsEquations, "Rot Z", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
   add_input(panelSuitsEquations, "Rot X", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
+
+  add_input(panelSymsEquations, "R Symmetrize", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r");
 }
 
 function add_radios(suit = false){
@@ -1085,11 +1094,23 @@ function add_symmetrize_sliders(){
       slider.lastValue = value;
 
       event(value);
-      updRibbon2(name);
+      if(value){ updRibbon2(name); }
+      else{
+        if(!glo.normalMode){  make_curves(); }
+        else{
+          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+        }
+      }
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
-        updRibbon2(name);
+        if(value){ updRibbon2(name); }
+        else{
+          if(!glo.normalMode){  make_curves(); }
+          else{
+            glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+          }
+        }
       }
     });
     slider.onWheelObservable.add(function (e) {
@@ -1101,13 +1122,10 @@ function add_symmetrize_sliders(){
     parent.addControl(slider);
   }
 
-  addSlider(panel, "symmetrizeX", "symmetrize X", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeX = value; });
-  addSlider(panel, "symmetrizeY", "symmetrize Y", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeY = value; });
-  addSlider(panel, "symmetrizeZ", "symmetrize Z", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
-  addSlider(panel, "symmetrizeXY", "symmetrize XY", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
-  addSlider(panel, "symmetrizeXZ", "symmetrize XZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
-  addSlider(panel, "symmetrizeYZ", "symmetrize YZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
-  addSlider(panel, "symmetrizeXYZ", "symmetrize XYZ", 3, 0, 1, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeX", "symmetrize X", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeX = value; });
+  addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeY = value; });
+  addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
 }
 
 function param_buttons(){

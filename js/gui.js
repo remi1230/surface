@@ -1104,6 +1104,7 @@ function add_symmetrize_sliders(){
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
+        slider.value = 0;
         if(value){ updRibbon2(name); }
         else{
           if(!glo.normalMode){  make_curves(); }
@@ -1122,9 +1123,9 @@ function add_symmetrize_sliders(){
     parent.addControl(slider);
   }
 
-  addSlider(panel, "symmetrizeX", "symmetrize X", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeX = value; });
-  addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeY = value; });
-  addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 12, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeX", "symmetrize X", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeX = value; });
+  addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeY = value; });
+  addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
 }
 

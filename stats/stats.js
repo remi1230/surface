@@ -7,7 +7,8 @@ const glo = {
                   6359424, 6366276, 6368457, 6370511, 6370771, 6376904, 6383902, 6384490,
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
                   6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
-                  6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262],
+                  6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
+                  6428384, 6430518, 6433384, 6433441, 6434057, 6435467],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -40,15 +41,22 @@ let thingThumbnailTitleContainer  = getById('thingThumbnailTitleContainer');
 let thingThumbnailTitle           = getById('thingThumbnailTitle');
 let statsBodyTable                = getById('statsBodyTable');
 let filterDatasStats              = getById('filterDatasStats');
+let generalInfosDialogContainer   = getById('generalInfosDialogContainer');
+let generalInfosDialog            = getById('generalInfosDialog');
 
 //****************** ÉVÈNEMENTS ******************//
 document.addEventListener('DOMContentLoaded', async function() {
     refreshDatas();
 });
 document.addEventListener('click', function() {
-    thingThumbnailDialog.close();
+    if(thingThumbnailDialog.open){ thingThumbnailDialog.close(); }
+    if(generalInfosDialog.open){ generalInfosDialog.close(); }
 });
 thingThumbnailDialogContainer.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+generalInfosDialogContainer.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
 });
@@ -151,9 +159,45 @@ function filterStatsTable(val){
     datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
 }
 
+function infos(){
+    let nbMeshes = 0, nbCollects = 0, nbComments = 0, nbRemixs = 0, nbMakes = 0;
+    glo.res.forEach(res => {
+        nbMeshes   += res.zip_data.files.length;
+        nbCollects += res.collect_count;
+        nbComments += res.comment_count;
+        nbRemixs   += res.remix_count;
+        nbMakes    += res.make_count;
+    });
+    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes};
+}
+
 function removeAllChildren(element) {
     while (element.firstChild) {
         element.removeChild(element.firstChild);
+    }
+}
+
+function showGeneralInfos(e){
+    e.preventDefault(); 
+    e.stopPropagation();
+
+    const genInfos = infos();
+
+    showNumberTimeByTime(genInfos.nbMeshes, 'generalInfo-meshes');
+    showNumberTimeByTime(genInfos.nbCollects, 'generalInfo-collections');
+    showNumberTimeByTime(genInfos.nbComments, 'generalInfo-commentaires');
+    showNumberTimeByTime(genInfos.nbMakes, 'generalInfo-makes');
+    showNumberTimeByTime(genInfos.nbRemixs, 'generalInfo-remixs');
+
+
+    generalInfosDialog.showModal();
+}
+
+function showNumberTimeByTime(number, htmlElemId) {
+    for (let i = 0; i <= number; i++) {
+        setTimeout(function() {
+            getById(htmlElemId).innerText = i;
+        }, i * 5);
     }
 }
 
@@ -267,7 +311,7 @@ function toggleTabGraph(){
                 plugins: {
                     legend: {
                         labels: {
-                            color: '#eee' // Définit la couleur des labels de la légende
+                            color: '#eee'
                         }
                     },
                     tooltip: {
@@ -283,13 +327,13 @@ function toggleTabGraph(){
                         }
                     },
                     title: {
-                        display: true,         // Affiche le titre
-                        text: 'Statistiques sur les ' + label + ' - ' + 'pourcentage par rapport aux 10 premiers', // Le texte du titre
+                        display: true,
+                        text: 'Statistiques sur les ' + label + ' - ' + 'pourcentage par rapport aux 10 premiers',
                         font: {
-                            size: 18          // Taille de la police pour le titre
+                            size: 18
                         },
-                        color: '#eee',        // Couleur du texte du titre
-                        position: 'top'       // Position du titre ('top', 'bottom', 'left', 'right')
+                        color: '#eee',
+                        position: 'top'
                     }
                 }
             }            

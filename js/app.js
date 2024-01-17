@@ -2313,13 +2313,7 @@ function make_ribbon(){
 		}
 	}
 
-	glo.ribbon.material = material;
-	glo.ribbon.material.emissiveColor = glo.emissiveColor;
-	glo.ribbon.material.diffuseColor = glo.diffuseColor;
-	glo.ribbon.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-	glo.ribbon.material.alpha = glo.ribbon_alpha;
-	glo.ribbon.alphaIndex = 998;
-	glo.ribbon.material.wireframe = glo.wireframe;
+	giveMaterialToMesh();
 
 	if(glo.params.symmetrizeX){ updRibbon2("symmetrizeX"); }
 	if(glo.params.symmetrizeY){ updRibbon2("symmetrizeY"); }
@@ -4398,7 +4392,7 @@ function toggleDataTable(){
 				const y = round(vertices[n*3 + 1], 2);
 				const z = round(vertices[n*3 + 2], 2);
 
-				datas.push([u, v, x, y, z]);
+				datas.push([stepU, stepV, u, v, x, y, z]);
 				n++;
 			}
 		}
@@ -4411,7 +4405,7 @@ function toggleDataTable(){
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push([u, v, x, y, z]);
+			datas.push([stepU, stepV, u, v, x, y, z]);
 			n++;
 		}
 	}
@@ -4423,12 +4417,12 @@ function toggleDataTable(){
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push([u, v, x, y, z]);
+			datas.push([stepU, stepV, u, v, x, y, z]);
 			n++;
 		}
 	}
 	else{
-		datas.push(['none', 'none', 'none', 'none', 'none']);
+		datas.push([stepU, stepV, 'none', 'none', 'none', 'none', 'none']);
 	}
 
 	datas.forEach(datasTr => {
@@ -4443,6 +4437,20 @@ function toggleDataTable(){
 		dataTableBody.appendChild(tr);
 	});
 	$('#dataModal').modal('open');
+}
+
+function initDataModal(){
+	$('#dataModal').modal({
+		onCloseEnd: function() {
+			if(glo.sphereToShowVertex){ 
+				glo.sphereToShowVertex.dispose(); 
+				glo.sphereToShowVertex = null; 
+			} 
+		},
+		onOpenEnd: function() {
+			$('#dataModal').css('opacity', $('#dataModalOpacity').val());
+		}
+	 });
 }
 
 function round(val, pre){
@@ -4579,17 +4587,12 @@ async function updRibbon2(axisVarName, remakeLine = true, remakeRibbon = true){
 	}
 
 	ribbonDispose(false);
-	glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true);
+	if(!glo.mergeMeshesByIntersect){ glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true); }
+	else{
+		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
+	}
 
-	let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-	material.backFaceCulling = false;
-	glo.ribbon.material = material;
-	glo.ribbon.material.emissiveColor = glo.emissiveColor;
-	glo.ribbon.material.diffuseColor = glo.diffuseColor;
-	glo.ribbon.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-	glo.ribbon.material.alpha = glo.ribbon_alpha;
-	glo.ribbon.alphaIndex = 998;
-	glo.ribbon.material.wireframe = glo.wireframe;
+	giveMaterialToMesh();
 
 	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), nbSyms + 1);
 	makeLineSystem();
@@ -4608,6 +4611,27 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 		}
 	}
 	return paths;
+}
+
+function distsBetweenVertexs(){
+	const paths = turnVerticesDatasToPaths().flat();
+
+	let distMax = 0, distMin = 31000, distMoy = 0, nbVertexs = 0;
+	paths.forEach(path1 => {
+		paths.forEach(path2 => {
+			if(path1 !== path2){
+				const dist = BABYLON.Vector3.Distance(path1, path2);
+				if(dist > distMax){ distMax = dist; }
+				else if(dist < distMin){ distMin = dist; }
+				distMoy += dist;
+				nbVertexs++;
+			}
+		});
+	});
+
+	distMoy /= nbVertexs;
+
+	return {distMax, distMin, distMoy};
 }
 
 function makeLineSystem(){
@@ -4648,4 +4672,98 @@ function getAzimuthElevationAngles(vector) {
     var elevation = Math.atan2(vector.y, Math.sqrt(vector.x * vector.x + vector.z * vector.z));
 
     return { x: azimuth, y: elevation };
+}
+
+function showVertex(x, y, z){
+	if(!glo.sphereToShowVertex){ glo.sphereToShowVertex = BABYLON.MeshBuilder.CreateSphere("sphere", { segments: 32, diameter: Z }, glo.scene); }
+
+	glo.sphereToShowVertex.position.x = x;
+	glo.sphereToShowVertex.position.y = y;
+	glo.sphereToShowVertex.position.z = z;
+}
+
+function keepLinesCrossOtherLine(){
+	let edges = turnVerticesDatasToPaths();
+
+	let newPaths = [];
+	edges.forEach(edge1 => {
+		for(let k = 0; k < edges.length; k++){
+			let good = false;
+			const edge2 = edges[k];
+			if(edge1 !== edge2){
+				for(let i = 0; i < edge1.length; i++){
+					const vertex1 = edge1[i];
+					good = false;
+					for(let j = 0; j < edge2.length; j++){
+						const vertex2 = edge2[j];
+						//if(vertex1.x === vertex2.x && vertex1.y === vertex2.y && vertex1.z === vertex2.z){
+						if(BABYLON.Vector3.Distance(vertex1, vertex2) < 0.51){
+							newPaths.push(edge1);
+							good = true;
+							break;
+						}
+					}
+					if(good){ break; }
+				}
+			}
+			if(good){ break; }
+		}
+	});
+	if(newPaths.length){
+		glo.curves.paths = newPaths;
+		if(!glo.normalMode){  make_ribbon(); }
+		else{ drawNormalEquations(); }
+	}
+}
+
+async function mergeManyMeshesByIntersects(meshes) {
+    let finalMesh = meshes[0];
+
+    for (let i = 1; i < meshes.length; i++) {
+       finalMesh = await mergeMeshesByIntersects(finalMesh, meshes[i]);
+    }
+
+    return finalMesh;
+}
+async function mergeMeshesByIntersects(mesh1, mesh2) {
+    mesh1.computeWorldMatrix(true);
+    mesh2.computeWorldMatrix(true);
+    var csg1 = BABYLON.CSG.FromMesh(mesh1);
+    var csg2 = BABYLON.CSG.FromMesh(mesh2);
+    var csg3 = csg2.intersect(csg1); 
+    //if (finalMesh) finalMesh.dispose();
+    let finalMesh = csg3.toMesh('section');
+    finalMesh.computeWorldMatrix(true);
+
+	mesh1.dispose();
+	mesh2.dispose();
+
+    return finalMesh;
+}
+
+async function inverseMeshGeometry(){
+	let csgMesh = BABYLON.CSG.FromMesh(glo.ribbon);
+
+	csgMesh.inverse();
+
+	ribbonDispose();
+	glo.ribbon = await csgMesh.toMesh("invertedMesh", null, glo.scene);
+
+	giveMaterialToMesh();
+
+	glo.curves.paths = turnVerticesDatasToPaths();
+	makeLineSystem();
+}
+
+function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
+	let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+
+	material.backFaceCulling = false;
+	mesh.material = material;
+	mesh.material.emissiveColor = emissiveColor;
+	mesh.material.diffuseColor = diffuseColor;
+	mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+	mesh.material.alpha = glo.ribbon_alpha;
+	mesh.alphaIndex = 998;
+	mesh.material.wireframe = glo.wireframe;
 }

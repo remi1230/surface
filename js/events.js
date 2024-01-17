@@ -13,6 +13,7 @@ $( document ).ready(function() {
   glo.histo.init();
   special_randomize_colors_app(true);
   startAnim(20, 1);
+  initDataModal();
 });
 
 $("#univers_div").mouseenter(function(){
@@ -38,6 +39,11 @@ $("#renderCanvas").on('pointermove', function(e){
     glo.n++;
     glo.scene.stopAllAnimations();
     if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
+});
+
+document.getElementById('dataTable').addEventListener("click", function(ev){
+   showVertex(parseInt(ev.target.parentElement.childNodes[4].innerText), parseInt(ev.target.parentElement.childNodes[5].innerText),
+   parseInt(ev.target.parentElement.childNodes[6].innerText)); 
 });
 
 //$('#univers_div').keypress(function(e) {
@@ -404,6 +410,14 @@ window.addEventListener("keydown", function (e) {
                break;
                case "c":
                   $('#rotationConventionsModal').modal('open');
+
+               break;
+               case "s":
+                  glo.mergeMeshesByIntersect = !glo.mergeMeshesByIntersect;
+
+               break;
+               case "i":
+                  inverseMeshGeometry();
 
                break;
             }

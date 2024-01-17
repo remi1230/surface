@@ -16,6 +16,7 @@
       <span id="filterSymbol">🔍</span>
       <input id="filterDatasStats" type="text" placeholder="" value="" oninput="filterStatsTable(this.value); ">
       <span id="filterOnLikeSymbol" onclick="filterDatasStatsOnLike(); ">❤️</span>
+      <span id="generalInfos" onclick="showGeneralInfos(event); ">+</span>
       <span id="nbThings"></span>
       <span id="toggleTabGraph" onclick="toggleTabGraph(); ">📊</span>
     </h2>
@@ -56,6 +57,27 @@
             <div class="thingInfoContainer"><span class="thingInfoTitle">Collections :</span><span id="thingInfo-collections"></span></div>
             <div class="thingInfoContainer"><span class="thingInfoTitle">Fichiers :</span><span id="thingInfo-files"></span></div>
             <div class="thingInfoContainer"><span class="thingInfoTitle">Commentaires :</span><span id="thingInfo-comments"></span></div>
+        </div>
+      </div>
+    </div>
+    </dialog>
+    <dialog id="generalInfosDialog">
+      <div id="generalInfosDialogContainer">
+        <div id="generalInfosTitleContainer">
+          <h3>Infos générales</h3>
+        </div>
+        <div style="display: flex; justify-content: center; ">
+          <div id="generalInfosMainContainer">
+            <div id="generalInfosSubContainer1">
+              <div class="generalInfoContainer"><span class="generalInfoTitle">Meshes :</span><span class="generalInfoText" id="generalInfo-meshes"></span></div>
+              <div class="generalInfoContainer"><span class="generalInfoTitle">Collections :</span><span class="generalInfoText" id="generalInfo-collections"></span></div>
+            </div>
+              <div id="generalInfosSubContainer2">
+                <div class="generalInfoContainer"><span class="generalInfoTitle">Commentaires :</span><span class="generalInfoText" id="generalInfo-commentaires"></span></div>
+                <div class="generalInfoContainer"><span class="generalInfoTitle">Makes :</span><span class="generalInfoText" id="generalInfo-makes"></span></div>
+                <div class="generalInfoContainer"><span class="generalInfoTitle">Remixs :</span><span class="generalInfoText" id="generalInfo-remixs"></span></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

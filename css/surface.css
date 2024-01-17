@@ -8,6 +8,11 @@ html, body {
 td{
   text-align: center;
 }
+tbody tr:hover {
+  background-color: CadetBlue;
+  color: #eee;
+  cursor: pointer;
+}
 
 kbd.keys {
   background-color: #eee;

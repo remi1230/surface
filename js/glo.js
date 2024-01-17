@@ -48,7 +48,7 @@ var glo = {
 			{text: "Heart", typeCoords: 'cartesian', udef: 2*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "16sv**3", fy: "13cv-5c(2v)-2c(3v)-c(4v)", fz: "u/8", alpha: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 40}},
 			{text: "Horn", typeCoords: 'cartesian', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "usv", fy: "ucv", fz: "2u²-3", alpha: "u²", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 10}},
 			{text: "Knot torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 256,  fx: "(cu + 10)cv", fy: "(cu + 10)sv", fz: "su", alpha: "v", beta: "v", check: false, suit: true, orient: {axis: "Z", direction: -1, alpha: PI/2.5, beta: 0, distance: 40}},
-			{text: "CircleSpi", typeCoords: 'spheric', udef: 1.5*PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "4u", fy: "v", fz: "exp(1/l(2u))", check: false, orient: {axis: "Z", direction: 1, alpha: PI/2, beta: -PI/8}},
+			{text: "CircleSpi", typeCoords: 'spheric', udef: 1.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "4u", fy: "v", fz: "exp(1/l(2a(u)))", check: false, orient: {axis: "Z", direction: 1, alpha: PI/2, beta: -PI/8}},
 			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4u", fy: "v", fz: "2cupvcv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/8, beta: 0}},
 			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cusv", fy: "ucusv", fz: "vcusv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/4, beta: 0}},
 			{text: "Flower", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "8vh(c(u8),s(12v))", fy: "v+pi/4", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
@@ -746,6 +746,7 @@ var glo = {
 	fromSlider: false,
 	wireframe: false,
 	normalColorMode: true,
+	addSymmetry: true,
 	equationsParamSliders: [],
 	radios_formes: [],
 };

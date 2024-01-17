@@ -164,9 +164,16 @@
   <div id="dataModal" class="modal overflow-hidden">
     <div class="modal-content">
       <h4 style="text-align:center;">DATAS</h4>
+      <div>
+        <label for="dataModalOpacity">Opacité</label>
+        <input type="range" id="dataModalOpacity" oninput="$('#dataModal').css('opacity', this.value); " onchange="event.stopPropagation(); " onclick="event.stopPropagation(); "
+              min="0.01" max="1" value="0.67" step=".01">
+      </div>
         <table id="dataTable">
           <thead>
             <tr>
+              <td>Edge</td>
+              <td>Vertex</td>
               <td>U</td>
               <td>V</td>
               <td>X</td>

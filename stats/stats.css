@@ -74,9 +74,12 @@ img{
 .evenTr{
   background-color: rgb(255, 255, 250);
 }
-.thingInfoTitle{
+.thingInfoTitle, .generalInfoTitle{
   font-weight: bold;
   margin-right: 5px;
+}
+.generalInfoTitle{
+  color: rgb(35, 32, 81);
 }
 .thingInfoContainer{
   display: block;
@@ -84,6 +87,12 @@ img{
 .imgChevron{
   padding: 0 50px;
   cursor: pointer;
+}
+.generalInfoText{
+  color: rgb(38, 128, 120);
+}
+.generalInfoContainer{
+  justify-self: center;
 }
 #pageTitle{
   color: #eee;
@@ -113,7 +122,7 @@ img{
   font-size: 16px;
 }
 #filterOnLikeSymbol{
-  margin: 2px 5px 0 75px;
+  margin: 2px 5px 0 50px;
   font-size: 16px;
   cursor: pointer;
 }
@@ -152,4 +161,46 @@ img{
   font-size: 20px;
   margin-left: 50px;
   cursor: pointer;
+}
+#generalInfos{
+  margin: 0px 5px 0 50px;
+  cursor: pointer;
+  font-size: 24px;
+  font-weight: 900;
+}
+#generalInfosTitleContainer{
+  display: flex;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  color: rgb(35, 32, 81);
+}
+#generalInfosSubContainer1{
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  row-gap: 20px;
+  width: 666px;
+  margin-top: 20px;
+  font-size: 24px;
+}
+#generalInfosSubContainer2{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  row-gap: 20px;
+  width: 666px;
+  margin-top: 20px;
+  font-size: 24px;
+}
+#generalInfosDialog{
+  width: 50%;
+  height: 70%;
+  position: absolute;
+  border: 1px #37448a solid;
+  outline: none;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#generalInfosSubContainer2{
+  margin-top: 400px;
 }

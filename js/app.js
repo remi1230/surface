@@ -2487,7 +2487,7 @@ function makeColors(){
 					var µµN = µ$N*$µN;
 
 					const invRad = 180/PI;
-					var O = Math.acos(y/(h(xP,yP,zP))) * invRad;
+					var O = Math.acos(yP/(h(xP,yP,zP))) * invRad;
 					var T = Math.atan2(zP, xP) * invRad;
 
 					var vectT = new BABYLON.Vector3(xP,yP,zP);
@@ -3768,38 +3768,85 @@ function importModal(){
 	});
 }
 
-function download_JSON_mesh(){
+function download_JSON_mesh(event){
 	$('#importModal').modal('close');
 	var file_to_read = document.getElementById("jsonFileUpload").files[0];
-	$("#jsonFileUpload").val("");
-	 var fileread = new FileReader();
-	 fileread.onload = function(e) {
-		var content = e.target.result;
-		var contentJsonFile = JSON.parse(content);
-		for(var prop in contentJsonFile){ glo.params[prop] = contentJsonFile[prop]; }
 
-		if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-		var playWithColorMode = glo.params.playWithColorMode;
-		while(playWithColorMode != glo.playWithColMode.next().value){}
+	const fileName      = file_to_read.name;
+	const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1); 
 
-		paramsToControls();
-		var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
-		var formName = glo.params.formName;
-		if(glo.coordsType != glo.params.coordsType){
-		 glo.coordsType = glo.params.coordsType;
-		 glo.histo.setGoodCoords(glo.coordsType);
+	var fileread = new FileReader();
+	fileread.onload = function(e) {
+		var fileContent = e.target.result;
+		$("#jsonFileUpload").val("");
+
+		switch(fileExtension){
+			case 'json':
+				var contentJsonFile = JSON.parse(fileContent);
+				for(var prop in contentJsonFile){ glo.params[prop] = contentJsonFile[prop]; }
+
+				if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
+				var playWithColorMode = glo.params.playWithColorMode;
+				while(playWithColorMode != glo.playWithColMode.next().value){}
+
+				paramsToControls();
+				var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
+				var formName = glo.params.formName;
+				if(glo.coordsType != glo.params.coordsType){
+				glo.coordsType = glo.params.coordsType;
+				glo.histo.setGoodCoords(glo.coordsType);
+				}
+				glo.fromHisto = !sameAsRadioCheck;
+				glo.radios_formes.setCheckByName("Radio " + formName);
+				glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
+				glo.fromHisto = false;
+				if(!sameAsRadioCheck){
+					make_curves();
+					glo.histo.save();
+					glo.histoColo.save();
+				}
+			break;
+			case 'obj':
+				ribbonDispose();
+				glo.curves.lineSystem.dispose();
+
+				var blob = new Blob([fileContent], { type: "text/plain" });
+				var url  = URL.createObjectURL(blob);
+				var dataUrl = e.target.result;
+				var base64String = dataUrl.split(',')[1];
+            	var dataString = base64String;
+				BABYLON.SceneLoader.ImportMesh("", "data:;base64,", dataString, glo.scene, function (meshes) {
+					// Les meshs sont chargés
+					meshes.forEach((mesh, i) => {
+						if(!i){
+							console.log(mesh.name);
+						}
+					});
+
+					let meshImport = meshes[1];
+
+					glo.ribbon = meshImport;
+					giveMaterialToMesh();
+
+					glo.curves.path = turnVerticesDatasToPaths();
+					glo.curves.lineSystem.dispose();
+
+				}, null, function (scene, message, exception) {
+					console.error(message, exception);
+				}, ".obj");
+
+			break;
 		}
-		glo.fromHisto = !sameAsRadioCheck;
-		glo.radios_formes.setCheckByName("Radio " + formName);
-		glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
-		glo.fromHisto = false;
-		if(!sameAsRadioCheck){
-			make_curves();
-			glo.histo.save();
-			glo.histoColo.save();
-		}
-	 };
-	 fileread.readAsText(file_to_read);
+	};
+
+	switch(fileExtension){
+		case 'json':
+			fileread.readAsText(file_to_read);
+		break;
+		case 'obj':
+			fileread.readAsDataURL(file_to_read);
+		break;
+	}
 }
 
 var objectUrl;

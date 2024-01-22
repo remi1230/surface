@@ -8,7 +8,7 @@ const glo = {
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
                   6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
-                  6428384, 6430518, 6433384, 6433441, 6434057, 6435467],
+                  6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463],
     res        : [],   
     datasStats : [],
     sortNumber : ['1', 'true'],
@@ -160,15 +160,30 @@ function filterStatsTable(val){
 }
 
 function infos(){
-    let nbMeshes = 0, nbCollects = 0, nbComments = 0, nbRemixs = 0, nbMakes = 0;
+    let nbMeshes = 0, nbCollects = 0, nbComments = 0, nbRemixs = 0, nbMakes = 0, nbViews = 0, nbDowns = 0, nbLikes = 0;
+    const nbThings = glo.res.length;
+
     glo.res.forEach(res => {
         nbMeshes   += res.zip_data.files.length;
         nbCollects += res.collect_count;
         nbComments += res.comment_count;
         nbRemixs   += res.remix_count;
         nbMakes    += res.make_count;
+        nbViews    += res.view_count;
+        nbDowns    += res.download_count;
+        nbLikes    += res.like_count;
     });
-    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes};
+
+    const viewMean = Math.round(100* nbViews / nbThings, 2) / 100;
+    const downMean = Math.round(100* nbDowns / nbThings, 2) / 100;
+    const likeMean = Math.round(100* nbLikes / nbThings, 2) / 100;
+
+    const downsOnViews = Math.round(10000 * nbDowns / nbViews, 2) / 100;
+    const likesOnViews = Math.round(10000 * nbLikes / nbViews, 2) / 100;
+    const likesOnDowns = Math.round(10000 * nbLikes / nbDowns, 2) / 100;
+
+
+    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean, downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
 }
 
 function removeAllChildren(element) {
@@ -188,6 +203,12 @@ function showGeneralInfos(e){
     showNumberTimeByTime(genInfos.nbComments, 'generalInfo-commentaires');
     showNumberTimeByTime(genInfos.nbMakes, 'generalInfo-makes');
     showNumberTimeByTime(genInfos.nbRemixs, 'generalInfo-remixs');
+    showNumberTimeByTime(genInfos.viewMean, 'generalInfo-views');
+    showNumberTimeByTime(genInfos.downMean, 'generalInfo-downs');
+    showNumberTimeByTime(genInfos.likeMean, 'generalInfo-likes');
+    showNumberTimeByTime(genInfos.downsOnViews, 'generalInfo-downsOnViews');
+    showNumberTimeByTime(genInfos.likesOnViews, 'generalInfo-likesOnViews');
+    showNumberTimeByTime(genInfos.likesOnDowns, 'generalInfo-likesOnDowns');
 
 
     generalInfosDialog.showModal();
@@ -196,7 +217,10 @@ function showGeneralInfos(e){
 function showNumberTimeByTime(number, htmlElemId) {
     for (let i = 0; i <= number; i++) {
         setTimeout(function() {
-            getById(htmlElemId).innerText = i;
+            if(i !== parseInt(number) || parseInt(number) === number){ getById(htmlElemId).innerText = i; }
+            else{
+                getById(htmlElemId).innerText = number;
+            }
         }, i * 5);
     }
 }

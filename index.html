@@ -15,6 +15,7 @@
   <script src="/cdn/js/babylon/babylon.gui.min.js" defer></script>
   <script src="/cdn/js/babylon/babylonjs.serializers.js" defer></script>
   <script src="/cdn/js/babylon/babylonx.cloner.js" defer></script>
+  <script src="/cdn/js/babylon/babylon.objFileLoader.js" defer></script>
 
   <script src="js/glo.js" defer></script>
   <script src="js/app.js" defer></script>
@@ -148,11 +149,11 @@
 
   <div id="importModal" class="modal overflow-hidden">
     <div class="modal-content">
-      <h4 style="text-align:center;">Import json from an export made here</h4>
+      <h4 style="text-align:center;">Import mesh</h4>
       <div class="file-field input-field">
         <div class="btn">
           <span>File</span>
-          <input type="file" id="jsonFileUpload" onChange="if($('#jsonFileUpload').val() != ''){ download_JSON_mesh(); }">
+          <input type="file" id="jsonFileUpload" onChange="if($('#jsonFileUpload').val() != ''){ download_JSON_mesh(event); }">
         </div>
         <div class="file-path-wrapper">
           <input class="file-path validate" type="text">

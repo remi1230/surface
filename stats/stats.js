@@ -1,6 +1,8 @@
 //****************** VARIABLES GLOBALES ******************//
 const glo = {
+    username   : 'Hopf',
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
+    userUrl    : 'https://api.thingiverse.com/users/username/requestKind?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
@@ -10,6 +12,7 @@ const glo = {
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
                   6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463],
     res        : [],   
+    userRes    : {},   
     datasStats : [],
     sortNumber : ['1', 'true'],
     heartType  : 'all',
@@ -47,6 +50,7 @@ let generalInfosDialog            = getById('generalInfosDialog');
 //****************** ÉVÈNEMENTS ******************//
 document.addEventListener('DOMContentLoaded', async function() {
     refreshDatas();
+    getUserInfos('Hopf', 'followers');
 });
 document.addEventListener('click', function() {
     if(thingThumbnailDialog.open){ thingThumbnailDialog.close(); }
@@ -183,7 +187,7 @@ function infos(){
     const likesOnDowns = Math.round(10000 * nbLikes / nbDowns, 2) / 100;
 
 
-    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean, downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
+    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean,downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
 }
 
 function removeAllChildren(element) {
@@ -203,6 +207,7 @@ function showGeneralInfos(e){
     showNumberTimeByTime(genInfos.nbComments, 'generalInfo-commentaires');
     showNumberTimeByTime(genInfos.nbMakes, 'generalInfo-makes');
     showNumberTimeByTime(genInfos.nbRemixs, 'generalInfo-remixs');
+    showNumberTimeByTime(glo.userRes.followers.length, 'generalInfo-followers');
     showNumberTimeByTime(genInfos.viewMean, 'generalInfo-views');
     showNumberTimeByTime(genInfos.downMean, 'generalInfo-downs');
     showNumberTimeByTime(genInfos.likeMean, 'generalInfo-likes');
@@ -269,6 +274,15 @@ function sortDatasStatsOnClick(e){
     e.target.dataset.desc = desc ? 'false' : 'true';
 }
 
+function toCamelCase(str) {
+    return str.replace(/-./g, match => match.charAt(1).toUpperCase());
+}
+function toKebabCase(str) {
+    return str
+        .replace(/([A-Z])/g, '-$1')
+        .toLowerCase();
+}
+  
 function totauxStats(datas = glo.datasStats){
     const datasLength = datas.length;
 
@@ -413,6 +427,22 @@ async function getStat(id) {
         const response = await fetch(glo.url.replace('id', id), { cache: 'no-cache' });
         const result   = await response.json();
         glo.res.push(result);
+    } catch (error) {
+        console.log('error', error);
+    }
+}
+
+async function getUserInfos(username, ...requestsKinds){
+    const promises = requestsKinds.map(requestKind => getUserStat(requestKind, username));
+    await Promise.all(promises);
+}
+
+async function getUserStat(requestKind = 'things', username = glo.username) {
+    requestKind = toCamelCase(requestKind);
+
+    try {
+        const response           = await fetch(glo.userUrl.replace('username', username).replace('requestKind', requestKind), { cache: 'no-cache' });
+        glo.userRes[requestKind] = await response.json();
     } catch (error) {
         console.log('error', error);
     }

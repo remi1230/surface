@@ -240,3 +240,9 @@ img{
   margin-top: 120px;
   font-size: 24px;
 }
+#thingInfoCategorieContainer{
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  font-style: italic;
+}

@@ -747,6 +747,8 @@ var glo = {
 	wireframe: false,
 	normalColorMode: true,
 	addSymmetry: true,
+	savePos: {x: 0, y: 0, z: 0},
+	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
 };

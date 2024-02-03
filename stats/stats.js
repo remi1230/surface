@@ -3,6 +3,7 @@ const glo = {
     username   : 'Hopf',
     url        : 'https://api.thingiverse.com/things/id?access_token=9f71490b6e8be82562c62c6387298f36',
     userUrl    : 'https://api.thingiverse.com/users/username/requestKind?access_token=9f71490b6e8be82562c62c6387298f36',
+    catsUrl    : 'https://api.thingiverse.com/things/id/categories?access_token=9f71490b6e8be82562c62c6387298f36',
     ids        : [6351873, 6350389, 6349629, 6348005, 6347845, 6347726, 6347433, 6343923,
                   6343874, 6343835, 6343502, 6343477, 6343458, 6343453, 6343440, 6343361,
                   6343353, 6339762, 6339767, 6352714, 6354542, 6354594, 6356656, 6356673,
@@ -10,10 +11,13 @@ const glo = {
                   6386074, 6388308, 6389108, 6391145, 6393716, 6393826, 6393893, 6395838,
                   6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
-                  6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463],
+                  6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463,
+                  6462962, 6462978, 6462982, 6462991, 6463002, 6463148],
     res        : [],   
     userRes    : {},   
     datasStats : [],
+    tags       : [],
+    categories : {},
     sortNumber : ['1', 'true'],
     heartType  : 'all',
 	heartTypes : function* (){
@@ -49,8 +53,9 @@ let generalInfosDialog            = getById('generalInfosDialog');
 
 //****************** ÉVÈNEMENTS ******************//
 document.addEventListener('DOMContentLoaded', async function() {
-    refreshDatas();
-    getUserInfos('Hopf', 'followers');
+    await refreshDatas();
+    await getUserInfos('Hopf', 'followers');
+    getTags();
 });
 document.addEventListener('click', function() {
     if(thingThumbnailDialog.open){ thingThumbnailDialog.close(); }
@@ -72,17 +77,19 @@ function datasToTable(datas = glo.datasStats){
     datas.forEach((rowDatas, n) => {
         let tr = document.createElement("tr");
         rowDatas.forEach((rowData, i) => {
-            let td = document.createElement("td");
+            if(typeof rowData !== 'object'){
+                let td = document.createElement("td");
 
-            if(!i){
-                td.classList.add('alignLeft');
-                td.style.cursor = 'pointer';
-                td.addEventListener('click', showThingDetail);
+                if(!i){
+                    td.classList.add('alignLeft');
+                    td.style.cursor = 'pointer';
+                    td.addEventListener('click', showThingDetail);
+                }
+
+                let tdTxt = document.createTextNode(rowData);
+                td.appendChild(tdTxt);
+                tr.appendChild(td);
             }
-
-            let tdTxt = document.createTextNode(rowData);
-            td.appendChild(tdTxt);
-            tr.appendChild(td);
         });
         tr.classList.add(n%2==0 ? 'oddTr': 'evenTr');
         statsBodyTable.appendChild(tr);
@@ -142,7 +149,15 @@ function filterDatasStatsOnLike(){
 function filterStatsTable(val){
     let datasFiltered = [];
     if(isNaN(parseInt(val))){
-        datasFiltered = glo.datasStats.filter(data => data[0].toLowerCase().includes(val.toLowerCase()));
+        if(val.indexOf('t:') !== -1 && val.length > 2){
+            const tag = val.slice(2).trim().toLowerCase();
+            datasFiltered = glo.datasStats.filter(data => {
+                const tagsInDatas = data[data.length-1];
+                if(tagsInDatas.some(tagInDatas => tagInDatas.includes(tag))){ return true; }
+                else{ return false; }
+            });
+        }
+        else{ datasFiltered = glo.datasStats.filter(data => data[0].toLowerCase().includes(val.toLowerCase())); }
     }
     else{
         const valNum = parseInt(val);
@@ -161,6 +176,21 @@ function filterStatsTable(val){
     }
     
     datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
+}
+
+function getTags(){
+    glo.res.forEach(res => {
+        res.tags.forEach(tag => {
+            if(!glo.tags.find(t => t === tag.tag)){ glo.tags.push(tag.tag); } 
+        });
+    });
+    glo.tags.sort((a,b) => {if (a[0] < b[0]) {
+        return -1;
+    }
+    if (a[0] > b[0]) {
+        return 1;
+    }
+    return 0;});
 }
 
 function infos(){
@@ -187,7 +217,7 @@ function infos(){
     const likesOnDowns = Math.round(10000 * nbLikes / nbDowns, 2) / 100;
 
 
-    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean,downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
+    return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean, downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
 }
 
 function removeAllChildren(element) {
@@ -400,9 +430,11 @@ async function getDatas(){
         LonD = nanToZero(LonD); 
         VDL  = nanToZero(VDL); 
         time = nanToZero(time); 
-        VDLT = nanToZero(VDLT); 
+        VDLT = nanToZero(VDLT);
+        
+        const tags = r.tags.map(tag => tag.tag);
 
-        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT]);
+        glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT, tags]);
     });
 }
 
@@ -427,6 +459,16 @@ async function getStat(id) {
         const response = await fetch(glo.url.replace('id', id), { cache: 'no-cache' });
         const result   = await response.json();
         glo.res.push(result);
+    } catch (error) {
+        console.log('error', error);
+    }
+}
+
+async function getThingCateories(id) {
+    try {
+        const response = await fetch(glo.catsUrl.replace('id', id));
+        const result   = await response.json();
+        glo.categories[id] = result;
     } catch (error) {
         console.log('error', error);
     }
@@ -469,6 +511,7 @@ async function showThingDetail(event){
     const thumbnailURL = thing.thumbnail;
 
     await getImg(thumbnailURL);
+    if(!glo.categories[thing.id]){ await getThingCateories(thing.id); }
 
     if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
 
@@ -488,6 +531,7 @@ async function showThingDetail(event){
     getById('thingInfo-collections').innerText = thing.collect_count;
     getById('thingInfo-files').innerText       = thing.file_count;
     getById('thingInfo-comments').innerText    = thing.comment_count;
+    getById('thingInfo-categorie').innerText   = glo.categories[thing.id][0].name;
 
     getById('thingThumbnailTitle').dataset.numchevron = '0';
 

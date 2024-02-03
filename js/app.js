@@ -126,6 +126,8 @@ f = {
 	reg(f, dim_one);
 	reg(f2, dim_one);
 
+	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
+
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
@@ -192,19 +194,7 @@ f = {
 		return eval(func);
 	}
 
-  var is_v = false;
-  if(f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
-     f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
-     f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
-     f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
-     f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
-	 f2.alpha.lastIndexOf('v') != -1 || f2.alpha.lastIndexOf('V') != -1 ||
-     f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
-     f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
-	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') != -1 ||
-	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') != -1 ||
-	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V') != -1)
-     { is_v = true; }
+    const uvInfos = isUV();
 
     var x = 0.5; var y = 0.5; var z = 0.5;
 	var xN = 1; var yN = 1; var zN = 1;
@@ -234,8 +224,9 @@ f = {
 	var n = 0;
 	var line_visible = glo.lines_visible;
   var index_u = 0;
-  if(!is_v){
-		var path = [];
+  if(!uvInfos.isV){
+		this.paths[0] = [];
+		var path      = [];
 		let u = this.min_u - this.step_u;
 		for (let i = 0; i <= this.nb_steps_u; i++) {
 			u += this.step_u;
@@ -283,8 +274,13 @@ f = {
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
 
+			if(glo.additiveSurface){
+				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
+				glo.savePos.x = x; glo.savePos.y = y; glo.savePos.z = z;
+			}
+
 			path.push(new BABYLON.Vector3(x, y, z));
-			this.paths.push(path);
+			this.paths[0].push(new BABYLON.Vector3(x, y, z));
       		index_u++; n++;
 		}
 
@@ -297,8 +293,9 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
+	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
-	for (let i = 0; i <= this.nb_steps_u; i++) {
+	for (let i = 0; i <= stepsU; i++) {
 		u += this.step_u;
 		var path = [];
 		var index_v = 0; ind_u = u; v = this.min_v - this.step_v;
@@ -347,6 +344,11 @@ f = {
 			beta2  = eval(f2.beta);
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
+
+			if(glo.additiveSurface){
+				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
+				glo.savePos.x = x; glo.savePos.y = y; glo.savePos.z = z;
+			}
 
 			path.push(new BABYLON.Vector3(x, y, z));
 			index_v++; n++;
@@ -636,6 +638,8 @@ f = {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
 
+	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
+
 	function mx(index = 1, val_to_return = 0, p = path){
 		index = parseInt(index);
 		if(index <= 0){ index = 1; }
@@ -708,19 +712,7 @@ f = {
 	this.paths = [];
 	this.lines = [];
 
-  var is_v = false;
-  if(f.r.lastIndexOf('v') != -1 || f.r.lastIndexOf('V') != -1 ||
-     f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
-     f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1 ||
-     f.alpha2.lastIndexOf('v') != -1 || f.alpha2.lastIndexOf('V') != -1 ||
-     f.beta2.lastIndexOf('v') != -1 || f.beta2.lastIndexOf('V') != -1 ||
-	 f2.alpha.lastIndexOf('v') != -1 || f2.alpha.lastIndexOf('V') != -1 ||
-     f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
-	 f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
-	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') != -1 ||
-	 f2.y.lastIndexOf('v') != -1 || f2.y.lastIndexOf('V') != -1 ||
-	 f2.z.lastIndexOf('v') != -1 || f2.z.lastIndexOf('V') != -1)
-     { is_v = true; }
+    const uvInfos = isUV();
 
     var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
 	var r = 0; var alpha = 0; var beta = 0; var alpha2 = 0; var beta2 = 0;
@@ -737,24 +729,13 @@ f = {
 	var isY = glo.params.text_input_suit_y != "" ? true : false;
 	var isZ = glo.params.text_input_suit_z != "" ? true : false;
 
-	if(f.r == ""){ f.r = 0; }
-	if(f.alpha == ""){ f.alpha = 0; }
-	if(f.beta == ""){ f.beta = 0; }
-	if(f.alpha2 == ""){ f.alpha2 = 0; }
-	if(f.beta2 == ""){ f.beta2 = 0; }
-	if(f2.alpha == ""){ f2.alpha = 0; }
-	if(f2.beta == ""){ f2.beta = 0; }
-	if(f2.theta == ""){ f2.theta = 0; }
-	if(f2.x == ""){ f2.x = 0; }
-	if(f2.y == ""){ f2.y = 0; }
-	if(f2.z == ""){ f2.z = 0; }
-
-	var n = 0;
-	var path = [];
-	var line_visible = glo.lines_visible;
+  var n = 0;
+  var path = [];
+  var line_visible = glo.lines_visible;
   var index_u = 0;
-  if(!is_v){
-		path = [];
+  if(!uvInfos.isV){
+	    this.paths[0] = [];
+		path          = [];
 		let u = this.min_u - this.step_u;
 		for (let i = 0; i <= this.nb_steps_u; i++) {
 			u += this.step_u;
@@ -809,9 +790,20 @@ f = {
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha2, beta2, 0);
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
-			if(!glo.noLinkToZero){ path.push(this.p1_first); }
-			path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-			this.paths.push(path);
+			if(glo.additiveSurface){
+				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+			}
+
+			if(!glo.noLinkToZero){
+				path.push(this.p1_first);
+				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
+				this.paths.push(path);
+			}
+			else{
+				this.paths[0].push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
+			}
+			
 			path = [];
       		index_u++; n++;
 		}
@@ -825,8 +817,9 @@ f = {
 		this.lineSystem.visibility = line_visible;
   }
   else {
+		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
-		for (let i = 0; i <= this.nb_steps_u; i++) {
+		for (let i = 0; i <= stepsU; i++) {
 			u += this.step_u;
       		var index_v = 0; ind_u = u;
 			v = this.min_v - this.step_v
@@ -882,6 +875,11 @@ f = {
 
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha2, beta2, 0);
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
+
+				if(glo.additiveSurface){
+					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+					glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+				}	
 
 				this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -976,6 +974,8 @@ f2 = {
 
 	reg(f,  dim_one);
 	reg(f2, dim_one);
+
+	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
 	var isX = glo.params.text_input_suit_x != "" ? true : false;
 	var isY = glo.params.text_input_suit_y != "" ? true : false;
@@ -1099,6 +1099,11 @@ f2 = {
 			let rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
+			if(glo.additiveSurface){
+				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+			}
+
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 			if(!glo.noLinkToZero){ path.push(this.p1_first); }
 			path.push(this.new_p2);
@@ -1176,6 +1181,11 @@ f2 = {
 			if(theta == Infinity || theta == -Infinity){ theta = 0; }
 			let rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			if(glo.additiveSurface){
+				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -1270,6 +1280,8 @@ f2 = {
 
 	reg(f,  dim_one);
 	reg(f2, dim_one);
+
+	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
@@ -1403,6 +1415,11 @@ f2 = {
 			rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha3, 0, 0);
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
+			if(glo.additiveSurface){
+				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+			}
+
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 			if(!glo.noLinkToZero){ path.push(this.p1_first); }
 			path.push(this.new_p2);
@@ -1489,6 +1506,11 @@ f2 = {
 			if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
 			rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha3, 0, 0);
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			if(glo.additiveSurface){
+				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+			}
 
 			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 
@@ -2258,7 +2280,7 @@ function make_curves(u_params = {
 	}
 }
 
-function make_ribbon(){
+async function make_ribbon(symmetrize = true){
 	glo.emissiveColorSave = {...glo.emissiveColor};
 	glo.diffuseColorSave  = {...glo.diffuseColor};
 
@@ -2313,19 +2335,36 @@ function make_ribbon(){
 		}
 	}
 
+	if(symmetrize){ await makeSymmetrize(); }
+	
 	giveMaterialToMesh();
 
-	if(glo.params.symmetrizeX){ updRibbon2("symmetrizeX"); }
-	if(glo.params.symmetrizeY){ updRibbon2("symmetrizeY"); }
-	if(glo.params.symmetrizeZ){ updRibbon2("symmetrizeZ"); }
-
 	glo.is_ribbon = true;
-  if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
+    if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
 
   	glo.emissiveColor = {...glo.emissiveColorSave};
 	glo.diffuseColor  = {...glo.diffuseColorSave};
 
 	if(glo.meshWithTubes){ meshWithTubes(); }
+}
+
+function getPathsInfos(){
+	const coeffSym = getCoeffSym();
+	glo.pathsInfos = {u: (glo.params.steps_u + 1) * coeffSym, v: glo.params.steps_v + 1};
+}
+
+function getCoeffSym(){
+	return (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
+	(glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
+}
+
+async function makeSymmetrize(){
+	if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
+	if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
+	if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
+	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
+
+	if(glo.params.symmetrizeX || glo.params.symmetrizeY || glo.params.symmetrizeZ){ makeLineSystem(); }
 }
 
 function ribbonDispose(all = true){
@@ -2337,6 +2376,13 @@ function ribbonDispose(all = true){
 		glo.scene.meshes.forEach(mesh => {
 			if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
 		});
+	}
+}
+
+function remakeRibbon(){
+	if(!glo.normalMode){  make_curves(); }
+	else{
+		glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
 	}
 }
 
@@ -4418,6 +4464,11 @@ function cameraOnPos(pos){
 function toggleDataTable(){
 	dataTableBody.innerHTML = '';
 
+	const coeff = (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
+	              (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
+
+	//const paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
+
 	let vertices = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
 	const uStep   = (glo.params.u*2) / glo.params.steps_u;
@@ -4431,7 +4482,7 @@ function toggleDataTable(){
 	const datas = [];
 	let n       = 0;
 	if(UV.isU && UV.isV){
-		for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
+		for(let stepU = 0; stepU <= glo.params.steps_u * coeff; stepU++){
 			const u = round(uFirst + (stepU*uStep), 2);
 			for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
 				const v = round(vFirst + (stepV*vStep), 2);
@@ -4445,26 +4496,26 @@ function toggleDataTable(){
 		}
 	}
 	else if(UV.isU){
-		for(let stepU = 0; stepU <= glo.params.steps_u; stepU++){
+		for(let stepU = 0; stepU <= glo.params.steps_u * coeff; stepU++){
 			const u = round(uFirst + (stepU*uStep), 2);
 			const v = 'none';
 			const x = round(vertices[n*3], 2);
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push([stepU, stepV, u, v, x, y, z]);
+			datas.push([stepU, 'none', u, v, x, y, z]);
 			n++;
 		}
 	}
 	else if(UV.isV){
-		for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
+		for(let stepV = 0; stepV <= glo.params.steps_v * coeff; stepV++){
 			const u = 'none';
 			const v = round(vFirst + (stepV*vStep), 2);
 			const x = round(vertices[n*3], 2);
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push([stepU, stepV, u, v, x, y, z]);
+			datas.push(['none', stepV, u, v, x, y, z]);
 			n++;
 		}
 	}
@@ -4506,7 +4557,9 @@ function round(val, pre){
 }
 
 function isUV(){
-	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z, glo.params.text_input_alpha, glo.params.text_input_beta];
+	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z,
+		          glo.params.text_input_alpha, glo.params.text_input_beta, glo.params.text_input_suit_x, glo.params.text_input_suit_y,
+				  glo.params.text_input_suit_z, glo.params.text_input_suit_alpha, glo.params.text_input_suit_beta];
 	
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }
@@ -4552,7 +4605,7 @@ function directionXY(angleXY, dist, positive = 1){
 	};
 }
 
-async function updRibbon2(axisVarName, remakeLine = true, remakeRibbon = true){
+async function symmetrizeRibbon(axisVarName, coeff = 1){
 	let curvesPathsSave = [...glo.curves.paths];
 
 	const nbSyms    = glo.params[axisVarName];
@@ -4573,7 +4626,7 @@ async function updRibbon2(axisVarName, remakeLine = true, remakeRibbon = true){
 	}
 	const goodR = glo.input_sym_r.text ? test_equations(inputSymREq, glo.dim_one) : false;
 
-	let newRibbons           = [];
+	let newRibbons          = [];
 	let newCurves           = [];
 	glo.curves.linesSystems = [];
 	for(let k = 1; k <= nbSyms; k++){
@@ -4626,29 +4679,34 @@ async function updRibbon2(axisVarName, remakeLine = true, remakeRibbon = true){
 					
 					newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
 				}
-
 				newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
 			});
 		});
 		newRibbons.push(BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
 	}
 
+	/*for(let i = 0; i < newRibbons.length; i++){
+		await newRibbons[i].reBuildVertexData();
+	}*/
+
 	ribbonDispose(false);
-	if(!glo.mergeMeshesByIntersect){ glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true); }
+	if(!glo.mergeMeshesByIntersect){ glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false); }
 	else{
 		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
 	}
 
-	giveMaterialToMesh();
+	//glo.ribbon.minimizeVertices();
 
-	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), nbSyms + 1);
-	makeLineSystem();
+	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
+	glo.lines = glo.curves.paths;
 }
 
-function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff = 1){
+function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff){
 	let paths = [];
 	let n = 0;
-	for(let i = 0; i <= glo.params.steps_u * coeff; i++){
+
+	const stepsU = coeff ? ((glo.params.steps_u + 1) * coeff) : glo.pathsInfos.u;
+	for(let i = 0; i <= stepsU - 1; i++){
 		paths[i] = [];
 		for(let j = 0; j <= glo.params.steps_v; j++){
 			const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
@@ -4658,6 +4716,35 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 		}
 	}
 	return paths;
+}
+
+function isVertexAtPos(positionToCheck, ribbon = glo.ribbon, tolerance = 0.001){
+	let positions;
+	if(!Array.isArray(ribbon)){ positions = ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind); }
+	else if(ribbon.length){
+		let ps = [];
+		ribbon.forEach(rib => {
+			ps.push(rib.getVerticesData(BABYLON.VertexBuffer.PositionKind));
+		}); 
+		positions = ps.flat();
+	}
+
+    // Vérifier si les positions existent
+    if (!positions) return false;
+
+    // Parcourir les positions des vertex par pas de 3 (x, y, z)
+    for (var i = 0; i < positions.length; i += 3) {
+        // Créer un vecteur pour la position actuelle du vertex
+        var vertexPosition = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+
+        // Vérifier si la position actuelle est proche de la position recherchée
+        if (BABYLON.Vector3.Distance(vertexPosition, positionToCheck) <= tolerance) {
+            return true; // Un vertex existe à cette position
+        }
+    }
+
+    // Aucun vertex trouvé à la position donnée
+    return false;
 }
 
 function distsBetweenVertexs(){
@@ -4778,7 +4865,7 @@ async function mergeMeshesByIntersects(mesh1, mesh2) {
     var csg1 = BABYLON.CSG.FromMesh(mesh1);
     var csg2 = BABYLON.CSG.FromMesh(mesh2);
     var csg3 = csg2.intersect(csg1); 
-    //if (finalMesh) finalMesh.dispose();
+    
     let finalMesh = csg3.toMesh('section');
     finalMesh.computeWorldMatrix(true);
 
@@ -4803,6 +4890,8 @@ async function inverseMeshGeometry(){
 }
 
 function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
+	disposeAllMaterials();
+
 	let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 
 	material.backFaceCulling = false;
@@ -4813,4 +4902,125 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 	mesh.material.alpha = glo.ribbon_alpha;
 	mesh.alphaIndex = 998;
 	mesh.material.wireframe = glo.wireframe;
+}
+
+function disposeAllMaterials(){
+	for(let i = 0; i < glo.scene.materials.length; i++){
+		glo.scene.materials[i].dispose();
+		i--;
+	} 
+}
+
+BABYLON.Mesh.prototype.minimizeVertices = function() {
+	var _pdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+	var _ndata = this.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+	var _idata = this.getIndices();
+
+	var _newPdata = []; //new positions array
+	var _newIdata =[]; //new indices array
+
+	var _mapPtr =0; // new index;
+	var _uniquePositions = []; // unique vertex positions
+	for(var _i=0; _i<_idata.length; _i+=3) {
+		var _facet = [_idata[_i], _idata[_i + 1], _idata[_i+2]]; //facet vertex indices
+		var _pstring = []; //lists facet vertex positions (x,y,z) as string "xyz""
+		for(var _j = 0; _j<3; _j++) { //
+			_pstring[_j] = "";
+			for(var _k = 0; _k<3; _k++) {
+				//small values make 0
+				if (Math.abs(_pdata[3*_facet[_j] + _k]) < 0.0001) {
+					_pdata[3*_facet[_j] + _k] = 0;
+				}
+				_pstring[_j] += _pdata[3*_facet[_j] + _k] + "|";
+			}
+			_pstring[_j] = _pstring[_j].slice(0, -1);		
+		}
+		//check facet vertices to see that none are repeated
+		// do not process any facet that has a repeated vertex, ie is a line
+		if(!(_pstring[0] == _pstring[1] || _pstring[0] == _pstring[2] || _pstring[1] == _pstring[2])) {		
+			//for each facet position check if already listed in uniquePositions
+			// if not listed add to uniquePositions and set index pointer
+			// if listed use its index in uniquePositions and new index pointer
+			for(var _j = 0; _j<3; _j++) { 
+				var _ptr = _uniquePositions.indexOf(_pstring[_j])
+				if(_ptr < 0) {
+					_uniquePositions.push(_pstring[_j]);
+					_ptr = _mapPtr++;
+					//not listed so add individual x, y, z coordinates to new positions array newPdata
+					//and add matching normal data to new normals array newNdata
+					for(var _k = 0; _k<3; _k++) {
+						_newPdata.push(_pdata[3*_facet[_j] + _k]);
+					}
+				}
+				// add new index pointer to new indices array newIdata
+				_newIdata.push(_ptr);
+			}
+		}
+	}
+
+	this.reBuildVertexData(_newIdata);
+}
+
+BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices()) {
+    // Récupérer les données de vertex actuelles
+    let _currentPdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+
+    // Utiliser les données actuelles pour recalculer les normales
+    let _newNdata = [];
+    BABYLON.VertexData.ComputeNormals(_currentPdata, newIndices, _newNdata);
+
+    // Créer un nouvel objet de données de vertex et mettre à jour le maillage
+    var _vertexData = new BABYLON.VertexData();
+    _vertexData.positions = _currentPdata; // Utiliser les positions actuelles
+    _vertexData.indices   =  newIndices; // Utiliser les indices actuels
+    _vertexData.normals   = _newNdata;     // Utiliser les nouvelles normales calculées
+
+    _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
+};
+
+BABYLON.Mesh.prototype.tIndices = function() {
+	// Récupérer les données de vertex actuelles
+    let _currentPdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    let _currentIdata = this.cIndices();
+
+    // Utiliser les données actuelles pour recalculer les normales
+    let _newNdata = [];
+    BABYLON.VertexData.ComputeNormals(_currentPdata, _currentIdata, _newNdata);
+
+    // Créer un nouvel objet de données de vertex et mettre à jour le maillage
+    var _vertexData = new BABYLON.VertexData();
+    _vertexData.positions = _currentPdata; // Utiliser les positions actuelles
+    _vertexData.indices   = _currentIdata; // Utiliser les indices actuels
+    _vertexData.normals   = _newNdata;     // Utiliser les nouvelles normales calculées
+
+    _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
+}
+BABYLON.Mesh.prototype.cIndices = function() {
+    let inds = this.getIndices();
+
+	const lims = {u: glo.params.steps_u, v: glo.params.steps_v};
+
+	let nInds = [inds[0]];
+
+	let dInds = [];
+	for(let i = 1; i < inds.length; i++){
+		const diffInds = inds[i] - inds[i-1];
+		if(diffInds !== lims.u && diffInds !== -lims.u && diffInds !== lims.v && diffInds !== -lims.v &&
+		   diffInds !== lims.u + 1 && diffInds !== -(lims.u + 1) && diffInds !== lims.v  + 1 && diffInds !== -(lims.v + 1)){
+			dInds.push({indLessOne: i-1, ind: i, valIndLessOne: inds[i-1], valInd: inds[i], diffInds: diffInds});
+		}
+		else{ nInds.push(inds[i]); }
+	}
+
+	return nInds;
+}
+
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        // Choisissez un élément aléatoire avant l'élément courant
+        const j = Math.floor(Math.random() * (i + 1));
+        // Echangez-le avec l'élément courant
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }

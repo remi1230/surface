@@ -880,6 +880,7 @@ function add_step_uv_slider(){
     slider.onValueChangedObservable.add(function (value) {
       value = parseInt(value);
       glo['params'][gloPropToModify] = value;
+      getPathsInfos();
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
         else{
@@ -1090,22 +1091,23 @@ function add_symmetrize_sliders(){
     parmamControl(slider, name, 'slider right fourth', options, true);
 
     slider.onValueChangedObservable.add(function(value) {
-      header.text = text + ": " + value.toFixed(decimalPrecision);
-      slider.lastValue = value;
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        slider.lastValue = value;
 
-      event(value);
-      if(value){ updRibbon2(name); }
-      else{
+        event(value);
+
+        getPathsInfos();
+
         if(!glo.normalMode){  make_curves(); }
         else{
           glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
-      }
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
         slider.value = 0;
-        if(value){ updRibbon2(name); }
+        getPathsInfos();
+        if(value){ symmetrizeRibbon(name); }
         else{
           if(!glo.normalMode){  make_curves(); }
           else{
@@ -1114,6 +1116,7 @@ function add_symmetrize_sliders(){
         }
       }
     });
+
     slider.onWheelObservable.add(function (e) {
       var val = e.y < 0 ? val = step : val = -step; slider.value += val;
     });

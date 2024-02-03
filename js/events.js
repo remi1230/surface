@@ -14,6 +14,7 @@ $( document ).ready(function() {
   special_randomize_colors_app(true);
   startAnim(20, 1);
   initDataModal();
+  getPathsInfos();
 });
 
 $("#univers_div").mouseenter(function(){
@@ -229,7 +230,7 @@ window.addEventListener("keydown", function (e) {
                   break;
                case 'b':
                glo.params.playWithColors = !glo.params.playWithColors;
-               glo.params.playWithColors ? makeColors() : make_ribbon();
+               glo.params.playWithColors ? makeColors() : make_ribbon(false);
 
                   break;
                case ',':
@@ -414,6 +415,15 @@ window.addEventListener("keydown", function (e) {
                break;
                case "s":
                   glo.mergeMeshesByIntersect = !glo.mergeMeshesByIntersect;
+                  remakeRibbon();
+
+               break;
+               case "r":
+                  glo.additiveSurface = !glo.additiveSurface;
+                  if(!glo.normalMode){  make_curves(); }
+                  else{
+                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+                  }
 
                break;
                case "i":
@@ -481,7 +491,7 @@ window.addEventListener("keydown", function (e) {
                break;
             case "D":
             case "d":
-            accuade();
+               !glo.scene.debugLayer.isVisible() ? glo.scene.debugLayer.show() : glo.scene.debugLayer.hide();
 
                break;
             case "F":

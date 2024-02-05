@@ -24,6 +24,7 @@ function add_gui_controls(){
 
   add_step_ABCD_sliders();
   add_symmetrize_sliders();
+  add_transformation_sliders();
 
   guiControls_AddIdentificationFunctions();
 
@@ -191,12 +192,13 @@ function add_switch_and_help_buttons(){
   panel.height = "80px";
   glo.advancedTexture.addControl(panel);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, event){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     parmamControl(button, name, 'button left first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     designButton(button);
-    button.onPointerUpObservable.add(function() {
-      event();
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
     });
     panel.addControl(button);
   }
@@ -260,37 +262,32 @@ function add_switch_and_help_buttons(){
         }
         glo.gui_suit_visible = !glo.gui_suit_visible;
         break;
-    }
-  });
-  add_button("but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
-    glo.switchGuiSelect.next();
-    switch(glo.guiSelect){
-      case "main":
-        toggle_gui_controls_suit(false);
-        toggle_gui_controls_third(false);
-        toggleGuiControlsByClass(false, 'fourth');
-        toggle_gui_controls_for_switch(true);
-        break;
-      case "second":
-        toggle_gui_controls_for_switch(false);
-        toggle_gui_controls_third(false);
-        toggleGuiControlsByClass(false, 'fourth');
-        toggle_gui_controls_suit(true);
-        break;
-      case "third":
-        toggle_gui_controls_for_switch(false);
-        toggle_gui_controls_suit(false);
-        toggle_gui_controls_third(true);
-        toggleGuiControlsByClass(false, 'fourth');
-        break;
-      case "fourth":
-        toggle_gui_controls_for_switch(false);
-        toggle_gui_controls_suit(false);
-        toggle_gui_controls_third(false);
-        toggleGuiControlsByClass(true, 'fourth');
+      case 'fifth':
+        if(glo.gui_suit_visible == false){ glo.allControls.getByName('but_hide').textBlock.text = "SHOW"; }
+        else { glo.allControls.getByName('but_hide').textBlock.text = "HIDE"; }
+        if(!glo.gui_suit_visible){
+          toggle_gui_controls(glo.gui_suit_visible);
+          toggle_gui_controls_suit(glo.gui_suit_visible);
+          toggle_gui_controls_for_switch(glo.gui_suit_visible);
+          toggle_gui_controls_third(glo.gui_suit_visible);
+          toggleGuiControlsByClass(glo.gui_suit_visible, 'fourth');
+          toggleGuiControlsByClass(glo.gui_suit_visible, 'fifth');
+        }
+        else{
+          toggle_gui_controls(glo.gui_suit_visible);
+          toggle_gui_controls_suit(!glo.gui_suit_visible);
+          toggle_gui_controls_for_switch(!glo.gui_suit_visible);
+          toggle_gui_controls_third(!glo.gui_suit_visible);
+          toggleGuiControlsByClass(!glo.gui_suit_visible, 'fourth');
+          toggleGuiControlsByClass(glo.gui_suit_visible, 'fifth');
+        }
+        glo.gui_suit_visible = !glo.gui_suit_visible;
         break;
     }
   });
+  add_button("but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,
+             function(){ switchRightPanel(true); }, function(){ switchRightPanel(false); } );
+
   add_button("but_help", "HELP", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     if(glo.fullScreen){ glo.engine.switchFullscreen(); }
     $('#helpModal').modal('open', {
@@ -534,7 +531,7 @@ function add_uv_sliders(){
     parmamControl(slider, name, 'slider left first', {minimum: 0, maximum: 6*PI, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify]});
     glo[gloPropToAssignInput] = slider;
 
-    slider.onValueChangedObservable.add(function (value) {
+    slider.onValueChangedObservable.add(async function (value) {
       if(value == 0){ value = 0.00001; }
 
       var min = -value.toFixed(2);
@@ -549,7 +546,7 @@ function add_uv_sliders(){
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
         else{
-          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+          glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
       }
       reMakeClones();
@@ -667,7 +664,7 @@ function add_inputs_equations(){
     input.inputsEquationsIndex = indexInInputsEquations;
     indexInInputsEquations++;
 
-    function inputChangeEvent(){
+    async function inputChangeEvent(){
       if(colorEquation){ glo.params.playWithColors = true; }
       if(glo.normalMode){
         if(!colorEquation && !glo.params.playWithColors){ drawNormalEquations(); }
@@ -679,12 +676,12 @@ function add_inputs_equations(){
             falpha: glo.params.text_input_color_alpha,
             fbeta: glo.params.text_input_color_beta,
           };
-          if(test_equations(equations, false)){ glo.fromSlider = true; make_ribbon(); glo.fromSlider = false; drawNormalEquations(); } 
+          if(test_equations(equations, false)){ glo.fromSlider = true; await make_ribbon(); glo.fromSlider = false; drawNormalEquations(); } 
         }
       }
       else{
         if(!colorEquation){
-          make_curves();
+          await make_curves();
           reMakeClones();
           glo.histo.save();
           glo.advancedTexture.moveFocusToControl(input);
@@ -877,14 +874,14 @@ function add_step_uv_slider(){
     var slider = new BABYLON.GUI.Slider();
     parmamControl(slider, name, "slider right first", {minimum: 1, maximum: 264, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify], updating: false});
 
-    slider.onValueChangedObservable.add(function (value) {
+    slider.onValueChangedObservable.add(async function (value) {
       value = parseInt(value);
       glo['params'][gloPropToModify] = value;
       getPathsInfos();
       if(!glo.fromHisto){
         if(!glo.normalMode){  make_curves(); }
         else{
-          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+          glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
       }
       reMakeClones();
@@ -1090,7 +1087,7 @@ function add_symmetrize_sliders(){
     var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, color: '#003399', background: 'grey'};
     parmamControl(slider, name, 'slider right fourth', options, true);
 
-    slider.onValueChangedObservable.add(function(value) {
+    slider.onValueChangedObservable.add(async function(value) {
         header.text = text + ": " + value.toFixed(decimalPrecision);
         slider.lastValue = value;
 
@@ -1100,7 +1097,7 @@ function add_symmetrize_sliders(){
 
         if(!glo.normalMode){  make_curves(); }
         else{
-          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+          glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
     });
     slider.onPointerClickObservable.add(function (e) {
@@ -1130,6 +1127,57 @@ function add_symmetrize_sliders(){
   addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeY = value; });
   addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
+}
+
+function add_transformation_sliders(){
+  var panel = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right fifth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 35, pR: 1});
+  glo.advancedTexture.addControl(panel);
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right fifth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, color: '#003399', background: 'grey'};
+    parmamControl(slider, name, 'slider right fifth', options, true);
+
+    slider.onValueChangedObservable.add(function(value) {
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        slider.lastValue = value;
+
+        event(value);
+        glo.params[name] = value;
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        header.text = text + ": " + 0;
+        slider.value = 0;
+
+        event(0);
+        glo.params[name] = 0;
+      }
+    });
+
+    slider.onWheelObservable.add(function (e) {
+      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+    });
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  addSlider(panel, "scalingX", "scalingX", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'x', value); });
+  addSlider(panel, "scalingY", "scalingY", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'y', value); });
+  addSlider(panel, "scalingZ", "scalingZ", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'z', value); });
+  addSlider(panel, "rotationX", "rotationX", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'x', value); });
+  addSlider(panel, "rotationY", "rotationY", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'y', value); });
+  addSlider(panel, "rotationZ", "rotationZ", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'z', value); });
+  addSlider(panel, "positionX", "positionX", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'x', value); });
+  addSlider(panel, "positionY", "positionY", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'y', value); });
+  addSlider(panel, "positionZ", "positionZ", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'z', value); });
 }
 
 function param_buttons(){

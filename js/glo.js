@@ -279,7 +279,7 @@ var glo = {
 	guiSelect: 'main',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['main', 'second', 'third', 'fourth'];
+	  var tab = ['main', 'second', 'third', 'fourth', 'fifth'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }

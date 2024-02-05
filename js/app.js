@@ -610,7 +610,7 @@ function drawNormalEquations(){
 			glo.curves.lineSystem.alphaIndex = 999;
 			glo.curves.lineSystem.visibility = line_visible;
 		}
-		make_ribbon();
+		make_ribbon(false);
 	}
 
 	return false;
@@ -2240,7 +2240,7 @@ function reg(f, dim_one){
 	return f;
 }
 
-function make_curves(u_params = {
+async function make_curves(u_params = {
 	min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u,
 }, v_params = {
 	min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v,
@@ -2274,7 +2274,7 @@ function make_curves(u_params = {
 		else if(glo.coordsType == 'cartesian'){ glo.curves = new Curves(); }
 		else{ glo.curves = new CurvesByRot(); }
 
-		make_ribbon();
+		await make_ribbon();
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 	}
@@ -2345,7 +2345,8 @@ async function make_ribbon(symmetrize = true){
   	glo.emissiveColor = {...glo.emissiveColorSave};
 	glo.diffuseColor  = {...glo.diffuseColorSave};
 
-	if(glo.meshWithTubes){ meshWithTubes(); }
+	if(glo.meshWithTubes){ await meshWithTubes(); }
+	applyTransformations();
 }
 
 function getPathsInfos(){
@@ -3005,6 +3006,59 @@ function switchCoords(normalSens = true){
 	switchDrawCoordsType();
 	add_radios();
 	glo.formesSuit = false;
+}
+
+function switchRightPanel(normalSens = true){
+	if(normalSens){ glo.switchGuiSelect.next(); }
+	else{
+		const currentPanel = glo.guiSelect;
+		
+		let nextPanel = '';
+		while(glo.switchGuiSelect.next().value !== currentPanel){
+			nextPanel = glo.guiSelect;
+		}
+		glo.guiSelect = nextPanel;
+
+		while(glo.switchGuiSelect.next().value !== nextPanel){}
+	}
+
+	switch(glo.guiSelect){
+		case "main":
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(false, 'fifth');
+		  toggle_gui_controls_for_switch(true);
+		break;
+		case "second":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(false, 'fifth');
+		  toggle_gui_controls_suit(true);
+		break;
+		case "third":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(true);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(false, 'fifth');
+		break;
+		case "fourth":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(true, 'fourth');
+		break;
+		case "fifth":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(true, 'fifth');
+		break;
+	}
 }
 
 function make_planes(){
@@ -4612,6 +4666,59 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 	const axis      = axisVarName.slice(-1);
 	const stepAngle = glo.params.symmetrizeAngle/nbSyms;
 
+	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
+	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
+
+	function mx(index = 1, val_to_return = 0, p = path){
+		index = parseInt(index);
+		if(index <= 0){ index = 1; }
+    if(p.length == 0){ return val_to_return; }
+    if(p.length < index){ return val_to_return; }
+
+    return p[p.length - index].x;
+  }
+	function my(index = 1, val_to_return = 0, p = path){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
+
+		return p[p.length - index].y;
+	}
+	function mz(index = 1, val_to_return = 0, p = path){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
+
+		return p[p.length - index].z;
+	}
+
+	function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
+		if(index%modulo == 0){ return variable; }
+
+		return val_to_return;
+	}
+	function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
+		if(index%modulo == 0){ return variable; }
+
+		return val_to_return;
+	}
+	function mod(index, ...args){ return args[index%args.length]; }
+
+	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
+		var funcR = func;
+		var f = {toInv:func};
+		for(var i = 0; i < it; i++){
+			var index = funcR.length - (i+1);
+			var fInvUV = reg_inv(f, 'u', 'v').toInv;
+			f.toInv = fInvUV;
+			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
+		}
+		func = funcR;
+		return eval(func);
+	}
+
 	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 
 	const stepU = 2*glo.params.u / glo.params.steps_u;
@@ -4626,12 +4733,15 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 	}
 	const goodR = glo.input_sym_r.text ? test_equations(inputSymREq, glo.dim_one) : false;
 
+	let index_u = 0, index_v = 0;
 	let newRibbons          = [];
 	let newCurves           = [];
 	glo.curves.linesSystems = [];
 	for(let k = 1; k <= nbSyms; k++){
+		index_u = 0;
 		newCurves[k] = [];
 		curvesPathsSave.forEach((line, i) => {
+			index_v = 0;
 			u = i * stepU;
 			newCurves[k][i] = [];
 			line.forEach((path, j) => {
@@ -4680,7 +4790,9 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 					newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
 				}
 				newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
+				index_v++;
 			});
+			index_u++;
 		});
 		newRibbons.push(BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
 	}
@@ -4876,16 +4988,25 @@ async function mergeMeshesByIntersects(mesh1, mesh2) {
 }
 
 async function inverseMeshGeometry(){
-	let csgMesh = BABYLON.CSG.FromMesh(glo.ribbon);
+	let curvesPathsSave = [...glo.curves.paths];
 
-	csgMesh.inverse();
+	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 
-	ribbonDispose();
-	glo.ribbon = await csgMesh.toMesh("invertedMesh", null, glo.scene);
+	let newCurves           = [];
+	glo.curves.linesSystems = [];
+	newCurves = [];
+	curvesPathsSave.forEach((line, i) => {
+		newCurves[i] = [];
+		line.forEach(path => {
+			newCurves[i].push(new BABYLON.Vector3(-path.x, -path.y, -path.z));
+		});
+	});
+	
+	glo.curves.paths = newCurves;
+	glo.lines = glo.curves.paths;
 
-	giveMaterialToMesh();
-
-	glo.curves.paths = turnVerticesDatasToPaths();
+	if(!glo.normalMode){ make_ribbon(); }
+    else{ drawNormalEquations(); }
 	makeLineSystem();
 }
 
@@ -5023,4 +5144,37 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
     return array;
+}
+
+function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem){
+	if(transformKind === 'scaling'){ value = scaleNoSignToSign(value); }
+	mesh[transformKind][axis] = value;
+	if(lines){ lines[transformKind][axis] = value; }
+	//mesh.bakeCurrentTransformIntoVertices();
+	//turnVerticesDatasToPaths();
+}
+
+function scaleNoSignToSign(value){
+	if(value > 0){ return ++value; }
+	else{ return 1/(-value+1); }
+}
+
+function isTransformation(){
+	const transformations = ['scalingX', 'scalingY', 'scalingZ', 'rotationX', 'rotationY', 'rotationZ', 'positionX', 'positionY', 'positionZ'];
+
+	for(let i = 0; i < transformations.length; i++){
+		if(glo.params[transformations[i]]){ return true; }
+	}
+
+	return false;
+}
+
+function applyTransformations(){
+	const transformations = ['scalingX', 'scalingY', 'scalingZ', 'rotationX', 'rotationY', 'rotationZ', 'positionX', 'positionY', 'positionZ'];
+
+	const transformationsAxis = transformations.map(trans => { return { name: trans, trans: trans.slice(0, trans.length - 1), axis: trans.slice(-1).toLowerCase() } });
+
+	transformationsAxis.forEach(transformationsAxis => {
+		if(glo.params[transformationsAxis.name]){ transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name]); }
+	});
 }

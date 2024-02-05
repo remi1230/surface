@@ -6,6 +6,7 @@ $( document ).ready(function() {
   toggle_gui_controls_suit(false);
   toggle_gui_controls_third(false);
   toggleGuiControlsByClass(false, 'fourth');
+  toggleGuiControlsByClass(false, 'fifth');
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();

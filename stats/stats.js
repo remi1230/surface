@@ -12,7 +12,7 @@ const glo = {
                   6397564, 6398300, 6398371, 6403971, 6405779, 6406330, 6406333, 6407766,
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
                   6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463,
-                  6462962, 6462978, 6462982, 6462991, 6463002, 6463148],
+                  6462962, 6462978, 6462982, 6462991, 6463002, 6463148, 6471696, 6471701],
     res        : [],   
     userRes    : {},   
     datasStats : [],
@@ -403,8 +403,23 @@ function toggleTabGraph(){
                         color: '#eee',
                         position: 'top'
                     }
+                },
+                onClick: function(evt, elementsAtEvent, chart) {
+                    if (elementsAtEvent.length) {
+                        const firstElement = elementsAtEvent[0];
+                        const index = firstElement.index;
+                        const label = this.data.labels[index];
+
+                        showThingDetail(false, label);
+                    }
                 }
             }            
+        });
+        glo.statsGraph.canvas.addEventListener('mouseenter', function() {
+            glo.statsGraph.canvas.style.cursor = 'pointer';
+        });
+        glo.statsGraph.canvas.addEventListener('mouseleave', function() {
+            glo.statsGraph.canvas.style.cursor = 'default';
         });
     }
 }
@@ -502,10 +517,10 @@ async function refreshDatas(){
     sortDatasStats(...glo.sortNumber);
 }
 
-async function showThingDetail(event){
+async function showThingDetail(event, thingName = false){
     let tdClicked = event.target;
 
-    let name = tdClicked.innerText;
+    let name = !thingName ? tdClicked.innerText : thingName;
     const thing = glo.res.find(r => r.name === name);
 
     const thumbnailURL = thing.thumbnail;

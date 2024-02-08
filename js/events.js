@@ -380,12 +380,6 @@ window.addEventListener("keydown", function (e) {
                   toggleDataTable();
 
                   break;
-               case "z":
-                  glo.noLinkToZero = !glo.noLinkToZero;
-                  if(!glo.normalMode){ make_curves(); }
-                  else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
-
-                  break;
                case "PageUp":
                   glo.firstPoint.z++;
                   if(!glo.normalMode){  make_curves(); }
@@ -431,6 +425,21 @@ window.addEventListener("keydown", function (e) {
                   inverseMeshGeometry();
 
                break;
+               case "x":
+                  glo.cutRibbon.x = !glo.cutRibbon.x;
+                  remakeRibbon();
+
+               break;
+               case "y":
+                  glo.cutRibbon.y = !glo.cutRibbon.y;
+                  remakeRibbon();
+
+               break;
+               case "z":
+                  glo.cutRibbon.z = !glo.cutRibbon.z;
+                  remakeRibbon();
+
+               break;
             }
          }
       }
@@ -468,10 +477,9 @@ window.addEventListener("keydown", function (e) {
                break;
             case "z":
             case "Z":
-            if(glo.normalMode){
-               glo.scaleNorm/=sqrt(2);
-               drawNormalEquations();
-            }
+               glo.noLinkToZero = !glo.noLinkToZero;
+               if(!glo.normalMode){ make_curves(); }
+               else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
 
                break;
             case "H":

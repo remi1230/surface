@@ -1144,7 +1144,19 @@ function add_transformation_sliders(){
     parmamControl(slider, name, 'slider right fifth', options, true);
 
     slider.onValueChangedObservable.add(function(value) {
-        header.text = text + ": " + value.toFixed(decimalPrecision);
+        if(!name.includes('scaling')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
+        else{
+          if(value < 0){
+            let val = parseFloat(value.toFixed(decimalPrecision));
+            val     = -(1 / (val - 1));
+            val     = parseFloat(val.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+          else{
+            let val = 1 + parseFloat(value.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+        }
         slider.lastValue = value;
 
         event(value);
@@ -1161,7 +1173,9 @@ function add_transformation_sliders(){
     });
 
     slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+      var val = e.y < 0 ? val = step : val = -step;
+      if(slider.value === 1 && !slider.notFirstChange){ slider.value = 0; slider.notFirstChange = true; }
+      slider.value += val;
     });
     slider.onPointerUpObservable.add(function (e) {
       
@@ -1169,15 +1183,19 @@ function add_transformation_sliders(){
     parent.addControl(slider);
   }
 
-  addSlider(panel, "scalingX", "scalingX", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'x', value); });
-  addSlider(panel, "scalingY", "scalingY", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'y', value); });
-  addSlider(panel, "scalingZ", "scalingZ", 0, 1, -24, 24, .1, function(value){ transformMesh('scaling', 'z', value); });
+  addSlider(panel, "scalingX", "scalingX", 1, 2, -24, 24, .1, function(value){ transformMesh('scaling', 'x', value); });
+  addSlider(panel, "scalingY", "scalingY", 1, 2, -24, 24, .1, function(value){ transformMesh('scaling', 'y', value); });
+  addSlider(panel, "scalingZ", "scalingZ", 1, 2, -24, 24, .1, function(value){ transformMesh('scaling', 'z', value); });
   addSlider(panel, "rotationX", "rotationX", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'x', value); });
   addSlider(panel, "rotationY", "rotationY", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'y', value); });
   addSlider(panel, "rotationZ", "rotationZ", 0, 3, -2*PI, 2*PI, PI/180, function(value){ transformMesh('rotation', 'z', value); });
   addSlider(panel, "positionX", "positionX", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'x', value); });
   addSlider(panel, "positionY", "positionY", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'y', value); });
   addSlider(panel, "positionZ", "positionZ", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'z', value); });
+  addSlider(panel, "cSymmetryX", "cSymmetryX", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.x = value; remakeRibbon(); });
+  addSlider(panel, "cSymmetryY", "cSymmetryY", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.y = value; remakeRibbon(); });
+  addSlider(panel, "cSymmetryZ", "cSymmetryZ", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.z = value; remakeRibbon(); });
+  addSlider(panel, "expansion", "expansion", 0, 2, -24, 24, .1, function(value){ remakeRibbon(); });
 }
 
 function param_buttons(){

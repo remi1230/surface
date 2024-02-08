@@ -100,7 +100,7 @@ var glo = {
 			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, orient: {axis: "X", direction: 1, alpha: 8*PI/7, beta: -PI/12}},
 		],
 		setFormeSelect: function(txt, coordsType, draw = true){
-			this.select.map(sel => {
+			this.select.map(async sel => {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
@@ -146,7 +146,7 @@ var glo = {
 						glo.toHisto = true;
 						if(!glo.dim_one){
 							if(!glo.normalMode){ make_curves(); }
-							else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
+							else{ glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations(); }
 						}
 						else{
 							dimension(true);
@@ -671,6 +671,8 @@ var glo = {
 		radius: 0.1,
 		coeffRadiusVariation: Math.pow(2, 1/3),
 	},
+	cutRibbon: {x: false, y: false, z: false},
+	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotate_speed: 0.5/180 * PI,
 	ribbon_alpha: 1,
 	rot_z: 0,

@@ -286,11 +286,11 @@ f = {
 
 		glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
 		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+		this.lineSystem.visibility = line_visible;*/
   }
   else {
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
@@ -361,11 +361,11 @@ f = {
 
 	glo.lines = this.paths;
 
-	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+	/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
 	this.lineSystem.alpha = glo.ribbon_alpha;
 	this.lineSystem.alphaIndex = 999;
-	this.lineSystem.visibility = line_visible;
+	this.lineSystem.visibility = line_visible;*/
   }
 }
 
@@ -510,7 +510,6 @@ function drawNormalEquations(){
 
 		glo.curves.pathsSecond = [];
 		var pathsLength = paths.length;
-		glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
 		var line_visible = glo.lines_visible;
 
 		var ind_u = u; var ind_v = v; var index_u = 0;
@@ -604,11 +603,11 @@ function drawNormalEquations(){
 
 			glo.lines = glo.curves.pathsSecond;
 
-			glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.pathsSecond, }, glo.scene);
+			/*glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.pathsSecond, }, glo.scene);
 			glo.curves.lineSystem.color = glo.lineColor;
 			glo.curves.lineSystem.alpha = glo.ribbon_alpha;
 			glo.curves.lineSystem.alphaIndex = 999;
-			glo.curves.lineSystem.visibility = line_visible;
+			glo.curves.lineSystem.visibility = line_visible;*/
 		}
 		make_ribbon(false);
 	}
@@ -810,11 +809,11 @@ f = {
 
 		glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		/* = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
 		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+		this.lineSystem.visibility = line_visible;*/
   }
   else {
 		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
@@ -895,11 +894,11 @@ f = {
 
 		glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
 		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+		this.lineSystem.visibility = line_visible;*/
   }
 }
 function CurvesByQuaternion(parametres = {
@@ -1114,11 +1113,11 @@ f2 = {
 
 		glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
 		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+		this.lineSystem.visibility = line_visible;*/
   }
   else {
 	    let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
@@ -1201,11 +1200,11 @@ f2 = {
 
 	glo.lines = this.paths;
 
-	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+	/* = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
 	this.lineSystem.alpha = glo.ribbon_alpha;
 	this.lineSystem.alphaIndex = 999;
-	this.lineSystem.visibility = line_visible;
+	this.lineSystem.visibility = line_visible;*/
   }
 }
 function CurvesByQuaternionRotAxis(parametres = {
@@ -1430,11 +1429,11 @@ f2 = {
 
 		glo.lines = this.paths;
 
-		this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 		this.lineSystem.color = glo.lineColor;
 		this.lineSystem.alpha = glo.ribbon_alpha;
 		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;
+		this.lineSystem.visibility = line_visible;*/
   }
   else {
 		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
@@ -1526,11 +1525,11 @@ f2 = {
 
 	glo.lines = this.paths;
 
-	this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
+	/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
 	this.lineSystem.color = glo.lineColor;
 	this.lineSystem.alpha = glo.ribbon_alpha;
 	this.lineSystem.alphaIndex = 999;
-	this.lineSystem.visibility = line_visible;
+	this.lineSystem.visibility = line_visible;*/
   }
 }
 var curve_step_by_step = function* (parametres = {
@@ -2265,7 +2264,7 @@ async function make_curves(u_params = {
 
 		if(typeof(glo.curves) != "undefined"){
 			if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
-			glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
+			if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
 			glo.curves = {}; delete glo.curves;
 		}
 
@@ -2299,6 +2298,8 @@ async function make_ribbon(symmetrize = true){
 	}
 
 	if(glo.fromSlider){ delete glo.verticesColors; }
+
+	if(glo.params.expansion){ expanseRibbon(); }
 
 	ribbonDispose();
 	if(!glo.params.playWithColors && glo.colorsType == 'none'){
@@ -2335,6 +2336,8 @@ async function make_ribbon(symmetrize = true){
 		}
 	}
 
+	cutsRibbon();
+
 	if(symmetrize){ await makeSymmetrize(); }
 	
 	giveMaterialToMesh();
@@ -2346,6 +2349,9 @@ async function make_ribbon(symmetrize = true){
 	glo.diffuseColor  = {...glo.diffuseColorSave};
 
 	if(glo.meshWithTubes){ await meshWithTubes(); }
+
+	makeLineSystem();
+
 	applyTransformations();
 }
 
@@ -2365,7 +2371,7 @@ async function makeSymmetrize(){
 	if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
 	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
 
-	if(glo.params.symmetrizeX || glo.params.symmetrizeY || glo.params.symmetrizeZ){ makeLineSystem(); }
+	//if(glo.params.symmetrizeX || glo.params.symmetrizeY || glo.params.symmetrizeZ){ makeLineSystem(); }
 }
 
 function ribbonDispose(all = true){
@@ -2380,10 +2386,10 @@ function ribbonDispose(all = true){
 	}
 }
 
-function remakeRibbon(){
+async function remakeRibbon(){
 	if(!glo.normalMode){  make_curves(); }
 	else{
-		glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+		glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
 	}
 }
 
@@ -3952,8 +3958,10 @@ function download_JSON_mesh(event){
 var objectUrl;
 async function exportMesh(exportFormat){
 	if(objectUrl) {
-    window.URL.revokeObjectURL(objectUrl);
-  }
+    	window.URL.revokeObjectURL(objectUrl);
+    }
+
+	await glo.ribbon.bakeCurrentTransformIntoVertices();
 
 	if(exportFormat != "json"){
 	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon)); }
@@ -4618,24 +4626,19 @@ function isUV(){
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }
 
-function updRibbon(positive = 1, remakeLine = true, remakeRibbon = true){
+function expanseRibbon(){
+	const expansion = glo.params.expansion;
+
 	glo.curves.paths.forEach((line, i) => {
 		line.forEach((path, j) => {
 			if(h(path.x, path.y, path.z) > ep/10000){
 				let angleXY = getAzimuthElevationAngles(glo.curves.paths[i][j]);
-
-				let dist;
-				if(positive === 1){
-					dist = 1 + 0.001*BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**-1;
-				}
-				else{
-					dist = 1 + 0.01*BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**1;
-				}
+				let dist    = 1 + 0.001*BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero())**-1;
 
 				angleXY.x += glo.angleToUpdateRibbon.x;
 				angleXY.y += glo.angleToUpdateRibbon.y;
 
-				const dirXY = directionXY(angleXY, dist, positive);
+				const dirXY = directionXY(angleXY, dist, expansion);
 
 				glo.curves.paths[i][j].x += dirXY.x;
 				glo.curves.paths[i][j].y += dirXY.y;
@@ -4643,12 +4646,6 @@ function updRibbon(positive = 1, remakeLine = true, remakeRibbon = true){
 			}
 		});
 	});
-
-	if(remakeLine){ makeLineSystem(); }
-	if(remakeRibbon){
-		if(!glo.normalMode){ make_ribbon(); }
-		else{ drawNormalEquations(); }
-	}
 }
 
 function directionXY(angleXY, dist, positive = 1){
@@ -4748,18 +4745,22 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 				v = j * stepV;
 				const angle = k * stepAngle;
 
+				let ptToTurn = subVectors(glo.curves.paths[i][j], glo.centerSymmetry);
+
 				let newPt;
 				switch(axis){
 					case 'X':
-						newPt = rotateByMatrix(glo.curves.paths[i][j], angle, 0, 0);
+						newPt = rotateByMatrix(ptToTurn, angle, 0, 0);
 					break;
 					case 'Y':
-						newPt = rotateByMatrix(glo.curves.paths[i][j], 0, angle, 0);
+						newPt = rotateByMatrix(ptToTurn, 0, angle, 0);
 					break;
 					case 'Z':
-						newPt = rotateByMatrix(glo.curves.paths[i][j], 0, 0, angle);
+						newPt = rotateByMatrix(ptToTurn, 0, 0, angle);
 					break;
 				}
+
+				ptToTurn = addVectors(glo.curves.paths[i][j], glo.centerSymmetry);
 
 				let r = 0;
 				if(goodR){
@@ -4810,6 +4811,75 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 	//glo.ribbon.minimizeVertices();
 
 	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
+	glo.lines = glo.curves.paths;
+}
+
+function addVectors(...vectors){
+	let vectorToReturn = {x: 0, y: 0, z: 0};
+
+	vectors.forEach(vector => {
+		vectorToReturn.x += vector.x;
+		vectorToReturn.y += vector.y;
+		vectorToReturn.z += vector.z;
+	});
+
+	return new BABYLON.Vector3(vectorToReturn.x, vectorToReturn.y, vectorToReturn.z);
+}
+function subVectors(...vectors){
+	let vectorToReturn = {x: vectors[0].x, y: vectors[0].y, z: vectors[0].z};
+
+	vectors.shift();
+
+	vectors.forEach(vector => {
+		vectorToReturn.x -= vector.x;
+		vectorToReturn.y -= vector.y;
+		vectorToReturn.z -= vector.z;
+	});
+
+	return new BABYLON.Vector3(vectorToReturn.x, vectorToReturn.y, vectorToReturn.z);
+}
+
+function cutsRibbon(){
+	if(glo.cutRibbon.x){ cutRibbon('X'); }
+	if(glo.cutRibbon.y){ cutRibbon('Y'); }
+	if(glo.cutRibbon.z){ cutRibbon('Z'); }
+}
+
+async function cutRibbon(axis, altitude = 0){
+	let curvesPathsSave = [...glo.curves.paths];
+
+	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
+
+	let newCurves           = [];
+	glo.curves.linesSystems = [];
+	curvesPathsSave.forEach((line, i) => {
+		line.forEach(path => {
+			switch(axis){
+				case 'X':
+					if(path.x > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+				break;
+				case 'Y':
+					if(path.y > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+				break;
+				case 'Z':
+					if(path.z > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+				break;
+			}
+		});
+	});
+
+	let newCurvesGoodIndexes = [];
+	newCurves.forEach(newCurve => {
+		newCurvesGoodIndexes.push(newCurve);
+	});
+
+	ribbonDispose(false);
+	const nameRibbon = "cutRibbon_" + glo.numRibbon;
+	glo.numRibbon++;
+	glo.ribbon = BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: newCurvesGoodIndexes, sideOrientation:1, updatable: true, }, glo.scene);
+	giveMaterialToMesh();
+	
+	glo.curves.paths = turnVerticesDatasToPaths();
 	glo.lines = glo.curves.paths;
 }
 
@@ -4881,8 +4951,12 @@ function distsBetweenVertexs(){
 }
 
 function makeLineSystem(){
-	glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem;
-	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.paths, }, glo.scene);
+	let paths = !glo.normalMode ? glo.curves.paths : glo.curves.pathsSecond;
+
+	if(!paths){ paths = glo.curves.paths; }
+
+	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, }, glo.scene);
 	glo.curves.lineSystem.color = glo.lineColor;
 	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
 	glo.curves.lineSystem.alphaIndex = 999;

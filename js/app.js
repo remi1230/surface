@@ -2338,6 +2338,8 @@ async function make_ribbon(symmetrize = true){
 
 	cutsRibbon();
 
+	glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
+
 	if(symmetrize){ await makeSymmetrize(); }
 	
 	giveMaterialToMesh();
@@ -4529,7 +4531,6 @@ function toggleDataTable(){
 	const coeff = (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
 	              (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
 
-	//const paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
 
 	let vertices = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 
@@ -4539,12 +4540,14 @@ function toggleDataTable(){
 	const uFirst = -round(0.5 * uStep * glo.params.steps_u, 2);
 	const vFirst = -round(0.5 * vStep * glo.params.steps_v, 2);
 
+	const maxStepU = (glo.params.steps_u + 1 ) * coeff;
+
 	const UV = isUV();
 
 	const datas = [];
 	let n       = 0;
 	if(UV.isU && UV.isV){
-		for(let stepU = 0; stepU <= glo.params.steps_u * coeff; stepU++){
+		for(let stepU = 0; stepU < maxStepU; stepU++){
 			const u = round(uFirst + (stepU*uStep), 2);
 			for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
 				const v = round(vFirst + (stepV*vStep), 2);
@@ -4552,20 +4555,20 @@ function toggleDataTable(){
 				const y = round(vertices[n*3 + 1], 2);
 				const z = round(vertices[n*3 + 2], 2);
 
-				datas.push([stepU, stepV, u, v, x, y, z]);
+				datas.push([stepU, stepV, n, u, v, x, y, z]);
 				n++;
 			}
 		}
 	}
 	else if(UV.isU){
-		for(let stepU = 0; stepU <= glo.params.steps_u * coeff; stepU++){
+		for(let stepU = 0; stepU < maxStepU; stepU++){
 			const u = round(uFirst + (stepU*uStep), 2);
 			const v = 'none';
 			const x = round(vertices[n*3], 2);
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push([stepU, 'none', u, v, x, y, z]);
+			datas.push([stepU, n, 'none', u, v, x, y, z]);
 			n++;
 		}
 	}
@@ -4577,12 +4580,12 @@ function toggleDataTable(){
 			const y = round(vertices[n*3 + 1], 2);
 			const z = round(vertices[n*3 + 2], 2);
 
-			datas.push(['none', stepV, u, v, x, y, z]);
+			datas.push(['none', n, stepV, u, v, x, y, z]);
 			n++;
 		}
 	}
 	else{
-		datas.push([stepU, stepV, 'none', 'none', 'none', 'none', 'none']);
+		datas.push([stepU, stepV, n, 'none', 'none', 'none', 'none', 'none']);
 	}
 
 	datas.forEach(datasTr => {
@@ -4735,6 +4738,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 	let newCurves           = [];
 	glo.curves.linesSystems = [];
 	for(let k = 1; k <= nbSyms; k++){
+		const angle = k * stepAngle;
 		index_u = 0;
 		newCurves[k] = [];
 		curvesPathsSave.forEach((line, i) => {
@@ -4743,7 +4747,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 			newCurves[k][i] = [];
 			line.forEach((path, j) => {
 				v = j * stepV;
-				const angle = k * stepAngle;
 
 				let ptToTurn = subVectors(glo.curves.paths[i][j], glo.centerSymmetry);
 
@@ -4760,7 +4763,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 					break;
 				}
 
-				ptToTurn = addVectors(glo.curves.paths[i][j], glo.centerSymmetry);
+				newPt = addVectors(newPt, glo.centerSymmetry);
 
 				let r = 0;
 				if(goodR){
@@ -4795,15 +4798,15 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 			});
 			index_u++;
 		});
-		newRibbons.push(BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
+		newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
 	}
 
 	/*for(let i = 0; i < newRibbons.length; i++){
-		await newRibbons[i].reBuildVertexData();
+		await newRibbons[i].computeWorldMatrix(true);
 	}*/
 
 	ribbonDispose(false);
-	if(!glo.mergeMeshesByIntersect){ glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false); }
+	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false) : newRibbons[0]; }
 	else{
 		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
 	}
@@ -4812,6 +4815,69 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 
 	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
 	glo.lines = glo.curves.paths;
+}
+
+function cleanRibbon(originRibbonNbIndices = glo.originRibbonNbIndices){
+	let indices = glo.ribbon.getIndices();
+
+	if(indices.length > glo.curves.paths.length * glo.curves.paths[0].length * 2){
+		for(let i = originRibbonNbIndices; i <= indices.length - originRibbonNbIndices; i+= originRibbonNbIndices * 2){
+			let indicesToDelete = [];
+			for(let j = i; j < i + originRibbonNbIndices; j++){
+				indicesToDelete.push(j);
+			}
+			delIndices(indicesToDelete);
+		}
+		return true;
+	}
+	return false;
+}
+
+function cleanRibbon2(distMaxBetweenVertexs = distMaxBetween2ConsecutiveVertexs()){
+	let indices   = glo.ribbon.getIndices();
+	let positions = glo.curves.paths.flat();
+
+	let indicesToDelete = [];
+	if(indices.length > glo.curves.paths.length * glo.curves.paths[0].length * 2){
+		for(let i = 2; i < indices.length; i+=2){
+			const distCurrBetweenVertexs = BABYLON.Vector3.Distance(positions[indices[i-1]], positions[indices[i-2]]);
+			//console.log("distCurrBetweenVertexs : " + distCurrBetweenVertexs, "distMaxBetweenVertexs : " + distMaxBetweenVertexs);
+			if(parseInt(distCurrBetweenVertexs) === parseInt(distMaxBetweenVertexs)){
+				indicesToDelete.push(i-2);
+				indicesToDelete.push(i-1);
+				//delIndices([i-2, i-1]);
+			}
+		}
+		delIndices(indicesToDelete);
+		return true;
+	}
+	return false;
+}
+
+function distMaxBetween2ConsecutiveVertexs(){
+	let indices   = glo.ribbon.getIndices();
+	let positions = glo.curves.paths.flat();
+
+	let distMax = 0;
+	for(let i = 2; i < indices.length; i+=2){
+		const distCurrBetweenVertexs = BABYLON.Vector3.Distance(positions[indices[i-1]], positions[indices[i-2]]);
+		if(distMax < distCurrBetweenVertexs){ distMax = distCurrBetweenVertexs; }
+	}
+
+	return distMax;
+}
+
+function delIndices(indicesToDelete){
+	let indices    = glo.ribbon.getIndices();
+	let newIndices = [];
+	indices.forEach((indice, i) => {
+		if(!indicesToDelete.includes(i)){ newIndices.push(indice); }
+	});
+	glo.ribbon.reBuildVertexData(newIndices);
+}
+
+function createArrayOnRange(startRange, endRange){
+	return Array.from({ length: endRange - startRange + 1 }, (_, i) => startRange + i);
 }
 
 function addVectors(...vectors){
@@ -4839,10 +4905,10 @@ function subVectors(...vectors){
 	return new BABYLON.Vector3(vectorToReturn.x, vectorToReturn.y, vectorToReturn.z);
 }
 
-function cutsRibbon(){
-	if(glo.cutRibbon.x){ cutRibbon('X'); }
-	if(glo.cutRibbon.y){ cutRibbon('Y'); }
-	if(glo.cutRibbon.z){ cutRibbon('Z'); }
+async function cutsRibbon(){
+	if(glo.cutRibbon.x){ await cutRibbon('X'); }
+	if(glo.cutRibbon.y){ await cutRibbon('Y'); }
+	if(glo.cutRibbon.z){ await cutRibbon('Z'); }
 }
 
 async function cutRibbon(axis, altitude = 0){

@@ -44,8 +44,8 @@ $("#renderCanvas").on('pointermove', function(e){
 });
 
 document.getElementById('dataTable').addEventListener("click", function(ev){
-   showVertex(parseInt(ev.target.parentElement.childNodes[4].innerText), parseInt(ev.target.parentElement.childNodes[5].innerText),
-   parseInt(ev.target.parentElement.childNodes[6].innerText)); 
+   showVertex(parseInt(ev.target.parentElement.childNodes[5].innerText), parseInt(ev.target.parentElement.childNodes[6].innerText),
+   parseInt(ev.target.parentElement.childNodes[7].innerText)); 
 });
 
 //$('#univers_div').keypress(function(e) {

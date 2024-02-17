@@ -391,7 +391,7 @@ function getNormalVector(originalVector) {
     return normalVector;
 }
 
-function drawNormalEquations(){
+function drawNormalEquations(symmetrize = false){
 	if(typeof(glo.verticesNormals) == "undefined"){
 		glo.verticesNormals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
 		glo.verticesPositions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -609,7 +609,7 @@ function drawNormalEquations(){
 			glo.curves.lineSystem.alphaIndex = 999;
 			glo.curves.lineSystem.visibility = line_visible;*/
 		}
-		make_ribbon(false);
+		make_ribbon(symmetrize);
 	}
 
 	return false;
@@ -2336,8 +2336,6 @@ async function make_ribbon(symmetrize = true){
 		}
 	}
 
-	cutsRibbon();
-
 	glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
 
 	if(symmetrize){ await makeSymmetrize(); }
@@ -2355,6 +2353,7 @@ async function make_ribbon(symmetrize = true){
 	makeLineSystem();
 
 	applyTransformations();
+	await cutsRibbon();
 }
 
 function getPathsInfos(){
@@ -2372,8 +2371,11 @@ async function makeSymmetrize(){
 	if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
 	if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
 	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
-
-	//if(glo.params.symmetrizeX || glo.params.symmetrizeY || glo.params.symmetrizeZ){ makeLineSystem(); }
+	
+	if((glo.params.symmetrizeX && glo.params.symmetrizeY) || 
+	   (glo.params.symmetrizeX && glo.params.symmetrizeZ) ||
+	   (glo.params.symmetrizeY && glo.params.symmetrizeZ)){
+	}
 }
 
 function ribbonDispose(all = true){
@@ -4733,6 +4735,8 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 	}
 	const goodR = glo.input_sym_r.text ? test_equations(inputSymREq, glo.dim_one) : false;
 
+	const savedIndices = glo.ribbon.getIndices().slice();
+
 	let index_u = 0, index_v = 0;
 	let newRibbons          = [];
 	let newCurves           = [];
@@ -4798,8 +4802,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 			});
 			index_u++;
 		});
-		newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene, ));
+		newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene));
 	}
+
+	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(new Uint32Array(savedIndices)); await newRibbon.computeWorldMatrix(true); });
 
 	/*for(let i = 0; i < newRibbons.length; i++){
 		await newRibbons[i].computeWorldMatrix(true);
@@ -4811,11 +4817,223 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
 	}
 
+	/*ribbonDispose(false);
+	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await myMergeMeshes(newRibbons) : newRibbons[0]; }
+	else{
+		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
+	}*/
+
+	/*ribbonDispose(false);
+	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await mergeMeshes('mergedMesh', newRibbons) : newRibbons[0]; }
+	else{
+		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
+	}*/
+	/*if(!glo.mergeMeshesByIntersect){ glo.ribbon = await mergeMeshes('mergedMesh', newRibbons); }
+	else{
+		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
+	}*/
+
 	//glo.ribbon.minimizeVertices();
 
-	glo.curves.paths = turnVerticesDatasToPaths(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff);
+	const vertices = await glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+	glo.curves.paths = turnVerticesDatasToPaths(vertices, coeff);
 	glo.lines = glo.curves.paths;
 }
+
+async function myMergeMeshes(meshesToMerge) {
+    glo.curves.paths = [];
+
+    let positions = new Float32Array(0);
+    let norms     = new Float32Array(0);
+    let uvs       = new Float32Array(0);
+    let colors    = new Float32Array(0);
+    let inds      = [];
+
+    for (const meshToMerge of meshesToMerge) {
+        let meshToMergePositions = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        let meshToMergeNormals   = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+        let meshToMergeColors    = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+        let meshToMergeUVs       = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.UVKind);
+        let meshToMergeIndices   = await meshToMerge.getIndices();
+        let meshToMergePaths     = turnVerticesDatasToPaths(meshToMergePositions, 1);
+
+        glo.curves.paths = glo.curves.paths.concat(meshToMergePaths);
+
+		inds      = inds.concat(meshToMergeIndices.map(index => index + positions.length / 3));
+        positions = concatFloat32Arrays(positions, meshToMergePositions);
+        norms     = concatFloat32Arrays(norms, meshToMergeNormals);
+        colors    = meshToMergeColors ? concatFloat32Arrays(colors, meshToMergeColors) : colors;
+        uvs       = concatFloat32Arrays(uvs, meshToMergeUVs);
+    }
+
+	ribbonDispose(true);
+
+    let ribbon = await BABYLON.MeshBuilder.CreateRibbon("mergedMesh", {pathArray: glo.curves.paths, sideOrientation: 1, updatable: true}, glo.scene);
+    await ribbon.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+    await ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, norms);
+    if(colors.length){ await ribbon.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colors); }
+    await ribbon.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+    await ribbon.updateIndices(new Uint32Array(inds));
+
+    return ribbon;
+}
+
+function concatFloat32Arrays(firstArray, secondArray) {
+    let combined = new Float32Array(firstArray.length + secondArray.length);
+    combined.set(firstArray);
+    combined.set(secondArray, firstArray.length);
+    return combined;
+}
+
+/*async function myMergeMeshes(meshesToMerge){
+	glo.curves.paths = [];
+	let inds = [], positions = [], norms = [], colors = [], uvs = [];
+	for (const meshToMerge of meshesToMerge) {
+		let meshToMergePositions = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		let meshToMergeNormals   = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		//let meshToMergeColors    = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+		let meshToMergeUVs       = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.UVKind);
+		let meshToMergeIndices   = await meshToMerge.getIndices();
+		let meshToMergePaths     = turnVerticesDatasToPaths(meshToMergePositions, 1);
+
+		glo.curves.paths = glo.curves.paths.concat(meshToMergePaths);
+
+		positions        = positions.push(...meshToMergePositions);
+		norms            = norms.push(...meshToMergeNormals);
+		//colors           = colors.push(...meshToMergeColors);
+		uvs              = uvs.push(...meshToMergeUVs);
+		inds             = inds.concat(...meshToMergeIndices);
+	}
+
+	let ribbon = await BABYLON.MeshBuilder.CreateRibbon("mergedMesh", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
+	await ribbon.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
+	await ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, norms);
+	//await ribbon.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colors);
+	await ribbon.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
+	await ribbon.updateIndices(inds);
+
+	return ribbon;
+}*/
+
+function mergeMeshes(meshName, arrayObj, scene = glo.scene) {
+    var arrayPos = [];
+    var arrayNormal = [];
+    var arrayUv = [];
+    var arrayUv2 = [];
+    var arrayColor = [];
+    var arrayMatricesIndices = [];
+    var arrayMatricesWeights = [];
+    var arrayIndice = [];
+    var savedPosition = [];
+    var savedNormal = [];
+    var newMesh = new BABYLON.Mesh(meshName, scene);
+    var UVKind = true;
+    var UV2Kind = true;
+    var ColorKind = true;
+    var MatricesIndicesKind = true;
+    var MatricesWeightsKind = true;
+
+    for (var i = 0; i != arrayObj.length ; i++) {
+        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.UVKind]))
+            UVKind = false;
+        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.UV2Kind]))
+            UV2Kind = false;
+        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.ColorKind]))
+            ColorKind = false;
+        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.MatricesIndicesKind]))
+            MatricesIndicesKind = false;
+        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.MatricesWeightsKind]))
+            MatricesWeightsKind = false;
+    }
+
+    for (i = 0; i != arrayObj.length ; i++) {
+        var ite  = 0;
+        var iter = 0;
+        arrayPos[i]    = arrayObj[i].getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        arrayNormal[i] = arrayObj[i].getVerticesData(BABYLON.VertexBuffer.NormalKind);
+        if (UVKind)
+            arrayUv = arrayUv.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.UVKind));
+        if (UV2Kind)
+            arrayUv2 = arrayUv2.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.UV2Kind));
+        if (ColorKind)
+            arrayColor = arrayColor.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.ColorKind));
+        if (MatricesIndicesKind)
+            arrayMatricesIndices = arrayMatricesIndices.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.MatricesIndicesKind));
+        if (MatricesWeightsKind)
+            arrayMatricesWeights = arrayMatricesWeights.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.MatricesWeightsKind));
+
+        var maxValue = savedPosition.length / 3;
+
+        arrayObj[i].computeWorldMatrix(true);
+        var worldMatrix = arrayObj[i].getWorldMatrix();
+
+        for (var ite = 0 ; ite != arrayPos[i].length; ite += 3) {
+            var vertex = new BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(arrayPos[i][ite], arrayPos[i][ite + 1], arrayPos[i][ite + 2]), worldMatrix);
+            savedPosition.push(vertex.x);
+            savedPosition.push(vertex.y);
+            savedPosition.push(vertex.z);
+        }
+
+        for (var iter = 0 ; iter != arrayNormal[i].length; iter += 3) {
+            var vertex = new BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(arrayNormal[i][iter], arrayNormal[i][iter + 1], arrayNormal[i][iter + 2]), worldMatrix);
+            savedNormal.push(vertex.x);
+            savedNormal.push(vertex.y);
+            savedNormal.push(vertex.z);
+        }
+
+        var tmp = arrayObj[i].getIndices();
+        for (it = 0 ; it != tmp.length; it++) {
+            arrayIndice.push(tmp[it] + maxValue);
+        }
+        arrayIndice = arrayIndice.concat(tmp);
+
+        arrayObj[i].dispose(false);
+    }
+
+    newMesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, savedPosition, false);
+    newMesh.setVerticesData(BABYLON.VertexBuffer.NormalKind, savedNormal, false);
+    if (arrayUv.length > 0)
+        newMesh.setVerticesData(BABYLON.VertexBuffer.UVKind, arrayUv, false);
+    if (arrayUv2.length > 0)
+        newMesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, arrayUv, false);
+    if (arrayColor.length > 0)
+        newMesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, arrayUv, false);
+    if (arrayMatricesIndices.length > 0)
+        newMesh.setVerticesData(BABYLON.VertexBuffer.MatricesIndicesKind, arrayUv, false);
+    if (arrayMatricesWeights.length > 0)
+        newMesh.setVerticesData(BABYLON.VertexBuffer.MatricesWeightsKind, arrayUv, false);
+
+    newMesh.setIndices(arrayIndice);
+    return newMesh;
+}
+
+/*async function mergeMeshes(meshes, scene = glo.scene) {
+    if (!meshes || meshes.length === 0) {
+        return null; // Aucun maillage à fusionner
+    }
+
+    // Créer un objet VertexData vide pour stocker les données fusionnées
+    var mergedVertexData = new BABYLON.VertexData();
+    var mergeOptions = {
+        // Ces options sont facultatives et peuvent être ajustées selon les besoins
+        // Elles permettent de recalculer les normales après la fusion, d'ajuster les UVs, etc.
+        // Par exemple : recalculer les normales pour les maillages éclairés correctement
+        // computeNormals: true, 
+    };
+
+    // Extraire et fusionner les données de vertex de chaque maillage
+    meshes.forEach(async (mesh) => {
+        var vertexData = await BABYLON.VertexData.ExtractFromMesh(mesh);
+        await mergedVertexData.merge(vertexData, mergeOptions);
+    });
+
+    // Créer un nouveau maillage pour appliquer les données de vertex fusionnées
+    var mergedMesh = new BABYLON.Mesh("mergedMesh", scene);
+    mergedVertexData.applyToMesh(mergedMesh);
+
+    return mergedMesh;
+}*/
+
 
 function cleanRibbon(originRibbonNbIndices = glo.originRibbonNbIndices){
 	let indices = glo.ribbon.getIndices();
@@ -4839,13 +5057,15 @@ function cleanRibbon2(distMaxBetweenVertexs = distMaxBetween2ConsecutiveVertexs(
 
 	let indicesToDelete = [];
 	if(indices.length > glo.curves.paths.length * glo.curves.paths[0].length * 2){
-		for(let i = 2; i < indices.length; i+=2){
-			const distCurrBetweenVertexs = BABYLON.Vector3.Distance(positions[indices[i-1]], positions[indices[i-2]]);
+		for(let i = 3; i <= indices.length; i+=3){
+			const distCurrBetweenVertexs12 = BABYLON.Vector3.Distance(positions[indices[i-1]], positions[indices[i-2]]);
+			const distCurrBetweenVertexs23 = BABYLON.Vector3.Distance(positions[indices[i-2]], positions[indices[i-3]]);
 			//console.log("distCurrBetweenVertexs : " + distCurrBetweenVertexs, "distMaxBetweenVertexs : " + distMaxBetweenVertexs);
-			if(parseInt(distCurrBetweenVertexs) === parseInt(distMaxBetweenVertexs)){
+			if(parseInt(distCurrBetweenVertexs12) === parseInt(distMaxBetweenVertexs) ||
+			   parseInt(distCurrBetweenVertexs23) === parseInt(distMaxBetweenVertexs)){
+				indicesToDelete.push(i-3);
 				indicesToDelete.push(i-2);
 				indicesToDelete.push(i-1);
-				//delIndices([i-2, i-1]);
 			}
 		}
 		delIndices(indicesToDelete);
@@ -4905,10 +5125,28 @@ function subVectors(...vectors){
 	return new BABYLON.Vector3(vectorToReturn.x, vectorToReturn.y, vectorToReturn.z);
 }
 
-async function cutsRibbon(){
+/*async function cutsRibbon(){
 	if(glo.cutRibbon.x){ await cutRibbon('X'); }
 	if(glo.cutRibbon.y){ await cutRibbon('Y'); }
 	if(glo.cutRibbon.z){ await cutRibbon('Z'); }
+}*/
+
+async function cutsRibbon(){
+	glo.scene.clipPlane  = await new BABYLON.Plane(-glo.cutRibbon.x, 0, 0, 0);
+	glo.scene.clipPlane2 = await new BABYLON.Plane(0, -glo.cutRibbon.y, 0, 0);
+	glo.scene.clipPlane3 = await new BABYLON.Plane(0, 0, -glo.cutRibbon.z, 0);
+}
+
+function cutRibbonWithCSG(){
+	var plane         = BABYLON.MeshBuilder.CreateBox("plane", {width: 50, height: 100, depth: 50}, glo.scene);
+	var planeCSG      = BABYLON.CSG.FromMesh(plane);
+	var ribbonCSG     = BABYLON.CSG.FromMesh(glo.ribbon);
+	var subtractedCSG = ribbonCSG.subtract(planeCSG);
+
+	// Convertir le résultat en maillage BabylonJS
+	glo.ribbon = subtractedCSG.toMesh("cutRibbon", glo.ribbon.material, glo.scene);
+
+	plane.dispose();
 }
 
 async function cutRibbon(axis, altitude = 0){
@@ -4922,13 +5160,13 @@ async function cutRibbon(axis, altitude = 0){
 		line.forEach(path => {
 			switch(axis){
 				case 'X':
-					if(path.x > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.x >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 				case 'Y':
-					if(path.y > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.y >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 				case 'Z':
-					if(path.z > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.z >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 			}
 		});
@@ -4945,8 +5183,8 @@ async function cutRibbon(axis, altitude = 0){
 	glo.ribbon = BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: newCurvesGoodIndexes, sideOrientation:1, updatable: true, }, glo.scene);
 	giveMaterialToMesh();
 	
-	glo.curves.paths = turnVerticesDatasToPaths();
-	glo.lines = glo.curves.paths;
+	glo.curves.paths = newCurvesGoodIndexes;
+	glo.lines        = glo.curves.paths;
 }
 
 function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff){

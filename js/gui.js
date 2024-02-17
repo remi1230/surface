@@ -676,7 +676,7 @@ function add_inputs_equations(){
             falpha: glo.params.text_input_color_alpha,
             fbeta: glo.params.text_input_color_beta,
           };
-          if(test_equations(equations, false)){ glo.fromSlider = true; await make_ribbon(); glo.fromSlider = false; drawNormalEquations(); } 
+          if(test_equations(equations, false)){ glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations(true); } 
         }
       }
       else{

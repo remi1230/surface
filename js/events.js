@@ -405,6 +405,10 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case "c":
+                  cleanRibbon2();
+
+               break;
+               case "j":
                   $('#rotationConventionsModal').modal('open');
 
                break;
@@ -426,18 +430,18 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case "x":
-                  glo.cutRibbon.x = !glo.cutRibbon.x;
-                  remakeRibbon();
+                  glo.cutRibbon.x = !glo.cutRibbon.x ? 1 : 0;
+                  cutsRibbon();
 
                break;
                case "y":
-                  glo.cutRibbon.y = !glo.cutRibbon.y;
-                  remakeRibbon();
+                  glo.cutRibbon.y = !glo.cutRibbon.y ? 1 : 0;
+                  cutsRibbon();
 
                break;
                case "z":
-                  glo.cutRibbon.z = !glo.cutRibbon.z;
-                  remakeRibbon();
+                  glo.cutRibbon.z = !glo.cutRibbon.z ? 1 : 0;
+                  cutsRibbon();
 
                break;
             }

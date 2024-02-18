@@ -2350,10 +2350,11 @@ async function make_ribbon(symmetrize = true){
 
 	if(glo.meshWithTubes){ await meshWithTubes(); }
 
+	await cutsRibbon();
+
 	makeLineSystem();
 
 	applyTransformations();
-	await cutsRibbon();
 }
 
 function getPathsInfos(){
@@ -2391,7 +2392,7 @@ function ribbonDispose(all = true){
 }
 
 async function remakeRibbon(){
-	if(!glo.normalMode){  make_curves(); }
+	if(!glo.normalMode){  await make_curves(); }
 	else{
 		glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
 	}

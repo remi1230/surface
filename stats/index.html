@@ -17,8 +17,9 @@
       <input id="filterDatasStats" type="text" placeholder="" value="" oninput="filterStatsTable(this.value); ">
       <span id="filterOnLikeSymbol" onclick="filterDatasStatsOnLike(); ">❤️</span>
       <span id="generalInfos" onclick="showGeneralInfos(event); ">+</span>
-      <span id="nbThings"></span>
+      <span id="toggleTabImages" onclick="showAllImages(); ">📷</span>
       <span id="toggleTabGraph" onclick="toggleTabGraph(); ">📊</span>
+      <span id="nbThings"></span>
     </h2>
     <div id="statsTableContainer" class="centerContentH">
       <table id="statsTable">
@@ -41,6 +42,7 @@
       </table>
       <canvas id="statsGraph" style="display: none; "></canvas>
     </div>
+    <div id="imagesContainer" style="display: none;"></div>
     <dialog id="thingThumbnailDialog">
       <div id="thingThumbnailDialogContainer">
         <div id="thingThumbnailTitleContainer">

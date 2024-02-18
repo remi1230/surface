@@ -19,6 +19,7 @@ const glo = {
     datasStats : [],
     tags       : [],
     categories : {},
+    img        : {},
     sortNumber : ['1', 'true'],
     heartType  : 'all',
 	heartTypes : function* (){
@@ -33,7 +34,9 @@ const glo = {
     nbThingsOnGraphs : 10,
     barGraph         : false,
 };
-glo.heartTypes = glo.heartTypes();  
+glo.heartTypes = glo.heartTypes();
+
+const thumbnails = [];
 
 const getById         = function(id){ return document.getElementById(id); };
 const round2          = val => Math.round(10000 * (val), 2) / 100;
@@ -41,12 +44,14 @@ const nanToZero       = val => !isNaN(val) && isFinite(val) ? val : 0;
 const openThingWindow = (url) => window.open(url, '_blank');
 
 let openWindowDyn = false;
+let timeout;
 
 let thingThumbnailDialogContainer = getById('thingThumbnailDialogContainer');
 let thingThumbnailDialog          = getById('thingThumbnailDialog');
 let thingThumbnailImageContainer  = getById('thingThumbnailImageContainer');
 let thingThumbnailTitleContainer  = getById('thingThumbnailTitleContainer');
 let thingThumbnailTitle           = getById('thingThumbnailTitle');
+let statsTableContainer           = getById('statsTableContainer');
 let statsBodyTable                = getById('statsBodyTable');
 let filterDatasStats              = getById('filterDatasStats');
 let generalInfosDialogContainer   = getById('generalInfosDialogContainer');
@@ -70,6 +75,13 @@ generalInfosDialogContainer.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
 });
+/*window.onresize = function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(function() {
+        resizeImages('');
+        resizeImages();
+    }, 250);
+};*/
 
 //****************** MAIN FUNCTIONS ******************//
 function datasToTable(datas = glo.datasStats){
@@ -225,6 +237,13 @@ function removeAllChildren(element) {
     while (element.firstChild) {
         element.removeChild(element.firstChild);
     }
+}
+
+function resizeImages(height = 'standard'){
+    let imgs             = [...document.getElementsByTagName('img')];
+    const standardHeight = height === 'standard' ? imgs[0].height : height;
+
+    imgs.forEach((img, i) => { img.height = standardHeight; });
 }
 
 function showGeneralInfos(e){
@@ -426,6 +445,36 @@ function toggleTabGraph(){
 }
 
 //****************** ASYNC FUNCTION ******************//
+async function getAllImgs(){
+    let imagesContainer = getById('imagesContainer');
+    if(imagesContainer.style.display === 'none'){
+        imagesContainer.style.display      = '';
+        statsTableContainer.style.display  = 'none';
+
+        if(!thumbnails.length){
+            for (const thing of glo.res) {
+                await getImg(thing.thumbnail, thumbnails);
+                let imageToShow = thumbnails[thumbnails.length-1];
+                let divToAppend = document.createElement('div');
+
+                divToAppend.style.cursor = 'pointer';
+                imageToShow.style.width  = '100%';
+                imageToShow.title        = thing.name + ' : ' + thing.view_count + ' 👁  -  ' + thing.download_count + ' ↓  -  ' + thing.like_count + ' ❤️';
+
+                const showThingDetailDyn = () => showThingDetail(false, thing.name);
+                divToAppend.addEventListener("click", showThingDetailDyn);
+
+                divToAppend.appendChild(imageToShow);
+                imagesContainer.appendChild(divToAppend);
+            }
+        }
+    }
+    else{
+        imagesContainer.style.display      = 'none';
+        statsTableContainer.style.display  = '';
+    }
+}
+
 async function getDatas(){
     await getStats();
     glo.res.forEach(r => {
@@ -454,20 +503,28 @@ async function getDatas(){
     });
 }
 
-async function getImg(url) {
+async function getImg(url, dest = glo) {
     try {
         const response = await fetch(url);
         let img        = await response.blob();
 
         let imgUrlObject = URL.createObjectURL(img);
-        glo.img          = document.createElement("img");
-        glo.img.src      = imgUrlObject;
+        if(!Array.isArray(dest)){
+            dest.img     = document.createElement("img");
+            dest.img.src = imgUrlObject;
+        }
+        else{
+            let image    = document.createElement("img");
+            image.src    = imgUrlObject;
+            dest.push(image);
+        }
 
         URL.revokeObjectURL(imgUrlObject);
 
     } catch (error) {
         console.log('error', error);
     }
+    return dest;
 }
 
 async function getStat(id) {
@@ -516,6 +573,11 @@ async function refreshDatas(){
     glo.datasStats = [];
     await getDatas();
     sortDatasStats(...glo.sortNumber);
+}
+
+async function showAllImages(){
+    await getAllImgs();
+    resizeImages(); 
 }
 
 async function showThingDetail(event, thingName = false){

@@ -1144,6 +1144,7 @@ function add_transformation_sliders(){
     parmamControl(slider, name, 'slider right fifth', options, true);
 
     slider.onValueChangedObservable.add(function(value) {
+      if(!glo.rightButton){
         if(!name.includes('scaling')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
         else{
           if(value < 0){
@@ -1161,9 +1162,12 @@ function add_transformation_sliders(){
 
         event(value);
         glo.params[name] = value;
+      }
+      glo.rightButton = false;
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
+        glo.rightButton = true;
         header.text = text + ": " + 0;
         slider.value = 0;
 

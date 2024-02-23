@@ -444,6 +444,11 @@ window.addEventListener("keydown", function (e) {
                   cutsRibbon();
 
                break;
+               case "t":
+                  glo.symmetrizeOrders.next();
+                  remakeRibbon();
+
+               break;
             }
          }
       }

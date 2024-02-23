@@ -145,7 +145,7 @@ var glo = {
 
 						glo.toHisto = true;
 						if(!glo.dim_one){
-							if(!glo.normalMode){ make_curves(); }
+							if(!glo.normalMode){ await make_curves(); }
 							else{ glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations(); }
 						}
 						else{
@@ -262,6 +262,16 @@ var glo = {
 			for (const coord of coordinates) {
 				this.coordsNomrType = coord;
 				yield coord;
+			}
+		}
+	},
+	symmetrizeOrder: 'xyz',
+	symmetrizeOrders: function* (){
+		const symetrizeOrds = ['xzy', 'yxz', 'yzx', 'zxy', 'zyx', 'xyz'];
+		while (true) {
+			for (const symetrizeOrd of symetrizeOrds) {
+				this.symmetrizeOrder = symetrizeOrd;
+				yield symetrizeOrd;
 			}
 		}
 	},
@@ -652,6 +662,7 @@ var glo = {
 		symmetrizeY: 0,
 		symmetrizeZ: 0,
 		symmetrizeAngle: PI,
+		checkerboard: 0,
 		playWithColorMode: "xyz",
 		playWithColors: false,
 		playWithColorsAll: false,
@@ -814,5 +825,6 @@ glo.vertexsTypes 	    = glo.vertexsTypes();
 glo.coordinatesType 	= glo.coordinatesType();
 glo.coordinatesNomrType = glo.coordinatesNomrType();
 glo.rotType             = glo.rotateTypeGen();
+glo.symmetrizeOrders    = glo.symmetrizeOrders();
 
 let dataTableBody = document.getElementById('dataTableBody');

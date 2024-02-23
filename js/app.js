@@ -2355,6 +2355,12 @@ async function make_ribbon(symmetrize = true){
 	makeLineSystem();
 
 	applyTransformations();
+
+	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
+
+	/*for(let i = 0; i < glo.params.checkerboard; i++){
+		glo.ribbon.checkerboard();
+	}*/
 }
 
 function getPathsInfos(){
@@ -2368,15 +2374,45 @@ function getCoeffSym(){
 }
 
 async function makeSymmetrize(){
-	if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
-	if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
-	if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
+	switch(glo.symmetrizeOrder){
+		case 'xyz':
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
 	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
-	
-	if((glo.params.symmetrizeX && glo.params.symmetrizeY) || 
-	   (glo.params.symmetrizeX && glo.params.symmetrizeZ) ||
-	   (glo.params.symmetrizeY && glo.params.symmetrizeZ)){
+		break;
+		case 'xzy':
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
+	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY); }
+		break;
+		case 'yxz':
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
+	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ); }
+		break;
+		case 'yzx':
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
+	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX); }
+		break;
+		case 'zxy':
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
+	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
+		break;
+		case 'zyx':
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
+	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX); }
+		break;
 	}
+	
 }
 
 function ribbonDispose(all = true){
@@ -4808,33 +4844,11 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 
 	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(new Uint32Array(savedIndices)); await newRibbon.computeWorldMatrix(true); });
 
-	/*for(let i = 0; i < newRibbons.length; i++){
-		await newRibbons[i].computeWorldMatrix(true);
-	}*/
-
 	ribbonDispose(false);
 	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false) : newRibbons[0]; }
 	else{
 		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
 	}
-
-	/*ribbonDispose(false);
-	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await myMergeMeshes(newRibbons) : newRibbons[0]; }
-	else{
-		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
-	}*/
-
-	/*ribbonDispose(false);
-	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await mergeMeshes('mergedMesh', newRibbons) : newRibbons[0]; }
-	else{
-		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
-	}*/
-	/*if(!glo.mergeMeshesByIntersect){ glo.ribbon = await mergeMeshes('mergedMesh', newRibbons); }
-	else{
-		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
-	}*/
-
-	//glo.ribbon.minimizeVertices();
 
 	const vertices = await glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 	glo.curves.paths = turnVerticesDatasToPaths(vertices, coeff);
@@ -4892,7 +4906,7 @@ function concatFloat32Arrays(firstArray, secondArray) {
 	for (const meshToMerge of meshesToMerge) {
 		let meshToMergePositions = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 		let meshToMergeNormals   = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-		//let meshToMergeColors    = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.ColorKind);
+		//let meshToMergeColors  = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.ColorKind);
 		let meshToMergeUVs       = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.UVKind);
 		let meshToMergeIndices   = await meshToMerge.getIndices();
 		let meshToMergePaths     = turnVerticesDatasToPaths(meshToMergePositions, 1);
@@ -4901,7 +4915,7 @@ function concatFloat32Arrays(firstArray, secondArray) {
 
 		positions        = positions.push(...meshToMergePositions);
 		norms            = norms.push(...meshToMergeNormals);
-		//colors           = colors.push(...meshToMergeColors);
+		//colors         = colors.push(...meshToMergeColors);
 		uvs              = uvs.push(...meshToMergeUVs);
 		inds             = inds.concat(...meshToMergeIndices);
 	}
@@ -4915,126 +4929,6 @@ function concatFloat32Arrays(firstArray, secondArray) {
 
 	return ribbon;
 }*/
-
-function mergeMeshes(meshName, arrayObj, scene = glo.scene) {
-    var arrayPos = [];
-    var arrayNormal = [];
-    var arrayUv = [];
-    var arrayUv2 = [];
-    var arrayColor = [];
-    var arrayMatricesIndices = [];
-    var arrayMatricesWeights = [];
-    var arrayIndice = [];
-    var savedPosition = [];
-    var savedNormal = [];
-    var newMesh = new BABYLON.Mesh(meshName, scene);
-    var UVKind = true;
-    var UV2Kind = true;
-    var ColorKind = true;
-    var MatricesIndicesKind = true;
-    var MatricesWeightsKind = true;
-
-    for (var i = 0; i != arrayObj.length ; i++) {
-        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.UVKind]))
-            UVKind = false;
-        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.UV2Kind]))
-            UV2Kind = false;
-        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.ColorKind]))
-            ColorKind = false;
-        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.MatricesIndicesKind]))
-            MatricesIndicesKind = false;
-        if (!arrayObj[i].isVerticesDataPresent([BABYLON.VertexBuffer.MatricesWeightsKind]))
-            MatricesWeightsKind = false;
-    }
-
-    for (i = 0; i != arrayObj.length ; i++) {
-        var ite  = 0;
-        var iter = 0;
-        arrayPos[i]    = arrayObj[i].getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        arrayNormal[i] = arrayObj[i].getVerticesData(BABYLON.VertexBuffer.NormalKind);
-        if (UVKind)
-            arrayUv = arrayUv.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.UVKind));
-        if (UV2Kind)
-            arrayUv2 = arrayUv2.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.UV2Kind));
-        if (ColorKind)
-            arrayColor = arrayColor.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.ColorKind));
-        if (MatricesIndicesKind)
-            arrayMatricesIndices = arrayMatricesIndices.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.MatricesIndicesKind));
-        if (MatricesWeightsKind)
-            arrayMatricesWeights = arrayMatricesWeights.concat(arrayObj[i].getVerticesData(BABYLON.VertexBuffer.MatricesWeightsKind));
-
-        var maxValue = savedPosition.length / 3;
-
-        arrayObj[i].computeWorldMatrix(true);
-        var worldMatrix = arrayObj[i].getWorldMatrix();
-
-        for (var ite = 0 ; ite != arrayPos[i].length; ite += 3) {
-            var vertex = new BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(arrayPos[i][ite], arrayPos[i][ite + 1], arrayPos[i][ite + 2]), worldMatrix);
-            savedPosition.push(vertex.x);
-            savedPosition.push(vertex.y);
-            savedPosition.push(vertex.z);
-        }
-
-        for (var iter = 0 ; iter != arrayNormal[i].length; iter += 3) {
-            var vertex = new BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(arrayNormal[i][iter], arrayNormal[i][iter + 1], arrayNormal[i][iter + 2]), worldMatrix);
-            savedNormal.push(vertex.x);
-            savedNormal.push(vertex.y);
-            savedNormal.push(vertex.z);
-        }
-
-        var tmp = arrayObj[i].getIndices();
-        for (it = 0 ; it != tmp.length; it++) {
-            arrayIndice.push(tmp[it] + maxValue);
-        }
-        arrayIndice = arrayIndice.concat(tmp);
-
-        arrayObj[i].dispose(false);
-    }
-
-    newMesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, savedPosition, false);
-    newMesh.setVerticesData(BABYLON.VertexBuffer.NormalKind, savedNormal, false);
-    if (arrayUv.length > 0)
-        newMesh.setVerticesData(BABYLON.VertexBuffer.UVKind, arrayUv, false);
-    if (arrayUv2.length > 0)
-        newMesh.setVerticesData(BABYLON.VertexBuffer.UV2Kind, arrayUv, false);
-    if (arrayColor.length > 0)
-        newMesh.setVerticesData(BABYLON.VertexBuffer.ColorKind, arrayUv, false);
-    if (arrayMatricesIndices.length > 0)
-        newMesh.setVerticesData(BABYLON.VertexBuffer.MatricesIndicesKind, arrayUv, false);
-    if (arrayMatricesWeights.length > 0)
-        newMesh.setVerticesData(BABYLON.VertexBuffer.MatricesWeightsKind, arrayUv, false);
-
-    newMesh.setIndices(arrayIndice);
-    return newMesh;
-}
-
-/*async function mergeMeshes(meshes, scene = glo.scene) {
-    if (!meshes || meshes.length === 0) {
-        return null; // Aucun maillage à fusionner
-    }
-
-    // Créer un objet VertexData vide pour stocker les données fusionnées
-    var mergedVertexData = new BABYLON.VertexData();
-    var mergeOptions = {
-        // Ces options sont facultatives et peuvent être ajustées selon les besoins
-        // Elles permettent de recalculer les normales après la fusion, d'ajuster les UVs, etc.
-        // Par exemple : recalculer les normales pour les maillages éclairés correctement
-        // computeNormals: true, 
-    };
-
-    // Extraire et fusionner les données de vertex de chaque maillage
-    meshes.forEach(async (mesh) => {
-        var vertexData = await BABYLON.VertexData.ExtractFromMesh(mesh);
-        await mergedVertexData.merge(vertexData, mergeOptions);
-    });
-
-    // Créer un nouveau maillage pour appliquer les données de vertex fusionnées
-    var mergedMesh = new BABYLON.Mesh("mergedMesh", scene);
-    mergedVertexData.applyToMesh(mergedMesh);
-
-    return mergedMesh;
-}*/
-
 
 function cleanRibbon(originRibbonNbIndices = glo.originRibbonNbIndices){
 	let indices = glo.ribbon.getIndices();
@@ -5061,7 +4955,7 @@ function cleanRibbon2(distMaxBetweenVertexs = distMaxBetween2ConsecutiveVertexs(
 		for(let i = 3; i <= indices.length; i+=3){
 			const distCurrBetweenVertexs12 = BABYLON.Vector3.Distance(positions[indices[i-1]], positions[indices[i-2]]);
 			const distCurrBetweenVertexs23 = BABYLON.Vector3.Distance(positions[indices[i-2]], positions[indices[i-3]]);
-			//console.log("distCurrBetweenVertexs : " + distCurrBetweenVertexs, "distMaxBetweenVertexs : " + distMaxBetweenVertexs);
+			
 			if(parseInt(distCurrBetweenVertexs12) === parseInt(distMaxBetweenVertexs) ||
 			   parseInt(distCurrBetweenVertexs23) === parseInt(distMaxBetweenVertexs)){
 				indicesToDelete.push(i-3);
@@ -5161,13 +5055,13 @@ async function cutRibbon(axis, altitude = 0){
 		line.forEach(path => {
 			switch(axis){
 				case 'X':
-					if(path.x >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.x > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 				case 'Y':
-					if(path.y >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.y > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 				case 'Z':
-					if(path.z >= altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
+					if(path.z > altitude){ if(!newCurves[i]){newCurves[i] = [];} newCurves[i].push(path); }
 				break;
 			}
 		});
@@ -5477,6 +5371,34 @@ BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices
 
     _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
 };
+
+/*BABYLON.Mesh.prototype.checkerboard = function(){
+	let indices = this.getIndices();
+
+	let newIndices = [];
+	for(let i = 5; i < indices.length; i+=12){
+		newIndices.push(indices[i-5], indices[i-4], indices[i-3], indices[i-2], indices[i-1], indices[i]);
+	}
+
+	this.reBuildVertexData(newIndices);
+}*/
+
+BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard){
+	let indices = this.getIndices();
+
+	nb *= 3;
+	const start = nb - 1;
+	const step  = 2 * nb;
+
+	let newIndices = [];
+	for(let i = start; i < indices.length; i+=step){
+		for(let j = start; j >= 0; j--){
+			newIndices.push(indices[i-j]);
+		}
+	}
+
+	this.reBuildVertexData(newIndices);
+}
 
 BABYLON.Mesh.prototype.tIndices = function() {
 	// Récupérer les données de vertex actuelles

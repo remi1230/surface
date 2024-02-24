@@ -13,7 +13,7 @@ const glo = {
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
                   6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463,
                   6462962, 6462978, 6462982, 6462991, 6463002, 6463148, 6471696, 6471701,
-                  6487071, 6487076, 6487077, 6487082, 6487085, 6497823, 6498162],
+                  6487071, 6487076, 6487077, 6487082, 6487085, 6497823, 6498162, 6501217],
     res        : [],   
     userRes    : {},   
     datasStats : [],
@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await refreshDatas();
     await getUserInfos('Hopf', 'followers');
     getTags();
+    loadThumbmails();
 });
 document.addEventListener('click', function() {
     if(thingThumbnailDialog.open){ thingThumbnailDialog.close(); }
@@ -187,8 +188,27 @@ function filterStatsTable(val){
             datasFiltered = datasFiltered.filter(data => !data[3]);
         break;
     }
+
+    glo.datasFiltered = datasFiltered;
     
     datasToTable(datasFiltered.length ? datasFiltered : glo.datasStats);
+    filterThumbails();
+}
+
+function filterThumbails(){
+    if(!getById('imagesContainer').style.display){
+        [...document.getElementsByClassName('thumbail')].forEach(thumbail => {
+            if(glo.datasFiltered.some(dataFiltered => dataFiltered[0] === thumbail.name)){
+                thumbail.style.display = '';
+                thumbail.parentElement.style.display = '';
+            }
+            else{
+                thumbail.style.display = 'none';
+                thumbail.parentElement.style.display = 'none';
+            }
+        });
+    }
+    resizeImages();
 }
 
 function getTags(){
@@ -233,15 +253,21 @@ function infos(){
     return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean, downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
 }
 
+function loadThumbmails(){
+    for (const thing of glo.res) {
+        getImg(thing.thumbnail, thing.name, thumbnails);
+    }
+}
+
 function removeAllChildren(element) {
     while (element.firstChild) {
         element.removeChild(element.firstChild);
     }
 }
 
-function resizeImages(height = 'standard'){
+function resizeImages(height = false){
     let imgs             = [...document.getElementsByTagName('img')];
-    const standardHeight = height === 'standard' ? imgs[0].height : height;
+    const standardHeight = !height ? glo.imgsHeight : height;
 
     imgs.forEach((img, i) => { img.height = standardHeight; });
 }
@@ -445,27 +471,37 @@ function toggleTabGraph(){
 }
 
 //****************** ASYNC FUNCTION ******************//
-async function getAllImgs(){
+async function getAllImgs(show = true){
     let imagesContainer = getById('imagesContainer');
-    if(imagesContainer.style.display === 'none'){
-        imagesContainer.style.display      = '';
-        statsTableContainer.style.display  = 'none';
+    if(imagesContainer.style.display === 'none' || !show){
+        if(show){
+            imagesContainer.style.display      = '';
+            statsTableContainer.style.display  = 'none';
+        }
 
-        if(!thumbnails.length){
+        if(!glo.notFirstShowThumbmails){
+            glo.notFirstShowThumbmails = true;
+            let n = 0;
             for (const thing of glo.res) {
-                await getImg(thing.thumbnail, thumbnails);
-                let imageToShow = thumbnails[thumbnails.length-1];
+                //await getImg(thing.thumbnail, thing.name, thumbnails);
+                let imageToShow = thumbnails.find(thumbnail => thumbnail.dataset.name === thing.name);
                 let divToAppend = document.createElement('div');
 
                 divToAppend.style.cursor = 'pointer';
                 imageToShow.style.width  = '100%';
                 imageToShow.title        = thing.name + ' : ' + thing.view_count + ' 👁  -  ' + thing.download_count + ' ↓  -  ' + thing.like_count + ' ❤️';
+                imageToShow.name         = thing.name;
+                imageToShow.className    = 'thumbail';
+
+                if(!n){ imageToShow.id = 'firstThumbail'; }
 
                 const showThingDetailDyn = () => showThingDetail(false, thing.name);
                 divToAppend.addEventListener("click", showThingDetailDyn);
 
                 divToAppend.appendChild(imageToShow);
                 imagesContainer.appendChild(divToAppend);
+
+                n++;
             }
         }
     }
@@ -473,6 +509,9 @@ async function getAllImgs(){
         imagesContainer.style.display      = 'none';
         statsTableContainer.style.display  = '';
     }
+    glo.imgsHeight = getById('firstThumbail').height;
+
+    filterThumbails();
 }
 
 async function getDatas(){
@@ -501,9 +540,10 @@ async function getDatas(){
 
         glo.datasStats.push([name, views, downs, likes, DonV, LonV, LonD, VDL, time, VDLT, tags]);
     });
+    glo.datasFiltered = glo.datasStats;
 }
 
-async function getImg(url, dest = glo) {
+async function getImg(url, name = '', dest = glo) {
     try {
         const response = await fetch(url);
         let img        = await response.blob();
@@ -512,10 +552,12 @@ async function getImg(url, dest = glo) {
         if(!Array.isArray(dest)){
             dest.img     = document.createElement("img");
             dest.img.src = imgUrlObject;
+            dest.img.dataset.name = name;
         }
         else{
             let image    = document.createElement("img");
             image.src    = imgUrlObject;
+            image.dataset.name = name;
             dest.push(image);
         }
 
@@ -588,7 +630,7 @@ async function showThingDetail(event, thingName = false){
 
     const thumbnailURL = thing.thumbnail;
 
-    await getImg(thumbnailURL);
+    await getImg(thumbnailURL, thing.name);
     if(!glo.categories[thing.id]){ await getThingCateories(thing.id); }
 
     if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
@@ -634,7 +676,7 @@ async function updThingImg(e, direction){
         }
         getById('thingThumbnailTitle').dataset.numchevron = numChevron.toString();
 
-        await getImg(zipData.images[numChevron].url);
+        await getImg(zipData.images[numChevron].url, thing.name);
         
         if(thingThumbnailImageContainer.firstChild){ thingThumbnailImageContainer.firstChild.remove(); }
         glo.img.style.height = '500px';

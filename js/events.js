@@ -449,6 +449,10 @@ window.addEventListener("keydown", function (e) {
                   remakeRibbon();
 
                break;
+               case "q":
+                  window.open(location.href  + "stats/", '_blank');
+
+               break;
             }
          }
       }

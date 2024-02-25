@@ -2301,6 +2301,8 @@ async function make_ribbon(symmetrize = true){
 
 	if(glo.params.expansion){ expanseRibbon(); }
 
+	scaleVertexsDist(glo.scaleVertex);
+
 	ribbonDispose();
 	if(!glo.params.playWithColors && glo.colorsType == 'none'){
 		if(!glo.voronoiMode){
@@ -4900,36 +4902,6 @@ function concatFloat32Arrays(firstArray, secondArray) {
     return combined;
 }
 
-/*async function myMergeMeshes(meshesToMerge){
-	glo.curves.paths = [];
-	let inds = [], positions = [], norms = [], colors = [], uvs = [];
-	for (const meshToMerge of meshesToMerge) {
-		let meshToMergePositions = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-		let meshToMergeNormals   = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-		//let meshToMergeColors  = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.ColorKind);
-		let meshToMergeUVs       = await meshToMerge.getVerticesData(BABYLON.VertexBuffer.UVKind);
-		let meshToMergeIndices   = await meshToMerge.getIndices();
-		let meshToMergePaths     = turnVerticesDatasToPaths(meshToMergePositions, 1);
-
-		glo.curves.paths = glo.curves.paths.concat(meshToMergePaths);
-
-		positions        = positions.push(...meshToMergePositions);
-		norms            = norms.push(...meshToMergeNormals);
-		//colors         = colors.push(...meshToMergeColors);
-		uvs              = uvs.push(...meshToMergeUVs);
-		inds             = inds.concat(...meshToMergeIndices);
-	}
-
-	let ribbon = await BABYLON.MeshBuilder.CreateRibbon("mergedMesh", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
-	await ribbon.updateVerticesData(BABYLON.VertexBuffer.PositionKind, positions);
-	await ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, norms);
-	//await ribbon.updateVerticesData(BABYLON.VertexBuffer.ColorKind, colors);
-	await ribbon.updateVerticesData(BABYLON.VertexBuffer.UVKind, uvs);
-	await ribbon.updateIndices(inds);
-
-	return ribbon;
-}*/
-
 function cleanRibbon(originRibbonNbIndices = glo.originRibbonNbIndices){
 	let indices = glo.ribbon.getIndices();
 
@@ -5398,6 +5370,55 @@ BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard){
 	}
 
 	this.reBuildVertexData(newIndices);
+}
+
+function scaleVertexsDist(scale = 0.5) {
+	if(scale !== 1){
+		let curvesPathsTmp  = glo.curves.paths.slice();
+
+		curvesPathsTmp.forEach((paths, n) => {
+			for (let i = 1; i < paths.length; i++) {
+				const v1 = paths[i - 1], v2 = paths[i];
+
+				// Calculer le vecteur directionnel de v1 à v2
+				const direction = v2.subtract(v1);
+				// Normaliser le vecteur directionnel
+				direction.normalize();
+				// Calculer la nouvelle distance souhaitée (par exemple, réduire de 50%)
+				const newDist = BABYLON.Vector3.Distance(v1, v2) * scale;
+				// Ajuster v2 vers v1 en utilisant le vecteur directionnel et la nouvelle distance
+				glo.curves.paths[n][i] = v1.add(direction.scale(newDist));
+			}
+		});
+	}
+}
+
+function calculateAzimuthElevation(x1, y1, z1, x2, y2, z2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dz = z2 - z1;
+    
+    // Calcul de l'azimut en degrés
+    const azimuth = Math.atan2(dy, dx);
+    
+    // Calcul de la distance dans le plan xy
+    const dxy = Math.sqrt(dx * dx + dy * dy);
+    
+    // Calcul de l'élévation en degrés
+    const elevation = Math.atan2(dz, dxy);
+    
+    return { x: azimuth, y: elevation };
+}
+
+function invertDirectionRadians(angleXY) {
+    // Inverser l'azimut: ajouter π radians et normaliser
+    let invertedAzimuth = angleXY.x + Math.PI;
+    if (invertedAzimuth >= 2 * Math.PI) invertedAzimuth -= 2 * Math.PI; // Normaliser entre 0 et 2π radians
+    
+    // Inverser l'élévation: prendre l'opposé
+    let invertedElevation = -angleXY.y;
+    
+    return { x: invertedAzimuth, y: invertedElevation };
 }
 
 BABYLON.Mesh.prototype.tIndices = function() {

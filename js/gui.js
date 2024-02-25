@@ -1145,23 +1145,25 @@ function add_transformation_sliders(){
     parmamControl(slider, name, 'slider right fifth', options, true);
 
     slider.onValueChangedObservable.add(function(value) {
+      let val;
       if(!glo.rightButton){
-        if(!name.includes('scaling')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
+        if(!name.includes('scaling') && !name.includes('scaleVertex')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
         else{
           if(value < 0){
-            let val = parseFloat(value.toFixed(decimalPrecision));
+            val = parseFloat(value.toFixed(decimalPrecision));
             val     = -(1 / (val - 1));
             val     = parseFloat(val.toFixed(decimalPrecision));
             header.text = text + ": " + val;
           }
           else{
-            let val = 1 + parseFloat(value.toFixed(decimalPrecision));
+            val = 1 + parseFloat(value.toFixed(decimalPrecision));
             header.text = text + ": " + val;
           }
         }
         slider.lastValue = value;
 
-        event(value);
+        if(!name.includes('scaleVertex')){ event(value); }
+        else{ event(val); }
         glo.params[name] = value;
       }
       glo.rightButton = false;
@@ -1201,6 +1203,7 @@ function add_transformation_sliders(){
   addSlider(panel, "cSymmetryY", "cSymmetryY", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.y = value; remakeRibbon(); });
   addSlider(panel, "cSymmetryZ", "cSymmetryZ", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.z = value; remakeRibbon(); });
   addSlider(panel, "expansion", "expansion", 0, 2, -24, 24, .1, function(value){ remakeRibbon(); });
+  addSlider(panel, "scaleVertex", "scaleVertexs", 1, 2, -24, 24, .1, function(value){ glo.scaleVertex = value; remakeRibbon(); });
 }
 
 function param_buttons(){

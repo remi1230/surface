@@ -721,6 +721,7 @@ var glo = {
 	indexSaveToclone: -999,
 	indexCloneToHisto: -999,
 	numRibbon: 0,
+	scaleVertex: 1,
 	fullScreen: false,
 	gui_visible: true,
 	gui_suit_visible: false,

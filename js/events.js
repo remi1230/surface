@@ -356,25 +356,29 @@ window.addEventListener("keydown", function (e) {
                   break;
                case "7":
                   glo.angleToUpdateRibbon.x -= PI/8;
+                  remakeRibbon();
 
                   break;
                case "8":
                   glo.angleToUpdateRibbon.x += PI/8;
+                  remakeRibbon();
 
                   break;
                case "0":
                   glo.angleToUpdateRibbon.y -= PI/8;
+                  remakeRibbon();
 
                   break;
                case "9":
                   glo.angleToUpdateRibbon.y += PI/8;
+                  remakeRibbon();
 
                   break;
                case "!":
                   glo.angleToUpdateRibbon.x = 0;
                   glo.angleToUpdateRibbon.y = 0;
 
-                  make_curves();
+                  remakeRibbon();
                   break;
                case "g":
                   toggleDataTable();

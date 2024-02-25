@@ -13,7 +13,8 @@ const glo = {
                   6414571, 6414905, 6416636, 6418259, 6423574, 6423741, 6425262, 6428378,
                   6428384, 6430518, 6433384, 6433441, 6434057, 6435467, 6447439, 6447463,
                   6462962, 6462978, 6462982, 6462991, 6463002, 6463148, 6471696, 6471701,
-                  6487071, 6487076, 6487077, 6487082, 6487085, 6497823, 6498162, 6501217],
+                  6487071, 6487076, 6487077, 6487082, 6487085, 6497823, 6498162, 6501217,
+                  6502631],
     res        : [],   
     userRes    : {},   
     datasStats : [],
@@ -253,10 +254,11 @@ function infos(){
     return {nbMeshes, nbCollects, nbComments, nbRemixs, nbMakes, viewMean, downMean, likeMean, downsOnViews, likesOnViews, likesOnDowns};
 }
 
-function loadThumbmails(){
+async function loadThumbmails(){
     for (const thing of glo.res) {
-        getImg(thing.thumbnail, thing.name, thumbnails);
+        await getImg(thing.thumbnail, thing.name, thumbnails);
     }
+    getById('toggleTabImages').style.display = '';
 }
 
 function removeAllChildren(element) {

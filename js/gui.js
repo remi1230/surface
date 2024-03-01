@@ -25,6 +25,7 @@ function add_gui_controls(){
   add_step_ABCD_sliders();
   add_symmetrize_sliders();
   add_transformation_sliders();
+  add_sixth_panel_sliders();
 
   guiControls_AddIdentificationFunctions();
 
@@ -1130,9 +1131,50 @@ function add_symmetrize_sliders(){
   addSlider(panel, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; });
 }
 
+function add_sixth_panel_sliders(){
+  var panel = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'paramCheckerboardSlidersPanel', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 63, pR: 1});
+  glo.advancedTexture.addControl(panel);
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right sixth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, color: '#003399', background: 'grey'};
+    parmamControl(slider, name, 'slider right sixth', options, true);
+
+    slider.onValueChangedObservable.add(async function(value) {
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        slider.lastValue = value;
+
+        event(value);
+
+        remakeRibbon();
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        slider.value = 0;
+        remakeRibbon();
+      }
+    });
+
+    slider.onWheelObservable.add(function (e) {
+      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+    });
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  addSlider(panel, "checkerboardNbSteps", "Checkerboard nb steps", 2, 1, 1, 24, .5, function(value){ glo.params.checkerboardNbSteps = value; });
+}
+
 function add_transformation_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right fifth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 35, pR: 1});
+  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right fifth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 33, pR: 1});
   glo.advancedTexture.addControl(panel);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){

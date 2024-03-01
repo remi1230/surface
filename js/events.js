@@ -7,6 +7,7 @@ $( document ).ready(function() {
   toggle_gui_controls_third(false);
   toggleGuiControlsByClass(false, 'fourth');
   toggleGuiControlsByClass(false, 'fifth');
+  toggleGuiControlsByClass(false, 'sixth');
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();
@@ -457,6 +458,14 @@ window.addEventListener("keydown", function (e) {
                   window.open(location.href  + "stats/", '_blank');
 
                break;
+               case "k":
+                  glo.allControls.getByName('checkerboard').maximum/=2 
+
+                  break;
+               case "l":
+                  glo.allControls.getByName('checkerboard').maximum*=2 
+
+                  break;
             }
          }
       }

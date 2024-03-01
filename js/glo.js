@@ -289,7 +289,7 @@ var glo = {
 	guiSelect: 'main',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['main', 'second', 'third', 'fourth', 'fifth'];
+	  var tab = ['main', 'second', 'third', 'fourth', 'fifth', 'sixth'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -663,6 +663,7 @@ var glo = {
 		symmetrizeZ: 0,
 		symmetrizeAngle: PI,
 		checkerboard: 0,
+		checkerboardNbSteps: 2,
 		playWithColorMode: "xyz",
 		playWithColors: false,
 		playWithColorsAll: false,

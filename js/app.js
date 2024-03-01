@@ -2360,9 +2360,7 @@ async function make_ribbon(symmetrize = true){
 
 	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
 
-	/*for(let i = 0; i < glo.params.checkerboard; i++){
-		glo.ribbon.checkerboard();
-	}*/
+	if(glo.scaleVertex !== 1){  }
 }
 
 function getPathsInfos(){
@@ -3077,6 +3075,7 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(false);
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(false, 'sixth');
 		  toggle_gui_controls_for_switch(true);
 		break;
 		case "second":
@@ -3084,6 +3083,7 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(false);
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(false, 'sixth');
 		  toggle_gui_controls_suit(true);
 		break;
 		case "third":
@@ -3092,6 +3092,7 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(true);
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(false, 'sixth');
 		break;
 		case "fourth":
 		  toggle_gui_controls_for_switch(false);
@@ -3099,6 +3100,7 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(false);
 		  toggleGuiControlsByClass(false, 'fifth');
 		  toggleGuiControlsByClass(true, 'fourth');
+		  toggleGuiControlsByClass(false, 'sixth');
 		break;
 		case "fifth":
 		  toggle_gui_controls_for_switch(false);
@@ -3106,6 +3108,15 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(false);
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(true, 'fifth');
+		  toggleGuiControlsByClass(false, 'sixth');
+		break;
+		case "sixth":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(true, 'sixth');
 		break;
 	}
 }
@@ -4992,12 +5003,6 @@ function subVectors(...vectors){
 	return new BABYLON.Vector3(vectorToReturn.x, vectorToReturn.y, vectorToReturn.z);
 }
 
-/*async function cutsRibbon(){
-	if(glo.cutRibbon.x){ await cutRibbon('X'); }
-	if(glo.cutRibbon.y){ await cutRibbon('Y'); }
-	if(glo.cutRibbon.z){ await cutRibbon('Z'); }
-}*/
-
 async function cutsRibbon(){
 	glo.scene.clipPlane  = await new BABYLON.Plane(-glo.cutRibbon.x, 0, 0, 0);
 	glo.scene.clipPlane2 = await new BABYLON.Plane(0, -glo.cutRibbon.y, 0, 0);
@@ -5344,23 +5349,12 @@ BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices
     _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
 };
 
-/*BABYLON.Mesh.prototype.checkerboard = function(){
-	let indices = this.getIndices();
-
-	let newIndices = [];
-	for(let i = 5; i < indices.length; i+=12){
-		newIndices.push(indices[i-5], indices[i-4], indices[i-3], indices[i-2], indices[i-1], indices[i]);
-	}
-
-	this.reBuildVertexData(newIndices);
-}*/
-
-BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard){
+BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, stepCoeff = glo.params.checkerboardNbSteps){
 	let indices = this.getIndices();
 
 	nb *= 3;
 	const start = nb - 1;
-	const step  = 2 * nb;
+	const step  = stepCoeff * nb;
 
 	let newIndices = [];
 	for(let i = start; i < indices.length; i+=step){
@@ -5374,7 +5368,15 @@ BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard){
 
 function scaleVertexsDist(scale = 0.5) {
 	if(scale !== 1){
-		let curvesPathsTmp  = glo.curves.paths.slice();
+		let curvesPathsTmp = [];
+		const cTmp         = glo.curves.paths.slice();
+
+		cTmp.forEach((paths, i) => {
+			curvesPathsTmp[i] = [];
+			paths.forEach((path, j) => {
+				curvesPathsTmp[i][j] = path.clone();
+			});
+		});
 
 		curvesPathsTmp.forEach((paths, n) => {
 			for (let i = 1; i < paths.length; i++) {
@@ -5388,6 +5390,7 @@ function scaleVertexsDist(scale = 0.5) {
 				const newDist = BABYLON.Vector3.Distance(v1, v2) * scale;
 				// Ajuster v2 vers v1 en utilisant le vecteur directionnel et la nouvelle distance
 				glo.curves.paths[n][i] = v1.add(direction.scale(newDist));
+				if(scale < 1){ curvesPathsTmp[n][i] = v1.add(direction.scale(newDist)); }
 			}
 		});
 	}
@@ -5472,8 +5475,6 @@ function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = 
 	if(transformKind === 'scaling'){ value = scaleNoSignToSign(value); }
 	mesh[transformKind][axis] = value;
 	if(lines){ lines[transformKind][axis] = value; }
-	//mesh.bakeCurrentTransformIntoVertices();
-	//turnVerticesDatasToPaths();
 }
 
 function scaleNoSignToSign(value){

@@ -3055,6 +3055,24 @@ function switchCoords(normalSens = true){
 	glo.formesSuit = false;
 }
 
+function switchSymmetrizeOrder(normalSens = true){
+	if(normalSens){ glo.symmetrizeOrders.next(); }
+	else{
+		const currentSymmetrizeOrder = glo.symmetrizeOrder;
+		
+		let nextSymmetrizeOrder = '';
+		while(glo.symmetrizeOrders.next().value !== currentSymmetrizeOrder){
+			nextSymmetrizeOrder = glo.symmetrizeOrder;
+		}
+		glo.symmetrizeOrder = nextSymmetrizeOrder;
+
+		while(glo.symmetrizeOrders.next().value !== nextSymmetrizeOrder){}
+	}
+	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "Symmetrize order : " + glo.symmetrizeOrder.toUpperCase();
+
+	remakeRibbon();
+}
+
 function switchRightPanel(normalSens = true){
 	if(normalSens){ glo.switchGuiSelect.next(); }
 	else{

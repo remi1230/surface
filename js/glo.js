@@ -710,7 +710,7 @@ var glo = {
 	buttons_color: "rgb(255,255,225)",
 	labelGridColor: "black",
 	buttons_radius: 10,
-	buttons_fontsize: "14px",
+	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
 	backgroundColor: new BABYLON.Color3(0, 77/2048, 77/4096),

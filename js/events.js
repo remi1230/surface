@@ -168,7 +168,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "s":
-               switchCoords();
+               //FREE
 
                   break;
                case "t":
@@ -280,39 +280,27 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case ":":
-                  glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
+                  //FREE
 
                break;
                case "!":
-                  glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
+                  //FREE
 
                break;
                case ")":
-                  glo.lineSystem = !glo.lineSystem;
+                  //FREE
 
                break;
                case "PageUp":
-                  glo.firstPoint.y++;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
                case "PageDown":
-                  glo.firstPoint.y--;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
                case "Home":
-                  glo.firstPoint = {x: 1, y: 0, z: 0};
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
             }
@@ -337,80 +325,57 @@ window.addEventListener("keydown", function (e) {
                   break;
                case "3":
                   //FREE
-                  updRibbon();
 
                   break;
                case "4":
-                  updRibbon(-1);
+                  //FREE
 
                   break;
                case "5":
-                  updRibbon(1);
+                  //FREE
 
                   break;
                case "6":
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                   break;
                case "7":
-                  glo.angleToUpdateRibbon.x -= PI/8;
-                  remakeRibbon();
+                  //FREE
 
                   break;
                case "8":
-                  glo.angleToUpdateRibbon.x += PI/8;
-                  remakeRibbon();
+                  //FREE
 
                   break;
                case "0":
-                  glo.angleToUpdateRibbon.y -= PI/8;
-                  remakeRibbon();
+                  //FREE
 
                   break;
                case "9":
-                  glo.angleToUpdateRibbon.y += PI/8;
-                  remakeRibbon();
+                  //FREE
 
                   break;
                case "!":
-                  glo.angleToUpdateRibbon.x = 0;
-                  glo.angleToUpdateRibbon.y = 0;
-
-                  remakeRibbon();
+                  //FREE
                   break;
                case "g":
                   toggleDataTable();
 
                   break;
                case "PageUp":
-                  glo.firstPoint.z++;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
                case "PageDown":
-                  glo.firstPoint.z--;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
                case "b":
-                  glo.addSymmetry = !glo.addSymmetry;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  //FREE
 
                break;
                case "c":
-                  cleanRibbon2();
+                  //FREE
 
                break;
                case "j":
@@ -450,8 +415,7 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case "t":
-                  glo.symmetrizeOrders.next();
-                  remakeRibbon();
+                  //FREE
 
                break;
                case "q":
@@ -459,11 +423,11 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case "k":
-                  glo.allControls.getByName('checkerboard').maximum/=2 
+                  glo.allControls.getByName('checkerboard').maximum/=2;
 
                   break;
                case "l":
-                  glo.allControls.getByName('checkerboard').maximum*=2 
+                  glo.allControls.getByName('checkerboard').maximum*=2;
 
                   break;
             }
@@ -479,15 +443,12 @@ window.addEventListener("keydown", function (e) {
 
                break;
             case "C":
-            glo.normalColorMode = !glo.normalColorMode;
+            //FREE
 
                break;
             case "a":
             case "A":
-            if(glo.normalMode){
-               glo.scaleNorm*=sqrt(2);
-               drawNormalEquations();
-            }
+            //FREE
 
                break;
             case "p":
@@ -620,19 +581,11 @@ window.addEventListener("keydown", function (e) {
 
                break;
             case "PageUp":
-               glo.firstPoint.x++;
-               if(!glo.normalMode){  make_curves(); }
-               else{
-                  glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-               }
+               //FREE
 
             break;
             case "PageDown":
-               glo.firstPoint.x--;
-               if(!glo.normalMode){  make_curves(); }
-               else{
-                  glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-               }
+               //FREE
 
             break;
          }

@@ -588,9 +588,9 @@ function drawNormalEquations(symmetrize = false){
 
 					var scale = glo.scaleNorm;
 
-					x = xP + ((x/scale) * xN);
-					y = yP + ((y/scale) * yN);
-					z = zP + ((z/scale) * zN);
+					x = xP + ((x*scale) * xN);
+					y = yP + ((y*scale) * yN);
+					z = zP + ((z*scale) * zN);
 
 					pathNow.push(new BABYLON.Vector3(x, y, z));
 
@@ -4278,12 +4278,15 @@ function changeHeaderText(headerName, newText){
 }
 
 function resetEquationsParamSliders(){
-	glo.switchedSliderNoChange = true;
-	glo.equationsParamSliders.map(equationsParamSlider => {
-		equationsParamSlider.value = equationsParamSlider.startValue;
+	glo.allControls.haveThisClass('input').forEach(input => {
+		input.text = '';
 	});
-	make_curves();
-	glo.switchedSliderNoChange = false;
+	for(let prop in glo.params){
+		if(prop.includes('text_input')){ glo.params[prop] = ''; }
+		else if(prop.includes('symmetrize') && !prop.includes('symmetrizeAngle')){ glo.params[prop] = 0; }
+	}
+	glo.allControls.getByName('u').value = PI;
+	glo.allControls.getByName('v').value = PI;
 }
 
 function change_slider_uv(){

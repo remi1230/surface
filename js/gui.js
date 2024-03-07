@@ -1137,19 +1137,19 @@ function add_sixth_panel_sliders(){
   glo.advancedTexture.addControl(panel);
 
   var panelButtonSymmetrizeOrder = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButtonSymmetrizeOrder, 'paramCheckerboardSlidersPanel', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 62, pR: 1});
+  parmamControl(panelButtonSymmetrizeOrder, 'paramCheckerboardSlidersPanel', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 65, pR: 1});
   glo.advancedTexture.addControl(panelButtonSymmetrizeOrder);
 
   var panelButtonSymmetrizeAdding = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButtonSymmetrizeAdding, 'paramCheckerboardSlidersPanel', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 67, pR: 1});
+  parmamControl(panelButtonSymmetrizeAdding, 'paramCheckerboardSlidersPanel', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 70, pR: 1});
   glo.advancedTexture.addControl(panelButtonSymmetrizeAdding);
 
   var panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 72, pR: 1});
+  parmamControl(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 75, pR: 1});
   glo.advancedTexture.addControl(panelButtonSlidersUVOnOneSignU);
 
   var panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 77, pR: 1});
+  parmamControl(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 80, pR: 1});
   glo.advancedTexture.addControl(panelButtonSlidersUVOnOneSignV);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
@@ -1162,7 +1162,21 @@ function add_sixth_panel_sliders(){
     parmamControl(slider, name, 'slider right sixth', options, true);
 
     slider.onValueChangedObservable.add(async function(value) {
-        header.text = text + ": " + value.toFixed(decimalPrecision);
+        if(!name.includes('scaleNorm')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
+        else{
+          if(value < 0){
+            val = parseFloat(value.toFixed(decimalPrecision));
+            val     = -(1 / (val - 1));
+            val     = parseFloat(val.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+          else{
+            val = 1 + parseFloat(value.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+          value = val;
+        }
+
         slider.lastValue = value;
 
         event(value);
@@ -1202,6 +1216,7 @@ function add_sixth_panel_sliders(){
   addSlider(panel, "firstPointOffsetZ", "First point offset Z", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.z = value; });
   addSlider(panel, "expanseAngleX", "Expanse angle X", 0, 2, -PI, PI, PI/16, function(value){ glo.angleToUpdateRibbon.x = value; });
   addSlider(panel, "expanseAngleY", "Expanse angle Y", 0, 2, -PI, PI, PI/16, function(value){ glo.angleToUpdateRibbon.y = value; });
+  addSlider(panel, "scaleNorm", "Scale norm", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; });
 
   addButton(panelButtonSymmetrizeOrder, "symmetrizeOrder", "Symmetrize order : XYZ", 215, 40, 0, 0, function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
   addButton(panelButtonSymmetrizeAdding, "symmetrizeAdding", "Symmetrize adding : OUI", 215, 40, 0, 0, function(value){

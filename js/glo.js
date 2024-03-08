@@ -286,10 +286,10 @@ var glo = {
 	    yield tab[index];
 	  }
 	},
-	guiSelect: 'main',
+	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['main', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+	  var tab = ['fourth', 'fifth', 'sixth', 'main', 'second', 'third'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -697,7 +697,7 @@ var glo = {
 	scaleNorm: 1,
 	cloneScaleToTemplate: 0.05,
 	buttonBottomSize: 90,
-	buttonBottomHeight: 35,
+	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,
 	panelBottomButtonTop: 44.25,
 	topRadiosStart: 67,

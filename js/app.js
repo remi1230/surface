@@ -3818,13 +3818,11 @@ function randomize_colors_app(){
 }
 function special_randomize_colors_app(first = false){
 	if(!first){
-		var backColor = getRndDarkColor(5);
-		var emissiveColor = getComplementaryColor(backColor, 8);
-		var diffuseColor = getComplementaryColor(emissiveColor, 0.7);
-		var lineColor = getComplementaryColor(backColor);
-
-		diffuseColor = darkingColor(diffuseColor, 2);
-		lineColor = darkingColor(lineColor, 1.12);
+		//var backColor = getRndDarkColor(5);
+		var backColor     = getRndLightColor(4);
+		var emissiveColor = getComplementaryColor(backColor, 0.58);
+		var diffuseColor  = getComplementaryColor(emissiveColor, 0.58);
+		var lineColor     = getComplementaryColor(backColor);
 
 		glo.allControls.getByName('pickerColorBackground').value = backColor;
 		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(emissiveColor.r, emissiveColor.g, emissiveColor.b);

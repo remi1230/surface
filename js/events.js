@@ -3,9 +3,9 @@
 //*****************************************************************************************************//
 $( document ).ready(function() {
   add_gui_controls();
+  toggle_gui_controls_for_switch(false);
   toggle_gui_controls_suit(false);
   toggle_gui_controls_third(false);
-  toggleGuiControlsByClass(false, 'fourth');
   toggleGuiControlsByClass(false, 'fifth');
   toggleGuiControlsByClass(false, 'sixth');
   gui_resize();

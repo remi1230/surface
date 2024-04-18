@@ -292,11 +292,21 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case "PageUp":
-                  //FREE
+                  glo.allControls.getByName('symmetrizeX').maximum*=2;
+                  glo.allControls.getByName('symmetrizeY').maximum*=2;
+                  glo.allControls.getByName('symmetrizeZ').maximum*=2;
+                  glo.allControls.getByName('symmetrizeX').value*=2;
+                  glo.allControls.getByName('symmetrizeY').value*=2;
+                  glo.allControls.getByName('symmetrizeZ').value*=2;
 
                break;
                case "PageDown":
-                  //FREE
+                  glo.allControls.getByName('symmetrizeX').maximum/=2;
+                  glo.allControls.getByName('symmetrizeY').maximum/=2;
+                  glo.allControls.getByName('symmetrizeZ').maximum/=2;
+                  glo.allControls.getByName('symmetrizeX').value/=2;
+                  glo.allControls.getByName('symmetrizeY').value/=2;
+                  glo.allControls.getByName('symmetrizeZ').value/=2;
 
                break;
                case "Home":

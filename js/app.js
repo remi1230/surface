@@ -2360,7 +2360,7 @@ async function make_ribbon(symmetrize = true){
 
 	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
 
-	if(glo.scaleVertex !== 1){  }
+	glo.camera.focusOn([glo.ribbon], true);
 }
 
 function getPathsInfos(){
@@ -2412,7 +2412,6 @@ async function makeSymmetrize(){
 	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX); }
 		break;
 	}
-	
 }
 
 function ribbonDispose(all = true){
@@ -5489,6 +5488,26 @@ function shuffleArray(array) {
     }
     return array;
 }
+
+BABYLON.Mesh.prototype.moyPos = function() {
+	const positions = this.getPositionData();
+	const posLength = positions.length;
+
+	let x = 0, y = 0, z = 0;
+	for(let i = 2; i < posLength; i+=3){
+		x += positions[i-2]; y += positions[i-1]; z += positions[i];
+	}
+
+	return new BABYLON.Vector3(x/posLength, y/posLength, z/posLength);
+};
+
+BABYLON.Mesh.prototype.moyPosToOrigin = function() {
+	const moyPos = this.moyPos();
+
+	transformMesh('position', 'x', -moyPos.x);
+	transformMesh('position', 'y', -moyPos.y);
+	transformMesh('position', 'z', -moyPos.z);
+};
 
 function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem){
 	if(transformKind === 'scaling'){ value = scaleNoSignToSign(value); }

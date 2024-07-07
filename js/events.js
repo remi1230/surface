@@ -8,6 +8,7 @@ $( document ).ready(function() {
   toggle_gui_controls_third(false);
   toggleGuiControlsByClass(false, 'fifth');
   toggleGuiControlsByClass(false, 'sixth');
+  toggleGuiControlsByClass(false, 'seventh');
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();
@@ -53,7 +54,14 @@ document.getElementById('dataTable').addEventListener("click", function(ev){
 window.addEventListener("keydown", function (e) {
    if(!glo.modalOpen){ 
       var key = e.key;
-      if(!e.shiftKey){
+      if(e.ctrlKey){
+         switch (key) {
+            case "x": case "y": case "z":
+               negativeMeshGeometry(key);
+            break;
+         }
+      }
+      else if(!e.shiftKey){
          if(!e.altKey){
             switch (key) {
                case "g":
@@ -168,7 +176,8 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "s":
-               //FREE
+                  glo.secondCurveOperation = !glo.secondCurveOperation;
+                  remakeRibbon();
 
                   break;
                case "t":
@@ -280,11 +289,15 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case ":":
-                  //FREE
+                  transformMesh('scaling', 'x', glo.ribbon.scaling.x/2, glo.ribbon, glo.curves.lineSystem, false);
+                  transformMesh('scaling', 'y', glo.ribbon.scaling.y/2, glo.ribbon, glo.curves.lineSystem, false);
+                  transformMesh('scaling', 'z', glo.ribbon.scaling.z/2, glo.ribbon, glo.curves.lineSystem, false);
 
                break;
                case "!":
-                  //FREE
+                  transformMesh('scaling', 'x', glo.ribbon.scaling.x*2, glo.ribbon, glo.curves.lineSystem, false);
+                  transformMesh('scaling', 'y', glo.ribbon.scaling.y*2, glo.ribbon, glo.curves.lineSystem, false);
+                  transformMesh('scaling', 'z', glo.ribbon.scaling.z*2, glo.ribbon, glo.curves.lineSystem, false);
 
                break;
                case ")":

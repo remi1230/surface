@@ -24,6 +24,7 @@ function add_gui_controls(){
 
   add_step_ABCD_sliders();
   add_symmetrize_sliders();
+  add_blender_sliders();
   add_transformation_sliders();
   add_sixth_panel_sliders();
 
@@ -661,7 +662,7 @@ function add_inputs_equations(){
   parmamControl(panelColorsEquations, "inputsColorsEquations", 'panel right third', {w: 24, pR: 1});
   parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth', {w: 24, pR: 1});
 
-  var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 84, pR: 1};
+  var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 86, pR: 1};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   panel.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histo.goTo() : glo.histo.goBack(); });
@@ -1100,7 +1101,7 @@ function add_step_ABCD_sliders(){
 
 function add_symmetrize_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 62, pR: 0.5});
+  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 61, pR: 0.5});
   glo.advancedTexture.addControl(panel);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
@@ -1148,11 +1149,76 @@ function add_symmetrize_sliders(){
     parent.addControl(slider);
   }
 
+  addSlider(panel, "blendForce", "blend force", 1, 3, 0, 24, .001, function(value){ glo.params.blender.force = value; });
   addSlider(panel, "symmetrizeX", "symmetrize X", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeX = value; });
   addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeY = value; });
   addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
   addSlider(panel, "checkerboard", "Checkerboard", 0, 1, 0, 24, .5, function(value){ glo.params.checkerboard = value; });
+}
+
+function add_blender_sliders(){
+  var panel = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right seventh noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 32, pR: 0.5});
+  glo.advancedTexture.addControl(panel);
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right seventh noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, color: '#003399', background: 'grey'};
+    parmamControl(slider, name, 'slider right seventh', options, true);
+
+    slider.onValueChangedObservable.add(async function(value) {
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        slider.lastValue = value;
+
+        event(value);
+
+        getPathsInfos();
+
+        if(!glo.normalMode){  make_curves(); }
+        else{
+          glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
+        }
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        slider.value = 0;
+        getPathsInfos();
+        if(!glo.normalMode){  make_curves(); }
+        else{
+          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+        }
+      }
+    });
+
+    slider.onWheelObservable.add(function (e) {
+      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+    });
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  addSlider(panel, "blenderUX", "U blend X", 0, 2, 0, 24, .01, function(value){ glo.params.blender.u.x = value; });
+  addSlider(panel, "blenderUY", "U blend Y", 0, 2, 0, 24, .01, function(value){ glo.params.blender.u.y = value; });
+  addSlider(panel, "blenderUZ", "U blend Z", 0, 2, 0, 24, .01, function(value){ glo.params.blender.u.z = value; });
+  addSlider(panel, "blenderVX", "V blend X", 0, 2, 0, 24, .01, function(value){ glo.params.blender.v.x = value; });
+  addSlider(panel, "blenderVY", "V blend Y", 0, 2, 0, 24, .01, function(value){ glo.params.blender.v.y = value; });
+  addSlider(panel, "blenderVZ", "V blend Z", 0, 2, 0, 24, .01, function(value){ glo.params.blender.v.z = value; });
+  addSlider(panel, "blenderOX", "O blend X", 0, 2, 0, 24, .01, function(value){ glo.params.blender.O.x = value; });
+  addSlider(panel, "blenderOY", "O blend Y", 0, 2, 0, 24, .01, function(value){ glo.params.blender.O.y = value; });
+  addSlider(panel, "blenderOZ", "O blend Z", 0, 2, 0, 24, .01, function(value){ glo.params.blender.O.z = value; });
+  addSlider(panel, "blenderCUX", "CU blend X", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cu.x = value; });
+  addSlider(panel, "blenderCUY", "CU blend Y", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cu.y = value; });
+  addSlider(panel, "blenderCUZ", "CU blend Z", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cu.z = value; });
+  addSlider(panel, "blenderCVX", "CV blend X", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cv.x = value; });
+  addSlider(panel, "blenderCVY", "CV blend Y", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cv.y = value; });
+  addSlider(panel, "blenderCVZ", "CV blend Z", 0, 2, 0, 24, .01, function(value){ glo.params.blender.cv.z = value; });
 }
 
 function add_sixth_panel_sliders(){

@@ -259,9 +259,9 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); x += x2; }
-			if(isY){ const y2 = eval(f2.y); y += y2; }
-			if(isZ){ const z2 = eval(f2.z); z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z *= z2; }
 
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
@@ -273,6 +273,8 @@ f = {
 			beta2  = eval(f2.beta);
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
+
+			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -330,9 +332,9 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); x += x2; }
-			if(isY){ const y2 = eval(f2.y); y += y2; }
-			if(isZ){ const z2 = eval(f2.z); z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z *= z2; }
 
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
@@ -344,6 +346,8 @@ f = {
 			beta2  = eval(f2.beta);
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
+
+			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -775,9 +779,9 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta2  = eval(f.beta2);
@@ -788,6 +792,8 @@ f = {
 
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha2, beta2, 0);
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
+
+			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -861,9 +867,9 @@ f = {
 				var µ$T = µT*$T; var $µT = µT+$T;
 				var µµT = µ$T*$µT;
 
-				if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-				if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-				if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 				alpha2 = eval(f.alpha2);
 				beta2  = eval(f.beta2);
@@ -874,6 +880,8 @@ f = {
 
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha2, beta2, 0);
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
+
+				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 				if(glo.additiveSurface){
 					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1085,9 +1093,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 			alpha = eval(f2.alpha);
 			beta  = eval(f2.beta);
@@ -1097,6 +1105,8 @@ f2 = {
 			if(theta == Infinity || theta == -Infinity){ theta = 0; }
 			let rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1168,9 +1178,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 			alpha = eval(f2.alpha);
 			beta  = eval(f2.beta);
@@ -1180,6 +1190,8 @@ f2 = {
 			if(theta == Infinity || theta == -Infinity){ theta = 0; }
 			let rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1396,9 +1408,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta   = eval(f2.beta);
@@ -1413,6 +1425,8 @@ f2 = {
 			if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
 			rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha3, 0, 0);
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1488,9 +1502,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); pos.x += x2; }
-			if(isY){ const y2 = eval(f2.y); pos.y += y2; }
-			if(isZ){ const z2 = eval(f2.z); pos.z += z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta   = eval(f2.beta);
@@ -1505,6 +1519,8 @@ f2 = {
 			if(alpha3 == Infinity || alpha3 == -Infinity){ alpha3 = 0; }
 			rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(alpha3, 0, 0);
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+
+			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1746,6 +1762,8 @@ f = {
 						x = pos.x; y = pos.y; z = pos.z;
 					}
 
+					var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
 					if(n_dim%2==0 || glo.stepByStepFast){
@@ -1842,6 +1860,8 @@ f = {
 						pos = rotateByMatrix(pos, 0, alpha, 0);
 					}
 
+					pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+
 					var new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 					var line = BABYLON.MeshBuilder.CreateLines("line_rot" + index_u, {points: [p1_first, new_p2], updatable: false}, glo.scene);
 					line.color = color_line;
@@ -1899,6 +1919,8 @@ f = {
 							x = pos.x; y = pos.y; z = pos.z;
 						}
 
+						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
 						if(n%2==0 || glo.stepByStepFast){
@@ -1947,6 +1969,8 @@ f = {
 						var $T = (xT+yT+zT)/3;
 						var µ$T = µT*$T; var $µT = µT+$T;
 						var µµT = µ$T*$µT;
+
+						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 	
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -2162,10 +2186,16 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/supv|svpu/g,"sin(u+v)");
 			f[prop] = f[prop].replace(/sumv/g,"sin(u-v)");
 			f[prop] = f[prop].replace(/svmu/g,"sin(v-u)");
-			f[prop] = f[prop].replace(/cu/g,"cos(u)");
-			f[prop] = f[prop].replace(/cv/g,"cos(v)");
-			f[prop] = f[prop].replace(/su/g,"sin(u)");
-			f[prop] = f[prop].replace(/sv/g,"sin(v)");
+			f[prop] = f[prop].replace(/c([^u\(v]*)u/g, "cos($1u)");
+			f[prop] = f[prop].replace(/c([^v\(u]*)v/g, "cos($1v)");
+			f[prop] = f[prop].replace(/s([^u\(v]*)u/g, "sin($1u)");
+			f[prop] = f[prop].replace(/s([^v\(u]*)v/g, "sin($1v)");
+			f[prop] = f[prop].replace(/c([^x\(]*)x/g, "cos($1x)");
+			f[prop] = f[prop].replace(/c([^y\(]*)y/g, "cos($1y)");
+			f[prop] = f[prop].replace(/c([^z\(]*)z/g, "cos($1z)");
+			f[prop] = f[prop].replace(/s([^x\(]*)x/g, "sin($1x)");
+			f[prop] = f[prop].replace(/s([^y\(]*)y/g, "sin($1y)");
+			f[prop] = f[prop].replace(/s([^z\(]*)z/g, "sin($1z)");
 			f[prop] = f[prop].replace(/²/g,"**2");
 			f[prop] = f[prop].replace(/³/g,"**3");
 			f[prop] = f[prop].replace(/uu([^,%*+-/)])/g, 'uu*$1');
@@ -3093,6 +3123,7 @@ function switchRightPanel(normalSens = true){
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
 		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(false, 'seventh');
 		  toggle_gui_controls_for_switch(true);
 		break;
 		case "second":
@@ -3101,6 +3132,7 @@ function switchRightPanel(normalSens = true){
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
 		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(false, 'seventh');
 		  toggle_gui_controls_suit(true);
 		break;
 		case "third":
@@ -3109,7 +3141,8 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(true);
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(false, 'sixth'); 
+		  toggleGuiControlsByClass(false, 'seventh'); 
 		break;
 		case "fourth":
 		  toggle_gui_controls_for_switch(false);
@@ -3117,7 +3150,8 @@ function switchRightPanel(normalSens = true){
 		  toggle_gui_controls_third(false);
 		  toggleGuiControlsByClass(false, 'fifth');
 		  toggleGuiControlsByClass(true, 'fourth');
-		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(false, 'sixth'); 
+		  toggleGuiControlsByClass(false, 'seventh'); 
 		break;
 		case "fifth":
 		  toggle_gui_controls_for_switch(false);
@@ -3126,6 +3160,7 @@ function switchRightPanel(normalSens = true){
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(true, 'fifth');
 		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(false, 'seventh');
 		break;
 		case "sixth":
 		  toggle_gui_controls_for_switch(false);
@@ -3134,6 +3169,16 @@ function switchRightPanel(normalSens = true){
 		  toggleGuiControlsByClass(false, 'fourth');
 		  toggleGuiControlsByClass(false, 'fifth');
 		  toggleGuiControlsByClass(true, 'sixth');
+		  toggleGuiControlsByClass(false, 'seventh');
+		break;
+		case "seventh":
+		  toggle_gui_controls_for_switch(false);
+		  toggle_gui_controls_suit(false);
+		  toggle_gui_controls_third(false);
+		  toggleGuiControlsByClass(false, 'fourth');
+		  toggleGuiControlsByClass(false, 'fifth');
+		  toggleGuiControlsByClass(false, 'sixth');
+		  toggleGuiControlsByClass(true, 'seventh');
 		break;
 	}
 }
@@ -5278,6 +5323,39 @@ async function inverseMeshGeometry(){
 	makeLineSystem();
 }
 
+async function negativeMeshGeometry(axis){
+	let curvesPathsSave = [...glo.curves.paths];
+
+	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
+
+	let newCurves           = [];
+	glo.curves.linesSystems = [];
+	newCurves = [];
+	curvesPathsSave.forEach((line, i) => {
+		newCurves[i] = [];
+		line.forEach(path => {
+			switch(axis){
+				case "x":
+					newCurves[i].push(new BABYLON.Vector3(-path.x, -path.y, path.z));
+				break;
+				case "y":
+					newCurves[i].push(new BABYLON.Vector3(path.x, -path.y, -path.z));
+				break;
+				case "z":
+					newCurves[i].push(new BABYLON.Vector3(-path.x, path.y, -path.z));
+				break;
+			}
+		});
+	});
+	
+	glo.curves.paths = newCurves;
+	glo.lines = glo.curves.paths;
+
+	if(!glo.normalMode){ make_ribbon(); }
+    else{ drawNormalEquations(); }
+	makeLineSystem();
+}
+
 function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
 	disposeAllMaterials();
 
@@ -5509,8 +5587,8 @@ BABYLON.Mesh.prototype.moyPosToOrigin = function() {
 	transformMesh('position', 'z', -moyPos.z);
 };
 
-function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem){
-	if(transformKind === 'scaling'){ value = scaleNoSignToSign(value); }
+function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem, noSignToSign = true){
+	if(transformKind === 'scaling' && noSignToSign){ value = scaleNoSignToSign(value); }
 	mesh[transformKind][axis] = value;
 	if(lines){ lines[transformKind][axis] = value; }
 }
@@ -5538,4 +5616,23 @@ function applyTransformations(){
 	transformationsAxis.forEach(transformationsAxis => {
 		if(glo.params[transformationsAxis.name]){ transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name]); }
 	});
+}
+
+function blendPos(x, y, z, variable, val, coeff = 0.01){
+	val*=coeff*glo.params.blender.force;
+	if(glo.params.blender[variable].x || glo.params.blender[variable].y || glo.params.blender[variable].z){
+		var {x, y, z} = rotateByBabylonMatrix({x, y, z}, val * glo.params.blender[variable].x, val * glo.params.blender[variable].y, val * glo.params.blender[variable].z);
+	}
+
+	return {x, y, z};
+}
+
+function blendPosAll(x, y, z, u, v, O, cosu, cosv){
+	var {x, y, z} = blendPos(x, y, z, 'u', u);
+	var {x, y, z} = blendPos(x, y, z, 'v', v);
+	var {x, y, z} = blendPos(x, y, z, 'O', O, 0.1);
+	var {x, y, z} = blendPos(x, y, z, 'cu', cosu, 0.1);
+	var {x, y, z} = blendPos(x, y, z, 'cv', cosv, 0.1);
+
+	return {x, y, z};
 }

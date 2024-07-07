@@ -65,7 +65,7 @@ var glo = {
 			{text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "6u", fy: "pi/4", fz: "u+v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
 			{text: "Spiral penta curve", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 5,  fx: "6u", fy: "pi/4", fz: "2(u+v)", alpha: "a(u/(3+2/3))+pi/(2**0.5)", check: false, orient: {axis: "X", direction: 1, alpha: 3.5*PI/4, beta: 0}},
 			{text: "Twisted weathercock", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "pi+c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "u/1.1", check: false, orient: {axis: "X", direction: -1, alpha: PI, beta: -PI/12, distance: 20}},
-			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256, fx: "4u", fy: "v", fz: "6.3cv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0}},
+			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256, fx: "4u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0}},
 			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "12c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,  orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
 			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "5", fy: "v", fz: "5u", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/12}},
 			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "us(fact(v))", fz: "6ucvs(60u)", check: false, orient: {axis: "Z", direction: -1, alpha: PI/8, beta: -PI/16, distance: 300}},
@@ -289,7 +289,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'fifth', 'sixth', 'main', 'second', 'third'];
+	  var tab = ['fourth', 'fifth', 'sixth', 'seventh', 'main', 'second', 'third'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -677,6 +677,24 @@ var glo = {
 			text_input_z: "",
 			text_input_alpha: "",
 			text_input_beta: "",
+		},
+		blender: {
+			force: 1,
+			u:{
+				x: 0, y: 0, z: 0,
+			},
+			v:{
+				x: 0, y: 0, z: 0,
+			},
+			O:{
+				x: 0, y: 0, z: 0,
+			},
+			cu:{
+				x: 0, y: 0, z: 0,
+			},
+			cv:{
+				x: 0, y: 0, z: 0,
+			},
 		},
 	},
 	tubes: {

@@ -259,9 +259,9 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
@@ -275,6 +275,7 @@ f = {
 			x = pos.x; y = pos.y; z = pos.z;
 
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+			var {x, y, z} = functionIt(x, y, z);
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -332,9 +333,9 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
@@ -348,6 +349,7 @@ f = {
 			x = pos.x; y = pos.y; z = pos.z;
 
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+			var {x, y, z} = functionIt(x, y, z);
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -371,6 +373,14 @@ f = {
 	this.lineSystem.alphaIndex = 999;
 	this.lineSystem.visibility = line_visible;*/
   }
+}
+
+function functionIt(x, y, z){
+	x = glo.params.functionIt.cpow.x > ep || glo.params.functionIt.cpow.x < -ep ? cpow(x, glo.params.functionIt.cpow.x) : x;
+	y = glo.params.functionIt.cpow.y > ep || glo.params.functionIt.cpow.y < -ep? cpow(y, glo.params.functionIt.cpow.y) : y;
+	z = glo.params.functionIt.cpow.z > ep || glo.params.functionIt.cpow.z < -ep? cpow(z, glo.params.functionIt.cpow.z) : z;
+	
+	return {x, y, z};
 }
 
 // Fonction pour obtenir un vecteur normal (perpendiculaire) à un vecteur donné
@@ -606,12 +616,6 @@ function drawNormalEquations(symmetrize = false){
 			if(glo.closeFirstWithLastPath){ glo.curves.pathsSecond.push(glo.curves.pathsSecond[0]); }
 
 			glo.lines = glo.curves.pathsSecond;
-
-			/*glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: glo.curves.pathsSecond, }, glo.scene);
-			glo.curves.lineSystem.color = glo.lineColor;
-			glo.curves.lineSystem.alpha = glo.ribbon_alpha;
-			glo.curves.lineSystem.alphaIndex = 999;
-			glo.curves.lineSystem.visibility = line_visible;*/
 		}
 		make_ribbon(symmetrize);
 	}
@@ -779,9 +783,9 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta2  = eval(f.beta2);
@@ -794,6 +798,7 @@ f = {
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+			pos = functionIt(pos.x, pos.y, pos.z);
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -867,9 +872,9 @@ f = {
 				var µ$T = µT*$T; var $µT = µT+$T;
 				var µµT = µ$T*$µT;
 
-				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 				alpha2 = eval(f.alpha2);
 				beta2  = eval(f.beta2);
@@ -882,6 +887,7 @@ f = {
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+				pos = functionIt(pos.x, pos.y, pos.z);
 
 				if(glo.additiveSurface){
 					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -901,12 +907,6 @@ f = {
 		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 
 		glo.lines = this.paths;
-
-		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-		this.lineSystem.color = glo.lineColor;
-		this.lineSystem.alpha = glo.ribbon_alpha;
-		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;*/
   }
 }
 function CurvesByQuaternion(parametres = {
@@ -1093,9 +1093,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 			alpha = eval(f2.alpha);
 			beta  = eval(f2.beta);
@@ -1107,6 +1107,7 @@ f2 = {
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+			pos = functionIt(pos.x, pos.y, pos.z);
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1178,9 +1179,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 			alpha = eval(f2.alpha);
 			beta  = eval(f2.beta);
@@ -1192,6 +1193,7 @@ f2 = {
 			pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+			pos = functionIt(pos.x, pos.y, pos.z);
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1408,9 +1410,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta   = eval(f2.beta);
@@ -1427,6 +1429,7 @@ f2 = {
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+			pos = functionIt(pos.x, pos.y, pos.z);
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1502,9 +1505,9 @@ f2 = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x *= x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y *= y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z *= z2; }
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
 			alpha2 = eval(f.alpha2);
 			beta   = eval(f2.beta);
@@ -1521,6 +1524,7 @@ f2 = {
 			pos             = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+			pos = functionIt(pos.x, pos.y, pos.z);
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1763,6 +1767,7 @@ f = {
 					}
 
 					var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+					var {x, y, z} = functionIt(x, y, z);
 
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
@@ -1861,6 +1866,7 @@ f = {
 					}
 
 					pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+					pos = functionIt(pos.x, pos.y, pos.z);
 
 					var new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 					var line = BABYLON.MeshBuilder.CreateLines("line_rot" + index_u, {points: [p1_first, new_p2], updatable: false}, glo.scene);
@@ -1920,6 +1926,7 @@ f = {
 						}
 
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+						var {x, y, z} = functionIt(x, y, z);
 
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -1971,6 +1978,7 @@ f = {
 						var µµT = µ$T*$µT;
 
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+						var {x, y, z} = functionIt(x, y, z);
 	
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -3116,71 +3124,14 @@ function switchRightPanel(normalSens = true){
 		while(glo.switchGuiSelect.next().value !== nextPanel){}
 	}
 
-	switch(glo.guiSelect){
-		case "main":
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth');
-		  toggleGuiControlsByClass(false, 'seventh');
-		  toggle_gui_controls_for_switch(true);
-		break;
-		case "second":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth');
-		  toggleGuiControlsByClass(false, 'seventh');
-		  toggle_gui_controls_suit(true);
-		break;
-		case "third":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(true);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth'); 
-		  toggleGuiControlsByClass(false, 'seventh'); 
-		break;
-		case "fourth":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(true, 'fourth');
-		  toggleGuiControlsByClass(false, 'sixth'); 
-		  toggleGuiControlsByClass(false, 'seventh'); 
-		break;
-		case "fifth":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(true, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth');
-		  toggleGuiControlsByClass(false, 'seventh');
-		break;
-		case "sixth":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(true, 'sixth');
-		  toggleGuiControlsByClass(false, 'seventh');
-		break;
-		case "seventh":
-		  toggle_gui_controls_for_switch(false);
-		  toggle_gui_controls_suit(false);
-		  toggle_gui_controls_third(false);
-		  toggleGuiControlsByClass(false, 'fourth');
-		  toggleGuiControlsByClass(false, 'fifth');
-		  toggleGuiControlsByClass(false, 'sixth');
-		  toggleGuiControlsByClass(true, 'seventh');
-		break;
-	}
+	toggleRightPanels(glo.guiSelect);
+}
+
+function toggleRightPanels(rightPanelToShowClass, toShow = true){
+	glo.rightPanelsClasses
+		.filter(rightPanelClass => toShow ? (rightPanelClass !== rightPanelToShowClass) : (1 === 1))
+		.forEach(rightPanelClass => toggleGuiControlsByClass(false, rightPanelClass));
+	if(toShow){ toggleGuiControlsByClass(true, rightPanelToShowClass); }
 }
 
 function make_planes(){

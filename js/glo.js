@@ -22,11 +22,12 @@ const e  = Math.E;
 const Z = (1+Math.sqrt(5))*0.5;
 var glo = {
 	formes:{
+		selected:['Torus', 'cartesian'],
 		select:[
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 75}},
 			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cu", fy: "5cv", fz: "5cupv", check: false, },
 			{text: "Dbl spiral", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 128, fx: "sinh(v)su", fy: "3u", fz: "-sinh(v)cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
-			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: true, },
+			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: false, },
 			{text: "Hyperbola", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cu", fy: "3v", fz: "6cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
 			{text: "Hyperbola loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "cusu", beta:"cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
 			{text: "Hyperbola twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", beta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
@@ -35,7 +36,7 @@ var glo = {
 			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, },
 			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "u", fy: "v", fz: "uv", check: false, orient:{distance: 40}},
 			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 30}},
-			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", check: false, },
+			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "(cv + 20)cu", fy: "(cv + 20)su", fz: "sv", check: true, },
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", alpha: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
 			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)s(u+xTyT)", fz: "7sv", check: false, },
 			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "Gcv", beta:"Gcv", check: false, },
@@ -289,7 +290,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'fifth', 'sixth', 'seventh', 'main', 'second', 'third'];
+	  var tab = ['fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'onlyMainGui', 'second', 'third'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -696,6 +697,9 @@ var glo = {
 				x: 0, y: 0, z: 0,
 			},
 		},
+		functionIt:{
+			cpow:{x: 0, y: 0, z: 0},
+		}
 	},
 	tubes: {
 		radius: 0.1,
@@ -784,6 +788,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
+	rightPanelsClasses: ['fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'onlyMainGui', 'second', 'third'],
 };
 function getByName(name){
 	var elemToReturn = false;

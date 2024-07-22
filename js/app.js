@@ -379,6 +379,10 @@ function functionIt(x, y, z){
 	x = glo.params.functionIt.cpow.x > ep || glo.params.functionIt.cpow.x < -ep ? cpow(x, glo.params.functionIt.cpow.x) : x;
 	y = glo.params.functionIt.cpow.y > ep || glo.params.functionIt.cpow.y < -ep? cpow(y, glo.params.functionIt.cpow.y) : y;
 	z = glo.params.functionIt.cpow.z > ep || glo.params.functionIt.cpow.z < -ep? cpow(z, glo.params.functionIt.cpow.z) : z;
+
+	x = glo.params.functionIt.cpow.toZero.x ? cpow(x, 0) : x;
+	y = glo.params.functionIt.cpow.toZero.y ? cpow(y, 0) : y;
+	z = glo.params.functionIt.cpow.toZero.z ? cpow(z, 0) : z;
 	
 	return {x, y, z};
 }

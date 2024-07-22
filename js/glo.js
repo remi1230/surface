@@ -698,7 +698,7 @@ var glo = {
 			},
 		},
 		functionIt:{
-			cpow:{x: 0, y: 0, z: 0},
+			cpow:{x: 0, y: 0, z: 0, toZero: {x: false, y: false, z: false}},
 		}
 	},
 	tubes: {

@@ -1119,9 +1119,12 @@ function add_blender_sliders(){
 }
 
 function add_functionIt_sliders(){
-  var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 30.5, pR: 0.5});
+  var panel        = new BABYLON.GUI.StackPanel();
+  var panelButtons = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'paramFunctionItSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 30.5, pR: 0.5});
+  parmamControl(panelButtons, 'paramFunctionItButtonsPanel', 'panel right eighth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', h: 9, w: 20, t: 43, pL: 3, pR: 0.5});
   glo.advancedTexture.addControl(panel);
+  glo.advancedTexture.addControl(panelButtons);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1165,9 +1168,29 @@ function add_functionIt_sliders(){
     parent.addControl(slider);
   }
 
+  function add_button(panel, name, text, width, height, paddingLeft, paddingRight, eventLeftOrRight){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button left first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+        eventLeftOrRight();
+
+        getPathsInfos();
+        if(!glo.normalMode){  make_curves(); }
+        else{
+          glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
+        }
+    });
+    panel.addControl(button);
+  }
+
   addSlider(panel, "cpowX", "Cpow X", 0, 2, -2, 4, .01, function(value){ glo.params.functionIt.cpow.x = value; });
   addSlider(panel, "cpowY", "Cpow Y", 0, 2, -2, 4, .01, function(value){ glo.params.functionIt.cpow.y = value; });
   addSlider(panel, "cpowZ", "Cpow Z", 0, 2, -2, 4, .01, function(value){ glo.params.functionIt.cpow.z = value; });
+
+  add_button(panelButtons, "cpowXToZero", "Cpow X To 0", 80, 45, 5, 5, function(){ glo.params.functionIt.cpow.toZero.x = !glo.params.functionIt.cpow.toZero.x; });
+  add_button(panelButtons, "cpowYToZero", "Cpow Y To 0", 80, 45, 5, 5, function(){ glo.params.functionIt.cpow.toZero.y = !glo.params.functionIt.cpow.toZero.y; });
+  add_button(panelButtons, "cpowZToZero", "Cpow Z To 0", 80, 45, 5, 5, function(){ glo.params.functionIt.cpow.toZero.z = !glo.params.functionIt.cpow.toZero.z; });
 }
 
 function add_sixth_panel_sliders(){

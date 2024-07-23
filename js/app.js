@@ -376,13 +376,27 @@ f = {
 }
 
 function functionIt(x, y, z){
-	x = glo.params.functionIt.cpow.x > ep || glo.params.functionIt.cpow.x < -ep ? cpow(x, glo.params.functionIt.cpow.x) : x;
-	y = glo.params.functionIt.cpow.y > ep || glo.params.functionIt.cpow.y < -ep? cpow(y, glo.params.functionIt.cpow.y) : y;
-	z = glo.params.functionIt.cpow.z > ep || glo.params.functionIt.cpow.z < -ep? cpow(z, glo.params.functionIt.cpow.z) : z;
+	const cpowX = glo.params.functionIt.cpow.x;
+	const cpowY = glo.params.functionIt.cpow.y;
+	const cpowZ = glo.params.functionIt.cpow.z;
+	const sinX  = glo.params.functionIt.sin.x;
+	const sinnX = glo.params.functionIt.sin.nx;
+	const sinY  = glo.params.functionIt.sin.y;
+	const sinnY = glo.params.functionIt.sin.ny;
+	const sinZ  = glo.params.functionIt.sin.z;
+	const sinnZ = glo.params.functionIt.sin.nz;
+
+	x = cpowX > ep || cpowX < -ep ? cpow(x, cpowX) : x;
+	y = cpowY > ep || cpowY < -ep ? cpow(y, cpowY) : y;
+	z = cpowZ > ep || cpowZ < -ep ? cpow(z, cpowZ) : z;
 
 	x = glo.params.functionIt.cpow.toZero.x ? cpow(x, 0) : x;
 	y = glo.params.functionIt.cpow.toZero.y ? cpow(y, 0) : y;
 	z = glo.params.functionIt.cpow.toZero.z ? cpow(z, 0) : z;
+
+	x = sinX > ep || sinX < -ep ? x + sin(sinnX * x) * sinX : x;
+	y = sinY > ep || sinY < -ep ? y + sin(sinnY * y) * sinY : y;
+	z = sinZ > ep || sinZ < -ep ? z + sin(sinnZ * z) * sinZ : z;
 	
 	return {x, y, z};
 }

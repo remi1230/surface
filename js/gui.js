@@ -1122,7 +1122,7 @@ function add_functionIt_sliders(){
   var panel        = new BABYLON.GUI.StackPanel();
   var panelButtons = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramFunctionItSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 30.5, pR: 0.5});
-  parmamControl(panelButtons, 'paramFunctionItButtonsPanel', 'panel right eighth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', h: 9, w: 20, t: 75, pL: 3, pR: 0.5});
+  parmamControl(panelButtons, 'paramFunctionItButtonsPanel', 'panel right eighth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', h: 9, w: 20, t: 81, pL: 3, pR: 0.5});
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelButtons);
 
@@ -1193,6 +1193,9 @@ function add_functionIt_sliders(){
   addSlider(panel, "snY", "Sin nY", 0, 2, -8, 8, .01, function(value){ glo.params.functionIt.sin.ny = value; });
   addSlider(panel, "sZ", "Sin Z", 0, 2, -8, 8, .01, function(value){ glo.params.functionIt.sin.z = value; });
   addSlider(panel, "snZ", "Sin nZ", 0, 2, -8, 8, .01, function(value){ glo.params.functionIt.sin.nz = value; });
+  addSlider(panel, "rotateLineAlpha", "Rot Line Alpha", 0, 2, -PI, PI, .01, function(value){ glo.params.functionIt.rotLine.alpha = value; });
+  addSlider(panel, "rotateLineBeta", "Rot Line Bêta", 0, 2, -PI, PI, .01, function(value){ glo.params.functionIt.rotLine.beta = value; });
+  addSlider(panel, "rotateLineTheta", "Rot Line Thêta", 0, 2, -PI, PI, .01, function(value){ glo.params.functionIt.rotLine.theta = value; });
 
   add_button(panelButtons, "cpowXToZero", "Cpow X To 0", 80, 45, 5, 5, function(){ glo.params.functionIt.cpow.toZero.x = !glo.params.functionIt.cpow.toZero.x; });
   add_button(panelButtons, "cpowYToZero", "Cpow Y To 0", 80, 45, 5, 5, function(){ glo.params.functionIt.cpow.toZero.y = !glo.params.functionIt.cpow.toZero.y; });

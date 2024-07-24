@@ -104,6 +104,30 @@ function rotateByBabylonMatrix(pos, alpha, beta, theta){
 	return pos;
 }
 
+function rotateOnCenterByBabylonMatrix(pos, alpha, beta, theta, center) {
+    if (alpha || beta || theta) {
+        if (alpha == Infinity || alpha == -Infinity || isNaN(alpha)) { alpha = 0; }
+        if (beta == Infinity || beta == -Infinity || isNaN(beta)) { beta = 0; }
+        if (theta == Infinity || theta == -Infinity || isNaN(theta)) { theta = 0; }
+        
+        // Définir le centre de rotation
+        center = center || new BABYLON.Vector3(0, 0, 0);
+
+        // Convertir la position en relation avec le centre de rotation
+        let relativePos = pos.subtract(center);
+
+        // Créer la matrice de rotation
+        let rotationMatrix = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
+
+        // Appliquer la rotation à la position relative
+        let rotatedRelativePos = BABYLON.Vector3.TransformCoordinates(relativePos, rotationMatrix);
+
+        // Revenir aux coordonnées absolues
+        pos = rotatedRelativePos.add(center);
+    }
+    return pos;
+}
+
 function Curves(parametres = {
 	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
 	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
@@ -220,6 +244,8 @@ f = {
 	var isX = glo.params.text_input_suit_x != "" ? true : false;
 	var isY = glo.params.text_input_suit_y != "" ? true : false;
 	var isZ = glo.params.text_input_suit_z != "" ? true : false;
+
+	var v = 0;
 
 	var n = 0;
 	var line_visible = glo.lines_visible;
@@ -384,7 +410,7 @@ function functionIt(x, y, z){
 	const sinY  = glo.params.functionIt.sin.y;
 	const sinnY = glo.params.functionIt.sin.ny;
 	const sinZ  = glo.params.functionIt.sin.z;
-	const sinnZ = glo.params.functionIt.sin.nz;
+	const sinnZ = glo.params.functionIt.sin.nz;              
 
 	x = cpowX > ep || cpowX < -ep ? cpow(x, cpowX) : x;
 	y = cpowY > ep || cpowY < -ep ? cpow(y, cpowY) : y;
@@ -2328,6 +2354,8 @@ async function make_curves(u_params = {
 		else if(glo.coordsType == 'quaternionRotAxis'){ glo.curves = new CurvesByQuaternionRotAxis(); }
 		else if(glo.coordsType == 'cartesian'){ glo.curves = new Curves(); }
 		else{ glo.curves = new CurvesByRot(); }
+
+		await rotatePathsByEachCenter();
 
 		await make_ribbon();
 
@@ -5323,6 +5351,45 @@ async function negativeMeshGeometry(axis){
 	if(!glo.normalMode){ make_ribbon(); }
     else{ drawNormalEquations(); }
 	makeLineSystem();
+}
+
+async function rotatePathsByEachCenter(alpha = glo.params.functionIt.rotLine.alpha, beta = glo.params.functionIt.rotLine.beta, theta = glo.params.functionIt.rotLine.theta){
+	if(alpha || beta || theta){
+		let curvesPathsSave = [...glo.curves.paths];
+
+		if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
+
+		let newCurves           = [];
+		glo.curves.linesSystems = [];
+		newCurves = [];
+		curvesPathsSave.forEach((line, i) => {
+			const center = getCenterOfPaths(line);
+			line.forEach((path, i) => {
+				path    = rotateOnCenterByBabylonMatrix(path, alpha, beta, theta, center);
+				line[i] = path;
+			});
+			newCurves[i] = line;
+		});
+		
+		glo.curves.paths = newCurves;
+		glo.lines        = glo.curves.paths;
+	}
+}
+
+function getCenterOfPaths(paths){
+	const pathsLength = paths.length;
+	let center = {x: 0, y: 0, z: 0};
+	paths.forEach(path => {
+		center.x += path.x;
+		center.y += path.y;
+		center.z += path.z;
+	});
+
+	center.x/=pathsLength;
+	center.y/=pathsLength;
+	center.z/=pathsLength;
+
+	return new BABYLON.Vector3(center.x, center.y, center.z);
 }
 
 function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){

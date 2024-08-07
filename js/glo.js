@@ -698,9 +698,11 @@ var glo = {
 			},
 		},
 		functionIt:{
-			cpow:{x: 0, y: 0, z: 0, toZero: {x: false, y: false, z: false}},
+			cpow:{x: 1, y: 1, z: 1, toZero: {x: false, y: false, z: false}},
 			sin:{x: 0, y: 0, z: 0, nx: 1, ny: 1, nz: 1, toZero: {x: false, y: false, z: false}},
 			rotLine: {alpha: 0, beta: 0, theta: 0},
+			expend: 0,
+			flat: {x: {up: 100, bottom: 100}, y: {up: 100, bottom: 100}, z: {up: 100, bottom: 100}}, 
 		}
 	},
 	tubes: {

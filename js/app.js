@@ -300,15 +300,23 @@ f = {
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
 
-
-			/*let inputSymREq = {fx: glo.input_sym_r.text};
-	        if(glo.input_sym_r.text){
-		    	reg(inputSymREq, glo.dim_one);
-			}
-
-			var {x, y, z} = symmetrizeByR({x, y, z}, eval(inputSymREq.fx));*/
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 			var {x, y, z} = functionIt(x, y, z);
+			var {x, y, z} = invPos(x, y, z);
+			
+			var posByR = {x, y, z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			var {x, y, z} = posByR;
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -321,12 +329,6 @@ f = {
 		}
 
 		glo.lines = this.paths;
-
-		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-		this.lineSystem.color = glo.lineColor;
-		this.lineSystem.alpha = glo.ribbon_alpha;
-		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;*/
   }
   else {
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
@@ -381,14 +383,23 @@ f = {
 			pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, 0);
 			x = pos.x; y = pos.y; z = pos.z;
 
-			/*let inputSymREq = {fx: glo.input_sym_r.text};
-	        if(glo.input_sym_r.text){
-		    	reg(inputSymREq, glo.dim_one);
-			}
-
-			var {x, y, z} = symmetrizeByR({x, y, z}, eval(inputSymREq.fx));*/
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 			var {x, y, z} = functionIt(x, y, z);
+			var {x, y, z} = invPos(x, y, z);
+
+			var posByR = {x, y, z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			var {x, y, z} = posByR;
 
 			if(glo.additiveSurface){
 				x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
@@ -405,12 +416,6 @@ f = {
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 
 	glo.lines = this.paths;
-
-	/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-	this.lineSystem.color = glo.lineColor;
-	this.lineSystem.alpha = glo.ribbon_alpha;
-	this.lineSystem.alphaIndex = 999;
-	this.lineSystem.visibility = line_visible;*/
   }
 }
 
@@ -453,7 +458,9 @@ function flatRibbon(){
 			for (var i = 0; i < positions.length; i += 3) {
 				const newPosOnAxis = positions[i+axisNum];
 
-				if(newPosOnAxis < maxHeight){ positions[i+axisNum] = maxHeight; }
+				if(newPosOnAxis < maxHeight){
+					positions[i+axisNum] = maxHeight;
+				}
 			}
 		}
 		return positions;
@@ -470,12 +477,14 @@ function flatRibbon(){
 		mesh.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 		
 		// Optionnel : Recalculer les normales si nécessaire
-		mesh.updateIndices(mesh.getIndices());
+		//mesh.updateIndices(mesh.getIndices());
+		mesh.setIndices(mesh.getIndices());
 		mesh.computeWorldMatrix(true);
 		mesh.refreshBoundingInfo();
 		var normals = [];
 		BABYLON.VertexData.ComputeNormals(positions, mesh.getIndices(), normals);
-		mesh.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals);
+		//mesh.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals);
+		mesh.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals, true);
 
 		mesh.markAsDirtyAll();
 
@@ -902,6 +911,21 @@ f = {
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
+			pos = invPos(pos.x, pos.y, pos.z);
+
+			var posByR = {x: pos.x, y: pos.y, z: pos.z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			pos = posByR;
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -991,6 +1015,21 @@ f = {
 
 				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 				pos = functionIt(pos.x, pos.y, pos.z);
+				pos = invPos(pos.x, pos.y, pos.z);
+
+				var posByR = {x: pos.x, y: pos.y, z: pos.z};
+				const rInfos = glo.params.functionIt.r;
+				for(let variable in rInfos){
+					for(let prop in rInfos[variable]){
+						const val = rInfos[variable][prop].val;
+						if(val){
+							const nb = rInfos[variable][prop].nb;
+							const eq = prop + `(${nb}*${variable})`;
+							posByR = updateRibbonByR(posByR, val * eval(eq));
+						}
+					}
+				}
+				pos = posByR;
 
 				if(glo.additiveSurface){
 					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1115,8 +1154,7 @@ f2 = {
      f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
      f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
      f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
-     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1 || 
-	 f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
+     f.w.lastIndexOf('v') != -1 || f.w.lastIndexOf('V') != -1 ||
 	 f2.beta.lastIndexOf('v') != -1 || f2.beta.lastIndexOf('V') != -1 ||
 	 f2.theta.lastIndexOf('v') != -1 || f2.theta.lastIndexOf('V') != -1 ||
 	 f2.x.lastIndexOf('v') != -1 || f2.x.lastIndexOf('V') ||
@@ -1211,6 +1249,21 @@ f2 = {
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
+			pos = invPos(pos.x, pos.y, pos.z);
+
+			var posByR = {x: pos.x, y: pos.y, z: pos.z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			pos = posByR;
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1297,6 +1350,21 @@ f2 = {
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
+			pos = invPos(pos.x, pos.y, pos.z);
+
+			var posByR = {x: pos.x, y: pos.y, z: pos.z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			pos = posByR;
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1533,6 +1601,21 @@ f2 = {
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
+			pos = invPos(pos.x, pos.y, pos.z);
+
+			var posByR = {x: pos.x, y: pos.y, z: pos.z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			pos = posByR;
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1628,6 +1711,21 @@ f2 = {
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
+			pos = invPos(pos.x, pos.y, pos.z);
+
+			var posByR = {x: pos.x, y: pos.y, z: pos.z};
+			const rInfos = glo.params.functionIt.r;
+			for(let variable in rInfos){
+				for(let prop in rInfos[variable]){
+					const val = rInfos[variable][prop].val;
+					if(val){
+						const nb = rInfos[variable][prop].nb;
+						const eq = prop + `(${nb}*${variable})`;
+						posByR = updateRibbonByR(posByR, val * eval(eq));
+					}
+				}
+			}
+			pos = posByR;
 
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
@@ -1871,6 +1969,21 @@ f = {
 
 					var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 					var {x, y, z} = functionIt(x, y, z);
+					var {x, y, z} = invPos(x, y, z);
+
+					var posByR = {x, y, z};
+					const rInfos = glo.params.functionIt.r;
+					for(let variable in rInfos){
+						for(let prop in rInfos[variable]){
+							const val = rInfos[variable][prop].val;
+							if(val){
+								const nb = rInfos[variable][prop].nb;
+								const eq = prop + `(${nb}*${variable})`;
+								posByR = updateRibbonByR(posByR, val * eval(eq));
+							}
+						}
+					}
+					var {x, y, z} = posByR;
 
 					path.push(new BABYLON.Vector3(x, y, z));
 					paths.push(new BABYLON.Vector3(x, y, z));
@@ -1970,6 +2083,21 @@ f = {
 
 					pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 					pos = functionIt(pos.x, pos.y, pos.z);
+					pos = invPos(pos.x, pos.y, pos.z);
+
+					var posByR = {x: pos.x, y: pos.y, z: pos.z};
+					const rInfos = glo.params.functionIt.r;
+					for(let variable in rInfos){
+						for(let prop in rInfos[variable]){
+							const val = rInfos[variable][prop].val;
+							if(val){
+								const nb = rInfos[variable][prop].nb;
+								const eq = prop + `(${nb}*${variable})`;
+								posByR = updateRibbonByR(posByR, val * eval(eq));
+							}
+						}
+					}
+					pos = posByR;
 
 					var new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 					var line = BABYLON.MeshBuilder.CreateLines("line_rot" + index_u, {points: [p1_first, new_p2], updatable: false}, glo.scene);
@@ -2030,6 +2158,21 @@ f = {
 
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 						var {x, y, z} = functionIt(x, y, z);
+						var {x, y, z} = invPos(x, y, z);
+
+						var posByR = {x, y, z};
+						const rInfos = glo.params.functionIt.r;
+						for(let variable in rInfos){
+							for(let prop in rInfos[variable]){
+								const val = rInfos[variable][prop].val;
+								if(val){
+									const nb = rInfos[variable][prop].nb;
+									const eq = prop + `(${nb}*${variable})`;
+									posByR = updateRibbonByR(posByR, val * eval(eq));
+								}
+							}
+						}
+						var {x, y, z} = posByR;
 
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -2082,6 +2225,21 @@ f = {
 
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 						var {x, y, z} = functionIt(x, y, z);
+						var {x, y, z} = invPos(x, y, z);
+
+						var posByR = {x, y, z};
+						const rInfos = glo.params.functionIt.r;
+						for(let variable in rInfos){
+							for(let prop in rInfos[variable]){
+								const val = rInfos[variable][prop].val;
+								if(val){
+									const nb = rInfos[variable][prop].nb;
+									const eq = prop + `(${nb}*${variable})`;
+									posByR = updateRibbonByR(posByR, val * eval(eq));
+								}
+							}
+						}
+						var {x, y, z} = posByR;
 	
 						path.push(new BABYLON.Vector3(x, y, z));
 						paths.push(new BABYLON.Vector3(x, y, z));
@@ -2130,6 +2288,25 @@ f = {
 							if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
 							pos = rotateByMatrix(pos, 0, alpha, 0);
 						}
+
+						var {x, y, z} = pos;
+						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
+						var {x, y, z} = functionIt(x, y, z);
+						var {x, y, z} = invPos(x, y, z);
+
+						var posByR = {x, y, z};
+						const rInfos = glo.params.functionIt.r;
+						for(let variable in rInfos){
+							for(let prop in rInfos[variable]){
+								const val = rInfos[variable][prop].val;
+								if(val){
+									const nb = rInfos[variable][prop].nb;
+									const eq = prop + `(${nb}*${variable})`;
+									posByR = updateRibbonByR(posByR, val * eval(eq));
+								}
+							}
+						}
+						pos = posByR;
 
 						this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
 						path.push(this.new_p2);
@@ -5004,18 +5181,30 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 
 	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 
-	glo.ribbon.updateIndices(glo.ribbon.getIndices());
+	//glo.ribbon.updateIndices(glo.ribbon.getIndices());
+	glo.ribbon.setIndices(glo.ribbon.getIndices());
 	glo.ribbon.computeWorldMatrix(true);
 	glo.ribbon.refreshBoundingInfo();
 	var normals = [];
 	BABYLON.VertexData.ComputeNormals(positions, glo.ribbon.getIndices(), normals);
-	glo.ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals);
+	//glo.ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals);
+	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals, true);
 
 	glo.ribbon.markAsDirtyAll();
 
 	glo.curves.paths   = glo.ribbon.getPaths(positions, coeff);
 	glo.lines          = glo.curves.paths;
 	glo.ribbon.savePos = positions.slice();
+}
+
+function updateRibbonByR(newPt, val){
+	r = val;
+	const angleXY = getAzimuthElevationAngles(newPt);
+	const dirXY   = directionXY(angleXY, r);
+	
+	newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
+
+	return newPt;
 }
 
 function symmetrizeByR(pos, r){
@@ -5476,14 +5665,9 @@ async function expendPathsByEachCenter(expend = glo.params.functionIt.expend){
 		curvesPathsSave.forEach((line, i) => {
 			const center = getCenterOfPaths(line);
 			line.forEach((path, i) => {
-				//path    = rotateOnCenterByBabylonMatrix(path, alpha, beta, theta, center);
-
 				if(h(path.x, path.y, path.z) > ep/10000){
 					let angleXY = getAzimuthElevationAngles(center.subtract(path));
 					let dist    = BABYLON.Vector3.Distance(path, center);
-	
-					//angleXY.x += glo.angleToUpdateRibbon.x;
-					//angleXY.y += glo.angleToUpdateRibbon.y;
 	
 					const dirXY = directionXY(angleXY, dist, expend);
 	
@@ -5503,7 +5687,9 @@ async function expendPathsByEachCenter(expend = glo.params.functionIt.expend){
 }
 
 function getCenterOfPaths(paths){
-	const pathsLength = paths.length;
+	const pathsLength  = paths.length;
+	const centerOffset = glo.params.functionIt.rotatePaths.centerOffset;
+
 	let center = {x: 0, y: 0, z: 0};
 	paths.forEach(path => {
 		center.x += path.x;
@@ -5515,7 +5701,7 @@ function getCenterOfPaths(paths){
 	center.y/=pathsLength;
 	center.z/=pathsLength;
 
-	return new BABYLON.Vector3(center.x, center.y, center.z);
+	return new BABYLON.Vector3(center.x * centerOffset.x, center.y * centerOffset.y, center.z * centerOffset.z);
 }
 
 function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
@@ -5863,4 +6049,34 @@ function blendPosAll(x, y, z, u, v, O, cosu, cosv){
 	var {x, y, z} = blendPos(x, y, z, 'cv', cosv, 0.1);
 
 	return {x, y, z};
+}
+
+function invPos(x, y, z){
+	const invpos = glo.params.invPos;
+
+	if(invpos.x || invpos.y || invpos.z){
+		x = !invpos.x ? x : -x;
+		y = !invpos.y ? y : -y;
+		z = !invpos.z ? z : -z;
+	}
+
+	return {x, y, z};
+}
+
+function swapControlBackground(controlName, background = glo.controlConfig.background, backgroundActived = glo.controlConfig.backgroundActived){
+	let control = glo.allControls.getByName(controlName);
+
+	control.background = control.background === background ? backgroundActived : background;
+}
+
+function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {
+    glo.curves.paths = glo.curves.paths.map(line => line.map(
+        path => {
+            const x = funcX(path.x, path.y, path.z);
+            const y = funcY(path.x, path.y, path.z);
+            const z = funcZ(path.x, path.y, path.z);
+            return new BABYLON.Vector3(x, y, z);
+        }
+    ));
+    make_ribbon();
 }

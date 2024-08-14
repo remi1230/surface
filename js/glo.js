@@ -290,7 +290,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'onlyMainGui', 'second', 'third'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -702,8 +702,21 @@ var glo = {
 			sin:{x: 0, y: 0, z: 0, nx: 1, ny: 1, nz: 1, toZero: {x: false, y: false, z: false}},
 			rotLine: {alpha: 0, beta: 0, theta: 0},
 			expend: 0,
-			flat: {x: {up: 100, bottom: 100}, y: {up: 100, bottom: 100}, z: {up: 100, bottom: 100}}, 
-		}
+			flat: {x: {up: 100, bottom: 100}, y: {up: 100, bottom: 100}, z: {up: 100, bottom: 100}},
+			rotatePaths:{centerOffset: {x: 1, y: 1, z: 1}},
+			r: 
+				{
+					u: 
+						{
+							sin: {val:0, nb: 1},
+						},
+					$T: 
+						{
+							cos: {val:0, nb: 1},
+						},
+				},
+		},
+		invPos: {x: false, y: false, z: false},
 	},
 	tubes: {
 		radius: 0.1,
@@ -732,7 +745,7 @@ var glo = {
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,
 	color_text_input: "rgb(255,255,245)",
-	buttons_background: "rgb(25,145,145)",
+	buttons_background: "#199191",
 	buttons_color: "rgb(255,255,225)",
 	labelGridColor: "black",
 	buttons_radius: 10,
@@ -792,7 +805,11 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'onlyMainGui', 'second', 'third'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third'],
+	controlConfig:{
+		background: '#199191',
+		backgroundActived: '#196969',
+	},
 };
 function getByName(name){
 	var elemToReturn = false;

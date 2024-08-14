@@ -550,26 +550,31 @@ async function getDatas(){
 
 async function getImg(url, name = '', dest = glo) {
     try {
-        const response = await fetch(url);
-        let img        = await response.blob();
+        const response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        let imgBlob = await response.blob();
 
-        let imgUrlObject = URL.createObjectURL(img);
-        if(!Array.isArray(dest)){
-            dest.img     = document.createElement("img");
+        let imgUrlObject = URL.createObjectURL(imgBlob);
+        if (!Array.isArray(dest)) {
+            dest.img = document.createElement("img");
             dest.img.src = imgUrlObject;
             dest.img.dataset.name = name;
-        }
-        else{
-            let image    = document.createElement("img");
-            image.src    = imgUrlObject;
+            dest.img.onload = () => {
+                URL.revokeObjectURL(imgUrlObject);
+            };
+        } else {
+            let image = document.createElement("img");
+            image.src = imgUrlObject;
             image.dataset.name = name;
+            image.onload = () => {
+                URL.revokeObjectURL(imgUrlObject);
+            };
             dest.push(image);
         }
-
-        URL.revokeObjectURL(imgUrlObject);
-
     } catch (error) {
-        console.log('error', error);
+        console.error('Fetching image failed:', error);
     }
     return dest;
 }

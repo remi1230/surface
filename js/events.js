@@ -10,6 +10,7 @@ $( document ).ready(function() {
   toggleGuiControlsByClass(false, 'sixth');
   toggleGuiControlsByClass(false, 'seventh');
   toggleGuiControlsByClass(false, 'eighth');
+  toggleGuiControlsByClass(false, 'nineth');
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();
@@ -95,20 +96,6 @@ window.addEventListener("keydown", function (e) {
                   break;
                case "-":
                   glo.camera.radius*=2;
-
-                  break;
-               case "&":
-               invElemInInput("cos", "sin", false);
-               invElemInInput("cu", "su", false);
-               invElemInInput("cv", "sv");
-               if(glo.cloneSystem){ cloneSystem(); }
-               glo.histo.save();
-
-                  break;
-               case "é":
-               invElemInInput("u", "v");
-               if(glo.cloneSystem){ cloneSystem();  }
-               glo.histo.save();
 
                   break;
                case "7":

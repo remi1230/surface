@@ -1507,14 +1507,10 @@ function add_ninethPanel_controls(){
         header.text = text + ": " + slider.startValue;
         slider.value = slider.startValue;
 
-        event(1);
+        event(slider.value);
       }
     });
 
-    /*slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = step : val = -step;
-      slider.value += val;
-    });*/
     slider.onPointerUpObservable.add(function (e) {
       
     });
@@ -1528,6 +1524,12 @@ function add_ninethPanel_controls(){
   addSlider(panel, "sinNRU", "Sin R NU", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.u.sin.nb = value; remakeRibbon(); });
   addSlider(panel, "cosR$T", "Cos R $T", 0.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.$T.cos.val = value; remakeRibbon(); });
   addSlider(panel, "cosNR$T", "Cos R N$T", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.$T.cos.nb = value; remakeRibbon(); });
+  addSlider(panel, "normX", "Wave X", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.x = value; remakeRibbon(); });
+  addSlider(panel, "normnX", "Wave NX", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.nx = value; remakeRibbon(); });
+  addSlider(panel, "normY", "Wave Y", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.y = value; remakeRibbon(); });
+  addSlider(panel, "normnY", "Wave NY", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.ny = value; remakeRibbon(); });
+  addSlider(panel, "normZ", "Wave Z", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.z = value; remakeRibbon(); });
+  addSlider(panel, "normnZ", "Wave NZ", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.nz = value; remakeRibbon(); });
 }
 
 function param_buttons(){

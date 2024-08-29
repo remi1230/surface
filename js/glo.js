@@ -716,6 +716,14 @@ var glo = {
 							cos: {val:0, nb: 1},
 						},
 				},
+			norm:{
+				x:  0,
+				nx: 1,
+				y:  0,
+				ny: 1,
+				z:  0,
+				nz: 1,
+			}
 		},
 		invPos: {x: false, y: false, z: false},
 	},

@@ -420,15 +420,15 @@ f = {
 }
 
 function functionIt(x, y, z){
-	const cpowX = glo.params.functionIt.cpow.x;
-	const cpowY = glo.params.functionIt.cpow.y;
-	const cpowZ = glo.params.functionIt.cpow.z;
-	const sinX  = glo.params.functionIt.sin.x;
-	const sinnX = glo.params.functionIt.sin.nx;
-	const sinY  = glo.params.functionIt.sin.y;
-	const sinnY = glo.params.functionIt.sin.ny;
-	const sinZ  = glo.params.functionIt.sin.z;
-	const sinnZ = glo.params.functionIt.sin.nz;              
+	const cpowX  = glo.params.functionIt.cpow.x;
+	const cpowY  = glo.params.functionIt.cpow.y;
+	const cpowZ  = glo.params.functionIt.cpow.z;
+	const sinX   = glo.params.functionIt.sin.x;
+	const sinnX  = glo.params.functionIt.sin.nx;
+	const sinY   = glo.params.functionIt.sin.y;
+	const sinnY  = glo.params.functionIt.sin.ny;
+	const sinZ   = glo.params.functionIt.sin.z;
+	const sinnZ  = glo.params.functionIt.sin.nz;            
 
 	x = cpowX != 1 ? cpow(x, cpowX) : x;
 	y = cpowY != 1 ? cpow(y, cpowY) : y;
@@ -733,6 +733,47 @@ function drawNormalEquations(symmetrize = false){
 	}
 
 	return false;
+}
+
+async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm = glo.params.functionIt.norm){
+	if(!norm.x && !norm.y && !norm.z){ return paths; }
+
+	if(typeof(glo.verticesNormals) == "undefined"){
+		glo.verticesNormals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		glo.verticesPositions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		glo.verticesUVs       = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
+	}
+	if(typeof(glo.verticesColors) == "undefined" || glo.verticesColors == null){ glo.verticesColors = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.ColorKind); }
+	var isVerticesColors = glo.verticesColors != null ? true : false;
+	var verticesColors = [];
+	if(isVerticesColors){
+		glo.verticesColors.map(vc => {
+			verticesColors.push(!isNaN(vc) ? vc : 0);
+		});
+	}
+	var verticesNormals       = glo.verticesNormals;
+	var verticesNormalsLength = verticesNormals.length;
+
+	var vertices       = glo.vertexsType === 'normal' ? verticesNormals : (glo.vertexsType === 'uv' ? glo.verticesUVs : glo.verticesPositions);
+	var verticesLength = glo.vertexsType === 'normal' ? verticesNormalsLength : (glo.vertexsType === 'uv' ? glo.verticesUVs.length : glo.verticesPositions.length);
+
+	n = 0;
+	glo.curves.paths = paths.map(line => line.map(
+        path => {
+			const xN = vertices[n*3]; const yN = vertices[n*3 + 1]; const zN = vertices[n*3 + 2];
+
+			const x = norm.x ? path.x + ((cos(norm.x*xN)*norm.nx) * xN) : path.x;
+			const y = norm.y ? path.y + ((cos(norm.y*yN)*norm.ny) * yN) : path.y;
+			const z = norm.z ? path.z + ((cos(norm.z*zN)*norm.nz) * zN) : path.z;
+
+			n++;
+            return new BABYLON.Vector3(x, y, z);
+        }
+    ));
+
+	ribbonDispose(false);
+	glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon("NormRibbonBySlider", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
+	makeLineSystem();
 }
 
 function CurvesByRot(parametres = {
@@ -1208,11 +1249,7 @@ f2 = {
 			if(z == Infinity || z == -Infinity){ z = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
-			let axis  			= new BABYLON.Vector3(x, y, z);
-			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
-			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
-			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+			let pos = rotateByQuaternion(x, y, z, w, r);
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
@@ -1279,12 +1316,6 @@ f2 = {
 		}
 
 		glo.lines = this.paths;
-
-		/*this.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-		this.lineSystem.color = glo.lineColor;
-		this.lineSystem.alpha = glo.ribbon_alpha;
-		this.lineSystem.alphaIndex = 999;
-		this.lineSystem.visibility = line_visible;*/
   }
   else {
 	    let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
@@ -1309,11 +1340,7 @@ f2 = {
 			if(z == Infinity || z == -Infinity){ z = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let point 			= new BABYLON.Vector3(this.p2_first.x * r, this.p2_first.y * r, this.p2_first.z * r);
-			let axis  			= new BABYLON.Vector3(x, y, z);
-			let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
-			let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
-			let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
+			let pos = rotateByQuaternion(x, y, z, w, r);
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
@@ -1384,12 +1411,6 @@ f2 = {
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 
 	glo.lines = this.paths;
-
-	/* = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: this.paths, }, glo.scene);
-	this.lineSystem.color = glo.lineColor;
-	this.lineSystem.alpha = glo.ribbon_alpha;
-	this.lineSystem.alphaIndex = 999;
-	this.lineSystem.visibility = line_visible;*/
   }
 }
 function CurvesByQuaternionRotAxis(parametres = {
@@ -2661,7 +2682,10 @@ async function make_ribbon(symmetrize = true){
 
 	glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
 
+	const norm = glo.params.functionIt.norm;
+
 	if(symmetrize){ await makeSymmetrize(); }
+	if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
 	
 	giveMaterialToMesh();
 
@@ -5104,20 +5128,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 
 				let newPt = subVectors(glo.curves.paths[i][j], glo.centerSymmetry);
 
-				/*switch(axis){
-					case 'X':
-						newPt = rotateByMatrix(ptToTurn, angle, 0, 0);
-					break;
-					case 'Y':
-						newPt = rotateByMatrix(ptToTurn, 0, angle, 0);
-					break;
-					case 'Z':
-						newPt = rotateByMatrix(ptToTurn, 0, 0, angle);
-					break;
-				}
-
-				newPt = addVectors(newPt, glo.centerSymmetry);*/
-
 				let r = 0;
 				if(goodR){
 					var x = newPt.x; var y = newPt.y; var z = newPt.z;
@@ -6067,6 +6077,14 @@ function swapControlBackground(controlName, background = glo.controlConfig.backg
 	let control = glo.allControls.getByName(controlName);
 
 	control.background = control.background === background ? backgroundActived : background;
+}
+
+function rotateByQuaternion(x, y, z, w, r, firstPoint = glo.firstPoint){
+	let axis = new BABYLON.Vector3(x, y, z);
+
+	return BABYLON.Quaternion.RotationAxis(axis.normalize(), w)
+							 .multiply(new BABYLON.Quaternion(firstPoint.x * r, firstPoint.y * r, firstPoint.z * r, 0))
+							 .multiply(BABYLON.Quaternion.RotationAxis(axis.normalize(), w).conjugate());
 }
 
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {

@@ -277,6 +277,16 @@ var glo = {
 			}
 		}
 	},
+	permutSign: '',
+	permutSigns: function* (){
+		const permutsigns = ['xy', 'xz', 'yz', ''];
+		while (true) {
+			for (const permutsign of permutsigns) {
+				this.permutSign = permutsign;
+				yield permutsign;
+			}
+		}
+	},
 	colorsType: 'none',
 	colorType: function* (){
 	  var index = 0;
@@ -726,6 +736,8 @@ var glo = {
 			}
 		},
 		invPos: {x: false, y: false, z: false},
+		quaternionByRotR: false,
+		wOnXYZ: false,
 	},
 	tubes: {
 		radius: 0.1,
@@ -881,5 +893,6 @@ glo.coordinatesType 	= glo.coordinatesType();
 glo.coordinatesNomrType = glo.coordinatesNomrType();
 glo.rotType             = glo.rotateTypeGen();
 glo.symmetrizeOrders    = glo.symmetrizeOrders();
+glo.permutSigns         = glo.permutSigns();
 
 let dataTableBody = document.getElementById('dataTableBody');

@@ -1481,8 +1481,46 @@ function add_transformation_sliders(){
 
 function add_ninethPanel_controls(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'ninethPanelPanel', 'panel right nineth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 27.5, pR: 1});
+  parmamControl(panel, 'ninethPanelPanel', 'panel right nineth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 26.5, pR: 1});
   glo.advancedTexture.addControl(panel);
+  var panelButton = new BABYLON.GUI.StackPanel();
+  parmamControl(panelButton, 'ninethPanelButton', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 2});
+  glo.advancedTexture.addControl(panelButton);
+  var panelButton2 = new BABYLON.GUI.StackPanel();
+  parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 6.75});
+  glo.advancedTexture.addControl(panelButton2);
+
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button right nineth', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
+    });
+    panelButt.addControl(button);
+  }
+
+  add_button("permutSignButton", "P pos ", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    glo.permutSigns.next();
+    glo.allControls.getByName("permutSignButton").textBlock.text = `P pos ${glo.permutSign}`;
+    remakeRibbon();
+  });
+  add_button("quarenionMode", "Q rot R", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    swapControlBackground("quarenionMode");
+    glo.params.quaternionByRotR = !glo.params.quaternionByRotR;
+    remakeRibbon();
+  });
+  add_button("secondCurveOperation", "SCO", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    swapControlBackground("secondCurveOperation");
+    glo.secondCurveOperation = !glo.secondCurveOperation;
+    remakeRibbon();
+  });
+  add_button("WaveOnXYZ", "W - XYZ", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    swapControlBackground("WaveOnXYZ");
+    glo.params.wOnXYZ = !glo.params.wOnXYZ;
+    remakeRibbon();
+  }, undefined, panelButton2);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1524,12 +1562,12 @@ function add_ninethPanel_controls(){
   addSlider(panel, "sinNRU", "Sin R NU", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.u.sin.nb = value; remakeRibbon(); });
   addSlider(panel, "cosR$T", "Cos R $T", 0.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.$T.cos.val = value; remakeRibbon(); });
   addSlider(panel, "cosNR$T", "Cos R N$T", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.r.$T.cos.nb = value; remakeRibbon(); });
-  addSlider(panel, "normX", "Wave X", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.x = value; remakeRibbon(); });
-  addSlider(panel, "normnX", "Wave NX", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.nx = value; remakeRibbon(); });
-  addSlider(panel, "normY", "Wave Y", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.y = value; remakeRibbon(); });
-  addSlider(panel, "normnY", "Wave NY", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.ny = value; remakeRibbon(); });
-  addSlider(panel, "normZ", "Wave Z", 0.00, 2, -80, 80, .01, function(value){ glo.params.functionIt.norm.z = value; remakeRibbon(); });
-  addSlider(panel, "normnZ", "Wave NZ", 1.00, 2, -8, 8, .01, function(value){ glo.params.functionIt.norm.nz = value; remakeRibbon(); });
+  addSlider(panel, "normX", "Wave X", 0.0, 1, -80, 80, .1, function(value){ glo.params.functionIt.norm.x = value; remakeRibbon(); });
+  addSlider(panel, "normnX", "Wave NX", 1.0, 1, -8, 8, .1, function(value){ glo.params.functionIt.norm.nx = value; remakeRibbon(); });
+  addSlider(panel, "normY", "Wave Y", 0.0, 1, -80, 80, .1, function(value){ glo.params.functionIt.norm.y = value; remakeRibbon(); });
+  addSlider(panel, "normnY", "Wave NY", 1.0, 1, -8, 8, .1, function(value){ glo.params.functionIt.norm.ny = value; remakeRibbon(); });
+  addSlider(panel, "normZ", "Wave Z", 0.0, 1, -80, 80, .1, function(value){ glo.params.functionIt.norm.z = value; remakeRibbon(); });
+  addSlider(panel, "normnZ", "Wave NZ", 1.0, 1, -8, 8, .1, function(value){ glo.params.functionIt.norm.nz = value; remakeRibbon(); });
 }
 
 function param_buttons(){

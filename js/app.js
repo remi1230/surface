@@ -303,6 +303,7 @@ f = {
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 			var {x, y, z} = functionIt(x, y, z);
 			var {x, y, z} = invPos(x, y, z);
+			var {x, y, z} = permutSign(x, y, z);
 			
 			var posByR = {x, y, z};
 			const rInfos = glo.params.functionIt.r;
@@ -386,6 +387,7 @@ f = {
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 			var {x, y, z} = functionIt(x, y, z);
 			var {x, y, z} = invPos(x, y, z);
+			var {x, y, z} = permutSign(x, y, z);
 
 			var posByR = {x, y, z};
 			const rInfos = glo.params.functionIt.r;
@@ -757,19 +759,52 @@ async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm 
 	var vertices       = glo.vertexsType === 'normal' ? verticesNormals : (glo.vertexsType === 'uv' ? glo.verticesUVs : glo.verticesPositions);
 	var verticesLength = glo.vertexsType === 'normal' ? verticesNormalsLength : (glo.vertexsType === 'uv' ? glo.verticesUVs.length : glo.verticesPositions.length);
 
-	n = 0;
-	glo.curves.paths = paths.map(line => line.map(
-        path => {
-			const xN = vertices[n*3]; const yN = vertices[n*3 + 1]; const zN = vertices[n*3 + 2];
+	if(!glo.params.wOnXYZ){
+		n = 0;
+		glo.curves.paths = paths.map(line => line.map(
+			path => {
+				const xN = vertices[n*3]; const yN = vertices[n*3 + 1]; const zN = vertices[n*3 + 2];
 
-			const x = norm.x ? path.x + ((cos(norm.x*xN)*norm.nx) * xN) : path.x;
-			const y = norm.y ? path.y + ((cos(norm.y*yN)*norm.ny) * yN) : path.y;
-			const z = norm.z ? path.z + ((cos(norm.z*zN)*norm.nz) * zN) : path.z;
+				const x = norm.x ? path.x + ((cos(norm.x*xN)*norm.nx) * xN) : path.x;
+				const y = norm.y ? path.y + ((cos(norm.y*yN)*norm.ny) * yN) : path.y;
+				const z = norm.z ? path.z + ((cos(norm.z*zN)*norm.nz) * zN) : path.z;
 
-			n++;
-            return new BABYLON.Vector3(x, y, z);
-        }
-    ));
+				n++;
+				return new BABYLON.Vector3(x, y, z);
+			}
+		));
+	}
+	else{
+		n = 0;
+		glo.curves.paths = paths.map(line => line.map(
+			path => {
+				const xN = vertices[n*3]; const yN = vertices[n*3 + 1]; const zN = vertices[n*3 + 2];
+
+				let x = path.x, y = path.y, z = path.z;
+				if(norm.x){
+					const cosToAdd = cos(norm.x*xN)*norm.nx;
+					x += cosToAdd * xN;
+					y += cosToAdd * yN;
+					z += cosToAdd * zN;
+				}
+				if(norm.y){
+					const cosToAdd = cos(norm.y*yN)*norm.ny;
+					x += cosToAdd * xN;
+					y += cosToAdd * yN;
+					z += cosToAdd * zN;
+				}
+				if(norm.z){
+					const cosToAdd = cos(norm.z*zN)*norm.nz;
+					x += cosToAdd * xN;
+					y += cosToAdd * yN;
+					z += cosToAdd * zN;
+				}
+
+				n++;
+				return new BABYLON.Vector3(x, y, z);
+			}
+		));
+	}
 
 	ribbonDispose(false);
 	glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon("NormRibbonBySlider", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
@@ -953,6 +988,7 @@ f = {
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
 			pos = invPos(pos.x, pos.y, pos.z);
+			pos = permutSign(pos.x, pos.y, pos.z);
 
 			var posByR = {x: pos.x, y: pos.y, z: pos.z};
 			const rInfos = glo.params.functionIt.r;
@@ -1057,6 +1093,7 @@ f = {
 				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 				pos = functionIt(pos.x, pos.y, pos.z);
 				pos = invPos(pos.x, pos.y, pos.z);
+				pos = permutSign(pos.x, pos.y, pos.z);
 
 				var posByR = {x: pos.x, y: pos.y, z: pos.z};
 				const rInfos = glo.params.functionIt.r;
@@ -1287,6 +1324,7 @@ f2 = {
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
 			pos = invPos(pos.x, pos.y, pos.z);
+			pos = permutSign(pos.x, pos.y, pos.z);
 
 			var posByR = {x: pos.x, y: pos.y, z: pos.z};
 			const rInfos = glo.params.functionIt.r;
@@ -1340,7 +1378,7 @@ f2 = {
 			if(z == Infinity || z == -Infinity){ z = 0; }
 			if(w == Infinity || w == -Infinity){ w = 0; }
 
-			let pos = rotateByQuaternion(x, y, z, w, r);
+			let pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, w, r) : rotateByQuaternionWithRotR(x, y, z, w, r);
 
 			var x = pos.x; var y = pos.y; var z = pos.z;
 			var vect3 = new BABYLON.Vector3(x,y,z);
@@ -1378,6 +1416,7 @@ f2 = {
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
 			pos = invPos(pos.x, pos.y, pos.z);
+			pos = permutSign(pos.x, pos.y, pos.z);
 
 			var posByR = {x: pos.x, y: pos.y, z: pos.z};
 			const rInfos = glo.params.functionIt.r;
@@ -1623,6 +1662,7 @@ f2 = {
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
 			pos = invPos(pos.x, pos.y, pos.z);
+			pos = permutSign(pos.x, pos.y, pos.z);
 
 			var posByR = {x: pos.x, y: pos.y, z: pos.z};
 			const rInfos = glo.params.functionIt.r;
@@ -1733,6 +1773,7 @@ f2 = {
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
 			pos = invPos(pos.x, pos.y, pos.z);
+			pos = permutSign(pos.x, pos.y, pos.z);
 
 			var posByR = {x: pos.x, y: pos.y, z: pos.z};
 			const rInfos = glo.params.functionIt.r;
@@ -1991,6 +2032,7 @@ f = {
 					var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 					var {x, y, z} = functionIt(x, y, z);
 					var {x, y, z} = invPos(x, y, z);
+					var {x, y, z} = permutSign(x, y, z);
 
 					var posByR = {x, y, z};
 					const rInfos = glo.params.functionIt.r;
@@ -2105,6 +2147,7 @@ f = {
 					pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 					pos = functionIt(pos.x, pos.y, pos.z);
 					pos = invPos(pos.x, pos.y, pos.z);
+					pos = permutSign(pos.x, pos.y, pos.z);
 
 					var posByR = {x: pos.x, y: pos.y, z: pos.z};
 					const rInfos = glo.params.functionIt.r;
@@ -2180,6 +2223,8 @@ f = {
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 						var {x, y, z} = functionIt(x, y, z);
 						var {x, y, z} = invPos(x, y, z);
+						var {x, y, z} = invPos(x, y, z);
+						var {x, y, z} = permutSign(x, y, z);
 
 						var posByR = {x, y, z};
 						const rInfos = glo.params.functionIt.r;
@@ -2247,6 +2292,7 @@ f = {
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 						var {x, y, z} = functionIt(x, y, z);
 						var {x, y, z} = invPos(x, y, z);
+						var {x, y, z} = permutSign(x, y, z);
 
 						var posByR = {x, y, z};
 						const rInfos = glo.params.functionIt.r;
@@ -2314,6 +2360,8 @@ f = {
 						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 						var {x, y, z} = functionIt(x, y, z);
 						var {x, y, z} = invPos(x, y, z);
+						var {x, y, z} = permutSign(x, y, z);
+						
 
 						var posByR = {x, y, z};
 						const rInfos = glo.params.functionIt.r;
@@ -6073,6 +6121,50 @@ function invPos(x, y, z){
 	return {x, y, z};
 }
 
+function permutSignSave(x, y, z){
+	if(!glo.permutSign){ return {x, y, z}; }
+
+	const permutsign = glo.permutSign;
+
+	let xTmp = x, yTmp = y, zTmp = z;
+	if(permutsign == 'xy'){
+		xTmp = x * sign(y);
+		yTmp = y * sign(x);
+	}
+	else if(permutsign == 'xz'){
+		xTmp = x * sign(z);
+		zTmp = z * sign(x);
+	}
+	else if(permutsign == 'yz'){
+		yTmp = y * sign(z);
+		zTmp = z * sign(y);
+	}
+
+	return {x: xTmp, y: yTmp, z: zTmp};
+}
+
+function permutSign(x, y, z){
+	if(!glo.permutSign){ return {x, y, z}; }
+
+	const permutsign = glo.permutSign;
+
+	let xTmp = x, yTmp = y, zTmp = z;
+	if(permutsign == 'xy'){
+		xTmp = y;
+		//yTmp = x;
+	}
+	else if(permutsign == 'xz'){
+		xTmp = z;
+		//zTmp = x;
+	}
+	else if(permutsign == 'yz'){
+		yTmp = z;
+		//zTmp = y;
+	}
+
+	return {x: xTmp, y: yTmp, z: zTmp};
+}
+
 function swapControlBackground(controlName, background = glo.controlConfig.background, backgroundActived = glo.controlConfig.backgroundActived){
 	let control = glo.allControls.getByName(controlName);
 
@@ -6085,6 +6177,42 @@ function rotateByQuaternion(x, y, z, w, r, firstPoint = glo.firstPoint){
 	return BABYLON.Quaternion.RotationAxis(axis.normalize(), w)
 							 .multiply(new BABYLON.Quaternion(firstPoint.x * r, firstPoint.y * r, firstPoint.z * r, 0))
 							 .multiply(BABYLON.Quaternion.RotationAxis(axis.normalize(), w).conjugate());
+}
+
+function rotateByQuaternionWithRotR(x, y, z, w, r, firstPoint = glo.firstPoint) {
+    // Calculer l'axe de rotation
+    let axis = new BABYLON.Vector3(x, y, z).normalize();
+
+    // Calculer l'azimut (angle dans le plan XY par rapport à l'axe X)
+    let azimuth = Math.atan2(axis.y, axis.x);
+
+    // Calculer l'élévation (angle par rapport au plan XY)
+    let elevation = Math.asin(axis.z);
+
+    // Calculer le quaternion pour l'azimut (rotation autour de l'axe Y)
+    let azimuthQuat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.Y, azimuth);
+
+    // Calculer le quaternion pour l'élévation (rotation autour de l'axe X)
+    let elevationQuat = BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X, elevation);
+
+    // Convertir les quaternions en matrices de transformation
+    let azimuthMatrix = new BABYLON.Matrix();
+    azimuthQuat.toRotationMatrix(azimuthMatrix);
+
+    let elevationMatrix = new BABYLON.Matrix();
+    elevationQuat.toRotationMatrix(elevationMatrix);
+
+    // Appliquer la rotation d'azimut et d'élévation à firstPoint via matrices
+    let rotatedPoint = BABYLON.Vector3.TransformCoordinates(firstPoint, azimuthMatrix);
+    rotatedPoint = BABYLON.Vector3.TransformCoordinates(rotatedPoint, elevationMatrix);
+
+    // Appliquer la rotation finale avec l'axe donné et l'angle w
+    let rotationQuat = BABYLON.Quaternion.RotationAxis(axis, w);
+    let finalRotation = rotationQuat
+                        .multiply(new BABYLON.Quaternion(rotatedPoint.x * r, rotatedPoint.y * r, rotatedPoint.z * r, 0))
+                        .multiply(rotationQuat.conjugate());
+
+    return finalRotation;
 }
 
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {

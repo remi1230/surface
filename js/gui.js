@@ -10,21 +10,42 @@ BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
       const keyEventListener = function(e) {
           if (this.isKeyPressed) return; // Si une touche a déjà été pressée, on ignore le reste
 
-          if (e.key === '&') { // Touche "&" (1)
-              this.step /= 10; // Diviser le pas par 10
-              this.isKeyPressed = true; // Verrouiller le déclenchement
-          } else if (e.key === 'é') { // Touche "é" (2)
-              this.step *= 10; // Multiplier le pas par 10
-              this.isKeyPressed = true; // Verrouiller le déclenchement
+          switch(e.key){
+            case "&":
+              this.step /= 10;
+              this.isKeyPressed = true;
+            break;
+            case "é":
+              this.step *= 10;
+              this.isKeyPressed = true;
+            break;
+            case "è":
+              this.maximum/=2;
+              if(this.minimum < 0){ this.minimum/=2; }
+              this.isKeyPressed = true;
+            break;
+            case "_":
+              this.maximum*=2;
+              if(this.minimum < 0){ this.minimum*=2; }
+              this.isKeyPressed = true;
+            break;
           }
       }.bind(this); // Lier le contexte du slider à la fonction
 
+      const keyUpListener = function(e) {
+          if (e.key === '&' || e.key === 'é' || e.key === 'è' || e.key === '_') {
+              this.isKeyPressed = false; // Réinitialiser le drapeau lorsque la touche est relâchée
+          }
+      }.bind(this);
+
       window.addEventListener('keydown', keyEventListener);
+      window.addEventListener('keyup', keyUpListener);
 
       this.onPointerOutObservable.add(function() {
           window.removeEventListener('keydown', keyEventListener);
+          window.removeEventListener('keyup', keyUpListener);
           this.isKeyPressed = false; // Réinitialiser le drapeau lorsque le curseur quitte le slider
-      }, { once: true });
+      }.bind(this), { once: true });
   }.bind(this)); // Lier le contexte du slider à la fonction
 
   this.onWheelObservable.add(function (e) {
@@ -32,6 +53,7 @@ BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
       this.value += val;
   }.bind(this));
 };
+
 
 function add_gui_controls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
@@ -1370,7 +1392,7 @@ function add_sixth_panel_sliders(){
     remakeRibbon();
   }, function(value){ });
   addButton(panelButtonInvFormulaCosSin, "InvFormulaCosSin", "Inv cos sin", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
-    swapControlBackground("InvFormulaCosSin");
+    //swapControlBackground("InvFormulaCosSin");
     invElemInInput("cos", "sin", false);
     invElemInInput("cu", "su", false);
     invElemInInput("cv", "sv");
@@ -1378,7 +1400,7 @@ function add_sixth_panel_sliders(){
     glo.histo.save();
   }, function(value){ });
   addButton(panelButtonInvFormulaUV, "InvFormulaUV", "Inv UV", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
-    swapControlBackground("InvFormulaUV");
+    //swapControlBackground("InvFormulaUV");
     invElemInInput("u", "v");
     if(glo.cloneSystem){ cloneSystem();  }
     glo.histo.save();
@@ -1472,9 +1494,9 @@ function add_transformation_sliders(){
   addSlider(panel, "positionX", "positionX", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'x', value); });
   addSlider(panel, "positionY", "positionY", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'y', value); });
   addSlider(panel, "positionZ", "positionZ", 0, 0, -24, 24, 1, function(value){ transformMesh('position', 'z', value); });
-  addSlider(panel, "cSymmetryX", "cSymmetryX", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.x = value; remakeRibbon(); });
-  addSlider(panel, "cSymmetryY", "cSymmetryY", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.y = value; remakeRibbon(); });
-  addSlider(panel, "cSymmetryZ", "cSymmetryZ", 0, 0, -24, 24, 1, function(value){ glo.centerSymmetry.z = value; remakeRibbon(); });
+  addSlider(panel, "cSymmetryX", "cSymmetryX", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.x = value; remakeRibbon(); });
+  addSlider(panel, "cSymmetryY", "cSymmetryY", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.y = value; remakeRibbon(); });
+  addSlider(panel, "cSymmetryZ", "cSymmetryZ", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.z = value; remakeRibbon(); });
   addSlider(panel, "expansion", "expansion", 0, 2, -24, 24, .1, function(value){ remakeRibbon(); });
   addSlider(panel, "scaleVertex", "scaleVertexs", 1, 2, -24, 24, .1, function(value){ glo.scaleVertex = value; remakeRibbon(); });
 }
@@ -1487,7 +1509,7 @@ function add_ninethPanel_controls(){
   parmamControl(panelButton, 'ninethPanelButton', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 2});
   glo.advancedTexture.addControl(panelButton);
   var panelButton2 = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 6.75});
+  parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 4.5});
   glo.advancedTexture.addControl(panelButton2);
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton){
@@ -1519,6 +1541,11 @@ function add_ninethPanel_controls(){
   add_button("WaveOnXYZ", "W - XYZ", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     swapControlBackground("WaveOnXYZ");
     glo.params.wOnXYZ = !glo.params.wOnXYZ;
+    remakeRibbon();
+  }, undefined, panelButton2);
+  add_button("GridScale", "Grid Sc", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    swapControlBackground("GridScale");
+    glo.params.gridScale = !glo.params.gridScale;
     remakeRibbon();
   }, undefined, panelButton2);
 

@@ -114,14 +114,6 @@ window.addEventListener("keydown", function (e) {
                slidersAnim('v', 0, 0.01);
 
                   break;
-               case "è":
-               slidersAnim('stepU', 0, -1);
-
-                  break;
-               case "_":
-               slidersAnim('stepU', 0, 1);
-
-                  break;
                case "ç":
                slidersAnim('stepV', 0, -1);
 

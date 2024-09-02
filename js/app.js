@@ -2749,11 +2749,10 @@ async function make_ribbon(symmetrize = true){
 
 	makeLineSystem();
 
-	applyTransformations();
-
 	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
 
 	glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
+	applyTransformations();
 	flatRibbon();
 
 	glo.camera.focusOn([glo.ribbon], true);
@@ -4142,11 +4141,26 @@ function invElemInInput(toInv_1, toInv_2, makeCurve = true){
 	glo.params.text_input_alpha = f.alpha;
 	glo.params.text_input_beta = f.beta;
 
-	if(makeCurve){
-		 if(!glo.normalMode){ make_curves(); }
-		 else{
-			glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); make_ribbon();
-		 }
+	if(toInv_1 === 'u' && toInv_2 === 'v'){
+		let remakeCurve = true;
+		if(glo.allControls.getByName('stepU').value !== glo.allControls.getByName('stepV').value){
+			const stepU = glo.allControls.getByName('stepU').value; 
+			glo.allControls.getByName('stepU').value = glo.allControls.getByName('stepV').value;
+			glo.allControls.getByName('stepV').value = stepU;
+			remakeCurve = false;
+		}
+		if(glo.allControls.getByName('u').value !== glo.allControls.getByName('v').value){
+			const U = glo.allControls.getByName('u').value; 
+			glo.allControls.getByName('u').value = glo.allControls.getByName('v').value;
+			glo.allControls.getByName('v').value = U;
+			remakeCurve = false;
+		}
+		if(remakeCurve){
+			remakeRibbon();
+		}
+	}
+	else if(makeCurve){
+		remakeRibbon();
 	}
 }
 
@@ -6007,6 +6021,16 @@ BABYLON.Mesh.prototype.extremePos = function() {
 	return {x: {min: xBottom, max: xUp, dist: width}, y: {min: yBottom, max: yUp, dist: depht}, z: {min: zBottom, max: zUp, dist: height}, positions: positions};
 };
 
+BABYLON.Mesh.prototype.gridScale = function() {
+	const gridSize = 30;
+	const extremePos = this.extremePos();
+
+	const dist    = {x: extremePos.x.dist, y: extremePos.y.dist, z: extremePos.z.dist};
+	const distMax = dist.x > dist.y ? (dist.x > dist.z ? dist.x : dist.z) : (dist.y > dist.z ? dist.y : dist.z);
+
+	return gridSize/distMax;
+};
+
 BABYLON.Mesh.prototype.moyPosToOrigin = function() {
 	const moyPos = this.moyPos();
 
@@ -6088,6 +6112,13 @@ function applyTransformations(){
 	transformationsAxis.forEach(transformationsAxis => {
 		if(glo.params[transformationsAxis.name]){ transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name]); }
 	});
+
+	if(glo.params.gridScale){
+		const scale = glo.ribbon.gridScale();
+		transformMesh('scaling', 'x', scale, glo.ribbon, glo.curves.lineSystem, false);
+		transformMesh('scaling', 'y', scale, glo.ribbon, glo.curves.lineSystem, false);
+		transformMesh('scaling', 'z', scale, glo.ribbon, glo.curves.lineSystem, false);
+	}
 }
 
 function blendPos(x, y, z, variable, val, coeff = 0.01){

@@ -663,6 +663,7 @@ function add_inputs_equations(){
           reMakeClones();
           glo.histo.save();
           glo.advancedTexture.moveFocusToControl(input);
+          //camToOrigin();
         }
         else{
           var equations = {
@@ -857,13 +858,14 @@ function add_step_uv_slider(){
       glo['params'][gloPropToModify] = value;
       getPathsInfos();
       if(!glo.fromHisto){
-        if(!glo.normalMode){  make_curves(); }
+        if(!glo.normalMode){  await make_curves(); }
         else{
           glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
         }
       }
       reMakeClones();
       header.text = headerText + " : " + value;
+      //camToOrigin();
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){ slider.value = slider.startValue; }
@@ -1512,9 +1514,9 @@ function add_ninethPanel_controls(){
   parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 4.5});
   glo.advancedTexture.addControl(panelButton2);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton, background = glo.controlConfig.background){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
-    parmamControl(button, name, 'button right nineth', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    parmamControl(button, name, 'button right nineth', {background: background, w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     designButton(button);
     button.onPointerUpObservable.add(function(event) {
       if (event.buttonIndex !== 2){ eventLeft(); }
@@ -1543,11 +1545,12 @@ function add_ninethPanel_controls(){
     glo.params.wOnXYZ = !glo.params.wOnXYZ;
     remakeRibbon();
   }, undefined, panelButton2);
-  add_button("GridScale", "Grid Sc", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
-    swapControlBackground("GridScale");
+  add_button("GridScale", "Grid Sc", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    swapControlBackground("GridScale", glo.controlConfig.backgroundActived, glo.controlConfig.background);
     glo.params.gridScale = !glo.params.gridScale;
-    remakeRibbon();
-  }, undefined, panelButton2);
+    await remakeRibbon();
+    //camToOrigin();
+  }, undefined, panelButton2, glo.controlConfig.backgroundActived);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();

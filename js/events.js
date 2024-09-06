@@ -20,6 +20,7 @@ $( document ).ready(function() {
   startAnim(20, 1);
   initDataModal();
   getPathsInfos();
+  otherDesigns();
 });
 
 $("#univers_div").mouseenter(function(){
@@ -156,7 +157,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "s":
-                  glo.secondCurveOperation = !glo.secondCurveOperation;
+                  glo.params.curvaturetoZero = !glo.params.curvaturetoZero;
                   remakeRibbon();
 
                   break;
@@ -521,53 +522,53 @@ window.addEventListener("keydown", function (e) {
             break;
             case "B":
             case "b":
-            glo.wireframe = !glo.wireframe;
-            glo.ribbon.material.wireframe = glo.wireframe;
+               glo.wireframe = !glo.wireframe;
+               glo.ribbon.material.wireframe = glo.wireframe;
 
             break;
             case "L":
             case "l":
-            glo.slider_u.maximum*=2;
-            glo.slider_v.maximum*=2;
+               glo.slider_u.maximum*=2;
+               glo.slider_v.maximum*=2;
 
             break;
             case "K":
             case "K":
-            glo.slider_u.maximum/=2;
-            glo.slider_v.maximum/=2;
+               glo.slider_u.maximum/=2;
+               glo.slider_v.maximum/=2;
 
             break;
             case "O":
             case "o":
-            glo.params.modCos = !glo.params.modCos;
+               glo.params.modCos = !glo.params.modCos;
             makeColors();
 
             break;
             case "V":
             case "v":
-            glo.camera.alpha = glo.camera.start.alpha;
-            glo.camera.beta  = glo.camera.start.beta;
-            glo.camera.setPosition(glo.camera.start.pos.clone());
-            glo.camera.setTarget(glo.camera.start.target.clone());
+               glo.camera.alpha = glo.camera.start.alpha;
+               glo.camera.beta  = glo.camera.start.beta;
+               glo.camera.setPosition(glo.camera.start.pos.clone());
+               glo.camera.setTarget(glo.camera.start.target.clone());
 
             break;
             case "Y":
             case "y":
-            updInputsToQuaternion();
+               updInputsToQuaternion();
 
             break;
             case "Q":
             case "q":
-            firstInputToOthers();
+               firstInputToOthers();
 
             break;
             case "N":
             case "n":
-            glo.stepByStepFast = !glo.stepByStepFast;
+               glo.stepByStepFast = !glo.stepByStepFast;
 
             break;
             case "?":
-            glo.meshWithTubes = !glo.meshWithTubes;
+               glo.meshWithTubes = !glo.meshWithTubes;
             make_ribbon();
 
                break;

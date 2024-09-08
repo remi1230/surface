@@ -120,8 +120,8 @@ var glo = {
 						glo.params.text_input_beta  = fbeta;
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
-						glo.params.steps_u = sel.nb_steps_u;
-						glo.params.steps_v = sel.nb_steps_v;
+						glo.params.steps_u = !glo.meshWithTubes ? sel.nb_steps_u : round(sel.nb_steps_u/4, 0);
+						glo.params.steps_v = !glo.meshWithTubes ? sel.nb_steps_v : round(sel.nb_steps_v/4, 0);
 
 						if(!glo.normalMode){
 							glo.input_x.text = sel.fx;
@@ -141,8 +141,8 @@ var glo = {
 						if(glo.slider_u.maximum < 2*Math.PI){ glo.slider_u.maximum = 2*Math.PI; }
 						if(glo.slider_v.maximum < 2*Math.PI){ glo.slider_v.maximum = 2*Math.PI; }
 
-						glo.slider_nb_steps_u.value = sel.nb_steps_u; glo.slider_nb_steps_u.startValue = sel.nb_steps_u;
-						glo.slider_nb_steps_v.value = sel.nb_steps_v; glo.slider_nb_steps_v.startValue = sel.nb_steps_v;
+						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
+						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
 						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;
 						glo.slider_v.value = sel.vdef; glo.slider_v.startValue = sel.vdef;
 						glo.fromHisto = false;
@@ -744,7 +744,7 @@ var glo = {
 		curvaturetoZero: true,
 	},
 	tubes: {
-		radius: 0.1,
+		radius: 0.05,
 		coeffRadiusVariation: Math.pow(2, 1/3),
 	},
 	cutRibbon: {x: false, y: false, z: false},
@@ -835,6 +835,7 @@ var glo = {
 		background: '#199191',
 		backgroundActived: '#196969',
 	},
+	dblLines: [],
 };
 function getByName(name){
 	var elemToReturn = false;

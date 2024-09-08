@@ -3352,8 +3352,6 @@ async function make_ribbon(symmetrize = true){
   	glo.emissiveColor = {...glo.emissiveColorSave};
 	glo.diffuseColor  = {...glo.diffuseColorSave};
 
-	if(glo.meshWithTubes){ await meshWithTubes(); }
-
 	await cutsRibbon();
 
 	makeLineSystem();
@@ -3361,12 +3359,11 @@ async function make_ribbon(symmetrize = true){
 	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
 
 	glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
-	applyTransformations();
 	flatRibbon();
 
-	//camToOrigin();
+	if(glo.meshWithTubes){ await meshWithTubes(); }
 
-	//glo.camera.focusOn([glo.ribbon], true);
+	applyTransformations();
 }
 
 function getPathsInfos(){
@@ -4606,6 +4603,7 @@ function switch_axis(axis_visible = glo.axis_visible){
 
 var switch_lines = function(visibility = glo.lines_visible){
 	glo.curves.lineSystem.visibility = visibility;
+	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.visibility = visibility; }
 }
 
 function gui_resize(){
@@ -5092,6 +5090,16 @@ async function meshWithTubes(){
 		if(glo.onlyTubes){ ribbonDispose(); }
 		let meshesTubes = [];
 		glo.lines.forEach(line => {
+			if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
+				let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: glo.tubes.radius}, glo.scene);
+				if (tube) {
+					meshesTubes.push(tube);
+				} else {
+					console.log("Tube creation failed for line:", line);
+				}
+			}
+		});
+		glo.dblLines.forEach(line => {
 			if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
 				let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: glo.tubes.radius}, glo.scene);
 				if (tube) {
@@ -6159,11 +6167,24 @@ function makeLineSystem(){
 	if(!paths){ paths = glo.curves.paths; }
 
 	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
+
 	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, }, glo.scene);
 	glo.curves.lineSystem.color = glo.lineColor;
 	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
 	glo.curves.lineSystem.alphaIndex = 999;
 	glo.curves.lineSystem.visibility = glo.lines_visible;
+
+	if(glo.params.doubleLineSystem){
+		let paths    = !glo.normalMode ? reformatPaths() : reformatPaths(glo.curves.pathsSecond);
+		glo.dblLines = paths;
+		
+		glo.curves.lineSystemDouble = BABYLON.MeshBuilder.CreateLineSystem("lineSystemDouble", { lines: paths, }, glo.scene);
+		glo.curves.lineSystemDouble.color = glo.lineColor;
+		glo.curves.lineSystemDouble.alpha = glo.ribbon_alpha;
+		glo.curves.lineSystemDouble.alphaIndex = 999;
+		glo.curves.lineSystemDouble.visibility = glo.lines_visible;
+	}
 }
 
 function makeSimpleLineSystem(lines){
@@ -6633,7 +6654,7 @@ BABYLON.Mesh.prototype.moyPos = function() {
 };
 
 BABYLON.Mesh.prototype.extremePos = function() {
-	const positions = glo.ribbon.savePos.slice();
+	const positions = glo.ribbon.savePos ? glo.ribbon.savePos.slice() : glo.ribbon.getPositionData();
 	const posLength = positions.length;
 
 	let x = 0, y = 0, xUp = positions[0], xBottom = positions[0], yUp = positions[1], yBottom = positions[1], zUp = positions[2], zBottom = positions[2];
@@ -6713,6 +6734,7 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
             const pathOrthoOnPoint = paths[i][j];
             const pathOrthoAfterPoint = paths[i+1][j];
 
+
             const vectorBeforePoint = new BABYLON.Vector3(pathOnPoint.x - pathBeforePoint.x, pathOnPoint.y - pathBeforePoint.y, pathOnPoint.z - pathBeforePoint.z);
             const vectorAfterPoint = new BABYLON.Vector3(pathAfterPoint.x - pathOnPoint.x, pathAfterPoint.y - pathOnPoint.y, pathAfterPoint.z - pathOnPoint.z);
             const vectorOrthoBeforePoint = new BABYLON.Vector3(pathOrthoOnPoint.x - pathOrthoBeforePoint.x, pathOrthoOnPoint.y - pathOrthoBeforePoint.y, pathOrthoOnPoint.z - pathOrthoBeforePoint.z);
@@ -6734,9 +6756,21 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
             const angleBetweenPoints = calculateAngleBetweenVectors(vectorBeforePoint, vectorAfterPoint);
             const angleBetweenOrthoPoints = calculateAngleBetweenVectors(vectorOrthoBeforePoint, vectorOrthoAfterPoint);
 
+			// Courbure
+			const deltaS = vectorBeforePoint.length() + vectorAfterPoint.length();
+			const curvature = angleBetweenPoints / deltaS;
+			const radiusOfCurvature = round(1 / curvature, 2);
+
+			const deltaSOrtho = vectorOrthoBeforePoint.length() + vectorOrthoAfterPoint.length();
+			const curvatureOrtho = angleBetweenOrthoPoints / deltaSOrtho;
+			const radiusOfCurvatureOrtho = round(1 / curvatureOrtho, 2);
+
             // Conversion des angles en degrés
-            const angleBetweenPointsDegrees = round(BABYLON.Tools.ToDegrees(angleBetweenPoints), 2);
-            const angleBetweenOrthoPointsDegrees = round(BABYLON.Tools.ToDegrees(angleBetweenOrthoPoints), 2);
+            const angleBetweenPointsDegrees = 180 - round(BABYLON.Tools.ToDegrees(angleBetweenPoints), 2);
+            let angleBetweenOrthoPointsDegrees = round(BABYLON.Tools.ToDegrees(angleBetweenOrthoPoints), 2);
+			if(angleBetweenOrthoPointsDegrees !== 90){
+				angleBetweenOrthoPointsDegrees = angleBetweenOrthoPointsDegrees < 90 ? 180 - angleBetweenOrthoPointsDegrees : angleBetweenOrthoPointsDegrees / 2;
+			}
             const azimuthResultDegrees = round(BABYLON.Tools.ToDegrees(azimuthResult), 2);
             const elevationResultDegrees = round(BABYLON.Tools.ToDegrees(elevationResult), 2);
             const azimuthResultOrthoDegrees = round(BABYLON.Tools.ToDegrees(azimuthResultOrtho), 2);
@@ -6748,7 +6782,9 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
                 azimuth: azimuthResultDegrees,
                 elevation: elevationResultDegrees,
                 azimuthOrtho: azimuthResultOrthoDegrees,
-                elevationOrtho: elevationResultOrthoDegrees
+                elevationOrtho: elevationResultOrthoDegrees,
+				radius: radiusOfCurvature,
+    			radiusOrtho: radiusOfCurvatureOrtho
             });
         }
     }
@@ -6773,12 +6809,16 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
         elevationConstant: curvatures.every(curvature => curvature.elevation === curvatures[0].elevation) ? curvatures[0].elevation : false,
         azimutOrthoConstant: curvatures.every(curvature => curvature.azimuthOrtho === curvatures[0].azimuthOrtho) ? curvatures[0].azimuthOrtho : false,
         elevationOrthoConstant: curvatures.every(curvature => curvature.elevationOrtho === curvatures[0].elevationOrtho) ? curvatures[0].elevationOrtho : false,
+        radiusConstant: curvatures.every(curvature => curvature.radius === curvatures[0].radius) ? curvatures[0].radius : false,
+        radiusOrthoConstant: curvatures.every(curvature => curvature.radiusOrtho === curvatures[0].radiusOrtho) ? curvatures[0].radiusOrtho : false,
         pointsDeriveConstant: curvaturesDerive('points'),
         pointsOrthoDeriveConstant: curvaturesDerive('pointsOrtho'),
         azimutDeriveConstant: curvaturesDerive('azimuth'),
         elevationDeriveConstant: curvaturesDerive('elevation'),
         azimutOrthoDeriveConstant: curvaturesDerive('azimuthOrtho'),
         elevationOrthoDeriveConstant: curvaturesDerive('elevationOrtho'),
+        radiusDeriveConstant: curvaturesDerive('radius'),
+        radiusOrthoDeriveConstant: curvaturesDerive('radiusOrtho'),
     };
 };
 
@@ -6860,6 +6900,12 @@ function applyTransformations(){
 		transformMesh('scaling', 'x', scale, glo.ribbon, glo.curves.lineSystem, false);
 		transformMesh('scaling', 'y', scale, glo.ribbon, glo.curves.lineSystem, false);
 		transformMesh('scaling', 'z', scale, glo.ribbon, glo.curves.lineSystem, false);
+
+		if(glo.params.doubleLineSystem){
+			transformMesh('scaling', 'x', scale, glo.ribbon, glo.curves.lineSystemDouble, false);
+			transformMesh('scaling', 'y', scale, glo.ribbon, glo.curves.lineSystemDouble, false);
+			transformMesh('scaling', 'z', scale, glo.ribbon, glo.curves.lineSystemDouble, false);
+		}
 	}
 }
 
@@ -6997,6 +7043,40 @@ function camToOrigin(){
 	glo.camera.beta  = glo.camera.start.beta;
 	glo.camera.setPosition(glo.camera.start.pos.clone());
 	glo.camera.setTarget(glo.camera.start.target.clone());
+}
+
+function reformatPaths(originalPaths = glo.curves.paths) {
+    // Déterminer le nombre de chemins et la longueur du chemin le plus long
+    const numPaths = originalPaths.length;
+    let maxPathLength = 0;
+    originalPaths.forEach(path => {
+        if (path.length > maxPathLength) {
+            maxPathLength = path.length;
+        }
+    });
+
+    // Initialiser le nouveau tableau de chemins
+    const newPaths = [];
+
+    // Construire chaque nouveau chemin en prenant le nième point de chaque chemin original
+    for (let i = 0; i < maxPathLength; i++) {
+        const newPath = [];
+        for (let j = 0; j < numPaths; j++) {
+            if (i < originalPaths[j].length) { // Vérifie si le point existe
+                newPath.push(originalPaths[j][i]);
+            }
+        }
+        newPaths.push(newPath);
+    }
+
+	glo.curves.doublePaths = newPaths;
+
+    return newPaths;
+}
+
+function w(val, isCos = 1){
+	let res = isCos ? Math.acos(val) : Math.asin(val);
+	return isNaN(res) ? val : res;
 }
 
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {

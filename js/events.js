@@ -162,7 +162,8 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "t":
-                  switchEqSphericToCylindrical();
+                  glo.params.doubleLineSystem = !glo.params.doubleLineSystem;
+                  remakeRibbon();
 
                   break;
                case "d":
@@ -261,7 +262,7 @@ window.addEventListener("keydown", function (e) {
                   break;
                case "3":
                   glo.onlyTubes = !glo.onlyTubes;
-                  meshWithTubes();
+                  remakeRibbon();
 
                   break;
                case "6":
@@ -569,7 +570,7 @@ window.addEventListener("keydown", function (e) {
             break;
             case "?":
                glo.meshWithTubes = !glo.meshWithTubes;
-            make_ribbon();
+               remakeRibbon();
 
                break;
             case ".":

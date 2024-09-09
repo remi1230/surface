@@ -40,6 +40,10 @@ function addCommonTools(obj){
 		return val**p;
 	};
 
+	obj.sc = function(val, valSign){
+		return Math.sign(valSign) * Math.abs(val);
+	};
+
 	obj.lc = function(val){
 		return val < 0 ? (l(abs(val))) * -1 : l(val);
 	};
@@ -89,6 +93,11 @@ function addCommonTools(obj){
 
 	obj.se = function(n, div = 1){
 		return (n*(n+1)) / (2*div);
+	};
+
+	obj.sp = function(n, div = 1){
+		const m = Math.abs(n);
+		return Math.sign(n) * ((m*(m+1)) / (2*div));
 	};
 }
 addCommonTools(this);

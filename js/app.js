@@ -3150,6 +3150,7 @@ function reg(f, dim_one){
 		else{
 			f[prop] = f[prop].toString();
 			f[prop] = f[prop].replace(/\s/g,"");
+			f[prop] = f[prop].replace(/R/g, 'h(x,y,z)');
 			f[prop] = f[prop].replace(/cudv|cvdu/g,"cos(u/v)");
 			f[prop] = f[prop].replace(/cufv|cvfu/g,"cos(uv)");
 			f[prop] = f[prop].replace(/sudv|svdu/g,"sin(u/v)");
@@ -3160,10 +3161,13 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/supv|svpu/g,"sin(u+v)");
 			f[prop] = f[prop].replace(/sumv/g,"sin(u-v)");
 			f[prop] = f[prop].replace(/svmu/g,"sin(v-u)");
+			f[prop] = f[prop].replace(/(.*?)\*\*\*(.*)/g, "cpow($1, $2)");
 			f[prop] = f[prop].replace(/c([^u\(v]*)u/g, "cos($1u)");
 			f[prop] = f[prop].replace(/c([^v\(u]*)v/g, "cos($1v)");
 			f[prop] = f[prop].replace(/s([^u\(v]*)u/g, "sin($1u)");
 			f[prop] = f[prop].replace(/s([^v\(u]*)v/g, "sin($1v)");
+			f[prop] = f[prop].replace(/c([^*\(v]*)O/g, "cos($1O)");
+			f[prop] = f[prop].replace(/s([^*\(v]*)O/g, "sin($1O)");
 			f[prop] = f[prop].replace(/c([^x\(]*)x/g, "cos($1x)");
 			f[prop] = f[prop].replace(/c([^y\(]*)y/g, "cos($1y)");
 			f[prop] = f[prop].replace(/c([^z\(]*)z/g, "cos($1z)");
@@ -5816,17 +5820,19 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 		const angle = k * stepAngle;
 		index_u = 0;
 		newCurves[k] = [];
-		curvesPathsSave.forEach((line, i) => {
-			index_v = 0;
-			u = i * stepU;
-			newCurves[k][i] = [];
-			line.forEach((path, j) => {
-				v = j * stepV;
 
-				let newPt = subVectors(glo.curves.paths[i][j], glo.centerSymmetry);
+		if(goodR){
+			curvesPathsSave.forEach((line, i) => {
+				index_v = 0;
+				u = i * stepU;
+				newCurves[k][i] = [];
+				line.forEach((path, j) => {
+					v = j * stepV;
 
-				let r = 0;
-				if(goodR){
+					let newPt = subVectors(glo.curves.paths[i][j], glo.centerSymmetry);
+
+					let r = 0;
+					
 					var x = newPt.x; var y = newPt.y; var z = newPt.z;
 					var vect3 = new BABYLON.Vector3(x,y,z);
 					vect3 = getNormalVector(vect3);
@@ -5852,28 +5858,35 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 					const dirXY   = directionXY(angleXY, r);
 					
 					newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
-				}
+					
+					if(nbSyms > 1){ 
+						switch(axis){
+							case 'X':
+								newPt = rotateByMatrix(newPt, angle, 0, 0);
+							break;
+							case 'Y':
+								newPt = rotateByMatrix(newPt, 0, angle, 0);
+							break;
+							case 'Z':
+								newPt = rotateByMatrix(newPt, 0, 0, angle);
+							break;
+						}
+					}
 
-				switch(axis){
-					case 'X':
-						newPt = rotateByMatrix(newPt, angle, 0, 0);
-					break;
-					case 'Y':
-						newPt = rotateByMatrix(newPt, 0, angle, 0);
-					break;
-					case 'Z':
-						newPt = rotateByMatrix(newPt, 0, 0, angle);
-					break;
-				}
+					newPt = addVectors(newPt, glo.centerSymmetry);
 
-				newPt = addVectors(newPt, glo.centerSymmetry);
-
-				newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
-				index_v++;
+					newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
+					index_v++;
+				});
+				index_u++;
 			});
-			index_u++;
-		});
-		newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene));
+			newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene));
+		}
+		else{
+			let newRibbon = await glo.ribbon.clone();
+			if(nbSyms > 1){ newRibbon.rotation[axis.toLowerCase()] = angle; }
+			newRibbons.push(newRibbon);
+		}
 	}
 
 	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(new Uint32Array(savedIndices)); await newRibbon.computeWorldMatrix(true); });

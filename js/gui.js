@@ -743,8 +743,8 @@ function add_inputs_equations(){
   add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
   add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
   add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
-  add_input(panel, "Rot Y", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
-  add_input(panel, "Rot Z", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
+  add_input(panel, "R", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
+  add_input(panel, "W", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
 
   add_input(panelColorsEquations, "R", "cu", "inputColorX", "header right third", "input equation right third", "text_input_color_x", "input_color_x", true);
   add_input(panelColorsEquations, "G", "cv", "inputColorY", "header right third", "input equation right third", "text_input_color_y", "input_color_y", true);
@@ -1283,7 +1283,7 @@ function add_sixth_panel_sliders(){
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel());
   addPanel(panelButtonInvFormulaCosSin, 'panelButtonInvFormulaCosSin', posPanel());
   addPanel(panelButtonInvFormulaUV, 'panelButtonInvFormulaUV', posPanel());
-  addPanel(panelButtonInvPosXYZ, 'panelButtonInvPosXYZ', posPanel(), false, 14.5, 4);
+  addPanel(panelButtonInvPosXYZ, 'panelButtonInvPosXYZ', posPanel(), false, 15, 4);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1423,6 +1423,10 @@ function add_sixth_panel_sliders(){
     swapControlBackground("InvPosZ");
     remakeRibbon();
   }, function(value){ });
+  addButton(panelButtonInvPosXYZ, "InvPosIf", "P", buttonSizes.width/8, buttonSizes.height, 5, 0, function(value){
+    glo.invPositionIfs.next().value;
+    remakeRibbon();
+  }, function(value){ glo.invPositionIfs = glo.invPosIfs(); glo.invPosIf = ''; remakeRibbon(); });
 }
 
 function add_transformation_sliders(){
@@ -1475,11 +1479,6 @@ function add_transformation_sliders(){
       }
     });
 
-    slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = step : val = -step;
-      if(slider.value === 1 && !slider.notFirstChange){ slider.value = 0; slider.notFirstChange = true; }
-      slider.value += val;
-    });
     slider.onPointerUpObservable.add(function (e) {
       
     });
@@ -1511,7 +1510,7 @@ function add_ninethPanel_controls(){
   parmamControl(panelButton, 'ninethPanelButton', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 2});
   glo.advancedTexture.addControl(panelButton);
   var panelButton2 = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 4.5});
+  parmamControl(panelButton2, 'ninethPanelButton2', 'panel right nineth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 2});
   glo.advancedTexture.addControl(panelButton2);
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton, background = glo.controlConfig.background){
@@ -1549,7 +1548,11 @@ function add_ninethPanel_controls(){
     swapControlBackground("GridScale", glo.controlConfig.backgroundActived, glo.controlConfig.background);
     glo.params.gridScale = !glo.params.gridScale;
     await remakeRibbon();
-    //camToOrigin();
+  }, undefined, panelButton2, glo.controlConfig.backgroundActived);
+  add_button("updateRots", "Upd Rot", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    swapControlBackground("updateRots", glo.controlConfig.backgroundActived, glo.controlConfig.background);
+    glo.params.updateRots = !glo.params.updateRots;
+    //await remakeRibbon();
   }, undefined, panelButton2, glo.controlConfig.backgroundActived);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){

@@ -24,13 +24,13 @@ var glo = {
 	formes:{
 		selected:['Torus', 'cartesian'],
 		select:[
+			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "3v", fz: "6cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
+			{text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "cusu", beta:"cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
+			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", beta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 75}},
 			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cu", fy: "5cv", fz: "5cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 150} },
 			{text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32, fx: "sinh(v)su", fy: "3u", fz: "-sinh(v)cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
 			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: false, },
-			{text: "Hyperbola", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "3v", fz: "6cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
-			{text: "Hyperbola loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "cusu", beta:"cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
-			{text: "Hyperbola twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", beta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
 			{text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 512, nb_steps_v: 32,  fx: "uc(0.5v)/2", fy: "h(u,v)+sv - 3", fz: "h(u,v)u/12", alpha: "h(u,v)/G", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: 0}},
 			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: 1, nb_steps_u: 256, nb_steps_v: 12,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, orient:{distance: 50}},
 			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, },
@@ -110,14 +110,28 @@ var glo = {
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
 					if(draw){
 						if(glo.normalMode){ resetInputsRibbonEquations(); }
-						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha : falpha = "";
-						var fbeta = typeof(sel.beta) != "undefined" ? fbeta = sel.beta : fbeta = "";
+						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
+						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
+						var ftheta = typeof(sel.theta) != "undefined" ? ftheta = sel.ftheta : ftheta = "";
+
 						glo.fromHisto = true;
 						glo.params.text_input_x = sel.fx;
 						glo.params.text_input_y = sel.fy;
 						glo.params.text_input_z = sel.fz;
-						glo.params.text_input_alpha = falpha;
-						glo.params.text_input_beta  = fbeta;
+
+						if(glo.params.updateRots){
+							glo.params.text_input_suit_alpha = falpha;
+							glo.params.text_input_suit_beta  = fbeta;
+							glo.params.text_input_suit_theta = ftheta;
+						}
+						/*else{
+							glo.params.text_input_suit_alpha = falpha ? falpha : glo.params.text_input_suit_alpha;
+							glo.params.text_input_suit_beta  = fbeta  ? fbeta  : glo.params.text_input_suit_beta;
+							glo.params.text_input_suit_theta = ftheta ? ftheta : glo.params.text_input_suit_theta;
+						}*/
+						
+						//glo.params.text_input_alpha = falpha ? falpha : glo.params.text_input_alpha;
+						//glo.params.text_input_beta  = fbeta ? fbeta : glo.params.text_input_beta;
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
 
@@ -125,8 +139,13 @@ var glo = {
 							glo.input_x.text = sel.fx;
 							glo.input_y.text = sel.fy;
 							glo.input_z.text = sel.fz;
-							glo.input_alpha.text = falpha;
-							glo.input_beta.text  = fbeta;
+							if(glo.params.updateRots){
+								glo.input_suit_alpha.text = falpha;
+								glo.input_suit_beta.text  = fbeta;
+								glo.input_suit_theta.text = ftheta;
+							}
+							//glo.input_alpha.text = falpha ? falpha : glo.input_alpha.text;
+							//glo.input_beta.text  = fbeta ? fbeta : glo.input_beta.text;
 						}
 
 						glo.slider_nb_steps_u.maximum = sel.nb_steps_u * 2;
@@ -287,6 +306,16 @@ var glo = {
 			for (const permutsign of permutsigns) {
 				this.permutSign = permutsign;
 				yield permutsign;
+			}
+		}
+	},
+	invPosIf: '',
+	invPosIfs: function* (){
+		const invposifs = ['xy', 'yx', 'xz', 'zx', 'yz', 'zy', ''];
+		while (true) {
+			for (const invposif of invposifs) {
+				this.invPosIf = invposif;
+				yield invposif;
 			}
 		}
 	},
@@ -743,11 +772,13 @@ var glo = {
 		wOnXYZ: true,
 		gridScale: true,
 		curvaturetoZero: true,
+		updateRots: true,
 	},
 	tubes: {
 		radius: 0.05,
 		coeffRadiusVariation: Math.pow(2, 1/3),
 	},
+	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotate_speed: 0.5/180 * PI,
@@ -900,5 +931,6 @@ glo.coordinatesNomrType = glo.coordinatesNomrType();
 glo.rotType             = glo.rotateTypeGen();
 glo.symmetrizeOrders    = glo.symmetrizeOrders();
 glo.permutSigns         = glo.permutSigns();
+glo.invPositionIfs      = glo.invPosIfs();
 
 let dataTableBody = document.getElementById('dataTableBody');

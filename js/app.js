@@ -2886,7 +2886,11 @@ function reg(f, dim_one){
 			f[prop] = f[prop].replace(/supv|svpu/g,"sin(u+v)");
 			f[prop] = f[prop].replace(/sumv/g,"sin(u-v)");
 			f[prop] = f[prop].replace(/svmu/g,"sin(v-u)");
-			f[prop] = f[prop].replace(/(.*?)\*\*\*(.*)/g, "cpow($1, $2)");
+			//f[prop] = f[prop].replace(/(.*?)\*\*\*(.*)/g, "cpow($1, $2)");
+
+			f[prop] = f[prop].replace(/\(([^)]+)\)\*\*\*([^)]+)/g, "cpow($1, $2)")
+                 .replace(/(.*?)\*\*\*([^)]+)/g, "cpow($1, $2)");
+
 			f[prop] = f[prop].replace(/c([^u\(v]*)u/g, "cos($1u)");
 			f[prop] = f[prop].replace(/c([^v\(u]*)v/g, "cos($1v)");
 			f[prop] = f[prop].replace(/s([^u\(v]*)u/g, "sin($1u)");
@@ -3116,42 +3120,45 @@ function getCoeffSym(){
 }
 
 async function makeSymmetrize(){
+	const isFirstX    = glo.params.symmetrizeX ? false : true;
+	const isFirstXorY = (glo.params.symmetrizeX || glo.params.symmetrizeY) ? false : true;
+
 	switch(glo.symmetrizeOrder){
 		case 'xyz':
 			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY, isFirstX); }
 			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
+	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ, isFirstXorY); }
 		break;
 		case 'xzy':
 			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ, isFirstX); }
 			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY); }
+	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY, isFirstXorY); }
 		break;
 		case 'yxz':
 			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX, isFirstX); }
 			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
-	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ); }
+	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ, isFirstXorY); }
 		break;
 		case 'yzx':
 			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ); }
+			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ, isFirstX); }
 			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
-	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX); }
+	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX, isFirstXorY); }
 		break;
 		case 'zxy':
 			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX); }
+			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX, isFirstX); }
 			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
-	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY); }
+	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY, isFirstXorY); }
 		break;
 		case 'zyx':
 			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY); }
+			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY, isFirstX); }
 			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
-	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX); }
+	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX, isFirstXorY); }
 		break;
 	}
 }
@@ -5462,7 +5469,7 @@ function directionXY(angleXY, dist, positive = 1){
 	};
 }
 
-async function symmetrizeRibbon(axisVarName, coeff = 1){
+async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	let curvesPathsSave = [...glo.curves.paths];
 
 	const nbSyms    = glo.params[axisVarName];
@@ -5549,7 +5556,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1){
 		index_u = 0;
 		newCurves[k] = [];
 
-		if(goodR || glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z){
+		if((goodR || glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z) && first){
 			curvesPathsSave.forEach((line, i) => {
 				index_v = 0;
 				u = i * stepU;
@@ -6866,6 +6873,11 @@ function swapControlBackground(controlName, background = glo.controlConfig.backg
 }
 
 function rotateByQuaternion(x, y, z, w, r, firstPoint = glo.firstPoint){
+	if(!glo.params.quaternionByRotR){ return rotateByQuaternionWithNoRotR(x, y, z, w, r, firstPoint); }
+	else{ return rotateByQuaternionWithRotR(x, y, z, w, r, firstPoint); }
+}
+
+function rotateByQuaternionWithNoRotR(x, y, z, w, r, firstPoint = glo.firstPoint){
 	let axis = new BABYLON.Vector3(x, y, z);
 
 	return BABYLON.Quaternion.RotationAxis(axis.normalize(), w)

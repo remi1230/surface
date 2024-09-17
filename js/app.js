@@ -102,7 +102,7 @@ function addCommonTools(obj){
 }
 addCommonTools(this);
 
-function rotateByBabylonMatrix(pos, alpha, beta, theta){
+function rotateByBabylonMatrixSave(pos, alpha, beta, theta){
 	if(alpha || beta || theta){
 		if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
 		if(beta == Infinity  || beta == -Infinity  || isNaN(beta)){  beta  = 0; }
@@ -113,11 +113,72 @@ function rotateByBabylonMatrix(pos, alpha, beta, theta){
 	return pos;
 }
 
+function rotateByBabylonMatrix(pos, alpha, beta, theta){
+	if(alpha || beta || theta){
+		if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+		if(beta == Infinity  || beta == -Infinity  || isNaN(beta)){  beta  = 0; }
+		if(theta == Infinity || theta == -Infinity || isNaN(theta)){ theta = 0; }
+		let rotationMatrix  = BABYLON.Matrix.RotationYawPitchRoll(beta, alpha, theta);
+		pos                 = BABYLON.Vector3.TransformCoordinates(new BABYLON.Vector3(pos.x, pos.y, pos.z), rotationMatrix);
+	}
+	return pos;
+}
+
+function testMat(axis, angle, method = 'direct'){
+	switch(method){
+		case 'direct': testDirRot(axis, angle);    break;
+		case 'simple': testSimpleMat(axis, angle); break;
+		case 'center': testCenterMat(axis, angle); break;
+	}
+}
+
+function testSimpleMat(axis, angle){
+	let alpha = 0, beta = 0, theta = 0;
+
+	switch(axis){
+		case 'x': alpha = angle; break;
+		case 'y': beta  = angle; break;
+		case 'z': theta = angle; break;
+	}
+
+	glo.curves.paths = glo.curves.paths.map(line => line.map(
+        path => {
+			const pos = rotateByBabylonMatrix({x:path.x, y:path.y, z:path.z}, alpha, beta, theta);
+            return new BABYLON.Vector3(pos.x, pos.y, pos.z);
+        }
+    ));
+    make_ribbon();
+}
+
+function testCenterMat(axis, angle){
+	let alpha = 0, beta = 0, theta = 0;
+
+	switch(axis){
+		case 'x': alpha = angle; break;
+		case 'y': beta  = angle; break;
+		case 'z': theta = angle; break;
+	}
+
+	glo.curves.paths = glo.curves.paths.map(line => line.map(
+        path => {
+			const pos = rotateOnCenterByBabylonMatrix({x:path.x, y:path.y, z:path.z}, alpha, beta, theta);
+            return new BABYLON.Vector3(pos.x, pos.y, pos.z);
+        }
+    ));
+    make_ribbon();
+}
+
+function testDirRot(axis, angle){
+	glo.ribbon.rotation[axis] = angle;
+}
+
 function rotateOnCenterByBabylonMatrix(pos, alpha, beta, theta, center) {
     if (alpha || beta || theta) {
         if (alpha == Infinity || alpha == -Infinity || isNaN(alpha)) { alpha = 0; }
         if (beta == Infinity || beta == -Infinity || isNaN(beta)) { beta = 0; }
         if (theta == Infinity || theta == -Infinity || isNaN(theta)) { theta = 0; }
+
+		pos = pos.length !== undefined ? pos : new BABYLON.Vector3(pos.x, pos.y, pos.z);
         
         // Définir le centre de rotation
         center = center || new BABYLON.Vector3(0, 0, 0);
@@ -126,7 +187,7 @@ function rotateOnCenterByBabylonMatrix(pos, alpha, beta, theta, center) {
         let relativePos = pos.subtract(center);
 
         // Créer la matrice de rotation
-        let rotationMatrix = BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta);
+        let rotationMatrix = BABYLON.Matrix.RotationYawPitchRoll(beta, alpha, theta);
 
         // Appliquer la rotation à la position relative
         let rotatedRelativePos = BABYLON.Vector3.TransformCoordinates(relativePos, rotationMatrix);
@@ -962,10 +1023,10 @@ f = {
 
 			let pos;
 			if(!cyl){
-				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, beta, alpha, 0);
+				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, beta, alpha);
 			}
 			else{
-				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, alpha, 0);
+				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, 0, alpha);
 				pos.z = beta;
 			}
 
@@ -1066,10 +1127,10 @@ f = {
 
 				let pos;
 				if(!cyl){
-					pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, beta, alpha, 0);
+					pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, beta, alpha);
 				}
 				else{
-					pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, alpha, 0);
+					pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, 0, alpha);
 					pos.z = beta;
 				}
 
@@ -2869,111 +2930,26 @@ function test_equations(equations, dim_one = false, forCol = false){
 	return true;
 }
 
-function reg(f, dim_one){
-	for(var prop in f){
-		if(f[prop][0] == "'"){ f[prop] = "0"; }
-		else{
-			f[prop] = f[prop].toString();
-			f[prop] = f[prop].replace(/\s/g,"");
-			f[prop] = f[prop].replace(/R/g, 'h(x,y,z)');
-			f[prop] = f[prop].replace(/cudv|cvdu/g,"cos(u/v)");
-			f[prop] = f[prop].replace(/cufv|cvfu/g,"cos(uv)");
-			f[prop] = f[prop].replace(/sudv|svdu/g,"sin(u/v)");
-			f[prop] = f[prop].replace(/sufv|svfu/g,"sin(u*v)");
-			f[prop] = f[prop].replace(/cupv|cvpu/g,"cos(u+v)");
-			f[prop] = f[prop].replace(/cumv/g,"cos(u-v)");
-			f[prop] = f[prop].replace(/cvmu/g,"cos(v-u)");
-			f[prop] = f[prop].replace(/supv|svpu/g,"sin(u+v)");
-			f[prop] = f[prop].replace(/sumv/g,"sin(u-v)");
-			f[prop] = f[prop].replace(/svmu/g,"sin(v-u)");
-			//f[prop] = f[prop].replace(/(.*?)\*\*\*(.*)/g, "cpow($1, $2)");
-
-			f[prop] = f[prop].replace(/\(([^)]+)\)\*\*\*([^)]+)/g, "cpow($1, $2)")
-                 .replace(/(.*?)\*\*\*([^)]+)/g, "cpow($1, $2)");
-
-			f[prop] = f[prop].replace(/c([^u\(v]*)u/g, "cos($1u)");
-			f[prop] = f[prop].replace(/c([^v\(u]*)v/g, "cos($1v)");
-			f[prop] = f[prop].replace(/s([^u\(v]*)u/g, "sin($1u)");
-			f[prop] = f[prop].replace(/s([^v\(u]*)v/g, "sin($1v)");
-			f[prop] = f[prop].replace(/c([^*\(v]*)O/g, "cos($1O)");
-			f[prop] = f[prop].replace(/s([^*\(v]*)O/g, "sin($1O)");
-			f[prop] = f[prop].replace(/c([^x\(]*)x/g, "cos($1x)");
-			f[prop] = f[prop].replace(/c([^y\(]*)y/g, "cos($1y)");
-			f[prop] = f[prop].replace(/c([^z\(]*)z/g, "cos($1z)");
-			f[prop] = f[prop].replace(/s([^x\(]*)x/g, "sin($1x)");
-			f[prop] = f[prop].replace(/s([^y\(]*)y/g, "sin($1y)");
-			f[prop] = f[prop].replace(/s([^z\(]*)z/g, "sin($1z)");
-			f[prop] = f[prop].replace(/²/g,"**2");
-			f[prop] = f[prop].replace(/³/g,"**3");
-			f[prop] = f[prop].replace(/uu([^,%*+-/)])/g, 'uu*$1');
-			f[prop] = f[prop].replace(/vv([^,%*+-/)])/g, 'vv*$1');
-			f[prop] = f[prop].replace(/u([^,%*+-/)])/g, 'u*$1');
-			f[prop] = f[prop].replace(/v([^,%*+-/)])/g, 'v*$1');
-			f[prop] = f[prop].replace(/µP([^,%*+-/)])/g, 'µP*$1');
-			f[prop] = f[prop].replace(/µN([^,%*+-/)])/g, 'µN*$1');
-			f[prop] = f[prop].replace(/\$N([^,%*+-/)])/g, '$N*$1');
-			f[prop] = f[prop].replace(/\$P([^,%*+-/)])/g, '$P*$1');
-			f[prop] = f[prop].replace(/x([^,%*+-/NPT)])/g, 'x*$1');
-			f[prop] = f[prop].replace(/y([^,%*+-/NPT)])/g, 'y*$1');
-			f[prop] = f[prop].replace(/z([^,%*+-/NPT)])/g, 'z*$1');
-			f[prop] = f[prop].replace(/n([^,%*+-/d)])/g, 'n*$1');
-			f[prop] = f[prop].replace(/r([^,%*+-/nmC)])/g, 'r*$1');
-			f[prop] = f[prop].replace(/alpha([^,%*+-/nt)])/g, 'alpha*$1');
-			f[prop] = f[prop].replace(/beta([^,%*+-/nt)])/g, 'beta*$1');
-			f[prop] = f[prop].replace(/xN([^,%*+-/)])/g, 'xN*$1');
-			f[prop] = f[prop].replace(/yN([^,%*+-/)])/g, 'yN*$1');
-			f[prop] = f[prop].replace(/zN([^,%*+-/)])/g, 'zN*$1');
-			f[prop] = f[prop].replace(/xP([^,%*+-/)])/g, 'xP*$1');
-			f[prop] = f[prop].replace(/yP([^,%*+-/)])/g, 'yP*$1');
-			f[prop] = f[prop].replace(/zP([^,%*+-/)])/g, 'zP*$1');
-			f[prop] = f[prop].replace(/pi([^,%*+-/)])/g, 'pi*$1');
-			f[prop] = f[prop].replace(/ep([^,%*+-/)])/g, 'ep*$1');
-			f[prop] = f[prop].replace(/A([^,%*+-/)])/g, 'A*$1');
-			f[prop] = f[prop].replace(/B([^,%*+-/)])/g, 'B*$1');
-			f[prop] = f[prop].replace(/C([^,%*+-/o)])/g, 'C*$1');
-			f[prop] = f[prop].replace(/D([^,%*+-/)])/g, 'D*$1');
-			f[prop] = f[prop].replace(/E([^,%*+-/)])/g, 'E*$1');
-			f[prop] = f[prop].replace(/F([^,%*+-/)])/g, 'F*$1');
-			f[prop] = f[prop].replace(/G([^,%*+-/)])/g, 'G*$1');
-			f[prop] = f[prop].replace(/H([^,%*+-/)])/g, 'H*$1');
-			f[prop] = f[prop].replace(/I([^,%*+-/)])/g, 'I*$1');
-			f[prop] = f[prop].replace(/J([^,%*+-/)])/g, 'J*$1');
-			f[prop] = f[prop].replace(/K([^,%*+-/)])/g, 'K*$1');
-			f[prop] = f[prop].replace(/L([^,%*+-/)])/g, 'L*$1');
-			f[prop] = f[prop].replace(/M([^,%*+-/)])/g, 'M*$1');
-			f[prop] = f[prop].replace(/rCol([^,%*+-/)])/g, 'rCol*$1');
-			f[prop] = f[prop].replace(/gCol([^,%*+-/)])/g, 'gCol*$1');
-			f[prop] = f[prop].replace(/bCol([^,%*+-/)])/g, 'bCol*$1');
-			f[prop] = f[prop].replace(/mCol([^,%*+-/)])/g, 'mCol*$1');
-			f[prop] = f[prop].replace(/O([^,%*+-/)])/g, 'O*$1');
-			f[prop] = f[prop].replace(/T([^,%*+-/)])/g, 'T*$1');
-			f[prop] = f[prop].replace(/e([^,%*+-/)pi])/g, 'e*$1');
-			f[prop] = f[prop].replace(/Z([^,%*+-/)])/g, 'Z*$1');
-
-			f[prop] = f[prop].replace(/\)([^,%*+-/)'])/g, ')*$1');
-			f[prop] = f[prop].replace(/(\d+)([^,%*+-/.\d)])/g, '$1*$2');
-			if(dim_one){
-				f[prop] = f[prop].replace(/v/g,"u");
-			}
-			f[prop] = f[prop].replace(/u\*_mod/g,"u_mod");
-			f[prop] = f[prop].replace(/v\*_mod/g,"v_mod");
-			f[prop] = f[prop].replace(/be\*ta/g,"beta");
-			f[prop] = f[prop].replace(/sin\*/g,"sin");
-			f[prop] = f[prop].replace(/tan\*/g,"tan");
-			f[prop] = f[prop].replace(/sign\*/g,"sign");
-			f[prop] = f[prop].replace(/logte\*n\*/g,"logten");
-			f[prop] = f[prop].replace(/hy\*pot/g,"hypot");
-			f[prop] = f[prop].replace(/fact_de\*c/g,"fact_dec");
-			f[prop] = f[prop].replace(/mx\*/g,"mx");
-			f[prop] = f[prop].replace(/my\*/g,"my");
-			f[prop] = f[prop].replace(/mz\*/g,"mz");
-			f[prop] = f[prop].replace(/e\*x/g,"ex");
-			f[prop] = f[prop].replace(/ex\*/g,"ex");
-			f[prop] = f[prop].replace(/ep\*i/g, 'e*pi');
-			f[prop] = f[prop].replace(/se\*/g, 'se');
-		}
-	}
-	return f;
+function reg(f, dim_one) {
+    for (var prop in f) {
+        if (f[prop][0] == "'") {
+            f[prop] = "0";
+        } else {
+            f[prop] = f[prop].toString();
+            f[prop] = f[prop].replace(/\s/g, "");
+            for (let i = 0; i < glo.regs.length; i++) {
+                if (glo.regs[i].condition && dim_one) {
+                    f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
+                } else if (!glo.regs[i].condition) {
+                    f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
+                }
+            }
+            if (dim_one) {
+                f[prop] = f[prop].replace(/v/g, "u");
+            }
+        }
+    }
+    return f;
 }
 
 async function make_curves(u_params = {
@@ -4831,6 +4807,53 @@ async function exportMesh(exportFormat){
 	return false;
 }
 
+async function exportMeshToSTL(mesh) {
+    let stl = [];
+    
+    // Commencer le fichier STL
+    stl.push("solid mesh");
+
+    // Récupérer les positions des sommets et les indices du mesh BabylonJS
+    const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    const indices = mesh.getIndices();
+
+    // Parcourir les faces du mesh (chaque triangle est représenté par 3 indices)
+    for (let i = 0; i < indices.length; i += 3) {
+        const i0 = indices[i];
+        const i1 = indices[i + 1];
+        const i2 = indices[i + 2];
+
+        const p0 = new BABYLON.Vector3(positions[i0 * 3], positions[i0 * 3 + 1], positions[i0 * 3 + 2]);
+        const p1 = new BABYLON.Vector3(positions[i1 * 3], positions[i1 * 3 + 1], positions[i1 * 3 + 2]);
+        const p2 = new BABYLON.Vector3(positions[i2 * 3], positions[i2 * 3 + 1], positions[i2 * 3 + 2]);
+
+        // Calculer la normale de la face
+        const normal = BABYLON.Vector3.Cross(p1.subtract(p0), p2.subtract(p0)).normalize();
+
+        // Ajouter la normale et les sommets au fichier STL
+        stl.push(`facet normal ${normal.x} ${normal.y} ${normal.z}`);
+        stl.push("outer loop");
+        stl.push(`vertex ${p0.x} ${p0.y} ${p0.z}`);
+        stl.push(`vertex ${p1.x} ${p1.y} ${p1.z}`);
+        stl.push(`vertex ${p2.x} ${p2.y} ${p2.z}`);
+        stl.push("endloop");
+        stl.push("endfacet");
+    }
+
+    // Terminer le fichier STL
+    stl.push("endsolid mesh");
+
+    // Convertir l'array en texte
+    const stlString = stl.join("\n");
+
+    // Créer et télécharger le fichier STL
+    const blob = new Blob([stlString], { type: 'text/plain' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'mesh.stl';
+    link.click();
+}
+
 async function meshWithTubes(){
 	if(glo.meshWithTubes || glo.onlyTubes){
 		if(glo.onlyTubes){ ribbonDispose(); }
@@ -5556,7 +5579,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		index_u = 0;
 		newCurves[k] = [];
 
-		if((goodR || glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z) && first){
+		if((goodR || isCenterOffset) && first){
 			curvesPathsSave.forEach((line, i) => {
 				index_v = 0;
 				u = i * stepU;
@@ -6971,9 +6994,9 @@ function w(val, isCos = 1){
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {
     glo.curves.paths = glo.curves.paths.map(line => line.map(
         path => {
-            const x = funcX(path.x, path.y, path.z);
-            const y = funcY(path.x, path.y, path.z);
-            const z = funcZ(path.x, path.y, path.z);
+            const x = funcX ? funcX(path.x, path.y, path.z) : path.x;
+            const y = funcY ? funcY(path.x, path.y, path.z) : path.y;
+            const z = funcZ ? funcZ(path.x, path.y, path.z) : path.z;
             return new BABYLON.Vector3(x, y, z);
         }
     ));

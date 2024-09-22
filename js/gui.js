@@ -773,9 +773,9 @@ function add_radios(suit = false){
 
   if(glo.first_radio){
     var panel = new BABYLON.GUI.StackPanel();
-    panel.onWheelObservable.add(function(event){
+    panel.onWheelObservable.add(async function(event){
       glo.whellSwitchFormDown = event.y > 0 ? true : false;
-      whellSwitchForm();
+      await whellSwitchForm();
     });
     var options = {hAlign: 'left', vAlign: 'top', w: 20, t: top_panel, pL: 1};
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);

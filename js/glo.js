@@ -38,7 +38,7 @@ var glo = {
 			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
 			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true, },
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
-			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "7(cv + e)pc(cu, 2)", fy: "7(cv + e)pc(su, 2)", fz: "7sv", check: false, },
+			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "7(cv + e)(cu)***0.5", fy: "7(cv + e)(su)***0.5", fz: "7(sv)***0.5", check: false, },
 			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "G(cv + 1)", beta:"G(cv + 1)", theta: "", check: false, },
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
@@ -54,7 +54,7 @@ var glo = {
 			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4u", fy: "v", fz: "2cupvcv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/8, beta: 0}},
 			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cusv", fy: "ucusv", fz: "vcusv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/4, beta: 0}},
 			{text: "Flower", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "8vh(c(u8),s(12v))", fy: "v+pi/4", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
-			{text: "Hyperbola", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "20", fy: "2v", fz: "pi/8", alpha: "", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/6}},
+			{text: "Hyperbola", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "20", fy: "2v", fz: "pi/8", alpha: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/6}},
 			{text: "Interrogation", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8", check: false, orient: {axis: "X", direction: 1, alpha: -3*PI/2, beta: PI}},
 			{text: "Heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8suv", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: PI}},
 			{text: "Nautile", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cu", fy: "u", fz: "v", alpha: "", beta: "cv", theta: "cusu", check: false, orient: {axis: "Y", direction: -1, alpha: -5*PI/4, beta: 0} },
@@ -103,7 +103,7 @@ var glo = {
 			{text: "Shell", typeCoords: 'quaternionRotAxis', udef: 4.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "u", fy: "u", fz: "v", alpha: "1", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/6, beta: 0}},
 			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, orient: {axis: "X", direction: 1, alpha: 8*PI/7, beta: -PI/12}},
 		],
-		setFormeSelect: function(txt, coordsType, draw = true){
+		setFormeSelect: async function(txt, coordsType, draw = true){
 			this.select.map(async sel => {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
@@ -181,10 +181,10 @@ var glo = {
 				else{ sel.check = false; }
 			});
 		},
-		setFormSelectByNum: function(num){
+		setFormSelectByNum: async function(num){
 			var coordsType = glo.coordsType;
 			var sel = this.select[num];
-			this.setFormeSelect(sel.text, coordsType);
+			await this.setFormeSelect(sel.text, coordsType);
 		},
 		getFormSelect: function(){
 			var coordsType = glo.coordsType;
@@ -236,6 +236,8 @@ var glo = {
 		{ exp: /\s/g, upd: "" },
 		{ exp: /\(([^)]+)\)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
 		{ exp: /(.*?)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
+		{ exp: /c([^*\(R]*)R/g, upd: "cos($1R)" },
+		{ exp: /s([^*\(R]*)R/g, upd: "sin($1R)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
@@ -364,7 +366,8 @@ var glo = {
 	},
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
-		const coordinates = ['spheric', 'cylindrical', 'curvature', 'quaternion', 'quaternionRotAxis', 'cartesian'];
+		//const coordinates = ['spheric', 'cylindrical', 'curvature', 'quaternion', 'quaternionRotAxis', 'cartesian'];
+		const coordinates = ['spheric', 'cylindrical', 'curvature', 'cartesian'];
 		while (true) {
 			for (const coord of coordinates) {
 				this.coordsType = coord;

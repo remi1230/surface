@@ -40,6 +40,10 @@ async function make_curves(u_params = {
 		await rotatePathsByEachCenter();
 
 		await make_ribbon();
+		glo.ribbon.refreshBoundingInfo();
+		setTimeout(() => {
+			glo.camera.focusOn([glo.ribbon], true);
+		}, 0);
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 	}
@@ -130,9 +134,12 @@ async function make_ribbon(symmetrize = true){
 
 	if(glo.meshWithTubes){ await meshWithTubes(); }
 
-	glo.ribbon.moyPosToOrigin();
-	applyTransformations();
 	make_planes();
+
+	applyTransformations();
+	glo.ribbon.moyPosToOrigin();
+
+	glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
 }
 
 function ribbonDispose(all = true){
@@ -276,6 +283,11 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 	const isCenterOffset = (glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z) ? true : false;
 
+	glo.ribbon.computeWorldMatrix(true);
+	glo.ribbon.refreshBoundingInfo();
+	glo.ribbon.boundingInfos = glo.ribbon.getBoundingInfo();
+	const centerLocal        = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : {x:0,y:0,z:0};
+
 	let index_u = 0, index_v = 0;
 	let newRibbons          = [];
 	let newCurves           = [];
@@ -329,7 +341,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 					newPt = isCenterOffset ? new BABYLON.Vector3(newPt.x, newPt.y, newPt.z) : newPt;
 
 					const rotate = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
-					const center = new BABYLON.Vector3(glo.centerSymmetry.x, glo.centerSymmetry.y, glo.centerSymmetry.z);
+					const center = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
 					
 					if(nbSyms > 1){ 
 						switch(axis){
@@ -354,7 +366,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		}
 		else{
 			let newRibbon = await glo.ribbon.clone();
-			if(nbSyms > 1){ newRibbon.rotation[axis.toLowerCase()] = angle; }
+			if(nbSyms > 1){
+				newRibbon.setPivotPoint(centerLocal);
+				newRibbon.rotation[axis.toLowerCase()] = angle;
+			}
 			newRibbons.push(newRibbon);
 		}
 	}
@@ -1922,14 +1937,14 @@ async function whellSwitchForm(){
 		await glo.formes.setFormSelectByNum(numFormToSelect);
 
 		var formSelected = glo.formes.getFormSelect();
-		var nameRadioFormToSelect = "Radio " + formSelected.form.text;
+		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
 		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
 	}
 	else{
-		glo.formes.setFormSelectByNum(glo.formes.getNumFirstFormInCoordType());
+		await glo.formes.setFormSelectByNum(glo.formes.getNumFirstFormInCoordType());
 
 		var formSelected = glo.formes.getFormSelect();
-		var nameRadioFormToSelect = "Radio " + formSelected.form.text;
+		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
 		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
 	}
 }
@@ -1966,6 +1981,7 @@ function switchCoords(normalSens = true){
 
 	switchDrawCoordsType();
 	add_radios();
+	//paramRadios();
 	glo.formesSuit = false;
 }
 
@@ -2175,45 +2191,89 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 	}
 	glo.labels_grid = [];
 	glo.planes_grid = [];
-	function makeTextPlane(text, color, size_plane) {
-	  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size_plane, glo.scene, true);
+
+   function makeTextPlane(text, color, size_plane, axis, isOrtho) {
+		var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size_plane, glo.scene, true);
 		var label_size = 10;
-		if(size_plane < 1){ label_size = 10; }
+		if (size_plane < 1) { label_size = 10; }
 
 		text = text.toFixed(1).toString();
-		if(text[text.length-1] == "0"){ text = text .substring(0, text.length - 2) }
+		if (text[text.length - 1] == "0") { text = text.substring(0, text.length - 2); }
 
 		plane.visibility = 0;
-		plane.isPickable = 0;
+		plane.isPickable = true; // Rend le texte cliquable
 		var label = new BABYLON.GUI.TextBlock();
 		label.text = text;
 		label.color = glo.labelGridColor;
 		label.fontSize = label_size + "px";
 		label.fontWeight = "bold";
-			label.height = "20px";
-			label.width = "30px";
-			label.name = "grid_label";
+		label.height = "20px";
+		label.width = "30px";
+		label.name = "grid_label";
 		label.isVisible = visibility;
 
 		var panel = new BABYLON.GUI.StackPanel();
 		panel.isVertical = false;
-	  	panel.zIndex = -1;
+		panel.zIndex = -1;
 
 		panel.addControl(label);
-    	glo.advancedTexture.addControl(panel);
+		glo.advancedTexture.addControl(panel);
 
 		panel.linkWithMesh(plane);
 
+		// Stockons `ind` et `axis` comme propriétés du plane directement
+		plane.metadata = { ind: parseInt(text), axis: axis, isOrtho: isOrtho, type: 'plane' };
+
+		// Ajoutons l'événement de clic
+		plane.actionManager = new BABYLON.ActionManager(glo.scene);
+		plane.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
+			BABYLON.ActionManager.OnPickTrigger, function(evt) {
+				// Récupérons les valeurs directement depuis le plane cliqué
+				var clickedPlane = evt.meshUnderPointer;
+				var clickedInd   = clickedPlane.metadata.ind;
+				var clickedAxis  = clickedPlane.metadata.axis;
+
+				// Vérifions que les valeurs sont correctes
+				console.log("Clicked:", clickedInd, clickedAxis);
+
+				// Appelons la fonction pour changer la couleur de la ligne
+				changeLineColor(clickedInd, clickedAxis, isOrtho);
+			}
+		));
+
 		glo.labels_grid.push(label);
 		glo.planes_grid.push(plane);
+		glo.controls_grid.push(label, plane);
 		return plane;
-   };
+	}
+
+	function changeLineColor(ind, axis, isOrtho) {
+		console.log("Changing line color for:", ind, axis, isOrtho);
+		if(isOrtho){
+			switch(axis){
+				case 'Z': axis = 'Y'; break;
+				case 'Y': axis = 'Z'; break;
+			}
+		}
+
+		console.log("Changing line color for:", ind, axis, isOrtho);
+		const name = `grid${axis}`;
+		const lines = glo[name].filter(line => {
+			return line.points[0][axis.toLowerCase()] === ind;
+		});
+
+		const lineInd = !isOrtho ? 0 : 1;
+
+		lines[lineInd].metadata = lines[lineInd].metadata ? lines[lineInd].metadata : {isSelected: false};
+		lines[lineInd].metadata.isSelected = !lines[lineInd].metadata.isSelected;
+		lines[lineInd].color = lines[lineInd].metadata.isSelected ? BABYLON.Color3.Purple() : BABYLON.Color3.White();
+	}
 
    function makeLine(size, axis, ind){
 		const name = `grid${axis}`;
 		let startPoint      = {x: 0, y: 0, z: 0}, endPoint      = {x: 0, y: 0, z: 0};
 		let startPointOrtho = {x: 0, y: 0, z: 0}, endPointOrtho = {x: 0, y: 0, z: 0};
-		let posChar         = {x: 0, y: 0, z: 0};
+		let posChar         = {x: 0, y: 0, z: 0}, posCharOrtho  = {x: 0, y: 0, z: 0};
 
 		switch(axis){
 			case 'X': 
@@ -2222,6 +2282,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 				startPointOrtho = {x: -size, y: ind, z: 0};
 				endPointOrtho   = {x: size, y: ind, z: 0};
 				posChar         = {x: ind, y: size * 1.025, z: 0};
+				posCharOrtho    = {x: size * 1.025, y: ind, z: 0};
 			break;
 			case 'Y': 
 				startPoint      = {x: 0, y: ind, z: -size};
@@ -2229,6 +2290,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 				startPointOrtho = {x: 0, y: -size, z: ind};
 				endPointOrtho   = {x: 0, y: size, z: ind};
 				posChar    		= {x: 0, y: ind, z: size * 1.025};
+				posCharOrtho    = {x: ind, y: 0, z: size * 1.025};
 			break;
 			case 'Z': 
 				startPoint 		= {x: -size, y: 0, z: ind};
@@ -2236,6 +2298,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 				startPointOrtho = {x: ind, y: 0, z: -size};
 				endPointOrtho   = {x: ind, y: 0, z: size};
 				posChar    		= {x: size, y: 0, z: ind * 1.025};
+				posCharOrtho    = {x: 0, y: size, z: ind * 1.025};
 			break;
 		}
 
@@ -2262,15 +2325,21 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		var pivot_translation_line = line.position.subtract(BABYLON.Vector3.Zero());
 		line.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_line.x, pivot_translation_line.y, pivot_translation_line.z));
 
-		var axisChar = makeTextPlane(ind, "black", size / 20);
-		axisChar.position = new BABYLON.Vector3(posChar.x, posChar.y, posChar.z);
-		var pivot_translation_axisChar = axisChar.position.subtract(BABYLON.Vector3.Zero());
-		axisChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_axisChar.x, pivot_translation_axisChar.y, pivot_translation_axisChar.z));
+		function makeAxisChar(posChar, isOrtho){
+			var axisChar = makeTextPlane(ind, "black", size / 20, axis, isOrtho);
+			axisChar.position = new BABYLON.Vector3(posChar.x, posChar.y, posChar.z);
+			var pivot_translation_axisChar = axisChar.position.subtract(BABYLON.Vector3.Zero());
+			axisChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_axisChar.x, pivot_translation_axisChar.y, pivot_translation_axisChar.z));
+		}
+
+		makeAxisChar(posChar, false);
+		makeAxisChar(posCharOrtho, true);
 
 		glo[name].push(line);
 		let lineOrtho = BABYLON.Mesh.CreateLines(name, pointsOrtho, glo.scene);
 		designLine(lineOrtho);
 		glo[name].push(lineOrtho);
+		glo.controls_grid.push(line, lineOrtho);
    }
 
 	var step = axis_size/number;
@@ -2325,6 +2394,11 @@ function viewOnAxis(options = {axis: "X", direction: -1, alpha: PI/4, beta: -PI/
 	if(!options.alpha && options.alpha !== 0){ options.alpha = PI/4; }
 	if(!options.beta && options.beta !== 0){ options.beta = -PI/4; }
 	if(!options.distance && options.distance !== 0){ options.distance = 60; }
+
+	const extendSize = glo.ribbon.getBoundingInfo().boundingBox.extendSize;
+	const coeff      = h(extendSize.x, extendSize.y, extendSize.z);
+
+	options.distance = 3 * coeff * glo.ribbon.gridScaleValue;
 
 	switch(options.axis){
 		case "X":{
@@ -2439,23 +2513,71 @@ function dimension(dim_one){
 
 function switch_grid(grid_visible = glo.grid_visible){
 	if(grid_visible){
-		glo.gridX.map(line => { line.visibility = 1; } );
-		glo.gridY.map(line => { line.visibility = 1; } );
-		glo.gridZ.map(line => { line.visibility = 1; } );
-		glo.labels_grid.map(label_grid => { label_grid.isVisible = 1; } );
+		glo.controls_grid.forEach(ctrl => {
+			if(!ctrl.metadata || !ctrl.metadata.type || ctrl.metadata.type !== 'plane'){
+				ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 1; 
+			}
+		});
 		if(!glo.axis_visible){
 			switch_axis(true);
 			glo.axis_visible = true;
 		}
 	}
 	else{
-		glo.labels_grid.map(label_grid => { label_grid.isVisible = 0; } );
-		glo.gridX.map(line => { line.visibility = 0; } );
-		glo.gridY.map(line => { line.visibility = 0; } );
-		glo.gridZ.map(line => { line.visibility = 0; } );
+		glo.controls_grid.forEach(ctrl => { ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 0; } );
+		
 		switch_axis(false);
 		glo.axis_visible = false;
 	}
+}
+
+function gridToCenterMesh(mesh = glo.ribbon){
+	const centerWorld = glo.ribbon.getBoundingInfo().boundingBox.centerWorld;
+	glo.controls_grid.forEach(ctrl => {
+		if(ctrl.position){
+			ctrl.position.x += centerWorld.x;
+			ctrl.position.y += centerWorld.y;
+			ctrl.position.z += centerWorld.z;
+		}
+	});
+
+	glo.planes_axis.forEach(plane => {
+		plane.position.x += centerWorld.x; plane.position.y += centerWorld.y; plane.position.z += centerWorld.z;
+	});
+
+	glo.axisX.position.x += centerWorld.x;
+	glo.axisX.position.y += centerWorld.y;
+	glo.axisX.position.z += centerWorld.z;
+	glo.axisY.position.x += centerWorld.x;
+	glo.axisY.position.y += centerWorld.y;
+	glo.axisY.position.z += centerWorld.z;
+	glo.axisZ.position.x += centerWorld.x;
+	glo.axisZ.position.y += centerWorld.y;
+	glo.axisZ.position.z += centerWorld.z;
+}
+
+function gridToOrigin(){
+	glo.controls_grid.forEach(ctrl => {
+		if(ctrl.position){
+			ctrl.position.x = 0;
+			ctrl.position.y = 0;
+			ctrl.position.z = 0;
+		}
+	});
+
+	glo.planes_axis.forEach(plane => {
+		plane.position.x = 0; plane.position.y = 0; plane.position.z = 0;
+	});
+
+	glo.axisX.position.x = 0;
+	glo.axisX.position.y = 0;
+	glo.axisX.position.z = 0;
+	glo.axisY.position.x = 0;
+	glo.axisY.position.y = 0;
+	glo.axisY.position.z = 0;
+	glo.axisZ.position.x = 0;
+	glo.axisZ.position.y = 0;
+	glo.axisZ.position.z = 0;
 }
 
 function switch_axis(axis_visible = glo.axis_visible){
@@ -4144,10 +4266,10 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 	return paths;
 }
 
-function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem, noSignToSign = true){
-	if(transformKind === 'scaling' && noSignToSign){ value = scaleNoSignToSign(value); }
+function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem, dblLines = glo.curves.lineSystemDouble){
 	mesh[transformKind][axis] = value;
 	if(lines){ lines[transformKind][axis] = value; }
+	if(dblLines){ dblLines[transformKind][axis] = value; }
 }
 
 function scaleNoSignToSign(value){
@@ -4182,44 +4304,51 @@ function applyTransformations(mesh = glo.ribbon) {
     });
 
     // Appliquer les transformations (scaling, rotation, position)
+	const scale = glo.params.gridScale ? mesh.gridScale() : 1;
+	mesh.gridScaleValue = scale;
     transformationsAxis.forEach(transformationsAxis => {
-        if (glo.params[transformationsAxis.name]) { 
-            transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name]); 
+        if (glo.params[transformationsAxis.name]) {
+			if(transformationsAxis.trans === 'scaling'){
+				transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name] * scale);
+			}
+			else{ transformMesh(transformationsAxis.trans, transformationsAxis.axis, glo.params[transformationsAxis.name]); } 
         }
     });
 
-    // Si la grille a un facteur de mise à l'échelle
-    if (glo.params.gridScale) {
-        const scale = mesh.gridScale();
+	mesh.computeWorldMatrix(true);
+	mesh.refreshBoundingInfo();
+}
 
-		const moyPos    = mesh.moyPos();
-		const newMoyPos = new BABYLON.Vector3(moyPos.x * scale, moyPos.y * scale, moyPos.z * scale);
-		const moveVect  = new BABYLON.Vector3(newMoyPos.x - moyPos.x, newMoyPos.y - moyPos.y, newMoyPos.z - moyPos.z);
+function gridScale(mesh = glo.ribbon) {
+	const scale = mesh.gridScale();
 
-        transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystem, false);
-        transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystem, false);
-        transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystem, false);
+	const moyPos    = mesh.moyPos();
+	const newMoyPos = new BABYLON.Vector3(moyPos.x * scale, moyPos.y * scale, moyPos.z * scale);
+	const moveVect  = new BABYLON.Vector3(newMoyPos.x - moyPos.x, newMoyPos.y - moyPos.y, newMoyPos.z - moyPos.z);
 
-        if (glo.params.doubleLineSystem) {
-            transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystemDouble, false);
-            transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystemDouble, false);
-            transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystemDouble, false);
-        }
+	transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystem, false);
+	transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystem, false);
+	transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystem, false);
 
-        mesh.position.x -= moveVect.x;
-        mesh.position.y -= moveVect.y;
-        mesh.position.z -= moveVect.z;
+	if (glo.params.doubleLineSystem) {
+		transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystemDouble, false);
+		transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystemDouble, false);
+		transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystemDouble, false);
+	}
 
-        glo.curves.lineSystem.position.x -= moveVect.x;
-        glo.curves.lineSystem.position.y -= moveVect.y;
-        glo.curves.lineSystem.position.z -= moveVect.z;
+	mesh.position.x -= moveVect.x;
+	mesh.position.y -= moveVect.y;
+	mesh.position.z -= moveVect.z;
 
-        if (glo.params.doubleLineSystem) {
-            glo.curves.lineSystemDouble.position.x -= moveVect.x;
-            glo.curves.lineSystemDouble.position.y -= moveVect.y;
-            glo.curves.lineSystemDouble.position.z -= moveVect.z;
-        }
-    }
+	glo.curves.lineSystem.position.x -= moveVect.x;
+	glo.curves.lineSystem.position.y -= moveVect.y;
+	glo.curves.lineSystem.position.z -= moveVect.z;
+
+	if (glo.params.doubleLineSystem) {
+		glo.curves.lineSystemDouble.position.x -= moveVect.x;
+		glo.curves.lineSystemDouble.position.y -= moveVect.y;
+		glo.curves.lineSystemDouble.position.z -= moveVect.z;
+	}
 }
 
 function swapControlBackground(controlName, background = glo.controlConfig.background, backgroundActived = glo.controlConfig.backgroundActived){
@@ -4231,6 +4360,42 @@ function swapControlBackground(controlName, background = glo.controlConfig.backg
 function otherDesigns(){
 	glo.bgActivedButtons.forEach(buttonName => {
 		glo.allControls.getByName(buttonName).background = glo.controlConfig.backgroundActived;
+	});
+
+	param_special_controls();
+}
+
+function param_special_controls(){
+	glo.allControls.getByName('inputsColorsEquations').top = '27%';
+	glo.allControls.getByName('centerLocal').paddingTop    = '17px';
+	glo.allControls.getByName('centerLocal').width         = '150px';
+	glo.allControls.getByName('centerLocal').height        = '50px';
+  
+	glo.allControls.haveThisClass('slider').map(slider => {
+		for(const prop in glo.theme.slider){ slider[prop] = glo.theme.slider[prop]; }
+	});
+	glo.allControls.haveThisClass('input').map(input => {
+		for(const prop in glo.theme.input.onBlur){ input[prop] = glo.theme.input.onBlur[prop]; }
+	});
+
+	glo.allControls.haveTheseClasses('header', 'right', 'seventh', 'noAutoParam').map(header => {header.height = '25px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'eighth', 'noAutoParam').map(header => {header.height = '23px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'nineth', 'noAutoParam').map(header => {header.height = '23px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '30px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
+
+	//paramRadios();
+}
+
+function paramRadios(){
+	glo.allControls.haveTheseClasses('header', 'radio', 'left', 'first', 'noAutoParam').map(header => {
+		for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
+	});
+	glo.allControls.haveTheseClasses('radio', 'left', 'first').haveNotThisClass('header').map(radio => {
+		for(const prop in glo.theme.radio.button){ radio[prop] = glo.theme.radio.button[prop]; }
 	});
 }
 

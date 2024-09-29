@@ -21,6 +21,7 @@ $( document ).ready(function() {
   initDataModal();
   getPathsInfos();
   otherDesigns();
+  paramRadios();
 });
 
 $("#univers_div").mouseenter(function(){
@@ -211,6 +212,7 @@ window.addEventListener("keydown", function (e) {
                case '<':
                   glo.formesSuit = !glo.formesSuit;
                   add_radios(true);
+                  paramRadios();
 
                   break;
                case 'a':
@@ -467,11 +469,26 @@ window.addEventListener("keydown", function (e) {
             }
 
                break;
-            case "z":
+            /*case "z":
             case "Z":
                glo.noLinkToZero = !glo.noLinkToZero;
                if(!glo.normalMode){ make_curves(); }
                else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
+
+               break;*/
+            case "x":
+            case "X":
+               glo.ribbon.axisToOrigin('x');
+
+               break;
+            case "y":
+            case "Y":
+               glo.ribbon.axisToOrigin('y');
+
+               break;
+            case "z":
+            case "Z":
+               glo.ribbon.axisToOrigin('z');
 
                break;
             case "H":
@@ -486,8 +503,8 @@ window.addEventListener("keydown", function (e) {
                break;
             case "E":
             case "e":
-            glo.coordinatesNomrType.next();
-            if(glo.normalMode){ drawNormalEquations(); }
+               glo.params.centerIsLocal = !glo.params.centerIsLocal;
+               remakeRibbon();
 
                break;
             case "D":
@@ -508,12 +525,12 @@ window.addEventListener("keydown", function (e) {
                break;
             case "R":
             case "r":
-            colByMid(0.5);
+               gridToCenterMesh();
 
                break;
             case "T":
             case "t":
-            colByMid(2);
+               gridToOrigin(); break;
             case "U":
             case "u":
             glo.transCol = !glo.transCol;

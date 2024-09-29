@@ -62,12 +62,30 @@ BABYLON.Mesh.prototype.gridScale = function() {
 	return gridSize/distMax;
 };
 
-BABYLON.Mesh.prototype.moyPosToOrigin = function() {
-	const moyPos = this.moyPos();
+BABYLON.Mesh.prototype.moyPosToOrigin = function(noSpecialCurvature = false) {
+	const gridScale   = glo.params.gridScale ? this.gridScale() : 1;
+	const boundingBox = glo.ribbon.getBoundingInfo().boundingBox;
+	const centerMesh  = boundingBox.center;
 
-	transformMesh('position', 'x', -moyPos.x);
-	transformMesh('position', 'y', -moyPos.y);
-	transformMesh('position', 'z', -moyPos.z);
+	if(glo.coordsType == 'curvature' && !noSpecialCurvature){
+		transformMesh('position', 'x', 0);
+		transformMesh('position', 'y', 0);
+		transformMesh('position', 'z', 0);
+
+		return false;
+	}
+
+	transformMesh('position', 'x', -centerMesh.x * gridScale);
+	transformMesh('position', 'y', -centerMesh.y * gridScale);
+	transformMesh('position', 'z', -centerMesh.z * gridScale);
+};
+
+BABYLON.Mesh.prototype.axisToOrigin = function(axis) {
+	const boundingBox     = glo.ribbon.getBoundingInfo().boundingBox;
+	const extendSizeWorld = boundingBox.extendSizeWorld;
+
+	transformMesh('position', axis, -extendSizeWorld[axis]);
+
 };
 
 BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff) {
@@ -318,4 +336,10 @@ BABYLON.Mesh.prototype.cIndices = function() {
 	}
 
 	return nInds;
+}
+
+BABYLON.Mesh.prototype.isPointAroundOrigin = function() {
+	return this.getPaths().some(path => 
+		path.some(vect => h(vect.x, vect.y, vect.z) < ep)
+	);
 }

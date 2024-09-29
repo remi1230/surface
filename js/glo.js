@@ -27,8 +27,8 @@ var glo = {
 			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "3v", fz: "6cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
 			{text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", beta:"cusu", theta: "cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
 			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", theta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
-			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 75}},
-			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cu", fy: "5cv", fz: "5cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 150} },
+			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cu", fy: "5cv", fz: "5cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 100} },
 			{text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32, fx: "sinh(v)su", fy: "3u", fz: "-sinh(v)cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
 			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: false, },
 			{text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 512, nb_steps_v: 32,  fx: "uc(0.5v)/2", fy: "h(u,v)+sv - 3", fz: "h(u,v)u/12", beta: "h(u,v)/G", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: 0}},
@@ -232,6 +232,7 @@ var glo = {
 			return n;
 		},
 	},
+	controls_grid: [],
 	regs: [
 		{ exp: /\s/g, upd: "" },
 		{ exp: /\(([^)]+)\)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
@@ -869,6 +870,42 @@ var glo = {
 		gridScale: true,
 		curvaturetoZero: true,
 		updateRots: true,
+		centerIsLocal: false,
+		scalingX: 1,
+		scalingY: 1,
+		scalingZ: 1,
+	},
+	theme:{
+		slider:{
+			height        : '16px',
+			color         : 'grey',
+			background    : '#aaa',
+			thumbColor    : '#aaa',
+			borderColor   : '#333',
+			isThumbCircle : true,
+			thumbWidth    : '24px',
+		},
+		input:{
+			onFocus:{
+				color      : '#f5f0df',
+				background : '#aaa',
+			},
+			onBlur:{
+				color      : '#2b0c82',
+				background : '#aaa',
+			}
+		},
+		radio:{
+			text:{
+				color : '#eee',
+			},
+			button:{
+				width      : '9px',
+				height     : '9px',
+				background : '#41a69a',
+				color      : '#afede6',
+			},
+		},
 	},
 	tubes: {
 		radius: 0.05,

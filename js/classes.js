@@ -164,7 +164,7 @@ f = {
 			theta = eval(f2.theta);
 
 			if(alpha && beta){
-				let pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha, beta) : rotateByQuaternionWithRotR(x, y, z, alpha, beta);
+				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
@@ -252,7 +252,7 @@ f = {
 			theta = eval(f2.theta);
 			
 			if(alpha && beta){
-				let pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha, beta) : rotateByQuaternionWithRotR(x, y, z, alpha, beta);
+				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
@@ -471,7 +471,7 @@ f = {
 			beta3  = eval(f2.beta);
 
 			if(alpha2 && beta2){
-				pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha2, beta2) : rotateByQuaternionWithRotR(x, y, z, alpha2, beta2);
+				pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 			}
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
@@ -573,7 +573,7 @@ f = {
 				beta3  = eval(f2.beta);
 
 				if(alpha2 && beta2){
-					pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha2, beta2) : rotateByQuaternionWithRotR(x, y, z, alpha2, beta2);
+					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 				}
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
@@ -786,10 +786,8 @@ f = {
 			alpha3 = eval(f2.alpha);
 			beta3  = eval(f2.beta);
 
-			//pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha2, beta2, 0);
-
 			if(alpha2 && beta2){
-				pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha2, beta2) : rotateByQuaternionWithRotR(x, y, z, alpha2, beta2);
+				pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 			}
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
@@ -889,7 +887,7 @@ f = {
 				beta3  = eval(f2.beta);
 
 				if(alpha2 && beta2){
-					pos = !glo.params.quaternionByRotR ? rotateByQuaternion(x, y, z, alpha2, beta2) : rotateByQuaternionWithRotR(x, y, z, alpha2, beta2);
+					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 				}
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 

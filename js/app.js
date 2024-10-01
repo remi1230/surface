@@ -30,11 +30,7 @@ async function make_curves(u_params = {
 			glo.curves = {}; delete glo.curves;
 		}
 
-		if(glo.coordsType == 'quaternion'){ glo.curves = new CurvesByQuaternion(); }
-		else if(glo.coordsType == 'quaternionRotAxis'){ glo.curves = new CurvesByQuaternionRotAxis(); }
-		else if(glo.coordsType == 'curvature'){ glo.curves = new CurvesByCurvature(); }
-		else if(glo.coordsType == 'cartesian'){ glo.curves = new Curves(); }
-		else{ glo.curves = new CurvesByRot(); }
+		makeOnlyCurves();
 
 		await expendPathsByEachCenter();
 		await rotatePathsByEachCenter();
@@ -46,6 +42,32 @@ async function make_curves(u_params = {
 		}, 0);
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
+	}
+}
+
+function makeOnlyCurves(parameters, f, f2, d){
+	if(glo.coordsType !== 'cartesian'){
+		if(f){
+			f.alpha2 = f.alpha;
+			f.beta2  = f.beta;
+			f.r      = f.x;
+			f.alpha  = f.y;
+			f.beta   = f.z;
+
+			delete f.x; delete f.y; delete f.z; 
+		}
+	}
+
+	switch(glo.coordsType){
+		case 'cartesian':
+			glo.curves = new Curves(parameters, f, f2, d);
+		break;
+		case 'spheric': case 'cylindrical':
+			glo.curves = new CurvesByRot(parameters, f, f2, d);
+		break;
+		case 'curvature':
+			glo.curves = new CurvesByCurvature(parameters, f, f2, d);
+		break;
 	}
 }
 
@@ -111,6 +133,8 @@ async function make_ribbon(symmetrize = true){
 	glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
 
 	const norm = glo.params.functionIt.norm;
+
+	if(glo.params.fractalize.actived){ await glo.ribbon.fractalize(); }
 
 	if(symmetrize){ await makeSymmetrize(); }
 	if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
@@ -3308,7 +3332,7 @@ function saveRibbonToClone(){
 	glo.indexSaveToClone = glo.histo.content.length - 1 - glo.histo.index_go;
 }
 
-function cloneSystem(scale = glo.cloneScaleToTemplate, reset = true, deleteClones = true, testRemake = true){
+function cloneSystemSave(scale = glo.cloneScaleToTemplate, reset = true, deleteClones = true, testRemake = true){
 	if(reset){ resetClones(); }
 
 	glo.cloneSystem = true;
@@ -3332,6 +3356,114 @@ function cloneSystem(scale = glo.cloneScaleToTemplate, reset = true, deleteClone
 	if(deleteClones){ deleteSomeClones(); }
 	glo.ribbonToClone.visibility = 0;
 	if(typeof(glo.ribbonSaveToClone) != "undefined"){ glo.ribbonSaveToClone.dispose(); glo.ribbonSaveToClone = {}; delete glo.ribbonSaveToClone; }
+}
+
+function cloneSystem(scale = glo.cloneScaleToTemplate, reset = true, deleteClones = true, testRemake = true) {
+    if (reset) { 
+        resetClones(); 
+    }
+
+    glo.cloneSystem = true;
+
+    // Ajuster les paramètres si nécessaire
+    if (testRemake && glo.params.steps_u * glo.params.steps_v > 2500) {
+        glo.reMakeClones = false;
+        glo.slider_nb_steps_u.value = 22;
+        glo.slider_nb_steps_v.value = 22;
+        make_curves();
+        glo.reMakeClones = true;
+    }
+
+    // Définir le mesh à cloner
+    if (typeof(glo.ribbonSaveToClone) == "undefined") {
+        glo.ribbonToClone = glo.ribbon;
+    } else {
+        glo.ribbonToClone = glo.ribbonSaveToClone;
+        glo.indexCloneToHisto = glo.indexSaveToClone;
+    }
+
+    glo.ribbonToClone.visibility = 1;
+
+    // Cloner le mesh et ajuster l'échelle
+    glo.ribbon_clone_1 = glo.ribbonToClone.clone("ribbonClone1");
+    glo.ribbon_clone_2 = glo.ribbonToClone.clone("ribbonClone2");
+    glo.ribbon_clone_1.scaling = new BABYLON.Vector3(scale, scale, scale);
+    glo.ribbon_clone_2.scaling = new BABYLON.Vector3(scale, scale, scale);
+
+    // Utiliser ObjectCloner pour générer les clones
+    glo.ribbon_clone = new BABYLONX.ObjectCloner([glo.ribbon_clone_1, glo.ribbon_clone_2], glo.ribbon, glo.scene);
+
+    // Orienter les clones
+    orientClone(glo.cloneAxis);
+
+    // Récupérer les enfants du root du Cloner
+    var clonesArray = glo.ribbon_clone.root.getChildMeshes();  // Récupérer tous les meshes enfants du root
+
+    // Vérifier le contenu de clonesArray
+    console.log("ClonesArray (children of root):", clonesArray);
+
+	// Convertir les CMesh en vrais Meshes avant de fusionner
+    clonesArray = clonesArray.map(mesh => {
+        if (mesh.makeGeometryUnique) {
+            mesh.makeGeometryUnique();  // Convertir l'instance en un mesh indépendant
+        }
+        return mesh;
+    });
+
+	// Boucle à travers chaque CMesh pour créer un nouveau Mesh classique
+    clonesArray.forEach(cmesh => {
+        if (cmesh instanceof BABYLON.Mesh) {
+            // Vérifier si le mesh a des subMeshes, sinon en créer un
+            if (!cmesh.subMeshes || cmesh.subMeshes.length === 0) {
+                cmesh.subMeshes = [];
+                new BABYLON.SubMesh(0, 0, cmesh.getTotalVertices(), 0, cmesh.getIndices().length, cmesh);
+            }
+        }
+    });
+
+	// Filtrer uniquement les meshes valides qui ont des positions
+    clonesArray = clonesArray.filter(cmesh => {
+        var positions = cmesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        if (positions && positions.length > 0) {
+            return true;
+        } else {
+            console.warn("Mesh sans positions trouvé et ignoré :", cmesh.name);
+            return false;
+        }
+    });
+
+    // Filtrer uniquement les objets qui sont des instances de BABYLON.Mesh
+    clonesArray = clonesArray.filter(mesh => mesh instanceof BABYLON.Mesh);
+
+    // Fusionner tous les clones en un seul mesh classique
+    if (clonesArray.length > 0) {
+        try {
+            var mergedMesh = BABYLON.Mesh.MergeMeshes(clonesArray, true, true, undefined, false, true);
+            // Assigner le mesh fusionné à glo.ribbon
+            glo.ribbon = mergedMesh;
+        } catch (error) {
+            console.error("Erreur lors de la fusion des meshes :", error);
+        }
+    } else {
+        console.error("Aucun mesh valide trouvé pour la fusion.");
+    }
+
+    // Supprimer les clones si nécessaire
+    if (deleteClones) {
+        deleteSomeClones();
+    }
+
+    glo.ribbonToClone.visibility = 0;
+
+    // Nettoyage après fusion et suppression de l'original si nécessaire
+    if (typeof(glo.ribbonSaveToClone) != "undefined") {
+        glo.ribbonSaveToClone.dispose();
+        glo.ribbonSaveToClone = {};
+        delete glo.ribbonSaveToClone;
+    }
+
+    // Retourner le mesh fusionné (glo.ribbon) pour d'autres manipulations
+    return glo.ribbon;
 }
 
 function resetClones(resetVar = true){
@@ -4433,6 +4565,22 @@ function reformatPaths(originalPaths = glo.curves.paths) {
 	glo.curves.doublePaths = newPaths;
 
     return newPaths;
+}
+
+function paramsOrFractNbPaths(uOrV, paramsNBPaths){
+	return glo.params.fractalize.actived ? glo.params.fractalize.steps[uOrV] : paramsNBPaths;
+}
+
+function calculCurvature(pathBeforePoint, pathOnPoint, pathAfterPoint){
+	const vectorBeforePoint = new BABYLON.Vector3(pathOnPoint.x - pathBeforePoint.x, pathOnPoint.y - pathBeforePoint.y, pathOnPoint.z - pathBeforePoint.z);
+	const vectorAfterPoint  = new BABYLON.Vector3(pathAfterPoint.x - pathOnPoint.x, pathAfterPoint.y - pathOnPoint.y, pathAfterPoint.z - pathOnPoint.z);
+
+	const resultVector = vectorBeforePoint.add(vectorAfterPoint);
+
+	return {azimuth: calculateAzimuth(resultVector), elevation: calculateElevation(resultVector)};
+}
+function calculCurvatureByOrigin(vect){
+	return {azimuth: calculateAzimuth(vect), elevation: calculateElevation(vect)};
 }
 
 function w(val, isCos = 1){

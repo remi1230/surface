@@ -27,12 +27,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = parametres.u.nb_steps;
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = parametres.v.nb_steps;
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);;
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];
@@ -384,12 +384,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = parametres.u.nb_steps;
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = parametres.v.nb_steps;
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];
@@ -703,12 +703,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = parametres.u.nb_steps;
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = parametres.v.nb_steps;
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];

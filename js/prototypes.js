@@ -92,10 +92,12 @@ BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(
 	let paths = [];
 	let n = 0;
 
-	const stepsU = coeff ? ((glo.params.steps_u + 1) * coeff) : glo.pathsInfos.u;
+	const nbU    = !glo.params.fractalize.actived ? glo.params.steps_u : glo.params.fractalize.steps.u;
+	const stepsU = coeff ? ((nbU + 1) * coeff) : (!glo.params.fractalize.actived ? glo.pathsInfos.u : nbU);
+	const stepsV = !glo.params.fractalize.actived ? glo.params.steps_v : glo.params.fractalize.steps.v;
 	for(let i = 0; i <= stepsU - 1; i++){
 		paths[i] = [];
-		for(let j = 0; j <= glo.params.steps_v; j++){
+		for(let j = 0; j <= stepsV; j++){
 			const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
 			paths[i].push(new BABYLON.Vector3(v.x, v.y, v.z));
 
@@ -342,4 +344,78 @@ BABYLON.Mesh.prototype.isPointAroundOrigin = function() {
 	return this.getPaths().some(path => 
 		path.some(vect => h(vect.x, vect.y, vect.z) < ep)
 	);
+}
+
+BABYLON.Mesh.prototype.fractalize = async function() {
+	const fractalize = glo.params.fractalize;
+	const scale      = fractalize.scale;
+
+	makeOnlyCurves({
+		u: {min: -glo.params.u, max: glo.params.u, nb_steps: fractalize.steps.u, },
+		v: {min: -glo.params.v, max: glo.params.v, nb_steps: fractalize.steps.v, },
+	},
+	{
+		x: glo.params.text_input_x,
+		y: glo.params.text_input_y,
+		z: glo.params.text_input_z,
+		alpha: glo.params.text_input_alpha,
+		beta: glo.params.text_input_beta,
+	},
+	{
+		x: glo.params.text_input_suit_x,
+		y: glo.params.text_input_suit_y,
+		z: glo.params.text_input_suit_z,
+		alpha: glo.params.text_input_suit_alpha,
+		beta: glo.params.text_input_suit_beta,
+		theta: glo.params.text_input_suit_theta,
+	}, false);
+
+	const paths = glo.curves.paths;
+
+	// Calcul des tangentes pour chaque chemin
+    for (const path of paths) {
+        const tangents = [];
+        for (let i = 0; i < path.length - 1; i++) {
+            let tangent = path[i + 1].subtract(path[i]).normalize();
+            tangents.push(tangent);
+        }
+        // Ajouter la dernière tangente identique à l'avant-dernière pour la cohérence
+        tangents.push(tangents[tangents.length - 1]);
+        path.tangents = tangents;
+    }
+
+	let newRibbons = [];
+	await paths.forEach(async path => {
+		await path.forEach(async (vect, j) => {
+			const tangent        = path.tangents[j];
+			let newRibbon        = await this.clone();
+			newRibbon.position   = vect;
+			newRibbon.scaling    = new BABYLON.Vector3(0.1 * scale, 0.1 * scale, 0.1 * scale);
+
+			if(glo.fractalizeOrient){
+				let upVector = glo.fractalizeOrient;
+				let axis     = BABYLON.Vector3.Cross(upVector, tangent).normalize();
+				let angle    = Math.acos(BABYLON.Vector3.Dot(upVector, tangent));
+
+				newRibbon.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+				newRibbon.rotationQuaternion = newRibbon.rotationQuaternion.multiply(BABYLON.Quaternion.RotationYawPitchRoll(fractalize.rot.y, fractalize.rot.x, fractalize.rot.z));
+			}
+
+			newRibbon.rotation.x += fractalize.rot.x;
+			newRibbon.rotation.y += fractalize.rot.y;
+			newRibbon.rotation.z += fractalize.rot.z;
+
+			newRibbons.push(newRibbon);
+		})
+	});
+
+	await glo.ribbon.dispose();
+	glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false);
+
+	const positions = await glo.ribbon.getPositionData();
+	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
+
+	glo.curves.paths   = glo.ribbon.getPaths(positions, (fractalize.steps.u + 1) * fractalize.steps.v);
+	glo.lines          = glo.curves.paths;
+	glo.ribbon.savePos = positions.slice();
 }

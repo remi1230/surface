@@ -91,6 +91,7 @@ function add_gui_controls(){
   add_sixth_panel_sliders();
   add_functionIt_sliders();
   add_ninethPanel_controls();
+  add_fractalize_controls();
 
   guiControls_AddIdentificationFunctions();
 
@@ -1630,6 +1631,98 @@ function add_ninethPanel_controls(){
   addSlider(panel, "normnY", "Wave NY", 1.0, 1, -8, 8, .1, function(value){ glo.params.functionIt.norm.ny = value; remakeRibbon(); });
   addSlider(panel, "normZ", "Wave Z", 0.0, 1, -80, 80, .1, function(value){ glo.params.functionIt.norm.z = value; remakeRibbon(); });
   addSlider(panel, "normnZ", "Wave NZ", 1.0, 1, -8, 8, .1, function(value){ glo.params.functionIt.norm.nz = value; remakeRibbon(); });
+}
+
+function add_fractalize_controls(){
+  var panel = new BABYLON.GUI.StackPanel();
+  parmamControl(panel, 'tenthPanelPanel', 'panel right tenth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 26, pR: 1});
+  glo.advancedTexture.addControl(panel);
+  var panelButton = new BABYLON.GUI.StackPanel();
+  parmamControl(panelButton, 'tenthPanelButton', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 2});
+  glo.advancedTexture.addControl(panelButton);
+  var panelButton2 = new BABYLON.GUI.StackPanel();
+  parmamControl(panelButton2, 'tenthPanelButton2', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 2});
+  glo.advancedTexture.addControl(panelButton2);
+
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton, background = glo.controlConfig.background){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button right tenth', {background: background, w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
+    });
+    panelButton.addControl(button);
+  }
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right tenth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
+    parmamControl(slider, name, 'slider right tenth', options, true);
+    slider.startValue = val;
+
+    slider.onValueChangedObservable.add(function(value) {
+      if(!glo.rightButton){
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        event(value);
+      }
+      glo.rightButton = false;
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        glo.rightButton = true;
+        header.text = text + ": " + slider.startValue;
+        slider.value = slider.startValue;
+
+        event(slider.value);
+      }
+    });
+
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  addSlider(panel, "fractalizeStepsU", "Fract Steps U", 12, 0, 1, 132, 1, async function(value){
+    glo.params.fractalize.steps.u = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeStepsV", "Fract Steps V", 12, 0, 1, 132, 1, async function(value){
+    glo.params.fractalize.steps.v = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeRotateX", "Rot X", 0, 2, 0, 2*PI, 0.01, async function(value){
+    glo.params.fractalize.rot.x = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeRotateY", "Rot Y", 0, 2, 0, 2*PI, 0.01, async function(value){
+    glo.params.fractalize.rot.y = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeRotateZ", "Rot Z", 0, 2, 0, 2*PI, 0.01, async function(value){
+    glo.params.fractalize.rot.z = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeScale", "Scale", 1, 2, 0, 4, 0.01, async function(value){
+    glo.params.fractalize.scale = value;
+    await remakeRibbon();
+  });
+  add_button("fractalizeActive", "ON", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    swapControlBackground("fractalizeActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
+    glo.params.fractalize.actived = !glo.params.fractalize.actived;
+    await remakeRibbon();
+  }, undefined, panelButton2, glo.controlConfig.background);
+  add_button("fractalizeRotActive", "No Rot", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    const newOrient = glo.fractalizeOrients.next().value;
+
+    glo.allControls.getByName("fractalizeRotActive").textBlock.text = `${newOrient ? (newOrient.x ? 'Rot X' : (newOrient.y ? 'Rot Y' : 'Rot Z')) : 'No Rot'}`;
+    await remakeRibbon();
+  }, undefined, panelButton2, glo.controlConfig.background);
 }
 
 function param_buttons(){

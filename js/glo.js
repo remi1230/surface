@@ -416,6 +416,16 @@ var glo = {
 			}
 		}
 	},
+	fractalizeOrient: '',
+	fractalizeOrients: function* (){
+		const orients = [new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, 0, 1), false];
+		while (true) {
+			for (const orient of orients) {
+				this.fractalizeOrient = orient;
+				yield orient;
+			}
+		}
+	},
 	colorsType: 'none',
 	colorType: function* (){
 	  var index = 0;
@@ -430,7 +440,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -864,6 +874,19 @@ var glo = {
 				nz: 1,
 			}
 		},
+		fractalize:{
+			actived: false,
+			scale: 1,
+			steps:{
+				u: 12,
+				v: 12,
+			},
+			rot:{
+				x: 0,
+				y: 0,
+				z: 0,
+			},
+		},
 		invPos: {x: false, y: false, z: false},
 		quaternionByRotR: false,
 		wOnXYZ: true,
@@ -903,7 +926,7 @@ var glo = {
 				width      : '9px',
 				height     : '9px',
 				background : '#41a69a',
-				color      : '#afede6',
+				color      : '#f5e7cb',
 			},
 		},
 	},
@@ -995,7 +1018,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',
@@ -1065,5 +1088,6 @@ glo.rotType             = glo.rotateTypeGen();
 glo.symmetrizeOrders    = glo.symmetrizeOrders();
 glo.permutSigns         = glo.permutSigns();
 glo.invPositionIfs      = glo.invPosIfs();
+glo.fractalizeOrients   = glo.fractalizeOrients();
 
 let dataTableBody = document.getElementById('dataTableBody');

@@ -3,14 +3,11 @@
 //*****************************************************************************************************//
 $( document ).ready(function() {
   add_gui_controls();
-  toggle_gui_controls_for_switch(false);
-  toggle_gui_controls_suit(false);
-  toggle_gui_controls_third(false);
-  toggleGuiControlsByClass(false, 'fifth');
-  toggleGuiControlsByClass(false, 'sixth');
-  toggleGuiControlsByClass(false, 'seventh');
-  toggleGuiControlsByClass(false, 'eighth');
-  toggleGuiControlsByClass(false, 'nineth');
+
+  glo.rightPanelsClasses.forEach(panelClass => {
+   if(panelClass !== glo.guiSelect){ toggleGuiControlsByClass(false, panelClass); }
+  });
+
   gui_resize();
   $('.modal').modal();
   $('select').formSelect();
@@ -285,7 +282,7 @@ window.addEventListener("keydown", function (e) {
 
                break;
                case ")":
-                  //FREE
+                  glo.ribbon.fractalize();
 
                break;
                case "PageUp":

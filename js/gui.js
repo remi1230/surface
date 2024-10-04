@@ -794,20 +794,42 @@ function add_radios(suit = false){
     panel.addControl(header);
   }
 
-  var addRadio = function(text, parent, group, check = false) {
+  var addRadio = function(text, parent, group, check = false, typeCoords) {
     if(!glo.first_radio){ check = false; }
     var button = new BABYLON.GUI.RadioButton();
     var options = {w: "13", h: "13", group: 'radiosForms', isChecked: check};
     parmamControl(button, "Radio-" + text, 'radio left first', options, true);
     for(const prop in glo.theme.radio.button){ button[prop] = glo.theme.radio.button[prop]; }
+    
+    const formSelected = glo.formes.getFormSelect().form;
+    if(formSelected && formSelected.text === text && formSelected.typeCoords === typeCoords){
+      button.isChecked = true;
+    }
+
+    if(glo.formeToFractalize && text === glo.formeToFractalize.text && typeCoords === glo.formeToFractalize.typeCoords){
+      button.color = 'red';
+    }
+
+    if(glo.formeToFractalize && text === glo.formeToFractalize.text && typeCoords === glo.formeToFractalize.typeCoords){
+      button.color = 'red';
+    }
 
     button.onIsCheckedChangedObservable.add(function(state) {
-      if (state  && !glo.fromHisto) {
-        resetClones();
-        glo.formes.setFormeSelect(text, glo.coordsType);
-        glo.histo.save();
-      }
+      button.onPointerClickObservable.add(function(e) {
+        if (e.buttonIndex !== 2 && state  && !glo.fromHisto) {
+          resetClones();
+          glo.formes.setFormeSelect(text, glo.coordsType);
+          glo.histo.save();
+        }
+        else if (e.buttonIndex === 2) {
+          glo.formeToFractalize = glo.formes.getFormByName(text, glo.coordsType);
+          glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
+          glo.radios_formes.forEach(radioForme => { radioForme.button.color = glo.theme.radio.text.color; });
+          glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
+        }
+      });
     });
+
 
     var header = BABYLON.GUI.Control.AddHeader(button, text, "200px", { isHorizontal: true, controlFirst: true });
     parmamControl(header, "headerRadio-" + text, 'header radio left first noAutoParam', {h: 20, pT: 4}, true);
@@ -838,14 +860,14 @@ function add_radios(suit = false){
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){
       if(!suit){
-        if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+        if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
       }
       else{
         if(glo.formesSuit){
-          if(forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+          if(forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
         }
         else{
-          if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check); }
+          if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
         }
       }
     }
@@ -1708,8 +1730,20 @@ function add_fractalize_controls(){
     glo.params.fractalize.rot.z = value;
     await remakeRibbon();
   });
-  addSlider(panel, "fractalizeScale", "Scale", 1, 2, 0, 4, 0.01, async function(value){
-    glo.params.fractalize.scale = value;
+  addSlider(panel, "fractalizeScaleAll", "Scale All", 1, 2, 0, 8, 0.01, async function(value){
+    glo.params.fractalize.scale.all = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeScaleX", "Scale X", 1, 2, 0, 8, 0.01, async function(value){
+    glo.params.fractalize.scale.x = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeScaleY", "Scale Y", 1, 2, 0, 8, 0.01, async function(value){
+    glo.params.fractalize.scale.y = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizeScaleZ", "Scale Z", 1, 2, 0, 8, 0.01, async function(value){
+    glo.params.fractalize.scale.z = value;
     await remakeRibbon();
   });
   add_button("fractalizeActive", "ON", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
@@ -1721,6 +1755,11 @@ function add_fractalize_controls(){
     const newOrient = glo.fractalizeOrients.next().value;
 
     glo.allControls.getByName("fractalizeRotActive").textBlock.text = `${newOrient ? (newOrient.x ? 'Rot X' : (newOrient.y ? 'Rot Y' : 'Rot Z')) : 'No Rot'}`;
+    await remakeRibbon();
+  }, undefined, panelButton2, glo.controlConfig.background);
+  add_button("fractalizeScalingActive", "Scale", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    swapControlBackground("fractalizeScalingActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
+    glo.params.fractalize.scaleToDistPath = !glo.params.fractalize.scaleToDistPath;
     await remakeRibbon();
   }, undefined, panelButton2, glo.controlConfig.background);
 }

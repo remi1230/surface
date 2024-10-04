@@ -45,7 +45,7 @@ async function make_curves(u_params = {
 	}
 }
 
-function makeOnlyCurves(parameters, f, f2, d){
+function makeOnlyCurves(parameters, f, f2, d, coordTypes = false){
 	if(glo.coordsType !== 'cartesian'){
 		if(f){
 			f.alpha2 = f.alpha;
@@ -57,8 +57,7 @@ function makeOnlyCurves(parameters, f, f2, d){
 			delete f.x; delete f.y; delete f.z; 
 		}
 	}
-
-	switch(glo.coordsType){
+	switch(coordTypes || glo.coordsType){
 		case 'cartesian':
 			glo.curves = new Curves(parameters, f, f2, d);
 		break;
@@ -1912,9 +1911,9 @@ function test_equations(equations, dim_one = false, forCol = false){
 
 function reg(f, dim_one) {
     for (var prop in f) {
-        if (f[prop][0] == "'") {
+        if (f && f[prop] && f[prop][0] && f[prop][0] == "'") {
             f[prop] = "0";
-        } else {
+        } else if(f && f[prop]) {
             f[prop] = f[prop].toString();
             f[prop] = f[prop].replace(/\s/g, "");
             for (let i = 0; i < glo.regs.length; i++) {
@@ -4586,6 +4585,10 @@ function calculCurvatureByOrigin(vect){
 function w(val, isCos = 1){
 	let res = isCos ? Math.acos(val) : Math.asin(val);
 	return isNaN(res) ? val : res;
+}
+
+function customDecrease(x, m, k) {
+    return x * Math.pow(x / m, k);
 }
 
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {

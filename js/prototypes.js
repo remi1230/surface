@@ -347,75 +347,176 @@ BABYLON.Mesh.prototype.isPointAroundOrigin = function() {
 }
 
 BABYLON.Mesh.prototype.fractalize = async function() {
-	const fractalize = glo.params.fractalize;
-	const scale      = fractalize.scale;
+    const fractalize        = glo.params.fractalize;
+    const formeToFractalize = glo.formeToFractalize;
 
-	makeOnlyCurves({
-		u: {min: -glo.params.u, max: glo.params.u, nb_steps: fractalize.steps.u, },
-		v: {min: -glo.params.v, max: glo.params.v, nb_steps: fractalize.steps.v, },
-	},
-	{
-		x: glo.params.text_input_x,
-		y: glo.params.text_input_y,
-		z: glo.params.text_input_z,
-		alpha: glo.params.text_input_alpha,
-		beta: glo.params.text_input_beta,
-	},
-	{
-		x: glo.params.text_input_suit_x,
-		y: glo.params.text_input_suit_y,
-		z: glo.params.text_input_suit_z,
-		alpha: glo.params.text_input_suit_alpha,
-		beta: glo.params.text_input_suit_beta,
-		theta: glo.params.text_input_suit_theta,
-	}, false);
+    const scale = {all: fractalize.scale.all, x: fractalize.scale.x, y: fractalize.scale.y, z: fractalize.scale.z};
 
-	const paths = glo.curves.paths;
+	scale.x *= scale.all;
+	scale.y *= scale.all;
+	scale.z *= scale.all;
 
-	// Calcul des tangentes pour chaque chemin
-    for (const path of paths) {
-        const tangents = [];
-        for (let i = 0; i < path.length - 1; i++) {
-            let tangent = path[i + 1].subtract(path[i]).normalize();
-            tangents.push(tangent);
+	const mainOptions = !formeToFractalize ? 
+		{
+			
+			x: glo.params.text_input_x,
+			y: glo.params.text_input_y,
+			z: glo.params.text_input_z,
+			alpha: glo.params.text_input_alpha,
+			beta: glo.params.text_input_beta,
+			
+		} :
+		{
+			x: formeToFractalize.fx,
+			y: formeToFractalize.fy,
+			z: formeToFractalize.fz,
+			alpha: '',
+			beta: '',
+		}
+	;
+	const secondOptions = !formeToFractalize ? 
+		{
+			x: glo.params.text_input_suit_x,
+			y: glo.params.text_input_suit_y,
+			z: glo.params.text_input_suit_z,
+			alpha: glo.params.text_input_suit_alpha,
+			beta: glo.params.text_input_suit_beta,
+			theta: glo.params.text_input_suit_theta,
+		} :
+		{
+			x: '',
+			y: '',
+			z: '',
+			alpha: formeToFractalize.alpha,
+			beta: formeToFractalize.beta,
+			theta: formeToFractalize.theta,
+		}
+	;
+
+    // Génération des courbes de chemin
+    makeOnlyCurves({
+        u: { min: -glo.params.u, max: glo.params.u, nb_steps: fractalize.steps.u },
+        v: { min: -glo.params.v, max: glo.params.v, nb_steps: fractalize.steps.v },
+    },
+    mainOptions, secondOptions, false, !formeToFractalize ? false : formeToFractalize.typeCoords);
+
+    const paths = glo.curves.paths;
+
+    // Calcul des tangentes pour chaque chemin si l'orientation est activée
+    if (glo.fractalizeOrient) {
+        for (const path of paths) {
+            const tangents = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                let tangent = path[i + 1].subtract(path[i]).normalize();
+                tangents.push(tangent);
+            }
+            tangents.push(tangents[tangents.length - 1]); // Dernière tangente identique à l'avant-dernière pour la cohérence
+            path.tangents = tangents;
         }
-        // Ajouter la dernière tangente identique à l'avant-dernière pour la cohérence
-        tangents.push(tangents[tangents.length - 1]);
-        path.tangents = tangents;
     }
 
-	let newRibbons = [];
-	await paths.forEach(async path => {
-		await path.forEach(async (vect, j) => {
-			const tangent        = path.tangents[j];
-			let newRibbon        = await this.clone();
-			newRibbon.position   = vect;
-			newRibbon.scaling    = new BABYLON.Vector3(0.1 * scale, 0.1 * scale, 0.1 * scale);
+    // Calcul des distances successives et orthogonales entre les points
+    let distMoy = 0;
+    if (fractalize.scaleToDistPath) {
+        let n = 0;
+        for (const path of paths) {
+            const dists = [], distsOrtho = [], distsAll = [];
+            for (let i = 0; i < path.length - 1; i++) {
+                let distSuccessive = BABYLON.Vector3.Distance(path[i], path[i + 1]);
+                let distOrtho = (n + 1 < paths.length) ? BABYLON.Vector3.Distance(path[i], paths[n + 1][i]) : 0;
+                dists.push(distSuccessive);
+                distsOrtho.push(distOrtho);
+                distsAll.push((distSuccessive + distOrtho) / 2); // Moyenne entre distances successives et orthogonales
+            }
+            dists.push(dists[dists.length - 1]);
+            distsOrtho.push(distsOrtho[distsOrtho.length - 1]);
+            distsAll.push(distsAll[distsAll.length - 1]);
 
-			if(glo.fractalizeOrient){
-				let upVector = glo.fractalizeOrient;
-				let axis     = BABYLON.Vector3.Cross(upVector, tangent).normalize();
-				let angle    = Math.acos(BABYLON.Vector3.Dot(upVector, tangent));
+            path.dists = dists;
+            path.distsOrtho = distsOrtho;
+            path.distsAll = distsAll;
+            path.distMoy = dists.reduce((acc, val) => acc + val, 0) / path.length;
+            path.distMoyOrtho = distsOrtho.reduce((acc, val) => acc + val, 0) / path.length;
+            path.distMoyTot = (path.distMoy + path.distMoyOrtho) / 2;
 
-				newRibbon.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
-				newRibbon.rotationQuaternion = newRibbon.rotationQuaternion.multiply(BABYLON.Quaternion.RotationYawPitchRoll(fractalize.rot.y, fractalize.rot.x, fractalize.rot.z));
+            n++;
+        }
+        distMoy = paths.reduce((acc, val) => acc + val.distMoyTot, 0) / paths.length;
+    }
+
+	paths.pop();
+	//paths.forEach((path, i) => paths[i].pop());
+
+    let newRibbons = [];
+    await paths.forEach(async (path, i) => {
+        const pathIndex = paths.indexOf(path);  // Utiliser l'index du chemin courant
+        await path.forEach(async (vect, j) => {
+			if(!vect.isNearToOneVect(paths.flat(), ep/100)){
+				let newRibbon = await this.clone();
+				newRibbon.position = vect;
+				if (!fractalize.scaleToDistPath) { newRibbon.scaling = new BABYLON.Vector3(0.1 * scale.x, 0.1 * scale.y, 0.1 * scale.z); }
+
+				// Ajuster l'échelle des meshes en fonction de la distance
+				if (fractalize.scaleToDistPath) {
+					const distSuccessive = (j < path.length - 1) ? BABYLON.Vector3.Distance(vect, path[j + 1]) : BABYLON.Vector3.Distance(vect, path[j - 1]);
+					const distOrtho = (pathIndex + 1 < paths.length) ? BABYLON.Vector3.Distance(vect, paths[pathIndex + 1][j]) : BABYLON.Vector3.Distance(vect, paths[pathIndex - 1][j]);
+
+					// Calcul des rayons des meshes actuels et voisins (successifs ou orthogonaux)
+					const currentRadius = newRibbon.getBoundingInfo().boundingSphere.radiusWorld;
+					const neighborRadius = (j < path.length - 1)
+						? this.getBoundingInfo().boundingSphere.radiusWorld // Mesh suivant
+						: newRibbons[newRibbons.length - 1].getBoundingInfo().boundingSphere.radiusWorld; // Mesh précédent
+
+					// Calcul du coefficient pour ajuster l'échelle afin que les meshes se touchent juste
+					const totalRadius = currentRadius + neighborRadius;
+					const totalDist = (distSuccessive + distOrtho) / 2; // Moyenne entre successif et orthogonal
+					const scaleFactor = totalRadius !== 0 ? (totalDist / totalRadius) : 1; // Protection contre la division par 0
+
+					newRibbon.scaling = new BABYLON.Vector3(
+						newRibbon.scaling.x * scaleFactor * scale.x,
+						newRibbon.scaling.y * scaleFactor * scale.y,
+						newRibbon.scaling.z * scaleFactor * scale.z
+					);
+				}
+
+				// Appliquer les rotations pour l'orientation des meshes
+				if (glo.fractalizeOrient) {
+					const tangent = path.tangents[j];
+					const upVector = glo.fractalizeOrient;
+					const axis = BABYLON.Vector3.Cross(upVector, tangent).normalize();
+					const angle = Math.acos(BABYLON.Vector3.Dot(upVector, tangent));
+
+					newRibbon.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
+					newRibbon.rotationQuaternion = newRibbon.rotationQuaternion.multiply(
+						BABYLON.Quaternion.RotationYawPitchRoll(fractalize.rot.y, fractalize.rot.x, fractalize.rot.z)
+					);
+				}
+
+				// Ajouter les rotations supplémentaires en fonction des paramètres
+				newRibbon.rotation.x += fractalize.rot.x;
+				newRibbon.rotation.y += fractalize.rot.y;
+				newRibbon.rotation.z += fractalize.rot.z;
+
+				newRibbons.push(newRibbon);
 			}
+			else{
+				paths[i][j].yetNearToPath = true;
+			}
+        });
+    });
 
-			newRibbon.rotation.x += fractalize.rot.x;
-			newRibbon.rotation.y += fractalize.rot.y;
-			newRibbon.rotation.z += fractalize.rot.z;
+    // Fusionner les meshes
+    await glo.ribbon.dispose();
+    glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false);
 
-			newRibbons.push(newRibbon);
-		})
-	});
+    const positions = await glo.ribbon.getPositionData();
+    glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 
-	await glo.ribbon.dispose();
-	glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false);
+    glo.curves.paths = glo.ribbon.getPaths(positions, (fractalize.steps.u + 1) * fractalize.steps.v);
+    glo.lines = glo.curves.paths;
+    glo.ribbon.savePos = positions.slice();
+};
 
-	const positions = await glo.ribbon.getPositionData();
-	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
-
-	glo.curves.paths   = glo.ribbon.getPaths(positions, (fractalize.steps.u + 1) * fractalize.steps.v);
-	glo.lines          = glo.curves.paths;
-	glo.ribbon.savePos = positions.slice();
+BABYLON.Vector3.prototype.isNearToOneVect = function(vects, dist) {
+	return vects.some(vect => vect !== this && !this.yetNearToPath && !vect.yetNearToPath ? BABYLON.Vector3.Distance(this, vect) < dist : false);
 }

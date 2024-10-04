@@ -20,6 +20,7 @@ var r = 1;
 const PI = Math.PI;
 const e  = Math.E;
 const Z = (1+Math.sqrt(5))*0.5;
+const Q = Math.SQRT2;
 var glo = {
 	formes:{
 		selected:['Torus', 'cartesian'],
@@ -43,7 +44,7 @@ var glo = {
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cucv)***2", fy: "7(svcu)***2", fz: "5s(u)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 80}},
-			{text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cucv)***2", fy: "7(sucv)***2", fz: "5(sv)***0", alpha: "", theta: "pi/4", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
+			{text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "(cucv)***2", fy: "(sucv)***2", fz: "Q/2(sv)***0", alpha: "", theta: "pi/4", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
 			{text: "Egg", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 133, nb_steps_v: 133,  fx: "", fy: "(pow(36 - su², 0.5) + cu)cu", fz: "4su", beta: "v", check: false, suit: true, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8, distance: 80}},
 			{text: "Glass", typeCoords: 'cartesian', udef: PI, vdef: 3*PI/8, nb_steps_u: 255, nb_steps_v: 255,  fx: "7c(u+1)c(v+1.2)", fy: "7s(u+1)c(v+1.2)", fz: "9sv", alpha: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
 			{text: "Heart", typeCoords: 'cartesian', udef: 2*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "16sv**3", fy: "13cv-5c(2v)-2c(3v)-c(4v)", fz: "u/8", alpha: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 40}},
@@ -192,7 +193,7 @@ var glo = {
 			var n = 0;
 			for(var i = 0; i < selectsLength; i++){
 				var sel = this.select[i];
-				if(sel.check && sel.typeCoords == coordsType){ return {num: i, numFormInCoorType: n, form: sel}; }
+				if(sel.check){ return {num: i, numFormInCoorType: n, form: sel}; }
 				else if(sel.typeCoords == coordsType){ n++; }
 			}
 			return false;
@@ -201,7 +202,7 @@ var glo = {
 			var selectsLength = this.select.length;
 			for(var i = 0; i < selectsLength; i++){
 				var sel = this.select[i];
-				if(sel.typeCoords == coordsType && sel.typeCoords == coordsType){ return sel; }
+				if(sel.typeCoords == coordsType && sel.text == name){ return sel; }
 			}
 			return false;
 		},
@@ -876,7 +877,14 @@ var glo = {
 		},
 		fractalize:{
 			actived: false,
-			scale: 1,
+			scaleToDistPath: false,
+			scale: {
+				all: 1,
+				x: 1,
+				y: 1,
+				z: 1,
+			},
+			scalePow: 2,
 			steps:{
 				u: 12,
 				v: 12,
@@ -886,6 +894,10 @@ var glo = {
 				y: 0,
 				z: 0,
 			},
+			scalePart:{
+				successive: 1,
+				ortho: 1,
+			}
 		},
 		invPos: {x: false, y: false, z: false},
 		quaternionByRotR: false,

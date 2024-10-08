@@ -1,4 +1,4 @@
-function Curves(parametres = {
+function Curves(parametres = { 
 	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
 	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
 },
@@ -15,7 +15,7 @@ f = {
 	alpha: glo.params.text_input_suit_alpha,
 	beta: glo.params.text_input_suit_beta,
 	theta: glo.params.text_input_suit_theta,
-}, dim_one = glo.dim_one)
+}, dim_one = glo.dim_one, fractalize = false)
 {
 	reg(f, dim_one);
 	reg(f2, dim_one);
@@ -27,12 +27,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);;
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];
@@ -316,7 +316,7 @@ f = {
 	alpha: glo.params.text_input_suit_alpha,
 	beta: glo.params.text_input_suit_beta,
 	theta: glo.params.text_input_suit_theta,
-}, dim_one = glo.dim_one)
+}, dim_one = glo.dim_one, fractalize = false)
 {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
@@ -384,12 +384,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];
@@ -635,7 +635,7 @@ f = {
 	alpha: glo.params.text_input_suit_alpha,
 	beta: glo.params.text_input_suit_beta,
 	theta: glo.params.text_input_suit_theta,
-}, dim_one = glo.dim_one)
+}, dim_one = glo.dim_one, fractalize = false)
 {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
@@ -703,12 +703,12 @@ f = {
 
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
-	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps);
+	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
 	this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
 
 	this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 	this.max_v = parametres.v.max;
-	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps);
+	this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];

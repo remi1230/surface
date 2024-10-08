@@ -4566,8 +4566,10 @@ function reformatPaths(originalPaths = glo.curves.paths) {
     return newPaths;
 }
 
-function paramsOrFractNbPaths(uOrV, paramsNBPaths){
-	return glo.params.fractalize.actived ? glo.params.fractalize.steps[uOrV] : paramsNBPaths;
+function paramsOrFractNbPaths(uOrV, paramsNBPaths, fractalizeKind){
+	return glo.params.fractalize.actived && fractalizeKind ?
+	       (fractalizeKind === 'fractalize' ? glo.params.fractalize.steps[uOrV] : glo.params.fractalize.fractalized.steps[uOrV]) :
+		   paramsNBPaths;
 }
 
 function calculCurvature(pathBeforePoint, pathOnPoint, pathAfterPoint){

@@ -814,11 +814,11 @@ function add_radios(suit = false){
       button.color = 'red';
     }
 
-    button.onIsCheckedChangedObservable.add(function(state) {
-      button.onPointerClickObservable.add(function(e) {
+    button.onIsCheckedChangedObservable.add(async function(state) {
+      await button.onPointerClickObservable.add(async function(e) {
         if (e.buttonIndex !== 2 && state  && !glo.fromHisto) {
           resetClones();
-          glo.formes.setFormeSelect(text, glo.coordsType);
+          await glo.formes.setFormeSelect(text, glo.coordsType);
           glo.histo.save();
         }
         else if (e.buttonIndex === 2) {
@@ -826,6 +826,7 @@ function add_radios(suit = false){
           glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
           glo.radios_formes.forEach(radioForme => { radioForme.button.color = glo.theme.radio.text.color; });
           glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
+          if(glo.params.fractalize.actived){ await remakeRibbon(); }
         }
       });
     });
@@ -1660,7 +1661,7 @@ function add_fractalize_controls(){
   parmamControl(panel, 'tenthPanelPanel', 'panel right tenth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 26, pR: 1});
   glo.advancedTexture.addControl(panel);
   var panelButton = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButton, 'tenthPanelButton', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 2});
+  parmamControl(panelButton, 'tenthPanelButton', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 0});
   glo.advancedTexture.addControl(panelButton);
   var panelButton2 = new BABYLON.GUI.StackPanel();
   parmamControl(panelButton2, 'tenthPanelButton2', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 2});
@@ -1746,6 +1747,14 @@ function add_fractalize_controls(){
     glo.params.fractalize.scale.z = value;
     await remakeRibbon();
   });
+  addSlider(panel, "fractalizedStepsU", "Fractalized Steps U", 12, 0, 1, 132, 1, async function(value){
+    glo.params.fractalize.fractalized.steps.u = value;
+    await remakeRibbon();
+  });
+  addSlider(panel, "fractalizedStepsV", "Fractalized Steps V", 12, 0, 1, 132, 1, async function(value){
+    glo.params.fractalize.fractalized.steps.v = value;
+    await remakeRibbon();
+  });
   add_button("fractalizeActive", "ON", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
     swapControlBackground("fractalizeActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
     glo.params.fractalize.actived = !glo.params.fractalize.actived;
@@ -1760,6 +1769,11 @@ function add_fractalize_controls(){
   add_button("fractalizeScalingActive", "Scale", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
     swapControlBackground("fractalizeScalingActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
     glo.params.fractalize.scaleToDistPath = !glo.params.fractalize.scaleToDistPath;
+    await remakeRibbon();
+  }, undefined, panelButton2, glo.controlConfig.background);
+  add_button("fractalizeLineOnMesh", "Line", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
+    swapControlBackground("fractalizeLineOnMesh", glo.controlConfig.background, glo.controlConfig.backgroundActived);
+    glo.params.fractalize.lineOnNewMeshes = !glo.params.fractalize.lineOnNewMeshes;
     await remakeRibbon();
   }, undefined, panelButton2, glo.controlConfig.background);
 }

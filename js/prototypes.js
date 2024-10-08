@@ -393,14 +393,16 @@ BABYLON.Mesh.prototype.fractalize = async function() {
 		}
 	;
 
+	const fractalized  = fractalize.fractalized;
+
     // Génération des courbes de chemin
-    makeOnlyCurves({
-        u: { min: -glo.params.u, max: glo.params.u, nb_steps: fractalize.steps.u },
-        v: { min: -glo.params.v, max: glo.params.v, nb_steps: fractalize.steps.v },
+	makeOnlyCurves({
+        u: { min: !formeToFractalize ? -glo.params.u : -formeToFractalize.udef, max: !formeToFractalize ? glo.params.u : formeToFractalize.udef, nb_steps: fractalized.steps.u },
+        v: { min: !formeToFractalize ? -glo.params.v : -formeToFractalize.vdef, max: !formeToFractalize ? glo.params.v : formeToFractalize.vdef, nb_steps: fractalized.steps.v }
     },
     mainOptions, secondOptions, false, !formeToFractalize ? false : formeToFractalize.typeCoords);
 
-    const paths = glo.curves.paths;
+    const paths = glo.curves.paths.slice();
 
     // Calcul des tangentes pour chaque chemin si l'orientation est activée
     if (glo.fractalizeOrient) {
@@ -510,10 +512,13 @@ BABYLON.Mesh.prototype.fractalize = async function() {
     glo.ribbon = await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false);
 
     const positions = await glo.ribbon.getPositionData();
-    glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
+    await glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 
-    glo.curves.paths = glo.ribbon.getPaths(positions, (fractalize.steps.u + 1) * fractalize.steps.v);
-    glo.lines = glo.curves.paths;
+	if(fractalize.lineOnNewMeshes){
+		glo.curves.paths = glo.ribbon.getPaths(positions, (fractalized.steps.u + 1) * fractalized.steps.v);
+    	glo.lines        = glo.curves.paths;
+	}
+
     glo.ribbon.savePos = positions.slice();
 };
 

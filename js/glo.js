@@ -878,6 +878,7 @@ var glo = {
 		fractalize:{
 			actived: false,
 			scaleToDistPath: false,
+			lineOnNewMeshes: true,
 			scale: {
 				all: 1,
 				x: 1,
@@ -897,6 +898,12 @@ var glo = {
 			scalePart:{
 				successive: 1,
 				ortho: 1,
+			},
+			fractalized:{
+				steps:{
+					u: 12,
+					v: 12,
+				}
 			}
 		},
 		invPos: {x: false, y: false, z: false},

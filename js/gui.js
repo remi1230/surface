@@ -814,22 +814,74 @@ function add_radios(suit = false){
       button.color = 'red';
     }
 
-    button.onIsCheckedChangedObservable.add(async function(state) {
-      await button.onPointerClickObservable.add(async function(e) {
-        if (e.buttonIndex !== 2 && state  && !glo.fromHisto) {
-          resetClones();
-          await glo.formes.setFormeSelect(text, glo.coordsType);
-          glo.histo.save();
+    /*button.onIsCheckedChangedObservable.add(async function(state) {
+      // Si le gestionnaire de clic existe déjà, ne pas en ajouter un nouveau
+      if (!button._clickHandler) {
+    
+        // Définir un nouveau gestionnaire de clic et le stocker
+        button._clickHandler = async function(e) {
+          if (e.buttonIndex !== 2 && !glo.fromHisto) {
+            resetClones();
+            //await glo.formes.setFormSelectByNum(glo.formes.getNumFormSelectInCoordTypeByTitle(text));
+            await glo.formes.setFormeSelect(text, glo.coordsType);
+            glo.histo.save();
+    
+            // Supprimer le gestionnaire après la première exécution
+            button.onPointerClickObservable.remove(button._clickHandler);
+            button._clickHandler = null; // Réinitialiser pour pouvoir l'ajouter à nouveau si nécessaire
+          } else if (e.buttonIndex === 2) {
+            glo.formeToFractalize = glo.formes.getFormByName(text, glo.coordsType);
+            glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
+            glo.radios_formes.forEach(radioForme => {
+              radioForme.button.color = glo.theme.radio.text.color;
+            });
+            glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
+            if (glo.params.fractalize.actived) {
+              await remakeRibbon();
+            }
+          }
+        };
+    
+        // Ajouter le nouveau gestionnaire de clic
+        button.onPointerClickObservable.add(button._clickHandler);
+      }
+    });*/
+
+    // Ajout du gestionnaire pour les clics gauche et droit
+    button.onPointerClickObservable.add(async function(e) {
+      // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
+      if (e.buttonIndex === 0 && !glo.fromHisto) {
+        resetClones();
+        await glo.formes.setFormeSelect(text, glo.coordsType);
+        glo.histo.save();
+
+        // Si nécessaire, vous pouvez ajouter une logique pour ne pas capter le clic gauche plusieurs fois
+        console.log("Clic gauche détecté, logique exécutée.");
+        
+        // Si vous souhaitez arrêter la capture des clics après la première exécution
+        // button.onPointerClickObservable.remove(this);
+      }
+
+      // Gestion du clic droit (buttonIndex 2 correspond au clic droit)
+      if (e.buttonIndex === 2) {
+        glo.formeToFractalize = glo.formes.getFormByName(text, glo.coordsType);
+        glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
+        
+        // Mettre à jour la couleur des boutons radio
+        glo.radios_formes.forEach(radioForme => {
+          radioForme.button.color = glo.theme.radio.text.color;
+        });
+        glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
+
+        // Si la fractalisation est activée, exécuter la logique
+        if (glo.params.fractalize.actived) {
+          await remakeRibbon();
         }
-        else if (e.buttonIndex === 2) {
-          glo.formeToFractalize = glo.formes.getFormByName(text, glo.coordsType);
-          glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
-          glo.radios_formes.forEach(radioForme => { radioForme.button.color = glo.theme.radio.text.color; });
-          glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
-          if(glo.params.fractalize.actived){ await remakeRibbon(); }
-        }
-      });
+        
+        console.log("Clic droit détecté, logique exécutée.");
+      }
     });
+
 
 
     var header = BABYLON.GUI.Control.AddHeader(button, text, "200px", { isHorizontal: true, controlFirst: true });
@@ -1713,68 +1765,70 @@ function add_fractalize_controls(){
 
   addSlider(panel, "fractalizeStepsU", "Fract Steps U", 12, 0, 1, 132, 1, async function(value){
     glo.params.fractalize.steps.u = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeStepsV", "Fract Steps V", 12, 0, 1, 132, 1, async function(value){
     glo.params.fractalize.steps.v = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeRotateX", "Rot X", 0, 2, 0, 2*PI, 0.01, async function(value){
     glo.params.fractalize.rot.x = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeRotateY", "Rot Y", 0, 2, 0, 2*PI, 0.01, async function(value){
     glo.params.fractalize.rot.y = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeRotateZ", "Rot Z", 0, 2, 0, 2*PI, 0.01, async function(value){
     glo.params.fractalize.rot.z = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeScaleAll", "Scale All", 1, 2, 0, 8, 0.01, async function(value){
     glo.params.fractalize.scale.all = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeScaleX", "Scale X", 1, 2, 0, 8, 0.01, async function(value){
     glo.params.fractalize.scale.x = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeScaleY", "Scale Y", 1, 2, 0, 8, 0.01, async function(value){
     glo.params.fractalize.scale.y = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizeScaleZ", "Scale Z", 1, 2, 0, 8, 0.01, async function(value){
     glo.params.fractalize.scale.z = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizedStepsU", "Fractalized Steps U", 12, 0, 1, 132, 1, async function(value){
     glo.params.fractalize.fractalized.steps.u = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   addSlider(panel, "fractalizedStepsV", "Fractalized Steps V", 12, 0, 1, 132, 1, async function(value){
     glo.params.fractalize.fractalized.steps.v = value;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   });
   add_button("fractalizeActive", "ON", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
     swapControlBackground("fractalizeActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
     glo.params.fractalize.actived = !glo.params.fractalize.actived;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   }, undefined, panelButton2, glo.controlConfig.background);
-  add_button("fractalizeRotActive", "No Rot", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
-    const newOrient = glo.fractalizeOrients.next().value;
-
-    glo.allControls.getByName("fractalizeRotActive").textBlock.text = `${newOrient ? (newOrient.x ? 'Rot X' : (newOrient.y ? 'Rot Y' : 'Rot Z')) : 'No Rot'}`;
-    await remakeRibbon();
-  }, undefined, panelButton2, glo.controlConfig.background);
+  add_button("fractalizeRotActive", "No Rot", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,
+    async function(){
+      await switchFractalOrient();
+    },
+    async function(){
+      await switchFractalOrient(false);
+    },
+    panelButton2, glo.controlConfig.background);
   add_button("fractalizeScalingActive", "Scale", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
     swapControlBackground("fractalizeScalingActive", glo.controlConfig.background, glo.controlConfig.backgroundActived);
     glo.params.fractalize.scaleToDistPath = !glo.params.fractalize.scaleToDistPath;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   }, undefined, panelButton2, glo.controlConfig.background);
   add_button("fractalizeLineOnMesh", "Line", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, async function(){
     swapControlBackground("fractalizeLineOnMesh", glo.controlConfig.background, glo.controlConfig.backgroundActived);
     glo.params.fractalize.lineOnNewMeshes = !glo.params.fractalize.lineOnNewMeshes;
-    await remakeRibbon();
+    await remakeRibbon('fractalize');
   }, undefined, panelButton2, glo.controlConfig.background);
 }
 

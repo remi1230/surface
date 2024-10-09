@@ -515,6 +515,7 @@ BABYLON.Mesh.prototype.fractalize = async function() {
     await glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 
 	if(fractalize.lineOnNewMeshes){
+		//glo.curves.paths = glo.ribbon.getPaths(positions, (fractalized.steps.u + 1) * fractalized.steps.v);
 		glo.curves.paths = glo.ribbon.getPaths(positions, (fractalized.steps.u + 1) * fractalized.steps.v);
     	glo.lines        = glo.curves.paths;
 	}

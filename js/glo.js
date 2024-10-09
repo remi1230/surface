@@ -105,7 +105,7 @@ var glo = {
 			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, orient: {axis: "X", direction: 1, alpha: 8*PI/7, beta: -PI/12}},
 		],
 		setFormeSelect: async function(txt, coordsType, draw = true){
-			this.select.map(async sel => {
+			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
@@ -125,14 +125,6 @@ var glo = {
 							glo.params.text_input_suit_beta  = fbeta;
 							glo.params.text_input_suit_theta = ftheta;
 						}
-						/*else{
-							glo.params.text_input_suit_alpha = falpha ? falpha : glo.params.text_input_suit_alpha;
-							glo.params.text_input_suit_beta  = fbeta  ? fbeta  : glo.params.text_input_suit_beta;
-							glo.params.text_input_suit_theta = ftheta ? ftheta : glo.params.text_input_suit_theta;
-						}*/
-						
-						//glo.params.text_input_alpha = falpha ? falpha : glo.params.text_input_alpha;
-						//glo.params.text_input_beta  = fbeta ? fbeta : glo.params.text_input_beta;
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
 
@@ -145,8 +137,6 @@ var glo = {
 								glo.input_suit_beta.text  = fbeta;
 								glo.input_suit_theta.text = ftheta;
 							}
-							//glo.input_alpha.text = falpha ? falpha : glo.input_alpha.text;
-							//glo.input_beta.text  = fbeta ? fbeta : glo.input_beta.text;
 						}
 
 						glo.slider_nb_steps_u.maximum = sel.nb_steps_u * 2;
@@ -170,8 +160,12 @@ var glo = {
 
 						glo.toHisto = true;
 						if(!glo.dim_one){
-							if(!glo.normalMode){ await make_curves(); }
-							else{ glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations(); }
+							const fractalize = glo.params.fractalize;
+							if(!glo.normalMode){ await make_curves(undefined, undefined, undefined, undefined, fractalize.actived); }
+							else{
+								glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize.actived);
+								glo.fromSlider = false; drawNormalEquations();
+							}
 						}
 						else{
 							dimension(true);
@@ -180,7 +174,7 @@ var glo = {
 					}
 				}
 				else{ sel.check = false; }
-			});
+			}
 		},
 		setFormSelectByNum: async function(num){
 			var coordsType = glo.coordsType;
@@ -205,6 +199,14 @@ var glo = {
 				if(sel.typeCoords == coordsType && sel.text == name){ return sel; }
 			}
 			return false;
+		},
+		getNumFormSelectInCoordTypeByTitle: function(titleForm){
+			const coordsType    = glo.coordsType;
+			const selectsLength = this.select.length;
+
+			for(var i = 0; i < selectsLength; i++){
+				if(this.select[i].typeCoords === coordsType && this.select[i].text === titleForm){ return i; }
+			}
 		},
 		getNumFirstFormInCoordType: function(){
 			var coordsType = glo.coordsType;

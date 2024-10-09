@@ -18,7 +18,7 @@ async function make_curves(u_params = {
 	fSuitX: glo.params.text_input_suit_x,
 	fSuitY: glo.params.text_input_suit_y,
 	fSuitZ: glo.params.text_input_suit_z,
-}, dim_one = glo.dim_one){
+}, dim_one = glo.dim_one, fractalize = false){
 
 	var good = test_equations(equations, dim_one);
 	if(good){
@@ -30,7 +30,7 @@ async function make_curves(u_params = {
 			glo.curves = {}; delete glo.curves;
 		}
 
-		makeOnlyCurves();
+		makeOnlyCurves(undefined, undefined, undefined, undefined, false, fractalize);
 
 		await expendPathsByEachCenter();
 		await rotatePathsByEachCenter();
@@ -45,7 +45,7 @@ async function make_curves(u_params = {
 	}
 }
 
-function makeOnlyCurves(parameters, f, f2, d, coordTypes = false){
+function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = false){
 	if(glo.coordsType !== 'cartesian'){
 		if(f){
 			f.alpha2 = f.alpha;
@@ -59,13 +59,13 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false){
 	}
 	switch(coordTypes || glo.coordsType){
 		case 'cartesian':
-			glo.curves = new Curves(parameters, f, f2, d);
+			glo.curves = new Curves(parameters, f, f2, d, fractalize);
 		break;
 		case 'spheric': case 'cylindrical':
-			glo.curves = new CurvesByRot(parameters, f, f2, d);
+			glo.curves = new CurvesByRot(parameters, f, f2, d, fractalize);
 		break;
 		case 'curvature':
-			glo.curves = new CurvesByCurvature(parameters, f, f2, d);
+			glo.curves = new CurvesByCurvature(parameters, f, f2, d, fractalize);
 		break;
 	}
 }
@@ -133,9 +133,8 @@ async function make_ribbon(symmetrize = true){
 
 	const norm = glo.params.functionIt.norm;
 
-	if(glo.params.fractalize.actived){ await glo.ribbon.fractalize(); }
-
 	if(symmetrize){ await makeSymmetrize(); }
+	if(glo.params.fractalize.actived){ await glo.ribbon.fractalize(); }
 	if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
 	
 	giveMaterialToMesh();
@@ -177,10 +176,10 @@ function ribbonDispose(all = true){
 	}
 }
 
-async function remakeRibbon(){
-	if(!glo.normalMode){  await make_curves(); }
+async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize'){
+	if(!glo.normalMode){  await make_curves(undefined, undefined, undefined, undefined, fractalize); }
 	else{
-		glo.fromSlider = true; await make_curves(); glo.fromSlider = false; drawNormalEquations();
+		glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize); glo.fromSlider = false; drawNormalEquations();
 	}
 }
 
@@ -2004,8 +2003,27 @@ function switchCoords(normalSens = true){
 
 	switchDrawCoordsType();
 	add_radios();
-	//paramRadios();
+
 	glo.formesSuit = false;
+}
+
+async function switchFractalOrient(normalSens = true){
+	let newOrient = '';
+
+	if(normalSens){ newOrient = glo.fractalizeOrients.next().value; }
+	else{
+		const currentOrient = glo.fractalizeOrient;
+		
+		while(glo.fractalizeOrients.next().value !== currentOrient){
+			newOrient = glo.fractalizeOrient;
+		}
+		glo.fractalizeOrient = newOrient;
+
+		while(glo.fractalizeOrients.next().value !== newOrient){}
+	}
+
+	glo.allControls.getByName("fractalizeRotActive").textBlock.text = `${newOrient ? (newOrient.x ? 'Rot X' : (newOrient.y ? 'Rot Y' : 'Rot Z')) : 'No Rot'}`;
+    await remakeRibbon('fractalize');
 }
 
 function switchSymmetrizeOrder(normalSens = true){

@@ -22,9 +22,6 @@ f = {
 
 	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
-
 	this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u = parametres.u.max;
 	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
@@ -36,68 +33,20 @@ f = {
 	this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 	this.paths = [];
+    let path   = [];
 	this.lines = [];
 
-	function mx(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
+	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var
+		{
+			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
+			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
+			beta, theta, alpha2, beta2, alpha3, beta3
 
-    return p[p.length - index].x;
-  }
-  function my(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  }
-  function mz(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  }
-
-  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
+		} 
+		= makeCommonCurveVariables();
 
     const uvInfos = isUV();
-
-    var x = 0.5; var y = 0.5; var z = 0.5;
-	var xN = 1; var yN = 1; var zN = 1;
-	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
-	var xT = 1; var yT = 1; var zT = 1;
-	var µT = 1;
-	var $T= 1; var µ$T = 1; var $µT = 1; var µµT = 1;
-	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
 
 	if(f.x == ""){ f.x = 0; }
 	if(f.y == ""){ f.y = 0; }
@@ -116,17 +65,24 @@ f = {
 	var isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	var v = 0;
+	let d,k,p,t;
 
 	var n = 0;
 	var line_visible = glo.lines_visible;
-  var index_u = 0;
+  var index_u = 0, ind_u = 0;
   if(!uvInfos.isV){
 		this.paths[0] = [];
-		var path      = [];
+		path          = [];
 		let u = this.min_u - this.step_u;
 		for (let i = 0; i <= this.nb_steps_u; i++) {
 			u += this.step_u;
 			ind_u = u;
+			glo.currentCurveInfos.u = u;
+
+			d = !(i%2) ? -1 : 1;
+			p = !(i%2) ? -u : u;
+			k = d;
+			t = p;
 
 			x = eval(f.x);
 			y = eval(f.y);
@@ -155,10 +111,6 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
-
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
 			theta = eval(f2.theta);
@@ -167,6 +119,10 @@ f = {
 				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
+
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
 			alpha2 = eval(f2.alpha);
 			beta2  = eval(f2.beta);
@@ -199,22 +155,31 @@ f = {
 			}
 
 			path.push(new BABYLON.Vector3(x, y, z));
+			glo.currentCurveInfos.currentPath = path;
 			this.paths[0].push(new BABYLON.Vector3(x, y, z));
       		index_u++; n++;
+			glo.currentCurveInfos.index_u = index_u;
 		}
 
 		glo.lines = this.paths;
   }
   else {
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
-	let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+	let u = this.min_u - this.step_u, v = this.min_v - this.step_v, ind_v;
 	for (let i = 0; i <= stepsU; i++) {
+		k = !(i%2) ? -1 : 1;
 		u += this.step_u;
-		var path = [];
+		p = !(i%2) ? -u : u;
+		glo.currentCurveInfos.u = u;
+		path = [];
 		var index_v = 0; ind_u = u; v = this.min_v - this.step_v;
 		for (let j = 0; j <= this.nb_steps_v; j++) {
 			v += this.step_v;
 			ind_v = v;
+			glo.currentCurveInfos.v = v;
+
+			d = !(j%2) ? -1 : 1;
+			t = !(j%2) ? -v : v;
 
 			x = eval(f.x);
 			y = eval(f.y);
@@ -243,10 +208,6 @@ f = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
-
 			alpha = eval(f.alpha);
 			beta  = eval(f.beta);
 			theta = eval(f2.theta);
@@ -255,6 +216,10 @@ f = {
 				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
+
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
 			alpha2 = eval(f2.alpha);
 			beta2  = eval(f2.beta);
@@ -287,10 +252,14 @@ f = {
 			}
 
 			path.push(new BABYLON.Vector3(x, y, z));
+			glo.currentCurveInfos.currentPath = path;
 			index_v++; n++;
+			glo.currentCurveInfos.index_v = index_v;
+			glo.currentCurveInfos.n = n;
 		}
 		this.paths.push(path);
 		index_u++;
+		glo.currentCurveInfos.index_u = index_u;
 	}
 
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
@@ -323,61 +292,18 @@ f = {
 
 	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
-	function mx(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
+	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var
+		{
+			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
+			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
+			beta, theta, alpha2, beta2, alpha3, beta3
 
-    return p[p.length - index].x;
-  };
-  function my(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  };
-  function mz(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  };
-
-  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
+		} 
+		= makeCommonCurveVariables();
 
 	reg(f,  dim_one);
 	reg(f2, dim_one);
-
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;
@@ -397,20 +323,11 @@ f = {
 
     const uvInfos = isUV();
 
-    var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
-	var r = 0; var alpha = 0; var beta = 0; var alpha2 = 0; var beta2 = 0; var alpha3 = 0; var beta3 = 0;
-	var x = 0.5; var y = 0.5; var z = 0.5;
-	var xN = 1; var yN = 1; var zN = 1;
-	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
-	var xT = 1; var yT= 1; var zT = 1;
-	var T = 1;
-	var $T = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
-	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
-
 	var isX = glo.params.text_input_suit_x != "" ? true : false;
 	var isY = glo.params.text_input_suit_y != "" ? true : false;
 	var isZ = glo.params.text_input_suit_z != "" ? true : false;
+
+	let d, k, p, t;
 
   var n = 0;
   var path = [];
@@ -423,6 +340,11 @@ f = {
 		for (let i = 0; i <= this.nb_steps_u; i++) {
 			u += this.step_u;
 			ind_u = u;
+			glo.currentCurveInfos.u = u;
+
+			d = !(i%2) ? -1 : 1;
+			p = !(i%2) ? -u : u;
+			k = d;
 
 			r     = eval(f.r);
 			alpha = eval(f.alpha);
@@ -459,10 +381,6 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
 			alpha2 = eval(f.alpha2);
 			beta2  = eval(f.beta2);
 			theta  = eval(f2.theta);
@@ -473,6 +391,11 @@ f = {
 			if(alpha2 && beta2){
 				pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 			}
+
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
+
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
@@ -509,8 +432,10 @@ f = {
 				this.paths[0].push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 			}
 			
+			glo.currentCurveInfos.path = path;
 			path = [];
       		index_u++; n++;
+			  glo.currentCurveInfos.index_u = index_u;
 		}
 
 		glo.lines = this.paths;
@@ -519,12 +444,19 @@ f = {
 		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
 		for (let i = 0; i <= stepsU; i++) {
+			k = !(i%2) ? -1 : 1;
 			u += this.step_u;
+			glo.currentCurveInfos.u = u;
+			p = !(i%2) ? -u : u;
       		var index_v = 0; ind_u = u;
 			v = this.min_v - this.step_v
 			for (let j = 0; j <= this.nb_steps_v; j++) {
 				v += this.step_v;
 				ind_v = v;
+				glo.currentCurveInfos.v = v;
+
+				d = !(j%2) ? -1 : 1;
+				t = !(j%2) ? -v : v;
 
 				r     = eval(f.r);
 				alpha = eval(f.alpha);
@@ -561,10 +493,6 @@ f = {
 				var µ$T = µT*$T; var $µT = µT+$T;
 				var µµT = µ$T*$µT;
 
-				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
 				alpha2 = eval(f.alpha2);
 				beta2  = eval(f.beta2);
 				theta  = eval(f2.theta);
@@ -575,6 +503,11 @@ f = {
 				if(alpha2 && beta2){
 					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 				}
+
+				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
+
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
@@ -606,10 +539,13 @@ f = {
 
 				path.push(this.new_p2);
         		index_v++; n++;
+				glo.currentCurveInfos.index_v = index_v;
 			}
 			this.paths.push(path);
+			glo.currentCurveInfos.path = path;
 			path = [];
       		index_u++;
+			glo.currentCurveInfos.index_u = index_u;
 		}
 
 		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
@@ -642,61 +578,18 @@ f = {
 
 	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
-	function mx(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
+	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var
+		{
+			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
+			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
+			beta, theta, alpha2, beta2, alpha3, beta3
 
-    return p[p.length - index].x;
-  };
-  function my(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  };
-  function mz(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  };
-
-  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
+		} 
+		= makeCommonCurveVariables();
 
 	reg(f,  dim_one);
 	reg(f2, dim_one);
-
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;
@@ -716,16 +609,7 @@ f = {
 
     const uvInfos = isUV();
 
-    var x = 0; var y = 0; var z = 0; var ind_u = 0; var ind_v = 0;
-	var r = 0; var alpha = 0; var beta = 0; var alpha2 = 0; var beta2 = 0; var alpha3 = 0; var beta3 = 0;
-	var x = 0.5; var y = 0.5; var z = 0.5;
-	var xN = 1; var yN = 1; var zN = 1;
-	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
-	var xT = 1; var yT= 1; var zT = 1;
-	var T = 1;
-	var $T = 1; var µ$T = 1; var $µT = 1; var µµT = 1;
-	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
+	let d, k, p, t;
 
 	var isX = glo.params.text_input_suit_x != "" ? true : false;
 	var isY = glo.params.text_input_suit_y != "" ? true : false;
@@ -745,6 +629,11 @@ f = {
 		for (let i = 0; i <= this.nb_steps_u; i++){
 			u += this.step_u;
 			ind_u = u;
+			glo.currentCurveInfos.u = u;
+
+			d = !(i%2) ? -1 : 1;
+			p = !(i%2) ? -u : u;
+			k = d;
 
 			r     = eval(f.r);
 			alpha = eval(f.alpha);
@@ -775,10 +664,6 @@ f = {
 			var µ$T = µT*$T; var $µT = µT+$T;
 			var µµT = µ$T*$µT;
 
-			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
 			alpha2 = eval(f.alpha2);
 			beta2  = eval(f.beta2);
 			theta  = eval(f2.theta);
@@ -789,6 +674,11 @@ f = {
 			if(alpha2 && beta2){
 				pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 			}
+
+			if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
+
 			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, 0, O, cos(u), 0);
@@ -827,8 +717,10 @@ f = {
 
 			moyPos.x += pos.x; moyPos.y += pos.y; moyPos.z += pos.z;
 			
+			glo.currentCurveInfos.path = path;
 			path = [];
       		index_u++; n++;
+			glo.currentCurveInfos.index_u = index_u;
 		}
 
 		glo.lines = this.paths;
@@ -838,13 +730,19 @@ f = {
 		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
 		for (let i = 0; i <= stepsU; i++) {
 			if(glo.params.curvaturetoZero){ pos = {x: 0, y: 0, z: 0}; path.push(BABYLON.Vector3.Zero()); }
+			k = !(i%2) ? -1 : 1;
 			u += this.step_u;
+			glo.currentCurveInfos.u = u;
+			p = !(i%2) ? -u : u;
       		var index_v = 0; ind_u = u;
 			v = this.min_v - this.step_v
 			for (let j = 0; j <= this.nb_steps_v; j++) {
-				
 				v += this.step_v;
 				ind_v = v;
+				glo.currentCurveInfos.v = v;
+
+				d = !(j%2) ? -1 : 1;
+				t = !(j%2) ? -v : v;
 
 				r     = eval(f.r);
 				alpha = eval(f.alpha);
@@ -875,10 +773,6 @@ f = {
 				var µ$T = µT*$T; var $µT = µT+$T;
 				var µµT = µ$T*$µT;
 
-				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
 				alpha2 = eval(f.alpha2);
 				beta2  = eval(f.beta2);
 				theta  = eval(f2.theta);
@@ -889,6 +783,11 @@ f = {
 				if(alpha2 && beta2){
 					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
 				}
+
+				if(isX){ const x2 = eval(f2.x); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+				if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+				if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
+				
 				pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
@@ -921,11 +820,14 @@ f = {
 				moyPos.x += pos.x; moyPos.y += pos.y; moyPos.z += pos.z;
 
 				path.push(this.new_p2);
+				glo.currentCurveInfos.path = path;
         		index_v++; n++;
+				glo.currentCurveInfos.index_v = index_v;
 			}
 			this.paths.push(path);
 			path = [];
       		index_u++;
+			glo.currentCurveInfos.index_u = index_u;
 		}
 	}
 
@@ -935,4 +837,60 @@ f = {
 		offsetPathsByMoyPos(this.paths, moyPos);
 
 		glo.lines = this.paths;
+}
+
+function makeCommonCurveFunctions(){
+	return {
+		mx: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].x;
+		},
+		my: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].y;
+		},
+		mz: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].z;
+		},
+		u_mod: function(modulo = 2, val_to_return = 0, variable = glo.currentCurveInfos.u, index = glo.currentCurveInfos.index_u){
+			if(index%modulo == 0){ return variable; }
+	
+			return val_to_return;
+		},
+		v_mod: function(modulo = 2, val_to_return = 0, variable = glo.currentCurveInfos.v, index = glo.currentCurveInfos.index_v){
+			if(index%modulo == 0){ return variable; }
+	
+			return val_to_return;
+		},
+		mod: function(index, ...args){ return args[index%args.length]; }
+	}
+}
+
+function makeCommonCurveVariables(){
+	return {
+		 x : 0.5,  y : 0.5,  z : 0.5,
+		 alpha: 0, beta: 0, theta: 0, alpha2: 0, beta2: 0, alpha3: 0, beta3: 0,
+		 xN : 1,  yN : 1,  zN : 1,
+		 µN : 1,
+		 $N : 1,  µ$N : 1,  $µN : 1,  µµN : 1,  O : 1,  T : 1,
+		 xT : 1,  yT : 1,  zT : 1,
+		 µT : 1,
+		 $T: 1,  µ$T : 1,  $µT : 1,  µµT : 1,
+		 rCol : 1,  gCol : 1,  bCol : 1,  mCol : 1,
+		 A : glo.params.A,  B : glo.params.B,  C : glo.params.C,  D : glo.params.D,  E : glo.params.E,  F : glo.params.F,  G : glo.params.G,  H : glo.params.H,
+		 I : glo.params.I,  J : glo.params.J,  K : glo.params.K,  L : glo.params.L,  M : glo.params.M,
+	}
 }

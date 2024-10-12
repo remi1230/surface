@@ -9,7 +9,8 @@ $( document ).ready(function() {
   });
 
   gui_resize();
-  $('.modal').modal();
+  initExportModal();
+  $('.modal').not('#exportModal').modal();
   $('select').formSelect();
   glo.formes.setFormeSelect(...glo.formes.selected);
   glo.histo.init();
@@ -51,10 +52,17 @@ document.getElementById('dataTable').addEventListener("click", function(ev){
    parseInt(ev.target.parentElement.childNodes[7].innerText)); 
 });
 
-//$('#univers_div').keypress(function(e) {
 window.addEventListener("keydown", function (e) {
-   if(!glo.modalOpen){ 
-      var key = e.key;
+   const key = e.key;
+
+   if(glo.modalOpen){ 
+      switch (key) {
+         case "Enter":
+            $("#exportButton").trigger('click');
+         break;
+      } 
+   }
+   else{ 
       if(e.ctrlKey){
          switch (key) {
             case "x": case "y": case "z":
@@ -66,15 +74,15 @@ window.addEventListener("keydown", function (e) {
          if(!e.altKey){
             switch (key) {
                case "g":
-               glo.curve_step.next();
+                  glo.curve_step.next();
 
                   break;
                case "r":
-               reset_curve_step_by_step();
+                  reset_curve_step_by_step();
 
                   break;
                case "w":
-               glo.anim_construct_mesh = !glo.anim_construct_mesh;
+                  glo.anim_construct_mesh = !glo.anim_construct_mesh;
 
                   break;
                case "h":
@@ -82,7 +90,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "e":
-                  exportModal();
+                  //FREE
 
                   break;
                case "p":

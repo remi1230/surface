@@ -294,6 +294,7 @@ var glo = {
 		{ exp: /B([^,%*+-/)])/g, upd: "B*$1" },
 		{ exp: /C([^,%*+-/o)])/g, upd: "C*$1" },
 		{ exp: /D([^,%*+-/)])/g, upd: "D*$1" },
+		{ exp: /d([^,%*+-/)])/g, upd: "d*$1" },
 		{ exp: /E([^,%*+-/)])/g, upd: "E*$1" },
 		{ exp: /F([^,%*+-/)])/g, upd: "F*$1" },
 		{ exp: /G([^,%*+-/)])/g, upd: "G*$1" },
@@ -301,8 +302,11 @@ var glo = {
 		{ exp: /I([^,%*+-/)])/g, upd: "I*$1" },
 		{ exp: /J([^,%*+-/)])/g, upd: "J*$1" },
 		{ exp: /K([^,%*+-/)])/g, upd: "K*$1" },
+		{ exp: /k([^,%*+-/)])/g, upd: "k*$1" },
 		{ exp: /L([^,%*+-/)])/g, upd: "L*$1" },
 		{ exp: /M([^,%*+-/)])/g, upd: "M*$1" },
+		{ exp: /p([^,%*+-/)])/g, upd: "p*$1" },
+		{ exp: /t([^,%*+-/)])/g, upd: "t*$1" },
 		{ exp: /rCol([^,%*+-/)])/g, upd: "rCol*$1" },
 		{ exp: /gCol([^,%*+-/)])/g, upd: "gCol*$1" },
 		{ exp: /bCol([^,%*+-/)])/g, upd: "bCol*$1" },
@@ -310,26 +314,35 @@ var glo = {
 		{ exp: /O([^,%*+-/)])/g, upd: "O*$1" },
 		{ exp: /T([^,%*+-/)])/g, upd: "T*$1" },
 		{ exp: /e([^,%*+-/)pi])/g, upd: "e*$1" },
+		{ exp: /Q([^,%*+-/)])/g, upd: "Q*$1" },
 		{ exp: /Z([^,%*+-/)])/g, upd: "Z*$1" },
 		{ exp: /\)([^,%*+-/)'])/g, upd: ")*$1" },
 		{ exp: /(\d+)([^,%*+-/.\d)])/g, upd: "$1*$2" },
-		{ exp: /v/g, upd: "u", condition: "dim_one" },  // Si "dim_one" est vrai
+		{ exp: /v/g, upd: "u", condition: "dim_one" },
 		{ exp: /u\*_mod/g, upd: "u_mod" },
 		{ exp: /v\*_mod/g, upd: "v_mod" },
 		{ exp: /be\*ta/g, upd: "beta" },
 		{ exp: /sin\*/g, upd: "sin" },
 		{ exp: /tan\*/g, upd: "tan" },
+		{ exp: /t\*an/g, upd: "tan" },
+		{ exp: /tan\*\(/g, upd: "tan(" },
 		{ exp: /sign\*/g, upd: "sign" },
 		{ exp: /logte\*n\*/g, upd: "logten" },
 		{ exp: /hy\*pot/g, upd: "hypot" },
 		{ exp: /fact_de\*c/g, upd: "fact_dec" },
+		{ exp: /p\*o/g, upd: "po" },
+		{ exp: /cp\*/g, upd: "cp" },
+		{ exp: /p\*c/g, upd: "pc" },
 		{ exp: /mx\*/g, upd: "mx" },
 		{ exp: /my\*/g, upd: "my" },
 		{ exp: /mz\*/g, upd: "mz" },
 		{ exp: /e\*x/g, upd: "ex" },
 		{ exp: /ex\*/g, upd: "ex" },
+		{ exp: /p\*i/g, upd: "pi" },
 		{ exp: /ep\*i/g, upd: "e*pi" },
-		{ exp: /se\*/g, upd: "se" }
+		{ exp: /e\*p/g, upd: "ep" },
+		{ exp: /se\*/g, upd: "se" },
+		{ exp: /mod\*/g, upd: "mod" },
 	],
 	draw_type: function* (){
 	  var index = 0;
@@ -421,7 +434,7 @@ var glo = {
 	},
 	fractalizeOrient: '',
 	fractalizeOrients: function* (){
-		const orients = [new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, 0, 1), false];
+		const orients = [new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, 0, 1), ''];
 		while (true) {
 			for (const orient of orients) {
 				this.fractalizeOrient = orient;
@@ -879,6 +892,7 @@ var glo = {
 		},
 		fractalize:{
 			actived: false,
+			refractalize: false,
 			scaleToDistPath: false,
 			lineOnNewMeshes: true,
 			scale: {
@@ -991,7 +1005,7 @@ var glo = {
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
 	angleToUpdateRibbon: {x: 0, y: 0},
-	pickers_size: 118,
+	pickers_size: 107,
 	indexSaveToclone: -999,
 	indexCloneToHisto: -999,
 	numRibbon: 0,
@@ -1045,6 +1059,14 @@ var glo = {
 		backgroundActived: '#196969',
 	},
 	dblLines: [],
+	currentCurveInfos:{
+		currentPath: [],
+		u: 0,
+		v: 0,
+		n: 0,
+		index_u: 0,
+		index_v: 0,
+	},
 };
 function getByName(name){
 	var elemToReturn = false;

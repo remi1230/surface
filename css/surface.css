@@ -1,3 +1,7 @@
+:root{
+  --exportTitleColor: #115058;
+}
+
 html, body {
     overflow: hidden;
     width: 100%;
@@ -51,6 +55,7 @@ kbd.functions_list {
     width: 100%;
     height: 100%;
     touch-action: none;
+    cursor:pointer;
 }
 
 .fonction_title{
@@ -61,4 +66,9 @@ kbd.functions_list {
   height: 10px;
 	border: 0;
 	box-shadow: 0 10px 10px -10px #8c8b8b inset;
+}
+
+#exportTitle{
+  text-align: center; 
+  color: var(--exportTitleColor);
 }

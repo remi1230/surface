@@ -134,7 +134,10 @@ async function make_ribbon(symmetrize = true){
 	const norm = glo.params.functionIt.norm;
 
 	if(symmetrize){ await makeSymmetrize(); }
-	if(glo.params.fractalize.actived){ await glo.ribbon.fractalize(); }
+	if(glo.params.fractalize.actived){
+		await glo.ribbon.fractalize();
+		if(glo.params.fractalize.refractalize){ await glo.ribbon.fractalize(); }
+	}
 	if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
 	
 	giveMaterialToMesh();
@@ -294,7 +297,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 	let inputSymREq = {fx: glo.input_sym_r.text};
 
-	let u,v;
+	let u,v,d,k,n,p,t;
 
 	if(glo.input_sym_r.text){
 		reg(inputSymREq, glo.dim_one);
@@ -314,18 +317,23 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	let newRibbons          = [];
 	let newCurves           = [];
 	glo.curves.linesSystems = [];
-	for(let k = 1; k <= nbSyms; k++){
-		const angle = k * stepAngle;
+	for(let indk = 1; indk <= nbSyms; indk++){
+		n = 0;
+		const angle = indk * stepAngle;
 		index_u = 0;
-		newCurves[k] = [];
+		newCurves[indk] = [];
 
 		if((goodR || isCenterOffset) && first){
 			curvesPathsSave.forEach((line, i) => {
+				k = !(i%2) ? -1 : 1;
 				index_v = 0;
 				u = i * stepU;
-				newCurves[k][i] = [];
+				p = !(i%2) ? -u : u;
+				newCurves[indk][i] = [];
 				line.forEach((path, j) => {
+					d = !(j%2) ? -1 : 1;
 					v = j * stepV;
+					t = !(j%2) ? -v : v;
 
 					let newPt = glo.curves.paths[i][j];
 
@@ -333,9 +341,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						let r = 0;
 						
 						var x = newPt.x; var y = newPt.y; var z = newPt.z;
-						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = getNormalVector(vect3);
-						xN = vect3.x; yN = vect3.y; zN = vect3.z;
+						const vect3 = new BABYLON.Vector3(x,y,z);
+
+						const vectN = getNormalVector(vect3);
+						xN = vectN.x; yN = vectN.y; zN = vectN.z;
 						var µN = xN*yN*zN;
 						var $N = (xN+yN+zN)/3;
 						var µ$N = µN*$N; var $µN = µN+$N;
@@ -344,8 +353,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						var O = Math.acos(y/(h(x,y,z)));
 						var T = Math.atan2(z, x) ;
 
-						var vectT = new BABYLON.Vector3(x,y,z);
-						vectT = BABYLON.Vector3.Normalize(vectT);
+						const vectT = BABYLON.Vector3.Normalize(vect3);
 						xT = vectT.x; yT = vectT.y; zT = vectT.z;
 						var µT = xT*yT*zT;
 						var $T = (xT+yT+zT)/3;
@@ -353,7 +361,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						var µµT = µ$T*$µT;
 
 						r = eval(inputSymREq.fx);
-						const angleXY = getAzimuthElevationAngles(newPt);
+						const angleXY = getAzimuthElevationAngles(vectT);
 						const dirXY   = directionXY(angleXY, r);
 						
 						newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
@@ -379,12 +387,13 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						}
 					}
 
-					newCurves[k][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
+					newCurves[indk][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
 					index_v++;
+					n++;
 				});
 				index_u++;
 			});
-			newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + k, {pathArray: newCurves[k], sideOrientation:1, updatable: true, }, glo.scene));
+			newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + indk, {pathArray: newCurves[indk], sideOrientation:1, updatable: true, }, glo.scene));
 		}
 		else{
 			let newRibbon = await glo.ribbon.clone();
@@ -542,15 +551,12 @@ function permutSign(x, y, z){
 	let xTmp = x, yTmp = y, zTmp = z;
 	if(permutsign == 'xy'){
 		xTmp = y;
-		//yTmp = x;
 	}
 	else if(permutsign == 'xz'){
 		xTmp = z;
-		//zTmp = x;
 	}
 	else if(permutsign == 'yz'){
 		yTmp = z;
-		//zTmp = y;
 	}
 
 	return {x: xTmp, y: yTmp, z: zTmp};
@@ -1850,6 +1856,8 @@ function test_equations(equations, dim_one = false, forCol = false){
 		return eval(func);
 	}
 
+	var d = 1, k = 1, p = 1, t = 1;
+
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
@@ -1987,19 +1995,24 @@ function switchEqSphericToCylindrical(){
 	switchCoords();
 }
 
-function switchCoords(normalSens = true){
-	if(normalSens){ glo.coordinatesType.next(); }
-	else{
-		const currentCoordType = glo.coordsType;
-		
-		let nextCoordstype = '';
-		while(glo.coordinatesType.next().value !== currentCoordType){
-			nextCoordstype = glo.coordsType;
-		}
-		glo.coordsType = nextCoordstype;
+async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
+	let newOrient = '';
 
-		while(glo.coordinatesType.next().value !== nextCoordstype){}
+	if(normalSens){ newOrient = gen.next().value; }
+	else{
+		const currentOrient = glo[varToStoreValGen];
+		
+		while(gen.next().value !== currentOrient){
+			newOrient = glo[varToStoreValGen];
+		}
+		glo[varToStoreValGen] = newOrient;
+
+		while(gen.next().value !== newOrient){}
 	}
+}
+
+function switchCoords(normalSens = true){
+	genInTwoWays(glo.coordinatesType, 'coordsType', normalSens);
 
 	switchDrawCoordsType();
 	add_radios();
@@ -2008,55 +2021,26 @@ function switchCoords(normalSens = true){
 }
 
 async function switchFractalOrient(normalSens = true){
-	let newOrient = '';
+	genInTwoWays(glo.fractalizeOrients, 'fractalizeOrient', normalSens);
 
-	if(normalSens){ newOrient = glo.fractalizeOrients.next().value; }
-	else{
-		const currentOrient = glo.fractalizeOrient;
-		
-		while(glo.fractalizeOrients.next().value !== currentOrient){
-			newOrient = glo.fractalizeOrient;
-		}
-		glo.fractalizeOrient = newOrient;
+	const newOrient = glo.fractalizeOrient;
 
-		while(glo.fractalizeOrients.next().value !== newOrient){}
-	}
+	const orient = newOrient ? `Rot ${newOrient.x ? 'X' : ''}${newOrient.y ? 'Y' : ''}${newOrient.z ? 'Z' : ''}` : 'No Rot';
 
-	glo.allControls.getByName("fractalizeRotActive").textBlock.text = `${newOrient ? (newOrient.x ? 'Rot X' : (newOrient.y ? 'Rot Y' : 'Rot Z')) : 'No Rot'}`;
+	glo.allControls.getByName("fractalizeRotActive").textBlock.text = orient;
     await remakeRibbon('fractalize');
 }
 
 function switchSymmetrizeOrder(normalSens = true){
-	if(normalSens){ glo.symmetrizeOrders.next(); }
-	else{
-		const currentSymmetrizeOrder = glo.symmetrizeOrder;
-		
-		let nextSymmetrizeOrder = '';
-		while(glo.symmetrizeOrders.next().value !== currentSymmetrizeOrder){
-			nextSymmetrizeOrder = glo.symmetrizeOrder;
-		}
-		glo.symmetrizeOrder = nextSymmetrizeOrder;
+	genInTwoWays(glo.symmetrizeOrders, 'symmetrizeOrder', normalSens);
 
-		while(glo.symmetrizeOrders.next().value !== nextSymmetrizeOrder){}
-	}
 	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "Symmetrize order : " + glo.symmetrizeOrder.toUpperCase();
 
 	remakeRibbon();
 }
 
 function switchRightPanel(normalSens = true){
-	if(normalSens){ glo.switchGuiSelect.next(); }
-	else{
-		const currentPanel = glo.guiSelect;
-		
-		let nextPanel = '';
-		while(glo.switchGuiSelect.next().value !== currentPanel){
-			nextPanel = glo.guiSelect;
-		}
-		glo.guiSelect = nextPanel;
-
-		while(glo.switchGuiSelect.next().value !== nextPanel){}
-	}
+	genInTwoWays(glo.switchGuiSelect, 'guiSelect', normalSens);
 
 	toggleRightPanels(glo.guiSelect);
 }
@@ -2772,7 +2756,7 @@ function switchWritingType(long){
 	glo.params.text_input_beta = f.beta;
 }
 
-function invElemInInput(toInv_1, toInv_2, makeCurve = true){
+async function invElemInInput(toInv_1, toInv_2, makeCurve = true){
 	var f = {
 		x: glo.input_x.text,
 		y: glo.input_y.text,
@@ -2808,11 +2792,11 @@ function invElemInInput(toInv_1, toInv_2, makeCurve = true){
 			remakeCurve = false;
 		}
 		if(remakeCurve){
-			remakeRibbon();
+			await remakeRibbon();
 		}
 	}
 	else if(makeCurve){
-		remakeRibbon();
+		await remakeRibbon();
 	}
 }
 
@@ -2938,17 +2922,34 @@ var afterAnimation = function() {
 
 };
 
+function initExportModal(){
+	var elems = document.querySelectorAll('#exportModal');
+    M.Modal.init(elems, {
+        onOpenEnd: function() {
+            glo.modalOpen = true;
+            document.querySelector('#weightToDownload').textContent = glo.ribbon.weightToDownload();
+			//document.addEventListener('keydown', stopPropagationEvent, true);
+			$('#filename').focus();
+        },
+        onCloseEnd: function() {
+			glo.modalOpen = false;
+            if (glo.fullScreen) {
+                glo.engine.switchFullscreen();
+            }
+			//document.removeEventListener('keydown', stopPropagationEvent, true);
+        },
+    });
+}
+
+function stopPropagationEvent(event) {
+    event.stopPropagation();
+}
+
 function exportModal(){
 	glo.modalOpen = true;
-	event.stopPropagation();
-	event.preventDefault();
 	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-	$('#exportModal').modal('open', {
-		onCloseEnd: function() {
-			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-			glo.modalOpen = false;
-		},
-	});
+	var instance = M.Modal.getInstance(document.querySelector('#exportModal'));
+    instance.open();
 }
 function importModal(){
 	glo.modalOpen = true;
@@ -3045,7 +3046,7 @@ function download_JSON_mesh(event){
 }
 
 var objectUrl;
-async function exportMesh(exportFormat){
+async function exportMeshSave(exportFormat){
 	if(objectUrl) {
     	window.URL.revokeObjectURL(objectUrl);
     }
@@ -3111,6 +3112,83 @@ async function exportMesh(exportFormat){
 
 	return false;
 }
+
+async function exportMesh(exportFormat) {
+    if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl);
+    }
+
+    await glo.ribbon.bakeCurrentTransformIntoVertices();
+
+    let strMesh;
+    if (exportFormat !== "json") {
+        if (exportFormat === "babylon") {
+            strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon));
+        } else if (exportFormat === "obj") {
+            if (!glo.lineSystem) {
+                strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]);
+            } else {
+                let meshesToExport = [];
+                glo.lines.forEach(line => {
+                    if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
+                        let tube = BABYLON.MeshBuilder.CreateTube("tube", { path: line, radius: 0.1 }, glo.scene);
+                        if (tube) {
+                            meshesToExport.push(tube);
+                        } else {
+                            console.log("Tube creation failed for line:", line);
+                        }
+                    }
+                });
+
+                if (meshesToExport.length > 0) {
+                    let meshToExport = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
+                    if (meshToExport) {
+                        strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
+                        glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshToExport], true, true);
+                    } else {
+                        console.log("Mesh fusion failed");
+                    }
+                } else {
+                    console.log("No meshes to export");
+                }
+            }
+        }
+
+        var filename = $("#filename").val();
+        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
+            filename += "." + exportFormat;
+        }
+    } else {
+        var filename = $("#filename").val();
+        var exportFormat = 'json';
+        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
+            filename += "." + exportFormat;
+        }
+
+        glo.params.coordsType = glo.coordsType;
+        var objForm = glo.formes.getFormSelect();
+        var form = !objForm ? "" : objForm.form.text;
+        glo.params.formName = form;
+        strMesh = JSON.stringify(glo.params);
+    }
+
+    // Créer un blob et générer l'URL de téléchargement
+    var blob = new Blob([strMesh], { type: "octet/stream" });
+    objectUrl = (window.webkitURL || window.URL).createObjectURL(blob);
+
+    // Mettre à jour le lien de téléchargement caché
+    $("#downloadLink").attr("href", objectUrl);
+    $("#downloadLink").attr("download", filename);
+
+    // Déclencher le téléchargement en cliquant sur le lien caché
+    $("#downloadLink")[0].click();
+
+    // Fermer le modal
+    $('#exportModal').modal('close');
+
+    return false;
+}
+
 
 async function exportMeshToSTL(mesh){
 	let stlString = BABYLON.STLExport.CreateSTL([mesh], true, true);

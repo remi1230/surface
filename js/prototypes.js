@@ -483,15 +483,18 @@ BABYLON.Mesh.prototype.fractalize = async function() {
 
 				// Appliquer les rotations pour l'orientation des meshes
 				if (glo.fractalizeOrient) {
-					const tangent = path.tangents[j];
+					const tangent  = path.tangents[j];
 					const upVector = glo.fractalizeOrient;
-					const axis = BABYLON.Vector3.Cross(upVector, tangent).normalize();
-					const angle = Math.acos(BABYLON.Vector3.Dot(upVector, tangent));
-
-					newRibbon.rotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle);
-					newRibbon.rotationQuaternion = newRibbon.rotationQuaternion.multiply(
+					const axis     = BABYLON.Vector3.Cross(upVector, tangent).normalize();
+					const angle    = Math.acos(BABYLON.Vector3.Dot(upVector, tangent));
+				
+					// Rotation locale
+					const localRotationQuaternion = BABYLON.Quaternion.RotationAxis(axis, angle).multiply(
 						BABYLON.Quaternion.RotationYawPitchRoll(fractalize.rot.y, fractalize.rot.x, fractalize.rot.z)
 					);
+					
+					newRibbon.setPivotPoint(newRibbon.getBoundingInfo().boundingBox.centerWorld); // Définit le centre du mesh comme point de pivot
+					newRibbon.rotationQuaternion = localRotationQuaternion;
 				}
 
 				// Ajouter les rotations supplémentaires en fonction des paramètres
@@ -515,13 +518,60 @@ BABYLON.Mesh.prototype.fractalize = async function() {
     await glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 
 	if(fractalize.lineOnNewMeshes){
-		//glo.curves.paths = glo.ribbon.getPaths(positions, (fractalized.steps.u + 1) * fractalized.steps.v);
-		glo.curves.paths = glo.ribbon.getPaths(positions, (fractalized.steps.u + 1) * fractalized.steps.v);
+		const coeff = 
+			(
+				(glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
+				(glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
+				(glo.params.symmetrizeX ? glo.params.symmetrizeX : 1)
+			) *
+			((fractalized.steps.u + 1) * fractalized.steps.v);
+		glo.curves.paths = glo.ribbon.getPaths(positions, coeff);
     	glo.lines        = glo.curves.paths;
 	}
 
     glo.ribbon.savePos = positions.slice();
 };
+
+BABYLON.Mesh.prototype.weightToDownload = function() {
+	// Récupérer les données du mesh
+    const positions = this.getVerticesData(BABYLON.VertexBuffer.PositionKind) || [];
+    const normals   = this.getVerticesData(BABYLON.VertexBuffer.NormalKind) || [];
+    const uvs       = this.getVerticesData(BABYLON.VertexBuffer.UVKind) || [];
+    const indices   = this.getIndices() || [];
+
+	// Nombre de positions, normales, UVs, faces
+    const Nv  = positions.length / 3; // Chaque position a 3 composantes (x, y, z)
+    const Nvn = normals.length / 3;
+    const Nvt = uvs.length / 2; // Chaque UV a 2 composantes (u, v)
+    const Nf  = indices.length / 3; // Chaque face est un triangle, donc 3 indices par face
+
+    // Longueur moyenne des nombres dans les positions et normales
+    const avgNumLength = 18; // Ajustez selon la précision de vos nombres (par exemple, 18 caractères)
+    // Longueur moyenne des nombres dans les UVs
+    const avgUVNumLength = 10; // Par exemple, 10 caractères
+
+    // Calcul du nombre maximal de chiffres pour les indices
+    const maxIndexValue  = Math.max(Nv, Nvn, Nvt);
+    const maxIndexDigits = Math.ceil(Math.log10(maxIndexValue + 1));
+
+    // Longueur par ligne pour chaque type de donnée
+    const sizePerVLine  = 2 + (3 * avgNumLength) + (2 * 1) + 1;    // 'v ' + x y z + '\n'
+    const sizePerVnLine = 3 + (3 * avgNumLength) + (2 * 1) + 1;   // 'vn ' + x y z + '\n'
+    const sizePerVtLine = 3 + (2 * avgUVNumLength) + (1 * 1) + 1; // 'vt ' + u v + '\n'
+    const sizePerFLine  = 2 + (3 * ((maxIndexDigits * 3) + 2)) + (2 * 1) + 1; // 'f ' + v/vt/vn x3 + '\n'
+
+    // Calcul des tailles totales
+    const totalSizeV  = Nv * sizePerVLine;
+    const totalSizeVn = Nvn * sizePerVnLine;
+    const totalSizeVt = Nvt * sizePerVtLine;
+    const totalSizeF  = Nf * sizePerFLine;
+
+    // Taille totale estimée en octets
+    const totalEstimatedSize = totalSizeV + totalSizeVn + totalSizeVt + totalSizeF;
+    const totalSizeInKB      = round(totalEstimatedSize / (totalEstimatedSize >= 1024000 ? 1024000 : 1024), 0) + (totalEstimatedSize >= 1024000 ? ' mo' : ' ko');
+
+	return `≈ ${totalSizeInKB}`;
+}
 
 BABYLON.Vector3.prototype.isNearToOneVect = function(vects, dist) {
 	return vects.some(vect => vect !== this && !this.yetNearToPath && !vect.yetNearToPath ? BABYLON.Vector3.Distance(this, vect) < dist : false);

@@ -45,29 +45,41 @@ async function make_curves(u_params = {
 	}
 }
 
-function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = false){
-	if(glo.coordsType !== 'cartesian'){
-		if(f){
-			f.alpha2 = f.alpha;
-			f.beta2  = f.beta;
-			f.r      = f.x;
-			f.alpha  = f.y;
-			f.beta   = f.z;
+function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = false, onePoint = false) {
+    if (glo.coordsType !== 'cartesian') {
+        if (f) {
+            f.alpha2 = f.alpha;
+            f.beta2  = f.beta;
+            f.r      = f.x;
+            f.alpha  = f.y;
+            f.beta   = f.z;
 
-			delete f.x; delete f.y; delete f.z; 
-		}
-	}
-	switch(coordTypes || glo.coordsType){
-		case 'cartesian':
-			glo.curves = new Curves(parameters, f, f2, d, fractalize);
-		break;
-		case 'spheric': case 'cylindrical':
-			glo.curves = new CurvesByRot(parameters, f, f2, d, fractalize);
-		break;
-		case 'curvature':
-			glo.curves = new CurvesByCurvature(parameters, f, f2, d, fractalize);
-		break;
-	}
+            delete f.x; delete f.y; delete f.z;
+        }
+    }
+
+    let objToSet = !onePoint ? 'curves' : 'onePoint';
+    switch (coordTypes || glo.coordsType) {
+        case 'cartesian':
+            glo[objToSet] = new Curves(parameters, f, f2, d, fractalize, onePoint);
+            break;
+        case 'spheric':
+        case 'cylindrical':
+            glo[objToSet] = new CurvesByRot(parameters, f, f2, d, fractalize, onePoint);
+            break;
+        case 'curvature':
+            glo[objToSet] = new CurvesByCurvature(parameters, f, f2, d, fractalize, onePoint);
+            break;
+    }
+}
+
+function makeOnePoint(u, v){
+	makeOnlyCurves({ 
+		u: {min: u, max: u, nb_steps: 1, },
+		v: {min: v, max: v, nb_steps: 1, },
+	}, undefined, undefined, undefined, false, false, true);
+
+	return glo.onePoint;
 }
 
 async function make_ribbon(symmetrize = true){
@@ -94,23 +106,25 @@ async function make_ribbon(symmetrize = true){
 
 	scaleVertexsDist(glo.scaleVertex);
 
+	const isClosedArray = glo.params.lastPathEqualFirstPath;
+
 	ribbonDispose();
 	if(!glo.params.playWithColors && glo.colorsType == 'none'){
 		if(!glo.voronoiMode){
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, }, glo.scene, );
+			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray}, glo.scene, );
 		}
 		else{
 			var colorsRibbon = voronoi();
 			var white = BABYLON.Color3.White();
 			glo.emissiveColor = white;
 			glo.diffuseColor  = white;
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: colorsRibbon, sideOrientation:1, updatable: true, }, glo.scene, );
+			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: colorsRibbon, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
 		}
 	}
 	else{
 		ribbonDispose();
 		if(1 == 1){
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, }, glo.scene, );
+			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
 			glo.colorsRibbonSave = {};
 			objCols = {colsArr: colorsRibbon};
 			Object.assign(glo.colorsRibbonSave, objCols);
@@ -121,10 +135,10 @@ async function make_ribbon(symmetrize = true){
 		}
 		else{
 			if(typeof(glo.colorsRibbonSave) != "undefined"){
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: glo.colorsRibbonSave.colsArr, sideOrientation:1, updatable: true, }, glo.scene, );
+				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: glo.colorsRibbonSave.colsArr, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
 			}
 			else{
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, }, glo.scene, );
+				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
 			}
 		}
 	}
@@ -165,6 +179,9 @@ async function make_ribbon(symmetrize = true){
 	glo.ribbon.moyPosToOrigin();
 
 	glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
+	glo.params.lastPathEqualFirstPath = false;
+
+	glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
 }
 
 function ribbonDispose(all = true){
@@ -231,7 +248,7 @@ async function makeSymmetrize(){
 }
 
 async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
-	let curvesPathsSave = [...glo.curves.paths];
+	let curvesPathsSave = [...glo.curves.pathsSave];
 
 	const nbSyms    = glo.params[axisVarName];
 	const axis      = axisVarName.slice(-1);
@@ -324,18 +341,24 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		newCurves[indk] = [];
 
 		if((goodR || isCenterOffset) && first){
+			let verticesNormals;
+			if(goodR){ verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind); }
+			//glo.ribbon.dispose();
+			const rotate = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
+			const center = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
+			
 			curvesPathsSave.forEach((line, i) => {
 				k = !(i%2) ? -1 : 1;
 				index_v = 0;
 				u = i * stepU;
 				p = !(i%2) ? -u : u;
 				newCurves[indk][i] = [];
-				line.forEach((path, j) => {
+				line.forEach((vect, j) => {
 					d = !(j%2) ? -1 : 1;
 					v = j * stepV;
 					t = !(j%2) ? -v : v;
 
-					let newPt = glo.curves.paths[i][j];
+					let newPt = vect;
 
 					if(goodR){
 						let r = 0;
@@ -343,25 +366,43 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						var x = newPt.x; var y = newPt.y; var z = newPt.z;
 						const vect3 = new BABYLON.Vector3(x,y,z);
 
-						const vectN = getNormalVector(vect3);
-						xN = vectN.x; yN = vectN.y; zN = vectN.z;
-						var µN = xN*yN*zN;
-						var $N = (xN+yN+zN)/3;
-						var µ$N = µN*$N; var $µN = µN+$N;
-						var µµN = µ$N*$µN;
+						const xN = verticesNormals[n*3]; const yN = verticesNormals[n*3 + 1]; const zN = verticesNormals[n*3 + 2];
 
-						var O = Math.acos(y/(h(x,y,z)));
-						var T = Math.atan2(z, x) ;
+						let normalVector = new BABYLON.Vector3(xN, yN, zN);
+						
+						if(nbSyms > 1){ 
+							switch(axis){
+								case 'X':
+									normalVector = rotate(normalVector, angle, 0, 0, center);
+								break;
+								case 'Y':
+									normalVector = rotate(normalVector, 0, angle, 0, center);
+								break;
+								case 'Z':
+									normalVector = rotate(normalVector, 0, 0, angle, center);
+								break;
+							}
+						}
+
+						/*const vectN = getNormalVector(vect3);
+						xN = vectN.x; yN = vectN.y; zN = vectN.z;*/
+						const µN = xN*yN*zN;
+						const $N = (xN+yN+zN)/3;
+						const µ$N = µN*$N; var $µN = µN+$N;
+						const µµN = µ$N*$µN;
+
+						const O = Math.acos(y/(h(x,y,z)));
+						const T = Math.atan2(z, x) ;
 
 						const vectT = BABYLON.Vector3.Normalize(vect3);
-						xT = vectT.x; yT = vectT.y; zT = vectT.z;
-						var µT = xT*yT*zT;
-						var $T = (xT+yT+zT)/3;
-						var µ$T = µT*$T; var $µT = µT+$T;
-						var µµT = µ$T*$µT;
+						const xT = vectT.x; const yT = vectT.y; const zT = vectT.z;
+						const µT = xT*yT*zT;
+						const $T = (xT+yT+zT)/3;
+						const µ$T = µT*$T; var $µT = µT+$T;
+						const µµT = µ$T*$µT;
 
 						r = eval(inputSymREq.fx);
-						const angleXY = getAzimuthElevationAngles(vectT);
+						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT);
 						const dirXY   = directionXY(angleXY, r);
 						
 						newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
@@ -369,9 +410,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 
 					newPt = isCenterOffset ? new BABYLON.Vector3(newPt.x, newPt.y, newPt.z) : newPt;
-
-					const rotate = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
-					const center = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
 					
 					if(nbSyms > 1){ 
 						switch(axis){
@@ -393,7 +431,21 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 				});
 				index_u++;
 			});
-			newRibbons.push(await BABYLON.MeshBuilder.CreateRibbon("newRibbon_" + indk, {pathArray: newCurves[indk], sideOrientation:1, updatable: true, }, glo.scene));
+
+			const closedThenOpened = glo.params.lastPathEqualFirstPath && !isClosedPaths(newCurves[indk]);
+
+			newCurves[indk].pop();
+			/*if(glo.params.lastPathEqualFirstPath && !isClosedPaths(newCurves[indk])){
+				newCurves[indk].pop();
+			}*/
+			let newRibbon = await BABYLON.MeshBuilder.CreateRibbon(
+				"newRibbon_" + indk, {pathArray: newCurves[indk], sideOrientation:1, updatable: true, closeArray: !closedThenOpened}, glo.scene
+			);
+			/*newRibbon.updateIndices(newRibbon.getIndices());
+			newRibbon.computeWorldMatrix(true);
+			newRibbon.refreshBoundingInfo();*/
+			newRibbons.push(newRibbon);
+			//newRibbon.dispose();
 		}
 		else{
 			let newRibbon = await glo.ribbon.clone();
@@ -405,7 +457,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		}
 	}
 
-	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(new Uint32Array(savedIndices)); await newRibbon.computeWorldMatrix(true); });
+	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(newRibbon.getIndices()); await newRibbon.computeWorldMatrix(true); });
 
 	ribbonDispose(false);
 	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false) : newRibbons[0]; }
@@ -415,6 +467,9 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 	const positions = glo.ribbon.getPositionData();
 	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
+	glo.ribbon.updateIndices(glo.ribbon.getIndices());
+	glo.ribbon.computeWorldMatrix(true);
+	glo.ribbon.refreshBoundingInfo();
 
 	glo.curves.paths   = glo.ribbon.getPaths(positions, coeff);
 	glo.lines          = glo.curves.paths;
@@ -1198,610 +1253,13 @@ async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm 
 	makeLineSystem();
 }
 
-var curve_step_by_step = function* (parametres = {
-	u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
-	v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
-},
-f = {
-	x: glo.params.text_input_x,
-	y: glo.params.text_input_y,
-	z: glo.params.text_input_z,
-	alpha: glo.params.text_input_alpha.text,
-	beta: glo.params.text_input_beta.text,
-}, dim_one = glo.dim_one){
-
-	if(typeof(glo.input_x) != "undefined"){
-		f = {
-			x: glo.input_x.text,
-			y: glo.input_y.text,
-			z: glo.input_z.text,
-			alpha: glo.input_alpha.text,
-			beta: glo.input_beta.text,
-		};
-	}
-
-	function mx(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].x;
-  };
-  function my(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  };
-  function mz(index = 1, val_to_return = 0, p = path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  };
-
-  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
-
-	var max_u = parametres.u.max;
-	var min_u = parametres.u.min;
-	var min_v = parametres.v.min;
-	var max_v = parametres.v.max;
-
-	var nb_steps_u = parametres.u.nb_steps;
-	var step_u = (max_u - min_u) / nb_steps_u;
-	var nb_steps_v = parametres.v.nb_steps;
-	var step_v = (max_v - min_v) / nb_steps_v;
-
-	function setParams(){
-		parametres = {
-			u: {min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u, },
-			v: {min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v, },
-		};
-		f = {
-			x: glo.input_x.text,
-			y: glo.input_y.text,
-			z: glo.input_z.text,
-			alpha: glo.input_alpha.text,
-			beta: glo.input_beta.text,
-		};
-		dim_one = glo.dim_one;
-
-		if(f.x == ""){ f.x = 0; }
-		if(f.y == ""){ f.y = 0; }
-		if(f.z == ""){ f.z = 0; }
-		if(f.alpha == ""){ f.alpha = 0; }
-		if(f.beta == ""){ f.beta = 0; }
-
-		max_u = parametres.u.max;
-		min_u = parametres.u.min;
-		min_v = parametres.v.min;
-		max_v = parametres.v.max;
-
-		nb_steps_u = parametres.u.nb_steps;
-		step_u = (max_u - min_u) / nb_steps_u;
-		nb_steps_v = parametres.v.nb_steps;
-		step_v = (max_v - min_v) / nb_steps_v;
-
-		color_line = new BABYLON.Color3(1 - glo.lineColor.r, 1 - glo.lineColor.g, 1 - glo.lineColor.b);
-	}
-
-	var color_line = new BABYLON.Color3(1 - glo.lineColor.r, 1 - glo.lineColor.g, 1 - glo.lineColor.b);
-
-	var p1_first = new BABYLON.Vector3.Zero;
-	var p2_first = new BABYLON.Vector3(1,0,0);
-
-	reg(f, dim_one);
-
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
-
-	var x = 0; var y = 0; var z = 0; var r = 0; var w = 0; var alpha = 0; var beta = 0; var ind_u = 0; var ind_v = 0;
-
-	var ind_u = 0; var ind_v = 0;
-	var xN = 1; var yN = 1; var zN = 1;
-	var µN = 1;
-	var $N = 1; var µ$N = 1; var $µN = 1; var µµN = 1; var O = 1; var T = 1;
-	var rCol = 1; var gCol = 1; var bCol = 1; var mCol = 1;
-
-	var isAlpha = false;
-	if(glo.params.text_input_alpha != ""){
-		isAlpha = true;
-	}
-	var isBeta = false;
-	if(glo.params.text_input_beta != ""){
-		isBeta = true;
-	}
-
-	path = [];
-	paths = [];
-
-	glo.lines_u = [];
-	glo.lines_v = [];
-
-	var n = 0;
-	var index_u = 0;
-	var n_dim = 1;
-
-	setParams();
-	var u = min_u;
-	ind_u = u;
-  while(true){
-		setParams();
-		var is_v = false;
-		if(f.x != 0 || f.x.lastIndexOf('v') != -1 || f.x.lastIndexOf('V') != -1 ||
-		   f.y != 0 || f.y.lastIndexOf('v') != -1 || f.y.lastIndexOf('V') != -1 ||
-		   f.z != 0 || f.z.lastIndexOf('v') != -1 || f.z.lastIndexOf('V') != -1 ||
-		   f.alpha != 0 || f.alpha.lastIndexOf('v') != -1 || f.alpha.lastIndexOf('V') != -1 ||
-		   f.beta != 0 || f.beta.lastIndexOf('v') != -1 || f.beta.lastIndexOf('V') != -1)
-	     { is_v = true; }
-		if(is_v){ paths = []; }
-		var nMod = 1;
-		var index_v = 0;
-		try{
-			if(!is_v){
-				reg(f, dim_one);
-				x = eval(f.x);
-				y = eval(f.y);
-				z = eval(f.z);
-
-				if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
-				if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
-				if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-
-				if(glo.coordsType == 'cartesian'){
-					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = getNormalVector(vect3);
-					xN = vect3.x; yN = vect3.y; zN = vect3.z;
-					var µN = xN*yN*zN;
-					var $N = (xN+yN+zN)/3;
-					var µ$N = µN*$N; var $µN = µN+$N;
-					var µµN = µ$N*$µN;
-
-					var O = Math.acos(y/(h(x,y,z)));
-					var T = Math.atan2(z, x) ;
-
-					var vectT = new BABYLON.Vector3(x,y,z);
-					vectT = BABYLON.Vector3.Normalize(vectT);
-					xT = vectT.x; yT = vectT.y; zT = vectT.z;
-					var µT = xT*yT*zT;
-					var $T = (xT+yT+zT)/3;
-					var µ$T = µT*$T; var $µT = µT+$T;
-					var µµT = µ$T*$µT;
-					if(isBeta){
-						alpha = eval(f.alpha);
-						beta = eval(f.beta);
-						if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-						if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-						var pos = {x: x, y: y, z: z};
-						pos = rotateByMatrix(pos, 0, alpha, beta);
-						x = pos.x; y = pos.y; z = pos.z;
-					}
-					else if(isAlpha){
-						alpha = eval(f.alpha);
-						if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-						var pos = {x: x, y: y, z: z};
-						pos = rotateByMatrix(pos, 0, alpha, 0);
-						x = pos.x; y = pos.y; z = pos.z;
-					}
-
-					var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
-					var {x, y, z} = functionIt(x, y, z);
-					var {x, y, z} = invPos(x, y, z);
-					var {x, y, z} = invPosIf(x, y, z);
-					var {x, y, z} = permutSign(x, y, z);
-
-					var posByR = {x, y, z};
-					const rInfos = glo.params.functionIt.r;
-					for(let variable in rInfos){
-						for(let prop in rInfos[variable]){
-							const val = rInfos[variable][prop].val;
-							if(val){
-								const nb = rInfos[variable][prop].nb;
-								const eq = prop + `(${nb}*${variable})`;
-								posByR = updateRibbonByR(posByR, val * eval(eq));
-							}
-						}
-					}
-					var {x, y, z} = posByR;
-
-					path.push(new BABYLON.Vector3(x, y, z));
-					paths.push(new BABYLON.Vector3(x, y, z));
-					if(n_dim%2==0 || glo.stepByStepFast){
-						line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
-						line.color = color_line;
-						glo.lines_v.push(line);
-						yield u;
-					}
-				}
-				else if(glo.coordsType == 'quaternion'){
-					x = eval(f.y);
-					y = eval(f.z);
-					z = eval(f.alpha);
-					w = eval(f.beta);
-					r = eval(f.x);
-
-					if(r == Infinity || r == -Infinity){ r = 0; }
-					if(x == Infinity || x == -Infinity){ x = 0; }
-					if(y == Infinity || y == -Infinity){ y = 0; }
-					if(z == Infinity || z == -Infinity){ z = 0; }
-					if(w == Infinity || w == -Infinity){ w = 0; }
-
-					let point 			= new BABYLON.Vector3(p2_first.x * r, 0, 0);
-					let axis  			= new BABYLON.Vector3(x, y, z);
-					let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
-					let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
-					let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
-
-					var x = pos.x; var y = pos.y; var z = pos.z;
-					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = getNormalVector(vect3);
-					xN = vect3.x; yN = vect3.y; zN = vect3.z;
-					var µN = xN*yN*zN;
-					var $N = (xN+yN+zN)/3;
-					var µ$N = µN*$N; var $µN = µN+$N;
-					var µµN = µ$N*$µN;
-
-					var O = Math.acos(y/(h(x,y,z)));
-					var T = Math.atan2(z, x) ;
-
-					var vectT = new BABYLON.Vector3(x,y,z);
-					vectT = BABYLON.Vector3.Normalize(vectT);
-					xT = vectT.x; yT = vectT.y; zT = vectT.z;
-					var µT = xT*yT*zT;
-					var $T = (xT+yT+zT)/3;
-					var µ$T = µT*$T; var $µT = µT+$T;
-					var µµT = µ$T*$µT;
-
-					path.push(new BABYLON.Vector3(x, y, z));
-					paths.push(new BABYLON.Vector3(x, y, z));
-					if(n_dim%2==0 || glo.stepByStepFast){
-						line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
-						line.color = color_line;
-						glo.lines_v.push(line);
-						yield u;
-					}
-				}
-				else{
-					var pos = {x: p2_first.x * x, y: 0, z: 0};
-					if(glo.coordsType == 'spheric'){ pos = rotateByMatrix(pos, 0, y, z); }
-					else{
-						pos = rotateByMatrix(pos, 0, 0, y);
-						pos.z = z;
-					}
-					var x = pos.x; var y = pos.y; var z = pos.z;
-					var vect3 = new BABYLON.Vector3(x,y,z);
-					vect3 = getNormalVector(vect3);
-					xN = vect3.x; yN = vect3.y; zN = vect3.z;
-					var µN = xN*yN*zN;
-					var $N = (xN+yN+zN)/3;
-					var µ$N = µN*$N; var $µN = µN+$N;
-					var µµN = µ$N*$µN;
-
-					var O = Math.acos(y/(h(x,y,z)));
-					var T = Math.atan2(z, x) ;
-
-					var vectT = new BABYLON.Vector3(x,y,z);
-					vectT = BABYLON.Vector3.Normalize(vectT);
-					xT = vectT.x; yT = vectT.y; zT = vectT.z;
-					var µT = xT*yT*zT;
-					var $T = (xT+yT+zT)/3;
-					var µ$T = µT*$T; var $µT = µT+$T;
-					var µµT = µ$T*$µT;
-					if(isBeta){
-						alpha = eval(f.alpha);
-						beta = eval(f.beta);
-						if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
-						if(beta == Infinity || beta == -Infinity){ beta = 0; }
-						pos = rotateByMatrix(pos, 0, alpha, beta);
-					}
-					else if(isAlpha){
-						alpha = eval(f.alpha);
-						if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
-						pos = rotateByMatrix(pos, 0, alpha, 0);
-					}
-
-					pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
-					pos = functionIt(pos.x, pos.y, pos.z);
-					pos = invPos(pos.x, pos.y, pos.z);
-					pos = invPosIf(pos.x, pos.y, pos.z);
-					pos = permutSign(pos.x, pos.y, pos.z);
-
-					var posByR = {x: pos.x, y: pos.y, z: pos.z};
-					const rInfos = glo.params.functionIt.r;
-					for(let variable in rInfos){
-						for(let prop in rInfos[variable]){
-							const val = rInfos[variable][prop].val;
-							if(val){
-								const nb = rInfos[variable][prop].nb;
-								const eq = prop + `(${nb}*${variable})`;
-								posByR = updateRibbonByR(posByR, val * eval(eq));
-							}
-						}
-					}
-					pos = posByR;
-
-					var new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-					var line = BABYLON.MeshBuilder.CreateLines("line_rot" + index_u, {points: [p1_first, new_p2], updatable: false}, glo.scene);
-					line.color = color_line;
-					glo.lines_v.push(line);
-					yield u;
-				}
-				n_dim++; n++;
-	    	}
-			else{
-				for(var v = min_v; v < max_v; v+=step_v){
-					ind_v = v;
-					setParams();
-					reg(f, dim_one);
-					x = eval(f.x);
-					y = eval(f.y);
-					z = eval(f.z);
-
-					if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
-					if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
-					if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-
-					if(glo.coordsType == 'cartesian'){
-						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = getNormalVector(vect3);
-						xN = vect3.x; yN = vect3.y; zN = vect3.z;
-						var µN = xN*yN*zN;
-						var $N = (xN+yN+zN)/3;
-						var µ$N = µN*$N; var $µN = µN+$N;
-						var µµN = µ$N*$µN;
-
-						var O = Math.acos(y/(h(x,y,z)));
-						var T = Math.atan2(z, x) ;
-
-						var vectT = new BABYLON.Vector3(x,y,z);
-						vectT = BABYLON.Vector3.Normalize(vectT);
-						xT = vectT.x; yT = vectT.y; zT = vectT.z;
-						var µT = xT*yT*zT;
-						var $T = (xT+yT+zT)/3;
-						var µ$T = µT*$T; var $µT = µT+$T;
-						var µµT = µ$T*$µT;
-						if(isBeta){
-							alpha = eval(f.alpha);
-							beta = eval(f.beta);
-							if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-							if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-							var pos = {x: x, y: y, z: z};
-							pos = rotateByMatrix(pos, 0, alpha, beta);
-							x = pos.x; y = pos.y; z = pos.z;
-						}
-						else if(isAlpha){
-							alpha = eval(f.alpha);
-							if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-							var pos = {x: x, y: y, z: z};
-							pos = rotateByMatrix(pos, 0, alpha, 0);
-							x = pos.x; y = pos.y; z = pos.z;
-						}
-
-						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
-						var {x, y, z} = functionIt(x, y, z);
-						var {x, y, z} = invPos(x, y, z);
-						var {x, y, z} = invPosIf(x, y, z);
-						var {x, y, z} = permutSign(x, y, z);
-
-						var posByR = {x, y, z};
-						const rInfos = glo.params.functionIt.r;
-						for(let variable in rInfos){
-							for(let prop in rInfos[variable]){
-								const val = rInfos[variable][prop].val;
-								if(val){
-									const nb = rInfos[variable][prop].nb;
-									const eq = prop + `(${nb}*${variable})`;
-									posByR = updateRibbonByR(posByR, val * eval(eq));
-								}
-							}
-						}
-						var {x, y, z} = posByR;
-
-						path.push(new BABYLON.Vector3(x, y, z));
-						paths.push(new BABYLON.Vector3(x, y, z));
-						if(n%2==0 || glo.stepByStepFast){
-							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
-							line.color = color_line;
-							glo.lines_v.push(line);
-							path = [];
-							yield u;
-						}
-					}
-					else if(glo.coordsType == 'quaternion'){
-						x = eval(f.y);
-						y = eval(f.z);
-						z = eval(f.alpha);
-						w = eval(f.beta);
-						r = eval(f.x);
-	
-						if(r == Infinity || r == -Infinity){ r = 0; }
-						if(x == Infinity || x == -Infinity){ x = 0; }
-						if(y == Infinity || y == -Infinity){ y = 0; }
-						if(z == Infinity || z == -Infinity){ z = 0; }
-						if(w == Infinity || w == -Infinity){ w = 0; }
-	
-						let point 			= new BABYLON.Vector3(p2_first.x * r, 0, 0);
-						let axis  			= new BABYLON.Vector3(x, y, z);
-						let quaternion 	    = BABYLON.Quaternion.RotationAxis(axis.normalize(), w);
-						let pointQuaternion = new BABYLON.Quaternion(point.x, point.y, point.z, 0);
-						let pos             = quaternion.multiply(pointQuaternion).multiply(quaternion.conjugate());
-	
-						var x = pos.x; var y = pos.y; var z = pos.z;
-						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = getNormalVector(vect3);
-						xN = vect3.x; yN = vect3.y; zN = vect3.z;
-						var µN = xN*yN*zN;
-						var $N = (xN+yN+zN)/3;
-						var µ$N = µN*$N; var $µN = µN+$N;
-						var µµN = µ$N*$µN;
-
-						var O = Math.acos(y/(h(x,y,z)));
-						var T = Math.atan2(z, x) ;
-
-						var vectT = new BABYLON.Vector3(x,y,z);
-						vectT = BABYLON.Vector3.Normalize(vectT);
-						xT = vectT.x; yT = vectT.y; zT = vectT.z;
-						var µT = xT*yT*zT;
-						var $T = (xT+yT+zT)/3;
-						var µ$T = µT*$T; var $µT = µT+$T;
-						var µµT = µ$T*$µT;
-
-						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
-						var {x, y, z} = functionIt(x, y, z);
-						var {x, y, z} = invPos(x, y, z);
-						var {x, y, z} = invPosIf(x, y, z);
-						var {x, y, z} = permutSign(x, y, z);
-
-						var posByR = {x, y, z};
-						const rInfos = glo.params.functionIt.r;
-						for(let variable in rInfos){
-							for(let prop in rInfos[variable]){
-								const val = rInfos[variable][prop].val;
-								if(val){
-									const nb = rInfos[variable][prop].nb;
-									const eq = prop + `(${nb}*${variable})`;
-									posByR = updateRibbonByR(posByR, val * eval(eq));
-								}
-							}
-						}
-						var {x, y, z} = posByR;
-	
-						path.push(new BABYLON.Vector3(x, y, z));
-						paths.push(new BABYLON.Vector3(x, y, z));
-						if(n%2==0 || glo.stepByStepFast){
-							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
-							line.color = color_line;
-							glo.lines_v.push(line);
-							yield u;
-						}
-					}
-					else{
-						var pos = {x: p2_first.x * x, y: 0, z: 0};
-						if(glo.coordsType == 'spheric'){ pos = rotateByMatrix(pos, 0, y, z); }
-						else{
-							pos = rotateByMatrix(pos, 0, 0, y);
-							pos.z = z;
-						}
-						var x = pos.x; var y = pos.y; var z = pos.z;
-						var vect3 = new BABYLON.Vector3(x,y,z);
-						vect3 = getNormalVector(vect3);
-						xN = vect3.x; yN = vect3.y; zN = vect3.z;
-						var µN = xN*yN*zN;
-						var $N = (xN+yN+zN)/3;
-						var µ$N = µN*$N; var $µN = µN+$N;
-						var µµN = µ$N*$µN;
-
-						var O = Math.acos(y/(h(x,y,z)));
-						var T = Math.atan2(z, x) ;
-
-						var vectT = new BABYLON.Vector3(x,y,z);
-						vectT = BABYLON.Vector3.Normalize(vectT);
-						xT = vectT.x; yT = vectT.y; zT = vectT.z;
-						var µT = xT*yT*zT;
-						var $T = (xT+yT+zT)/3;
-						var µ$T = µT*$T; var $µT = µT+$T;
-						var µµT = µ$T*$µT;
-						if(isBeta){
-							alpha = eval(f.alpha);
-							beta = eval(f.beta);
-							if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
-							if(beta == Infinity || beta == -Infinity){ beta = 0; }
-							pos = rotateByMatrix(pos, 0, alpha, beta);
-						}
-						else if(isAlpha){
-							alpha = eval(f.alpha);
-							if(alpha == Infinity || alpha == -Infinity){ alpha = 0; }
-							pos = rotateByMatrix(pos, 0, alpha, 0);
-						}
-
-						var {x, y, z} = pos;
-						var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
-						var {x, y, z} = functionIt(x, y, z);
-						var {x, y, z} = invPos(x, y, z);
-						var {x, y, z} = invPosIf(x, y, z);
-						var {x, y, z} = permutSign(x, y, z);
-						
-
-						var posByR = {x, y, z};
-						const rInfos = glo.params.functionIt.r;
-						for(let variable in rInfos){
-							for(let prop in rInfos[variable]){
-								const val = rInfos[variable][prop].val;
-								if(val){
-									const nb = rInfos[variable][prop].nb;
-									const eq = prop + `(${nb}*${variable})`;
-									posByR = updateRibbonByR(posByR, val * eval(eq));
-								}
-							}
-						}
-						pos = posByR;
-
-						this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-						path.push(this.new_p2);
-						paths.push(this.new_p2);
-						if(nMod%2==0 || glo.stepByStepFast){
-							line = BABYLON.MeshBuilder.CreateLines("par", {points: path, updatable: false}, glo.scene);
-							line.color = color_line;
-							glo.lines_v.push(line);
-							path = [];
-							yield u;
-						}
-					}
-					n++; nMod++;
-					index_v++;
-				}
-			}
-		}
-		catch(error){
-			yield u;
-		}
-
-		if(is_v){
-			path = [];
-			glo.lines_v.map(line => { line.dispose(); line = {}; } );
-			glo.lines_v = [];
-		}
-
-		var lines = BABYLON.MeshBuilder.CreateLines("par", {points: paths, updatable: false}, glo.scene);
-		lines.color = color_line;
-		lines.alpha = 1;
-		lines.visibility = 1;
-		glo.lines_u.push(lines);
-
-		u+=step_u;
-		index_u++;
-		if(is_v){ yield u; }
-  }
+function makeLineStep(vects){
+	let line = BABYLON.MeshBuilder.CreateLines("par", {points: vects, updatable: false}, glo.scene);
+	line.color = 'red';
+	line.alpha = 1;
+	line.visibility = 1;
+	glo.linesStep.push(line);
 }
-glo.curve_step = curve_step_by_step();
 
 function test_equations(equations, dim_one = false, forCol = false){
 	function mx(index = 1, val_to_return = 0, p = path){
@@ -1939,15 +1397,16 @@ function reg(f, dim_one) {
 }
 
 function getPathsInfos(){
-	const coeffSym = getCoeffSym();
+	const coeffSym = countSyms();
 	glo.pathsInfos = {u: (glo.params.steps_u + 1) * coeffSym, v: glo.params.steps_v + 1};
 }
 
-function getCoeffSym(){
-	return (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
+function countSyms(){
+	return (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
+	(glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
 	(glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
 }
-
+ 
 async function whellSwitchForm(){
 	var formSelect = glo.formes.getFormSelect();
 	if(formSelect){
@@ -2442,60 +1901,10 @@ function viewOnAxis(options = {axis: "X", direction: -1, alpha: PI/4, beta: -PI/
 	glo.camera.radius = options.distance;
 }
 
-function EdgeOrVertexColor(){
-	glo.params.playWithColors = false;
-	glo.colorType.next().value;
-	if(glo.colorsType == 'edge'){
-		saveRandomColors();
-
-		var white = BABYLON.Color3.White();
-		glo.allControls.getByName('pickerColorDiffuse').value = white;
-		glo.allControls.getByName('pickerColorEmissive').value = white;
-	}
-	else if(glo.colorsType == 'none'){
-		restoreRandomColors();
-	}
-	make_curves();
-}
-function playWithColors(){
-	glo.params.playWithColors = !glo.params.playWithColors;
-	if(glo.params.playWithColors){
-		saveFunColors();
-		var white = BABYLON.Color3.White();
-		glo.allControls.getByName('pickerColorDiffuse').value = white;
-		glo.allControls.getByName('pickerColorEmissive').value = white;
-	}
-	else{
-		restoreFunColors();
-	}
-	make_curves();
-}
-function saveColors(pickers, saveName){
-	pickers.map(picker => {
-		glo[picker.name + saveName] = {};
-		Object.assign(glo[picker.name + saveName], picker.value);
-	});
-}
-function restoreColors(pickers, saveName){
-	pickers.map(picker => { picker.value = glo[picker.name + saveName]; });
-}
-function saveRandomColors(){
-	saveColors(glo.allControls.haveThisClass('picker'), 'saveRandomColors');
-}
-function restoreRandomColors(){
-	restoreColors(glo.allControls.haveThisClass('picker'), 'saveRandomColors');
-}
-
 function raz_meshes(){
 	glo.ribbon.dispose();
 	glo.ribbon = null;
 	glo.is_ribbon = false;
-}
-
-function changeLineColor(r, g, b){
-	var colorLineSystem = new BABYLON.Color3(r, g, b);
-	glo.lineColor = colorLineSystem;
-	glo.curves.lineSystem.color = colorLineSystem;
 }
 
 function dimension(dim_one){
@@ -2650,26 +2059,6 @@ function code_car(car){
 	return parseInt(car.charCodeAt());
 }
 
-function animConstructMesh(){
-	return glo.curve_step.next().value;
-}
-
-function reset_curve_step_by_step(){
-	glo.curve_step.return();
-	glo.curve_step = {};
-	glo.curve_step = curve_step_by_step();
-	glo.lines_u.map(line_u => { line_u.dispose(); line_u = {}; });
-	glo.lines_u = [];
-	glo.lines_v.map(line_v => { line_v.dispose(); line_v = {}; });
-	glo.lines_v = [];
-	glo.end_loop = false;
-}
-
-function stop_curve_step_by_step(){
-	glo.curve_step.return();
-	glo.curve_step = curve_step_by_step();
-}
-
 function reg_inv(f, toInv_1, toInv_2){
 	var reg_toInv_1 = new RegExp(toInv_1, "g");
 	var reg_toInv_tmp = new RegExp(toInv_1 + "_tmp", "g");
@@ -2681,10 +2070,6 @@ function reg_inv(f, toInv_1, toInv_2){
 	}
 
 	return f;
-}
-
-function reg_deg(f){
-
 }
 
 function scaleSlidersUV(coeff){
@@ -2814,93 +2199,6 @@ function sliders_animations(){
 	if(glo.guiAnims.stepV){ slidersAnim('stepV', 0); }
 }
 
-function randomize_colors_app(){
-	glo.allControls.haveThisClass('picker').map(picker_color => {
-		picker_color.value = BABYLON.Color3.Random();
-	});
-}
-function special_randomize_colors_app(first = false){
-	if(!first){
-		//var backColor = getRndDarkColor(5);
-		var backColor     = getRndLightColor(4);
-		var emissiveColor = getComplementaryColor(backColor, 0.58);
-		var diffuseColor  = getComplementaryColor(emissiveColor, 0.58);
-		var lineColor     = getComplementaryColor(backColor);
-
-		glo.allControls.getByName('pickerColorBackground').value = backColor;
-		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
-		glo.allControls.getByName('pickerColorDiffuse').value    = new BABYLON.Color3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
-		glo.allControls.getByName('pickerColorLine').value       = lineColor;
-	}
-	else{
-		glo.allControls.getByName('pickerColorBackground').value = new BABYLON.Color3(0.1, 0.1, 0.1);
-		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(0.3, 0.5, 0.5);
-		glo.allControls.getByName('pickerColorDiffuse').value 	 = new BABYLON.Color3(0.6, 0.5, 0.5);
-		glo.allControls.getByName('pickerColorLine').value 		 = new BABYLON.Color3(1, 1, 1);
-	}
-}
-
-function getComplementaryColor(color3, darkForce = 1){
-	function calcul_color(col){
-		return 1 - col*darkForce;
-	}
-
-	var r = calcul_color(color3.r); var g = calcul_color(color3.g); var b = calcul_color(color3.b);
-	r = r > 0 ? r : 0; g = g > 0 ? g : 0; b = b > 0 ? b : 0;
-	r = r < 1 ? r : 1; g = g < 1 ? g : 1; b = b < 1 ? b : 1;
-	return new BABYLON.Color3(r, g, b);
-}
-function darkingColor(color3, force){
-	var r = color3.r / force; var g = color3.g / force; var b = color3.b / force;
-	return new BABYLON.Color3(r, g, b);
-}
-function lightingColor(color3, force){
-	var r = color3.r * force; var g = color3.g * force; var b = color3.b * force;
-	r = r < 1 ? r : 1; g = g < 1 ? g : 1; b = b < 1 ? b : 1;
-	return new BABYLON.Color3(r, g, b);
-}
-
-function getRndDarkColor(force = 0){
-	if(force >= 5){ force = 4; }
-	else if(force < 0){ force = 0; }
-	force = 0.5 - (force / 10);
-
-	var rndObjectDarkColor = getRndObjectDarkColor(force);
-	while(rndObjectDarkColor.reg){
-		rndObjectDarkColor = getRndObjectDarkColor(force);
-	}
-	return rndObjectDarkColor.color;
-}
-
-function getRndObjectDarkColor(force){
-	var keepSup = 0.05;
-	var color = BABYLON.Color3.Random();
-	var verifColor1 = color.r * color.g * color.b > Math.pow(force, 3);
-	var verifColor2 = color.r < keepSup || color.g < keepSup || color.b < keepSup;
-	var regRed = color.r > (color.g + color.b) * 1.25;
-	var regGreen = color.g > (color.r + color.b) * 1.25;
-	var regBlue = color.b > (color.r + color.g) * 1.25;
-	var noPurpleInComplementaryColor = color.r > 0.07 * 0.5 && color.r < 0.07 * 2 && color.g > 0.18 * 0.5 && color.g < 0.18 * 2 && color.b > 0.07 * 0.5 && color.b < 0.07 * 2;
-
-	var reg = verifColor1 || verifColor2 || regRed || regGreen || regBlue || noPurpleInComplementaryColor;
-
-	return {color: color, reg: reg };
-}
-
-function getRndLightColor(force = 0){
-	var color = BABYLON.Color3.Random();
-	var verifColor = color.r * color.g * color.b;
-
-	if(force >= 5){ force = 4.9; }
-	else if(force < 0){ force = 0; }
-	force = 0.5 + (force / 10);
-	while(verifColor < Math.pow(force, 3)){
-		color = BABYLON.Color3.Random();
-		verifColor = color.r * color.g * color.b;
-	}
-	return color;
-}
-
 function startAnim(duration, nb_turns){
 	var rot_animation = new BABYLON.Animation("startAnimation", "alpha", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE);
 
@@ -2928,7 +2226,6 @@ function initExportModal(){
         onOpenEnd: function() {
             glo.modalOpen = true;
             document.querySelector('#weightToDownload').textContent = glo.ribbon.weightToDownload();
-			//document.addEventListener('keydown', stopPropagationEvent, true);
 			$('#filename').focus();
         },
         onCloseEnd: function() {
@@ -2936,7 +2233,6 @@ function initExportModal(){
             if (glo.fullScreen) {
                 glo.engine.switchFullscreen();
             }
-			//document.removeEventListener('keydown', stopPropagationEvent, true);
         },
     });
 }
@@ -3046,73 +2342,6 @@ function download_JSON_mesh(event){
 }
 
 var objectUrl;
-async function exportMeshSave(exportFormat){
-	if(objectUrl) {
-    	window.URL.revokeObjectURL(objectUrl);
-    }
-
-	await glo.ribbon.bakeCurrentTransformIntoVertices();
-
-	if(exportFormat != "json"){
-	  if(exportFormat == "babylon"){ var strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon)); }
-	  else if(exportFormat == "obj"){
-		if(!glo.lineSystem){ var strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]); }
-		else{
-			let meshesToExport = [];
-			glo.lines.forEach(line => {
-				if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
-					let tube = BABYLON.MeshBuilder.CreateTube("tube", {path: line, radius: 0.1}, glo.scene);
-					if (tube) {
-						meshesToExport.push(tube);
-					} else {
-						console.log("Tube creation failed for line:", line);
-					}
-				}
-			});
-
-			if (meshesToExport.length > 0) {
-				let meshToExport = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
-				if (meshToExport) {
-					var strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
-					glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshToExport], true, true);
-				} else {
-					console.log("Mesh fusion failed");
-				}
-			} else {
-				console.log("No meshes to export");
-			}
-		}
-	}
-
-		var filename = $("#filename").val();
-	  if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1){
-	      filename += "." + exportFormat;
-	  }
-	}
-	else{
-		var filename = $("#filename").val();
-		var exportFormat = 'json';
-	  if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1){
-	      filename += "." + exportFormat;
-	  }
-
-		glo.params.coordsType = glo.coordsType;
-		var objForm = glo.formes.getFormSelect();
-		var form = !objForm ? "" : objForm.form.text;
-		glo.params.formName = form;
-		var strMesh = JSON.stringify(glo.params);
-	}
-
-	var blob = new Blob ( [ strMesh ], { type : "octet/stream" } );
-	objectUrl = (window.webkitURL || window.URL).createObjectURL(blob);
-
-	$("#exportButton").attr("href", objectUrl);
-	$("#exportButton").attr("download", filename);
-	$('#exportModal').modal('close');
-
-	return false;
-}
-
 async function exportMesh(exportFormat) {
     if (objectUrl) {
         window.URL.revokeObjectURL(objectUrl);
@@ -3308,21 +2537,6 @@ function isInputsEquationsSameAsRadioCheck(){
 	return false;
 }
 
-function deleteSomeClones(){
-	if(typeof(glo.ribbon_clone) != "undefined"){
-		var n = 0;
-		for (var i = 0; i < glo.ribbon_clone["_clones"].length; i++) {
-			if(n%2 == 0){
-				glo.ribbon_clone["_clones"][i].dispose();
-				glo.ribbon_clone["_clones"][i] = {};
-				glo.ribbon_clone["_clones"].splice(i, 1);
-				n--;
-			}
-			n++;
-		}
-	}
-}
-
 function switchDrawCoordsType(update_slider_uv = true){
 	if(update_slider_uv){ change_slider_uv(); }
 	switch (glo.coordsType) {
@@ -3405,242 +2619,6 @@ function change_slider_uv(){
 	else{ glo.slider_u.value -= 0.0000001; }
 }
 
-function darkTheme(){
-	glo.userTheme = !glo.userTheme;
-	if(glo.userTheme){
-		glo.bSave = {}; glo.dSave = {}; glo.eSave = {};
-		Object.assign(glo.bSave, glo.backgroundColor); Object.assign(glo.dSave, glo.diffuseColor); Object.assign(glo.eSave, glo.emissiveColor);
-		glo.allControls.getByName('pickerColorBackground').value = new BABYLON.Color3(0, 0.05415, 0.01882);
-		glo.allControls.getByName('pickerColorDiffuse').value = new BABYLON.Color3(0.6, 0.5, 0.5);
-		glo.allControls.getByName('pickerColorEmissive').value = new BABYLON.Color3(0.3, 0.5, 0.5);
-	}
-	else{
-		glo.allControls.getByName('pickerColorBackground').value = glo.bSave;
-		glo.allControls.getByName('pickerColorDiffuse').value = glo.dSave;
-		glo.allControls.getByName('pickerColorEmissive').value = glo.eSave;
-	}
-}
-
-function saveRibbonToClone(){
-	glo.ribbonSaveToClone = glo.ribbon.clone("saveToClone_" + glo.ribbon.name);
-	glo.ribbonSaveToClone.visibility = 0;
-	glo.indexSaveToClone = glo.histo.content.length - 1 - glo.histo.index_go;
-}
-
-function cloneSystemSave(scale = glo.cloneScaleToTemplate, reset = true, deleteClones = true, testRemake = true){
-	if(reset){ resetClones(); }
-
-	glo.cloneSystem = true;
-	if(testRemake && glo.params.steps_u * glo.params.steps_v > 2500){
-		glo.reMakeClones = false;
-		glo.slider_nb_steps_u.value = 22; glo.slider_nb_steps_v.value = 22; make_curves();
-		glo.reMakeClones = true;
-	}
-
-	if(typeof(glo.ribbonSaveToClone) == "undefined"){ glo.ribbonToClone = glo.ribbon; }
-	else{ glo.ribbonToClone = glo.ribbonSaveToClone; glo.indexCloneToHisto = glo.indexSaveToClone; }
-
-	glo.ribbonToClone.visibility = 1;
-	glo.ribbon_clone_1 = glo.ribbonToClone.clone("ribbonClone1");
-	glo.ribbon_clone_2 = glo.ribbonToClone.clone("ribbonClone2");
-	glo.ribbon_clone_1.scaling = new BABYLON.Vector3(scale, scale, scale);
-	glo.ribbon_clone_2.scaling = new BABYLON.Vector3(scale, scale, scale);
-
-	glo.ribbon_clone = new BABYLONX.ObjectCloner([glo.ribbon_clone_1, glo.ribbon_clone_2], glo.ribbon, glo.scene);
-	orientClone(glo.cloneAxis);
-	if(deleteClones){ deleteSomeClones(); }
-	glo.ribbonToClone.visibility = 0;
-	if(typeof(glo.ribbonSaveToClone) != "undefined"){ glo.ribbonSaveToClone.dispose(); glo.ribbonSaveToClone = {}; delete glo.ribbonSaveToClone; }
-}
-
-function cloneSystem(scale = glo.cloneScaleToTemplate, reset = true, deleteClones = true, testRemake = true) {
-    if (reset) { 
-        resetClones(); 
-    }
-
-    glo.cloneSystem = true;
-
-    // Ajuster les paramètres si nécessaire
-    if (testRemake && glo.params.steps_u * glo.params.steps_v > 2500) {
-        glo.reMakeClones = false;
-        glo.slider_nb_steps_u.value = 22;
-        glo.slider_nb_steps_v.value = 22;
-        make_curves();
-        glo.reMakeClones = true;
-    }
-
-    // Définir le mesh à cloner
-    if (typeof(glo.ribbonSaveToClone) == "undefined") {
-        glo.ribbonToClone = glo.ribbon;
-    } else {
-        glo.ribbonToClone = glo.ribbonSaveToClone;
-        glo.indexCloneToHisto = glo.indexSaveToClone;
-    }
-
-    glo.ribbonToClone.visibility = 1;
-
-    // Cloner le mesh et ajuster l'échelle
-    glo.ribbon_clone_1 = glo.ribbonToClone.clone("ribbonClone1");
-    glo.ribbon_clone_2 = glo.ribbonToClone.clone("ribbonClone2");
-    glo.ribbon_clone_1.scaling = new BABYLON.Vector3(scale, scale, scale);
-    glo.ribbon_clone_2.scaling = new BABYLON.Vector3(scale, scale, scale);
-
-    // Utiliser ObjectCloner pour générer les clones
-    glo.ribbon_clone = new BABYLONX.ObjectCloner([glo.ribbon_clone_1, glo.ribbon_clone_2], glo.ribbon, glo.scene);
-
-    // Orienter les clones
-    orientClone(glo.cloneAxis);
-
-    // Récupérer les enfants du root du Cloner
-    var clonesArray = glo.ribbon_clone.root.getChildMeshes();  // Récupérer tous les meshes enfants du root
-
-    // Vérifier le contenu de clonesArray
-    console.log("ClonesArray (children of root):", clonesArray);
-
-	// Convertir les CMesh en vrais Meshes avant de fusionner
-    clonesArray = clonesArray.map(mesh => {
-        if (mesh.makeGeometryUnique) {
-            mesh.makeGeometryUnique();  // Convertir l'instance en un mesh indépendant
-        }
-        return mesh;
-    });
-
-	// Boucle à travers chaque CMesh pour créer un nouveau Mesh classique
-    clonesArray.forEach(cmesh => {
-        if (cmesh instanceof BABYLON.Mesh) {
-            // Vérifier si le mesh a des subMeshes, sinon en créer un
-            if (!cmesh.subMeshes || cmesh.subMeshes.length === 0) {
-                cmesh.subMeshes = [];
-                new BABYLON.SubMesh(0, 0, cmesh.getTotalVertices(), 0, cmesh.getIndices().length, cmesh);
-            }
-        }
-    });
-
-	// Filtrer uniquement les meshes valides qui ont des positions
-    clonesArray = clonesArray.filter(cmesh => {
-        var positions = cmesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        if (positions && positions.length > 0) {
-            return true;
-        } else {
-            console.warn("Mesh sans positions trouvé et ignoré :", cmesh.name);
-            return false;
-        }
-    });
-
-    // Filtrer uniquement les objets qui sont des instances de BABYLON.Mesh
-    clonesArray = clonesArray.filter(mesh => mesh instanceof BABYLON.Mesh);
-
-    // Fusionner tous les clones en un seul mesh classique
-    if (clonesArray.length > 0) {
-        try {
-            var mergedMesh = BABYLON.Mesh.MergeMeshes(clonesArray, true, true, undefined, false, true);
-            // Assigner le mesh fusionné à glo.ribbon
-            glo.ribbon = mergedMesh;
-        } catch (error) {
-            console.error("Erreur lors de la fusion des meshes :", error);
-        }
-    } else {
-        console.error("Aucun mesh valide trouvé pour la fusion.");
-    }
-
-    // Supprimer les clones si nécessaire
-    if (deleteClones) {
-        deleteSomeClones();
-    }
-
-    glo.ribbonToClone.visibility = 0;
-
-    // Nettoyage après fusion et suppression de l'original si nécessaire
-    if (typeof(glo.ribbonSaveToClone) != "undefined") {
-        glo.ribbonSaveToClone.dispose();
-        glo.ribbonSaveToClone = {};
-        delete glo.ribbonSaveToClone;
-    }
-
-    // Retourner le mesh fusionné (glo.ribbon) pour d'autres manipulations
-    return glo.ribbon;
-}
-
-function resetClones(resetVar = true){
-	if(typeof(glo.ribbon_clone) != "undefined"){
-		glo.ribbon_clone["_clones"].map(ribClone => {
-			ribClone.dispose(); ribClone = {};
-		});
-		glo.ribbon_clone = {}; delete glo.ribbon_clone;
-		glo.ribbon_clone_1.dispose(); delete glo.ribbon_clone_1;
-		glo.ribbon_clone_2.dispose(); delete glo.ribbon_clone_2;
-
-		if(resetVar){ glo.cloneSystem = false; }
-		glo.resetClones = false;
-	}
-}
-
-function reMakeClones(){
-	if(glo.cloneSystem && glo.reMakeClones){ cloneSystem(); }
-}
-
-function orientClone(axis){
-	if(typeof(glo.ribbon_clone) != "undefined"){
-		var facetNormals = glo.ribbon.getFacetDataParameters().facetNormals;
-		var tabClones = glo.ribbon_clone["_clones"];
-		var tabClonesLength = tabClones.length;
-
-		var none = false;
-		switch (axis) {
-			case 'none':
-				var startRot = glo.ribbon.rotationQuaternion;
-				glo.ribbon_clone["_clones"].map(rib_clone => { rib_clone.rotationQuaternion = startRot; });
-				none = true;
-				break;
-			case 'x':
-				var start = new BABYLON.Vector3(1,0,0);
-				break;
-			case 'y':
-				var start = new BABYLON.Vector3(0,1,0);
-				break;
-			case 'z':
-				var start = new BABYLON.Vector3(0,0,1);
-				break;
-			case 'test':
-				var start = new BABYLON.Vector3(Math.PI / 2, Math.PI / 2, 0);
-				break;
-		}
-
-		if(!none){
-			for (var i = 0; i < tabClonesLength; i++) {
-				var axis1 = new BABYLON.Vector3(facetNormals[i].x, facetNormals[i].y, facetNormals[i].z);
-		    var axis2 = BABYLON.Vector3.Up();
-				var axis3 = BABYLON.Vector3.Up();
-
-		    BABYLON.Vector3.CrossToRef(start, axis1, axis2);
-				BABYLON.Vector3.CrossToRef(axis2, axis1, axis3);
-				var tmpVec = BABYLON.Vector3.RotationFromAxis(axis3.negate(), axis1, axis2);
-				var quat = BABYLON.Quaternion.RotationYawPitchRoll(tmpVec.y, tmpVec.x, tmpVec.z);
-				tabClones[i].rotationQuaternion = quat;
-			}
-		}
-	}
-}
-
-function* orientationClone(){
-  var index = -1;
-  var tab = ['x', 'y', 'z', 'test','none'];
-  while(true){
-		index++;
-		if(index == tab.length){ index = 0; }
-		glo.cloneAxis = tab[index];
-    yield tab[index];
-  }
-}
-
-function cloneScale(scale){
-	glo.cloneScale += scale;
-	var sc = glo.cloneScale;
-	if(typeof(glo.ribbon_clone["_clones"]) != "undefined"){
-		glo.ribbon_clone["_clones"].map(ribbon_clone => { ribbon_clone.scaling = new BABYLON.Vector3(sc,sc,sc) });
-	}
-}
-
 function rndSurface(end){
 	var rnd = {
 		functions:[
@@ -3710,11 +2688,6 @@ function cpow(val, exp){
 	return sign(val) * Math.abs(val)**exp;
 }
 
-function cpowSave(val, exp){
-	if(parseInt(exp) == exp){ return val < 0 && exp%2 == 0 ? -pow(val, exp) : pow(val, exp); }
-	else{ return val < 0 ? -pow(-val, exp) : pow(val, exp); }
-}
-
 function cpowi(val, exp){
 	return pow(Math.abs(val), exp);
 }
@@ -3729,22 +2702,6 @@ function cpowh(...dists){
 
 function µ(res, varForSign){
 	return sign(varForSign) === sign(res) ? res : -res;
-}
-
-function updInputsToQuaternion(){
-	glo.input_beta.text  = 'pi';
-	glo.input_alpha.text = glo.input_z.text;
-	glo.input_z.text 	 = glo.input_y.text;
-	glo.input_y.text 	 = glo.input_x.text;
-	glo.input_x.text 	 = 12;
-
-	glo.params.text_input_beta 	= 'pi';
-	glo.params.text_input_alpha = glo.input_alpha.text;
-	glo.params.text_input_z 	= glo.input_z.text;
-	glo.params.text_input_y 	= glo.input_y.text;
-	glo.params.text_input_x 	= 12;
-
-	make_curves();
 }
 
 function firstInputToOthers(){
@@ -4170,7 +3127,7 @@ function keepLinesCrossOtherLine(){
 					good = false;
 					for(let j = 0; j < edge2.length; j++){
 						const vertex2 = edge2[j];
-						//if(vertex1.x === vertex2.x && vertex1.y === vertex2.y && vertex1.z === vertex2.z){
+						
 						if(BABYLON.Vector3.Distance(vertex1, vertex2) < 0.51){
 							newPaths.push(edge1);
 							good = true;
@@ -4613,8 +3570,6 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '30px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
-
-	//paramRadios();
 }
 
 function paramRadios(){
@@ -4687,6 +3642,39 @@ function w(val, isCos = 1){
 
 function customDecrease(x, m, k) {
     return x * Math.pow(x / m, k);
+}
+
+function closedPaths(paths){
+	glo.params.lastPathEqualFirstPath = false;
+	if(isClosedPaths(paths)){
+		paths.pop();
+		glo.params.lastPathEqualFirstPath = true;
+	}
+
+	return paths;
+}
+
+function isClosedPaths(paths){
+	const firstVects = paths[0];
+	const lastVects  = paths[paths.length - 1];
+
+	return firstVects.every((vect, i) => BABYLON.Vector3.Distance(vect, lastVects[i]) < ep);
+}
+
+function Uint32ArrayDelete(array, indexsToRemove){
+	indexsToRemove.forEach(indexToRemove => array = Uint32ArrayDeleteOne(array, indexToRemove));
+
+	return array;
+}
+
+function Uint32ArrayDeleteOne(array, indexToRemove){
+	let newArray = new Uint32Array(array.length - 1);
+
+	// Copie les éléments avant et après l'index à supprimer
+	newArray.set(array.slice(0, indexToRemove), 0);
+	newArray.set(array.slice(indexToRemove + 1), indexToRemove);
+
+	return newArray;
 }
 
 function testUpdateRibbonPaths(funcX = (x, y, z) => x, funcY = (x, y, z) => y, funcZ = (x, y, z) => z) {

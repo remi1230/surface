@@ -74,11 +74,11 @@ window.addEventListener("keydown", function (e) {
          if(!e.altKey){
             switch (key) {
                case "g":
-                  glo.curve_step.next();
+                  glo.ribbon.curveByStep.next();
 
                   break;
                case "r":
-                  reset_curve_step_by_step();
+                  glo.ribbon.resetCurveByStep();
 
                   break;
                case "w":
@@ -86,11 +86,12 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "h":
-               randomize_colors_app();
+                  randomize_colors_app();
 
                   break;
                case "e":
-                  //FREE
+                  glo.params.normByFace = !glo.params.normByFace;
+                  remakeRibbon();
 
                   break;
                case "p":
@@ -106,60 +107,60 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "7":
-               slidersAnim('u', 0, -0.01);
+                  slidersAnim('u', 0, -0.01);
 
                   break;
                case "8":
-               slidersAnim('u', 0, 0.01);
+                  slidersAnim('u', 0, 0.01);
 
                   break;
                case "4":
-               slidersAnim('v', 0, -0.01);
+                  slidersAnim('v', 0, -0.01);
 
                   break;
                case "5":
-               slidersAnim('v', 0, 0.01);
+                  slidersAnim('v', 0, 0.01);
 
                   break;
                case "ç":
-               slidersAnim('stepV', 0, -1);
+                  //FREE
 
                   break;
                case "à":
-               slidersAnim('stepV', 0, 1);
+                  //FREE
 
                   break;
                case "k":
-               glo.slider_nb_steps_u.maximum/=2;
-               glo.slider_nb_steps_v.maximum/=2;
+                  glo.slider_nb_steps_u.maximum/=2;
+                  glo.slider_nb_steps_v.maximum/=2;
 
                   break;
                case "l":
-               glo.slider_nb_steps_u.maximum*=2;
-               glo.slider_nb_steps_v.maximum*=2;
+                  glo.slider_nb_steps_u.maximum*=2;
+                  glo.slider_nb_steps_v.maximum*=2;
 
                   break;
                case ";":
-               switchWritingType(false);
+                  switchWritingType(false);
 
                   break;
                case ",":
-               switchWritingType(true);
+                  switchWritingType(true);
 
                   break;
                case "x":
-               glo.planeXYvisible = !glo.planeXYvisible;
-               showPlane(glo.planeXYvisible, 'xy');
+                  glo.planeXYvisible = !glo.planeXYvisible;
+                  showPlane(glo.planeXYvisible, 'xy');
 
                   break;
                case "y":
-               glo.planeYZvisible = !glo.planeYZvisible;
-               showPlane(glo.planeYZvisible, 'yz');
+                  glo.planeYZvisible = !glo.planeYZvisible;
+                  showPlane(glo.planeYZvisible, 'yz');
 
                   break;
                case "z":
-               glo.planeXZvisible = !glo.planeXZvisible;
-               showPlane(glo.planeXZvisible, 'xz');
+                  glo.planeXZvisible = !glo.planeXZvisible;
+                  showPlane(glo.planeXZvisible, 'xz');
 
                   break;
                case "s":
@@ -177,29 +178,23 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "f":
-                  if(glo.ribbonCloneHistoDone){ delete glo.ribbonSaveToClone; glo.ribbonCloneHistoDone = false; }
-                  cloneSystem();
-                  glo.cloneToSave = true;
-                  glo.histo.save();
-                  glo.cloneToSave = false;
+                  glo.ribbon.delLastPathIndices();
 
                   break;
                case "q":
-                  if(glo.cloneScale >= 0.2){ cloneScale(-0.1); }
+                  //FREE
 
                   break;
                case "ù":
-                  cloneScale(0.1);
+                  //FREE
 
                   break;
                case "'":
-                  if(typeof(glo.orientationClone ) == "undefined"){  glo.orientationClone = orientationClone(); }
-                  glo.orientationClone.next();
-                  orientClone(glo.cloneAxis);
+                  //FREE
 
                   break;
                case "(":
-                  saveRibbonToClone();
+                  //FREE
 
                   break;
                case '"':
@@ -234,7 +229,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case ',':
-                  reset_camera();
+                  //FREE
 
                   break;
                case 'u':
@@ -257,9 +252,12 @@ window.addEventListener("keydown", function (e) {
                   make_ribbon();
 
                break;
+               case '0':
+                  slidersAnim('u', 0, -0.001);
+
+                  break;
                case '1':
-                  glo.curves.paths[0].shift();
-                  make_ribbon();
+                  slidersAnim('u', 0, 0.001);
 
                   break;
                case '2':
@@ -273,24 +271,23 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "6":
-                  glo.vertexsTypes.next();
-                  if(glo.normalMode){ drawNormalEquations(); }
+                  slidersAnim('v', 0, -0.001);
+
+                  break;
+               case "9":
+                  slidersAnim('v', 0, 0.001);
 
                   break;
                case ":":
-                  transformMesh('scaling', 'x', glo.ribbon.scaling.x/2, glo.ribbon, glo.curves.lineSystem, false);
-                  transformMesh('scaling', 'y', glo.ribbon.scaling.y/2, glo.ribbon, glo.curves.lineSystem, false);
-                  transformMesh('scaling', 'z', glo.ribbon.scaling.z/2, glo.ribbon, glo.curves.lineSystem, false);
+                  //FREE
 
                break;
                case "!":
-                  transformMesh('scaling', 'x', glo.ribbon.scaling.x*2, glo.ribbon, glo.curves.lineSystem, false);
-                  transformMesh('scaling', 'y', glo.ribbon.scaling.y*2, glo.ribbon, glo.curves.lineSystem, false);
-                  transformMesh('scaling', 'z', glo.ribbon.scaling.z*2, glo.ribbon, glo.curves.lineSystem, false);
+                  //FREE
 
                break;
                case ")":
-                  glo.ribbon.fractalize();
+                  //FREE
 
                break;
                case "PageUp":
@@ -401,10 +398,7 @@ window.addEventListener("keydown", function (e) {
                break;
                case "r":
                   glo.additiveSurface = !glo.additiveSurface;
-                  if(!glo.normalMode){  make_curves(); }
-                  else{
-                     glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations();
-                  }
+                  remakeRibbon();
 
                break;
                case "i":
@@ -465,13 +459,8 @@ window.addEventListener("keydown", function (e) {
                break;
             case "p":
             case "P":
-            glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
-            if(!glo.normalMode){ 
-               make_curves();
-            }
-            else{
-               drawNormalEquations();
-            }
+               glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
+               remakeRibbon();
 
                break;
             /*case "z":
@@ -483,18 +472,17 @@ window.addEventListener("keydown", function (e) {
                break;*/
             case "x":
             case "X":
-               glo.ribbon.axisToOrigin('x');
+               //FREE
 
                break;
             case "y":
             case "Y":
-               glo.ribbon.axisToOrigin('y');
+               //FREE
 
                break;
             case "z":
             case "Z":
-               glo.ribbon.axisToOrigin('z');
-
+               //FREE
                break;
             case "H":
             case "h":
@@ -503,13 +491,13 @@ window.addEventListener("keydown", function (e) {
                break;
             case "S":
             case "s":
-            glo.normalOnNormalMode = !glo.normalOnNormalMode;
+               //FREE
+               //glo.normalOnNormalMode = !glo.normalOnNormalMode;
 
                break;
             case "E":
             case "e":
-               glo.params.centerIsLocal = !glo.params.centerIsLocal;
-               remakeRibbon();
+               //FREE
 
                break;
             case "D":
@@ -519,13 +507,13 @@ window.addEventListener("keydown", function (e) {
                break;
             case "F":
             case "f":
-            testCol();
+               testCol();
 
                break;
             case "I":
             case "i":
-            glo.params.invCol = !glo.params.invCol;
-            invCol();
+               glo.params.invCol = !glo.params.invCol;
+               invCol();
 
                break;
             case "R":
@@ -535,7 +523,8 @@ window.addEventListener("keydown", function (e) {
                break;
             case "T":
             case "t":
-               gridToOrigin(); break;
+               //gridToOrigin(); break;
+               //FREE
             case "U":
             case "u":
             glo.transCol = !glo.transCol;
@@ -564,7 +553,7 @@ window.addEventListener("keydown", function (e) {
             case "O":
             case "o":
                glo.params.modCos = !glo.params.modCos;
-            makeColors();
+               makeColors();
 
             break;
             case "V":
@@ -577,7 +566,7 @@ window.addEventListener("keydown", function (e) {
             break;
             case "Y":
             case "y":
-               updInputsToQuaternion();
+               //FREE
 
             break;
             case "Q":

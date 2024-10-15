@@ -303,6 +303,66 @@ BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, ste
 	this.reBuildVertexData(newIndices);
 }
 
+BABYLON.Mesh.prototype.delLastPathIndices = function(nb = glo.params.steps_v * 6) {
+    let indices = this.getIndices();
+
+    if (indices.length) {
+        const nbSyms = countSyms();  // Nombre de rubans symétrisés
+        const totalIndicesPerRibbon = (glo.params.steps_u) * (glo.params.steps_v) * 6;  // Nombre total d'indices par ruban
+
+        let indsToDel = [];
+        
+        for (let n = 0; n < nbSyms; n++) { 
+            // Calculer l'offset pour chaque ruban dans le tableau d'indices
+            const ribbonOffset = n * totalIndicesPerRibbon;
+
+            for (let i = 1; i <= nb; i++) { 
+                // Supprimer les indices correspondant au dernier chemin de chaque ruban
+                indsToDel.push(indices.length - ribbonOffset - (i * (0 + 1))); // Ajustement ici pour prendre en compte l'effet sur les rubans suivants
+            }
+        }
+
+        // Supprimer les indices sélectionnés
+        let newIndices = Uint32ArrayDelete(indices, indsToDel); 
+
+        // Reconstruire les données de vertex avec les nouveaux indices
+        this.reBuildVertexData(newIndices);
+    }
+};
+
+BABYLON.Mesh.prototype.delLastPathIndicesSave = function() {
+    let indices = this.getIndices();
+
+    if (indices.length) {
+        const nbSyms = countSyms();  // Nombre de rubans symétrisés
+        const M = glo.params.steps_u; // Nombre de points par chemin
+        const N = glo.params.steps_v; // Nombre de chemins par ruban
+        const verticesPerRibbon = M * N;
+        const indicesPerRibbon = (M - 1) * (N - 1) * 6;  // Nombre total d'indices par ruban
+
+        let indsToDel = [];
+
+        for (let n = 0; n < nbSyms; n++) {
+            // Calculer l'offset en indices pour chaque ruban
+            const indexOffset = n * indicesPerRibbon;
+            // Calculer le nombre d'indices à supprimer pour le dernier chemin
+            const indicesToDeletePerRibbon = (M - 1) * 6;  // Nombre d'indices pour le dernier ensemble de faces
+            // Les indices à supprimer commencent à cette position
+            const startIndexToDelete = indexOffset + indicesPerRibbon - indicesToDeletePerRibbon;
+
+            for (let i = 0; i < indicesToDeletePerRibbon; i++) {
+                indsToDel.push(startIndexToDelete + i);
+            }
+        }
+
+        // Supprimer les indices sélectionnés
+        let newIndices = Uint32ArrayDelete(indices, indsToDel);
+
+        // Reconstruire les données de vertex avec les nouveaux indices
+        this.updateIndices(newIndices);
+    }
+};
+
 BABYLON.Mesh.prototype.tIndices = function() {
 	// Récupérer les données de vertex actuelles
     let _currentPdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -571,6 +631,34 @@ BABYLON.Mesh.prototype.weightToDownload = function() {
     const totalSizeInKB      = round(totalEstimatedSize / (totalEstimatedSize >= 1024000 ? 1024000 : 1024), 0) + (totalEstimatedSize >= 1024000 ? ' mo' : ' ko');
 
 	return `≈ ${totalSizeInKB}`;
+}
+
+BABYLON.Mesh.prototype.getPathsScaleToGrid = function () {
+	const paths = this.getPaths();
+	const scale = this.gridScaleValue;
+
+	return paths.map(path => path.map(vect => new BABYLON.Vector3(vect.x * scale, vect.y * scale, vect.z * scale)));
+}
+
+BABYLON.Mesh.prototype.curveByStepGen = function* () {
+	const paths = this.getPathsScaleToGrid();
+
+	for (const path of paths) {
+		makeLineStep(path);
+		yield 0;
+	}
+}
+
+BABYLON.Mesh.prototype.resetCurveByStep = function () {
+	this.curveByStep.return();
+	this.curveByStep = {};
+	this.curveByStep = this.curveByStepGen();
+	glo.linesStep.map(line => { line.dispose(); line = {}; });
+	glo.linesStep = [];
+}
+
+BABYLON.Mesh.prototype.animConstructMesh = function () {
+	this.curveByStep.next();
 }
 
 BABYLON.Vector3.prototype.isNearToOneVect = function(vects, dist) {

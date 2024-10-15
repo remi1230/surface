@@ -338,6 +338,7 @@ var glo = {
 		{ exp: /mz\*/g, upd: "mz" },
 		{ exp: /e\*x/g, upd: "ex" },
 		{ exp: /ex\*/g, upd: "ex" },
+		{ exp: /exp\*/g, upd: "exp" },
 		{ exp: /p\*i/g, upd: "pi" },
 		{ exp: /ep\*i/g, upd: "e*pi" },
 		{ exp: /e\*p/g, upd: "ep" },
@@ -932,6 +933,8 @@ var glo = {
 		scalingX: 1,
 		scalingY: 1,
 		scalingZ: 1,
+		lastPathEqualFirstPath: false,
+		normByFace: true,
 	},
 	theme:{
 		slider:{
@@ -1067,6 +1070,8 @@ var glo = {
 		index_u: 0,
 		index_v: 0,
 	},
+	onePoint: BABYLON.Vector3.Zero(),
+	linesStep: [],
 };
 function getByName(name){
 	var elemToReturn = false;

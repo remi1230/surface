@@ -530,7 +530,7 @@ function add_uv_sliders(){
       if(!glo.fromHisto){
         await remakeRibbon();
       }
-      reMakeClones();
+
       header.text = headerText + " : " + min + " — " + max;
     });
     slider.onPointerClickObservable.add(function (e) {
@@ -668,7 +668,7 @@ function add_inputs_equations(){
       else{
         if(!colorEquation){
           await remakeRibbon();
-          reMakeClones();
+
           glo.histo.save();
           glo.advancedTexture.moveFocusToControl(input);
         }
@@ -810,7 +810,7 @@ function add_radios(suit = false){
     button.onPointerClickObservable.add(async function(e) {
       // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
       if (e.buttonIndex === 0 && !glo.fromHisto) {
-        resetClones();
+
         await glo.formes.setFormeSelect(text, glo.coordsType);
         glo.histo.save();
 
@@ -901,7 +901,7 @@ function add_step_uv_slider(){
       if(!glo.fromHisto){
         await remakeRibbon();
       }
-      reMakeClones();
+
       header.text = headerText + " : " + value;
     });
     slider.onPointerClickObservable.add(function (e) {
@@ -1011,7 +1011,7 @@ function add_color_pickers(){
   parmamControl(picker2, 'pickerColorDiffuse', "picker right first onlyMainGui", { value: glo.diffuseColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker2.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
-    if(glo.cloneSystem){ ribbonToColorize = glo.ribbon_clone_1; }
+    
     if(!ribbonToColorize.material){
       var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 	    material.backFaceCulling  = false;
@@ -1025,7 +1025,7 @@ function add_color_pickers(){
   parmamControl(picker3, 'pickerColorEmissive', "picker right first onlyMainGui", { value: glo.emissiveColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
-    if(glo.cloneSystem){ ribbonToColorize = glo.ribbon_clone_1; }
+    
     if(!ribbonToColorize.material){
       var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 	    material.backFaceCulling  = false;
@@ -1447,12 +1447,12 @@ function add_sixth_panel_sliders(){
     invElemInInput("cos", "sin", false);
     invElemInInput("cu", "su", false);
     invElemInInput("cv", "sv");
-    if(glo.cloneSystem){ cloneSystem(); }
+    
     glo.histo.save();
   }, function(value){ });
   addButton(panelButtonInvFormulaUV, "InvFormulaUV", "Inv UV", buttonSizes.width, buttonSizes.height, 0, 0, async function(value){
     await invElemInInput("u", "v");
-    if(glo.cloneSystem){ cloneSystem();  }
+    
     glo.histo.save();
 
   }, function(value){ });

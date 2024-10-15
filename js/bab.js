@@ -66,16 +66,8 @@ Game = function(canvasId) {
   glo.end_loop = false;
   _this.scene.executeWhenReady(function() {
     engine.runRenderLoop(function() {
-      if (glo.rotateType != 'none') {
-        rotate_camera();
-      }
-      //sliders_animations();
-      if (glo.anim_construct_mesh && !glo.end_loop) {
-        var u_max = glo.u;
-        if (animConstructMesh() >= u_max) {
-          glo.end_loop = true;
-        };
-      }
+      if (glo.rotateType != 'none') { rotate_camera(); }
+      if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
       _this.scene.render();
     });
   });

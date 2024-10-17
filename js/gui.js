@@ -415,23 +415,20 @@ function add_histo_buttons(){
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, event){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     designButton(button);
     parmamControl(button, name, 'button right first noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     button.fontSize = "20px";
-    button.onPointerDownObservable.add(function() {
-      event();
+    button.onPointerDownObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
     });
     panel.addControl(button);
   }
 
-  add_button("but_goBack", "<", 80, 30, 10, 0, function(){
-    glo.histo.goBack();
-  });
-  add_button("but_goTo", ">", 80, 30, 10, 0, function(){
-    glo.histo.goTo();
-  });
+  add_button("but_goBack", "<", 80, 30, 10, 0, function(){glo.histo.goBack();}, function(){glo.histo.go('start');});
+  add_button("but_goTo", ">", 80, 30, 10, 0, function(){glo.histo.goTo();}, function(){glo.histo.go('end');});
 }
 
 function add_views_buttons(){
@@ -540,7 +537,7 @@ function add_uv_sliders(){
       var val = e.y < 0 ? val = pi/8 : val = -pi/8; slider.value += val;
     });
     slider.onPointerUpObservable.add(function (e) {
-      glo.histo.save();
+      //glo.histo.save();
     });
 
     panel.addControl(slider);
@@ -669,7 +666,7 @@ function add_inputs_equations(){
         if(!colorEquation){
           await remakeRibbon();
 
-          glo.histo.save();
+          //glo.histo.save();
           glo.advancedTexture.moveFocusToControl(input);
         }
         else{
@@ -777,6 +774,7 @@ function add_radios(suit = false){
     panel.onWheelObservable.add(async function(event){
       glo.whellSwitchFormDown = event.y > 0 ? true : false;
       await whellSwitchForm();
+      //glo.histo.save();
     });
     var options = {hAlign: 'left', vAlign: 'top', w: 20, t: top_panel, pL: 1};
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
@@ -812,7 +810,7 @@ function add_radios(suit = false){
       if (e.buttonIndex === 0 && !glo.fromHisto) {
 
         await glo.formes.setFormeSelect(text, glo.coordsType);
-        glo.histo.save();
+        //glo.histo.save();
 
         // button.onPointerClickObservable.remove(this);
       }
@@ -911,7 +909,7 @@ function add_step_uv_slider(){
       var val = e.y < 0 ? val = 1 : val = -1; slider.value += val;
     });
     slider.onPointerUpObservable.add(function (e) {
-      glo.histo.save();
+      //glo.histo.save();
     });
     panel.addControl(slider);
 
@@ -1155,6 +1153,7 @@ function add_symmetrize_sliders(){
         getPathsInfos();
 
         await remakeRibbon();
+        //glo.histo.save();
     });
     
     slider.onPointerClickObservable.add(function (e) {
@@ -1448,12 +1447,12 @@ function add_sixth_panel_sliders(){
     invElemInInput("cu", "su", false);
     invElemInInput("cv", "sv");
     
-    glo.histo.save();
+    //glo.histo.save();
   }, function(value){ });
   addButton(panelButtonInvFormulaUV, "InvFormulaUV", "Inv UV", buttonSizes.width, buttonSizes.height, 0, 0, async function(value){
     await invElemInInput("u", "v");
     
-    glo.histo.save();
+    //glo.histo.save();
 
   }, function(value){ });
   addButton(panelButtonInvPosXYZ, "InvPosX", "Inv X", buttonSizes.width/4, buttonSizes.height, 0, 0, function(value){

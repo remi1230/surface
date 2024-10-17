@@ -18,12 +18,10 @@ async function make_curves(u_params = {
 	fSuitX: glo.params.text_input_suit_x,
 	fSuitY: glo.params.text_input_suit_y,
 	fSuitZ: glo.params.text_input_suit_z,
-}, dim_one = glo.dim_one, fractalize = false){
+}, dim_one = glo.dim_one, fractalize = false, histo = true){
 
 	var good = test_equations(equations, dim_one);
 	if(good){
-		if(glo.resetClones){ resetClones(); }
-
 		if(typeof(glo.curves) != "undefined"){
 			if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 			if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
@@ -35,7 +33,7 @@ async function make_curves(u_params = {
 		await expendPathsByEachCenter();
 		await rotatePathsByEachCenter();
 
-		await make_ribbon();
+		await make_ribbon(true, histo);
 		glo.ribbon.refreshBoundingInfo();
 		setTimeout(() => {
 			glo.camera.focusOn([glo.ribbon], true);
@@ -82,11 +80,11 @@ function makeOnePoint(u, v){
 	return glo.onePoint;
 }
 
-async function make_ribbon(symmetrize = true){
+async function make_ribbon(symmetrize = true, histo = true){
 	glo.emissiveColorSave = {...glo.emissiveColor};
 	glo.diffuseColorSave  = {...glo.diffuseColor};
 
-	var nameRibbon = "Ribbon_" + glo.numRibbon;
+	var nameRibbon = "Ribbon";
 	glo.numRibbon++;
 
 	var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
@@ -182,6 +180,10 @@ async function make_ribbon(symmetrize = true){
 	glo.params.lastPathEqualFirstPath = false;
 
 	glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
+
+	glo.ribbon.resetCurveByStep();
+
+	if(histo){ glo.histo.save(); }
 }
 
 function ribbonDispose(all = true){
@@ -196,10 +198,10 @@ function ribbonDispose(all = true){
 	}
 }
 
-async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize'){
-	if(!glo.normalMode){  await make_curves(undefined, undefined, undefined, undefined, fractalize); }
+async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize', histo = true){
+	if(!glo.normalMode){  await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); }
 	else{
-		glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize); glo.fromSlider = false; drawNormalEquations();
+		glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); glo.fromSlider = false; drawNormalEquations();
 	}
 }
 
@@ -343,7 +345,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		if((goodR || isCenterOffset) && first){
 			let verticesNormals;
 			if(goodR){ verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind); }
-			//glo.ribbon.dispose();
 			const rotate = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
 			const center = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
 			
@@ -384,8 +385,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 							}
 						}
 
-						/*const vectN = getNormalVector(vect3);
-						xN = vectN.x; yN = vectN.y; zN = vectN.z;*/
 						const µN = xN*yN*zN;
 						const $N = (xN+yN+zN)/3;
 						const µ$N = µN*$N; var $µN = µN+$N;
@@ -435,17 +434,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 			const closedThenOpened = glo.params.lastPathEqualFirstPath && !isClosedPaths(newCurves[indk]);
 
 			newCurves[indk].pop();
-			/*if(glo.params.lastPathEqualFirstPath && !isClosedPaths(newCurves[indk])){
-				newCurves[indk].pop();
-			}*/
 			let newRibbon = await BABYLON.MeshBuilder.CreateRibbon(
 				"newRibbon_" + indk, {pathArray: newCurves[indk], sideOrientation:1, updatable: true, closeArray: !closedThenOpened}, glo.scene
 			);
-			/*newRibbon.updateIndices(newRibbon.getIndices());
-			newRibbon.computeWorldMatrix(true);
-			newRibbon.refreshBoundingInfo();*/
 			newRibbons.push(newRibbon);
-			//newRibbon.dispose();
 		}
 		else{
 			let newRibbon = await glo.ribbon.clone();
@@ -1253,12 +1245,39 @@ async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm 
 	makeLineSystem();
 }
 
-function makeLineStep(vects){
-	let line = BABYLON.MeshBuilder.CreateLines("par", {points: vects, updatable: false}, glo.scene);
-	line.color = 'red';
-	line.alpha = 1;
-	line.visibility = 1;
-	glo.linesStep.push(line);
+function makeLineStep(vect, newLine){
+	if(newLine){
+		let newLine = BABYLON.MeshBuilder.CreateLines("par", {points: [vect], updatable: false}, glo.scene);
+		newLine.color = 'red';
+		newLine.alpha = 1;
+		newLine.visibility = 1;
+		glo.linesStep.push(newLine);  
+	}
+	else{
+		addPointToLine(vect);
+	}
+}
+
+function addPointToLine(newPoint){
+    var points = getlinePoints(glo.linesStep[glo.linesStep.length-1]);
+
+    points.push(newPoint);
+
+	glo.linesStep[glo.linesStep.length-1] = BABYLON.MeshBuilder.CreateLines("par", {points: points, updatable: false}, glo.scene);
+	glo.linesStep[glo.linesStep.length-1].color = 'red';
+	glo.linesStep[glo.linesStep.length-1].alpha = 1;
+	glo.linesStep[glo.linesStep.length-1].visibility = 1;
+}
+
+function getlinePoints(lineMesh){
+    var positions = lineMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    var points = [];
+    
+    for (var i = 0; i < positions.length; i += 3) {
+        points.push(new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]));
+    }
+
+    return points;
 }
 
 function test_equations(equations, dim_one = false, forCol = false){
@@ -2220,203 +2239,6 @@ var afterAnimation = function() {
 
 };
 
-function initExportModal(){
-	var elems = document.querySelectorAll('#exportModal');
-    M.Modal.init(elems, {
-        onOpenEnd: function() {
-            glo.modalOpen = true;
-            document.querySelector('#weightToDownload').textContent = glo.ribbon.weightToDownload();
-			$('#filename').focus();
-        },
-        onCloseEnd: function() {
-			glo.modalOpen = false;
-            if (glo.fullScreen) {
-                glo.engine.switchFullscreen();
-            }
-        },
-    });
-}
-
-function stopPropagationEvent(event) {
-    event.stopPropagation();
-}
-
-function exportModal(){
-	glo.modalOpen = true;
-	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-	var instance = M.Modal.getInstance(document.querySelector('#exportModal'));
-    instance.open();
-}
-function importModal(){
-	glo.modalOpen = true;
-	event.stopPropagation();
-	event.preventDefault();
-	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-	$('#importModal').modal('open', {
-		onCloseEnd: function() {
-			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-			glo.modalOpen = false;
-		},
-	});
-}
-
-function download_JSON_mesh(event){
-	$('#importModal').modal('close');
-	var file_to_read = document.getElementById("jsonFileUpload").files[0];
-
-	const fileName      = file_to_read.name;
-	const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1); 
-
-	var fileread = new FileReader();
-	fileread.onload = function(e) {
-		var fileContent = e.target.result;
-		$("#jsonFileUpload").val("");
-
-		switch(fileExtension){
-			case 'json':
-				var contentJsonFile = JSON.parse(fileContent);
-				for(var prop in contentJsonFile){ glo.params[prop] = contentJsonFile[prop]; }
-
-				if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-				var playWithColorMode = glo.params.playWithColorMode;
-				while(playWithColorMode != glo.playWithColMode.next().value){}
-
-				paramsToControls();
-				var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
-				var formName = glo.params.formName;
-				if(glo.coordsType != glo.params.coordsType){
-				glo.coordsType = glo.params.coordsType;
-				glo.histo.setGoodCoords(glo.coordsType);
-				}
-				glo.fromHisto = !sameAsRadioCheck;
-				glo.radios_formes.setCheckByName("Radio " + formName);
-				glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
-				glo.fromHisto = false;
-				if(!sameAsRadioCheck){
-					make_curves();
-					glo.histo.save();
-					glo.histoColo.save();
-				}
-			break;
-			case 'obj':
-				ribbonDispose();
-				glo.curves.lineSystem.dispose();
-
-				var blob = new Blob([fileContent], { type: "text/plain" });
-				var url  = URL.createObjectURL(blob);
-				var dataUrl = e.target.result;
-				var base64String = dataUrl.split(',')[1];
-            	var dataString = base64String;
-				BABYLON.SceneLoader.ImportMesh("", "data:;base64,", dataString, glo.scene, function (meshes) {
-					// Les meshs sont chargés
-					meshes.forEach((mesh, i) => {
-						if(!i){
-							console.log(mesh.name);
-						}
-					});
-
-					let meshImport = meshes[1];
-
-					glo.ribbon = meshImport;
-					giveMaterialToMesh();
-
-					glo.curves.path = turnVerticesDatasToPaths();
-					glo.curves.lineSystem.dispose();
-
-				}, null, function (scene, message, exception) {
-					console.error(message, exception);
-				}, ".obj");
-
-			break;
-		}
-	};
-
-	switch(fileExtension){
-		case 'json':
-			fileread.readAsText(file_to_read);
-		break;
-		case 'obj':
-			fileread.readAsDataURL(file_to_read);
-		break;
-	}
-}
-
-var objectUrl;
-async function exportMesh(exportFormat) {
-    if (objectUrl) {
-        window.URL.revokeObjectURL(objectUrl);
-    }
-
-    await glo.ribbon.bakeCurrentTransformIntoVertices();
-
-    let strMesh;
-    if (exportFormat !== "json") {
-        if (exportFormat === "babylon") {
-            strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon));
-        } else if (exportFormat === "obj") {
-            if (!glo.lineSystem) {
-                strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]);
-            } else {
-                let meshesToExport = [];
-                glo.lines.forEach(line => {
-                    if (Array.isArray(line) && line.length > 0 && line.every(point => point instanceof BABYLON.Vector3)) {
-                        let tube = BABYLON.MeshBuilder.CreateTube("tube", { path: line, radius: 0.1 }, glo.scene);
-                        if (tube) {
-                            meshesToExport.push(tube);
-                        } else {
-                            console.log("Tube creation failed for line:", line);
-                        }
-                    }
-                });
-
-                if (meshesToExport.length > 0) {
-                    let meshToExport = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
-                    if (meshToExport) {
-                        strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
-                        glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshToExport], true, true);
-                    } else {
-                        console.log("Mesh fusion failed");
-                    }
-                } else {
-                    console.log("No meshes to export");
-                }
-            }
-        }
-
-        var filename = $("#filename").val();
-        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
-            filename += "." + exportFormat;
-        }
-    } else {
-        var filename = $("#filename").val();
-        var exportFormat = 'json';
-        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
-            filename += "." + exportFormat;
-        }
-
-        glo.params.coordsType = glo.coordsType;
-        var objForm = glo.formes.getFormSelect();
-        var form = !objForm ? "" : objForm.form.text;
-        glo.params.formName = form;
-        strMesh = JSON.stringify(glo.params);
-    }
-
-    // Créer un blob et générer l'URL de téléchargement
-    var blob = new Blob([strMesh], { type: "octet/stream" });
-    objectUrl = (window.webkitURL || window.URL).createObjectURL(blob);
-
-    // Mettre à jour le lien de téléchargement caché
-    $("#downloadLink").attr("href", objectUrl);
-    $("#downloadLink").attr("download", filename);
-
-    // Déclencher le téléchargement en cliquant sur le lien caché
-    $("#downloadLink")[0].click();
-
-    // Fermer le modal
-    $('#exportModal').modal('close');
-
-    return false;
-}
 
 
 async function exportMeshToSTL(mesh){
@@ -2723,97 +2545,6 @@ function firstInputToOthers(){
 function cameraOnPos(pos){
 	glo.camera.setTarget(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-}
-
-function toggleDataTable(){
-	dataTableBody.innerHTML = '';
-
-	const coeff = (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	              (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
-
-
-	let vertices = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-	const uStep   = (glo.params.u*2) / glo.params.steps_u;
-	const vStep   = (glo.params.v*2) / glo.params.steps_v;
-
-	const uFirst = -round(0.5 * uStep * glo.params.steps_u, 2);
-	const vFirst = -round(0.5 * vStep * glo.params.steps_v, 2);
-
-	const maxStepU = (glo.params.steps_u + 1 ) * coeff;
-
-	const UV = isUV();
-
-	const datas = [];
-	let n       = 0;
-	if(UV.isU && UV.isV){
-		for(let stepU = 0; stepU < maxStepU; stepU++){
-			const u = round(uFirst + (stepU*uStep), 2);
-			for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
-				const v = round(vFirst + (stepV*vStep), 2);
-				const x = round(vertices[n*3], 2);
-				const y = round(vertices[n*3 + 1], 2);
-				const z = round(vertices[n*3 + 2], 2);
-
-				datas.push([stepU, stepV, n, u, v, x, y, z]);
-				n++;
-			}
-		}
-	}
-	else if(UV.isU){
-		for(let stepU = 0; stepU < maxStepU; stepU++){
-			const u = round(uFirst + (stepU*uStep), 2);
-			const v = 'none';
-			const x = round(vertices[n*3], 2);
-			const y = round(vertices[n*3 + 1], 2);
-			const z = round(vertices[n*3 + 2], 2);
-
-			datas.push([stepU, n, 'none', u, v, x, y, z]);
-			n++;
-		}
-	}
-	else if(UV.isV){
-		for(let stepV = 0; stepV <= glo.params.steps_v * coeff; stepV++){
-			const u = 'none';
-			const v = round(vFirst + (stepV*vStep), 2);
-			const x = round(vertices[n*3], 2);
-			const y = round(vertices[n*3 + 1], 2);
-			const z = round(vertices[n*3 + 2], 2);
-
-			datas.push(['none', n, stepV, u, v, x, y, z]);
-			n++;
-		}
-	}
-	else{
-		datas.push([stepU, stepV, n, 'none', 'none', 'none', 'none', 'none']);
-	}
-
-	datas.forEach(datasTr => {
-		let tr = document.createElement('tr');
-		datasTr.forEach(dataTd => {
-			let td 		= document.createElement('td');
-			const tdTxt = document.createTextNode(dataTd);
-
-			td.appendChild(tdTxt);
-			tr.appendChild(td);
-		});
-		dataTableBody.appendChild(tr);
-	});
-	$('#dataModal').modal('open');
-}
-
-function initDataModal(){
-	$('#dataModal').modal({
-		onCloseEnd: function() {
-			if(glo.sphereToShowVertex){ 
-				glo.sphereToShowVertex.dispose(); 
-				glo.sphereToShowVertex = null; 
-			} 
-		},
-		onOpenEnd: function() {
-			$('#dataModal').css('opacity', $('#dataModalOpacity').val());
-		}
-	 });
 }
 
 function round(val, pre){
@@ -3646,7 +3377,7 @@ function customDecrease(x, m, k) {
 
 function closedPaths(paths){
 	glo.params.lastPathEqualFirstPath = false;
-	if(isClosedPaths(paths)){
+	if(isClosedPaths(paths) && !glo.params.fractalize.actived){
 		paths.pop();
 		glo.params.lastPathEqualFirstPath = true;
 	}
@@ -3735,4 +3466,15 @@ function testCenterMat(axis, angle){
 
 function testDirRot(axis, angle){
 	glo.ribbon.rotation[axis] = angle;
+}
+
+function testReg(){
+	const f = {
+		x: glo.params.text_input_x,
+		y: glo.params.text_input_y,
+		z: glo.params.text_input_z,
+		R: glo.params.text_input_alpha,
+		W: glo.params.text_input_beta,
+	};
+	return reg(f, false);
 }

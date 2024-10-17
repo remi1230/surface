@@ -90,18 +90,20 @@ BABYLON.Mesh.prototype.axisToOrigin = function(axis) {
 
 BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff) {
 	let paths = [];
-	let n = 0;
+	if(verticesDatas){
+		let n = 0;
 
-	const nbU    = !glo.params.fractalize.actived ? glo.params.steps_u : glo.params.fractalize.steps.u;
-	const stepsU = coeff ? ((nbU + 1) * coeff) : (!glo.params.fractalize.actived ? glo.pathsInfos.u : nbU);
-	const stepsV = !glo.params.fractalize.actived ? glo.params.steps_v : glo.params.fractalize.steps.v;
-	for(let i = 0; i <= stepsU - 1; i++){
-		paths[i] = [];
-		for(let j = 0; j <= stepsV; j++){
-			const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
-			paths[i].push(new BABYLON.Vector3(v.x, v.y, v.z));
+		const nbU    = !glo.params.fractalize.actived ? glo.params.steps_u : glo.params.fractalize.steps.u;
+		const stepsU = coeff ? ((nbU + 1) * coeff) : (!glo.params.fractalize.actived ? glo.pathsInfos.u : nbU);
+		const stepsV = !glo.params.fractalize.actived ? glo.params.steps_v : glo.params.fractalize.steps.v;
+		for(let i = 0; i <= stepsU - 1; i++){
+			paths[i] = [];
+			for(let j = 0; j <= stepsV; j++){
+				const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
+				paths[i].push(new BABYLON.Vector3(v.x, v.y, v.z));
 
-			n++;
+				n++;
+			}
 		}
 	}
 	return paths;
@@ -644,8 +646,12 @@ BABYLON.Mesh.prototype.curveByStepGen = function* () {
 	const paths = this.getPathsScaleToGrid();
 
 	for (const path of paths) {
-		makeLineStep(path);
-		yield 0;
+		let newLine = true;
+		for (const vect of path) {
+			makeLineStep(vect, newLine);
+			newLine = false;
+			yield 0;
+		}
 	}
 }
 
@@ -653,8 +659,21 @@ BABYLON.Mesh.prototype.resetCurveByStep = function () {
 	this.curveByStep.return();
 	this.curveByStep = {};
 	this.curveByStep = this.curveByStepGen();
-	glo.linesStep.map(line => { line.dispose(); line = {}; });
+	
+	glo.linesStep.map((line, index) => { 
+		if (line) { 
+			line.dispose();
+			glo.linesStep[index] = null;
+		}
+	});	
 	glo.linesStep = [];
+
+	while(glo.scene.meshes.length > 2){
+		const notToDispose = ['Ribbon', 'axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane'];
+		glo.scene.meshes.forEach(mesh => {
+			if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
+		});
+	}
 }
 
 BABYLON.Mesh.prototype.animConstructMesh = function () {

@@ -83,8 +83,8 @@ f = {
 			µ$N = µN*$N; var $µN = µN+$N;
 			µµN = µ$N*$µN;
 
-			const O = Math.acos(y/(h(x,y,z)));
-			const T = Math.atan2(z, x) ;
+			O = Math.acos(y/(h(x,y,z)));
+			T = Math.atan2(z, x) ;
 
 			const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x,y,z));
 			xT  = vectT.x; yT = vectT.y; zT = vectT.z;
@@ -261,7 +261,7 @@ f = {
 				pos.z = beta;
 			}
 
-			let x = pos.x; let y = pos.y; let z = pos.z;
+			x = pos.x; y = pos.y; z = pos.z;
 			const vect3 = new BABYLON.Vector3(x,y,z);
 			const vectN = getNormalVector(vect3);
 			xN  = vectN.x; yN = vectN.y; zN = vectN.z;
@@ -270,8 +270,8 @@ f = {
 			µ$N = µN*$N; $µN = µN+$N;
 			µµN = µ$N*$µN;
 
-			const O = Math.acos(y/(h(x,y,z)));
-			const T = Math.atan2(z, x) ;
+			O = Math.acos(y/(h(x,y,z)));
+			T = Math.atan2(z, x) ;
 
 			const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x,y,z));
 			xT  = vectT.x; yT = vectT.y; zT = vectT.z;
@@ -438,7 +438,7 @@ f = {
 			const dirXY = directionXY({x: alpha, y: beta}, r);
 			pos.x += dirXY.x; pos.y += dirXY.y; pos.z += dirXY.z;
 
-			let x = pos.x; let y = pos.y; let z = pos.z;
+			x = pos.x; y = pos.y; z = pos.z;
 			const vect3 = new BABYLON.Vector3(x,y,z);
 			const vectN = getNormalVector(vect3);
 			xN = vectN.x; yN = vectN.y; zN = vectN.z;
@@ -447,8 +447,8 @@ f = {
 			µ$N = µN*$N; var $µN = µN+$N;
 			µµN = µ$N*$µN;
 
-			const O = Math.acos(y/(h(x,y,z)));
-			const T = Math.atan2(z, x) ;
+			O = Math.acos(y/(h(x,y,z)));
+			T = Math.atan2(z, x) ;
 
 			const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x,y,z));
 			xT  = vectT.x; yT = vectT.y; zT = vectT.z;

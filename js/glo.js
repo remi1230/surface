@@ -38,8 +38,8 @@ var glo = {
 			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "u", fy: "v", fz: "uv", check: false, orient:{distance: 40}},
 			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
 			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true, },
+			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "7(cv + e)(cu)***2", fy: "7(cv + e)(su)***2", fz: "7(sv)***2", check: false, },
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
-			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "7(cv + e)(cu)***0.5", fy: "7(cv + e)(su)***0.5", fz: "7(sv)***0.5", check: false, },
 			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "G(cv + 1)", beta:"G(cv + 1)", theta: "", check: false, },
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
@@ -84,8 +84,8 @@ var glo = {
 			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
 			{text: "Spiral 4", typeCoords: 'cylindrical', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "12uv", fy: "pi", fz: "u", alpha: "", beta: "ch(u,v)pi", theta: "v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
 			{text: "Loop spiral", typeCoords: 'curvature', udef: PI, vdef: PI, nb_steps_u: 528, nb_steps_v: 92,  fx: "1", fy: "u+v²", fz: "u-v²", alpha: "", beta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
-			{text: "Ashtray", typeCoords: 'quaternion', udef: 4*PI, vdef: PI, nb_steps_u: 266, nb_steps_v: 264,  fx: "u", fy: "usv", fz: "ucvsu", alpha: "u", beta: "pi", check: true, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/6}},
-			{text: "Curve", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "ch(u,v)12", fy: "ch(u,v)", fz: "sh(u,v)", alpha: "ch(u,v)", beta: "pih(u,v)12", check: true, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/6}},
+			{text: "Ashtray", typeCoords: 'quaternion', udef: 4*PI, vdef: PI, nb_steps_u: 266, nb_steps_v: 264,  fx: "u", fy: "usv", fz: "ucvsu", alpha: "u", beta: "pi", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/6}},
+			{text: "Curve", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "ch(u,v)12", fy: "ch(u,v)", fz: "sh(u,v)", alpha: "ch(u,v)", beta: "pih(u,v)12", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/6}},
 			{text: "Helix", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4v", fy: "u", fz: "v", alpha: "G", beta: "pi", check: false, },
 			{text: "Helix II", typeCoords: 'quaternion', udef: 2*PI, vdef: PI/2, nb_steps_u: 528, nb_steps_v: 64,  fx: "12u", fy: "v", fz: "cu", alpha: "su", beta: "v", check: false, },
 			{text: "Horn", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "6v", fy: "u²+v²", fz: "u²-v²", alpha: "h(u,v)", beta: "u", check: false, },
@@ -243,6 +243,7 @@ var glo = {
 		{ exp: /c([^*\(R]*)R/g, upd: "cos($1R)" },
 		{ exp: /s([^*\(R]*)R/g, upd: "sin($1R)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
+		{ exp: /q/g, upd: "h(u,v)" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
 		{ exp: /sudv|svdu/g, upd: "sin(u/v)" },
@@ -481,28 +482,7 @@ var glo = {
 	},
 	histo: {
 		init: function(){ this.content[0].params = deepCopy(glo.params); },
-		content: [{
-			params: {},
-			f:{
-				x: "u",
-				y: "u*sin(v)",
-				z: "u*cos(v)*sin(u)",
-				alpha: "",
-				beta: "",
-			},
-			coordsType: 'cartesian',
-			u: 4*PI,
-			v: PI,
-			steps_u: 128,
-			steps_v: 128,
-			steps_umax: 256,
-			steps_vmax: 256,
-			umax: 6*Math.PI,
-			vmax: 6*Math.PI,
-			nameRadioToHisto: 'Radio Hourglass',
-			clone: false,
-			index_clone: -999,
-		}],
+		content: [],
 		index_go: 0,
 		save: function(){
 			if(glo.toHisto && !glo.fromHisto){
@@ -527,41 +507,50 @@ var glo = {
 					umax: glo.slider_u.maximum,
 					vmax: glo.slider_v.maximum,
 					nameRadioToHisto: glo.nameRadioToHisto,
-					clone: glo.cloneToSave,
-					index_clone: -999,
 				};
-				if(toInsert.clone){ toInsert.index_clone = glo.indexCloneToHisto; glo.indexCloneToHisto = -999; }
 
-				var contentLength = this.content.length;
-				var lastContent = this.content[contentLength - 1 - this.index_go];
-				var toHisto = false;
-				for(var prop in f){
-					if(f[prop] != lastContent.f[prop]){ toHisto = true; }
-				}
-				for(var prop in toInsert){
-					if(prop != "f" && prop != "nameRadioToHisto"){
-						if(toInsert[prop] != lastContent[prop]){ toHisto = true; }
+				const contentLength = this.content.length;
+
+				if(contentLength){
+					var lastContent = this.content[contentLength - 1 - this.index_go];
+					var toHisto     = false;
+					for(var prop in f){
+						if(f[prop] != lastContent.f[prop]){ toHisto = true; }
+					}
+					for(var prop in toInsert){
+						if(prop != "f" && prop != "nameRadioToHisto"){
+							if(toInsert[prop] != lastContent[prop]){ toHisto = true; }
+						}
+					}
+					if(toInsert.nameRadioToHisto != lastContent["nameRadioToHisto"] && toInsert.nameRadioToHisto != ""){ toHisto = true; }
+					if(toHisto){
+						this.content.splice(contentLength - this.index_go, 0, toInsert);
+						glo.nameRadioToHisto == '';
 					}
 				}
-				if(toInsert.nameRadioToHisto != lastContent["nameRadioToHisto"] && toInsert.nameRadioToHisto != ""){ toHisto = true; }
-				if(toHisto){
-					this.content.splice(contentLength - this.index_go, 0, toInsert);
-					glo.nameRadioToHisto == '';
+				else{
+					this.content.push(toInsert);
 				}
-				glo.cloneToSave = false;
 			}
 		},
 		go: function(direction){
 			var contentLength = this.content.length;
 			var good = true;
-			if(direction == -1){
-				this.index_go++;
-				if(this.index_go > contentLength - 1){ this.index_go = contentLength - 1; good = false; }
+
+			if(!isNaN(direction)){
+				if(direction == -1){
+					this.index_go++;
+					if(this.index_go > contentLength - 1){ this.index_go = contentLength - 1; good = false; }
+				}
+				else{
+					this.index_go--;
+					if(this.index_go < 0){ this.index_go = 0; good = false; }
+				}
 			}
 			else{
-				this.index_go--;
-				if(this.index_go < 0){ this.index_go = 0; good = false; }
+				this.index_go = direction === 'start' ? contentLength - 1 : 0;
 			}
+
 			if(good){
 				var fromHistoSave = glo.fromHisto;
 				var toHistoSave = glo.toHisto;
@@ -597,26 +586,10 @@ var glo = {
 
 				if(content.nameRadioToHisto != ''){ glo.radios_formes.setCheckByName(content.nameRadioToHisto); }
 
-				if(content.index_clone != -999){
-					make_curves(); //Premier, ex hyperbole
-					glo.ribbon_save = glo.ribbon.clone("Clone_for_var_ribbon_save_*_" + glo.ribbon.name);
-					glo.ribbon.dispose(); glo.ribbon = {}; delete glo.ribbon;
-					this.make(content.index_clone); // Deuxième, ex sablier
-					glo.curves.lines.map(line => {line.dispose(); line = {}; });
-					glo.ribbonSaveToClone = glo.ribbon.clone("Clone_for_glo_ribbonSaveToClone_*_" + glo.ribbon.name);
-					glo.ribbon.dispose(); glo.ribbon = {}; delete glo.ribbon;
-					glo.ribbon = glo.ribbon_save.clone("ribbon_save_clone_*_" + glo.ribbon_save.name);
-					glo.ribbon_save.dispose(); glo.ribbon_save = {}; delete glo.ribbon_save;
-					glo.ribbon.visibility = 0;
-				}
-
-				resetClones();
-				if(content.index_clone == -999){ make_curves(); }
-				if(content.clone){
-					cloneSystem(glo.cloneScaleToTemplate, true, true, false);
-				}
 				glo.fromHisto = fromHistoSave;
-				glo.toHisto = toHistoSave;
+				glo.toHisto   = toHistoSave;
+
+				remakeRibbon(glo.params.fractalize.actived, false);
 			}
 		},
 		goBack: function(){
@@ -741,6 +714,15 @@ var glo = {
 				cts.getByName("inputColorZ").text = prs.text_input_color_z;
 				cts.getByName("inputColorAlpha").text = prs.text_input_color_alpha;
 				cts.getByName("inputColorBeta").text = prs.text_input_color_beta;
+
+				for(let prop in content){
+					const val = content[prop];
+					let ctrl  = glo.allControls.getByName(prop);
+					if(typeof val !== 'object' && typeof val !== 'function' && typeof val !== 'boolean' && ctrl){
+						ctrl.value = val;
+						prs[prop]  = val;
+					}	
+				}
 
 				make_ribbon();
 
@@ -979,13 +961,10 @@ var glo = {
 	ribbon_alpha: 1,
 	rot_z: 0,
 	rotateType: 'none',
-	cloneAxis: 'none',
 	nameRadioToHisto: '',
 	axis_size: 30,
 	planSize: 40,
-	cloneScale: 1,
 	scaleNorm: 1,
-	cloneScaleToTemplate: 0.05,
 	buttonBottomSize: 90,
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,
@@ -1009,8 +988,6 @@ var glo = {
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
 	angleToUpdateRibbon: {x: 0, y: 0},
 	pickers_size: 107,
-	indexSaveToclone: -999,
-	indexCloneToHisto: -999,
 	numRibbon: 0,
 	scaleVertex: 1,
 	fullScreen: false,
@@ -1040,10 +1017,6 @@ var glo = {
 	viewZpos: true,
 	anim_construct_mesh: false,
 	deg: false,
-	cloneSystem: false,
-	resetClones: false,
-	reMakeClones: true,
-	cloneToSave: false,
 	switchedSliderNoChange: false,
 	voronoiMode: false,
 	normalMode: false,
@@ -1071,6 +1044,7 @@ var glo = {
 		index_v: 0,
 	},
 	onePoint: BABYLON.Vector3.Zero(),
+	lineStep: {},
 	linesStep: [],
 };
 function getByName(name){
@@ -1139,3 +1113,5 @@ glo.invPositionIfs      = glo.invPosIfs();
 glo.fractalizeOrients   = glo.fractalizeOrients();
 
 let dataTableBody = document.getElementById('dataTableBody');
+
+glosSave = [];

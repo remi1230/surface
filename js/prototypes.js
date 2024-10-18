@@ -656,23 +656,24 @@ BABYLON.Mesh.prototype.curveByStepGen = function* () {
 }
 
 BABYLON.Mesh.prototype.resetCurveByStep = function () {
-	this.curveByStep.return();
-	this.curveByStep = {};
-	this.curveByStep = this.curveByStepGen();
-	
-	glo.linesStep.map((line, index) => { 
-		if (line) { 
-			line.dispose();
-			glo.linesStep[index] = null;
-		}
-	});	
-	glo.linesStep = [];
+	if(glo.scene.meshes.some(mesh => mesh.name === 'lineStep')){
+		this.curveByStep.return();
+		this.curveByStep = {};
+		this.curveByStep = this.curveByStepGen();
+		
+		glo.linesStep.map((line, index) => { 
+			if (line) { 
+				line.dispose();
+				glo.linesStep[index] = null;
+			}
+		});	
+		glo.linesStep = [];
 
-	while(glo.scene.meshes.length > 2){
-		const notToDispose = ['Ribbon', 'axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane'];
-		glo.scene.meshes.forEach(mesh => {
-			if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
-		});
+		while(glo.scene.meshes.some(mesh => mesh.name === 'lineStep')){
+			glo.scene.meshes.forEach(mesh => {
+				if(mesh.name === 'lineStep'){ mesh.dispose(); }
+			});
+		}
 	}
 }
 

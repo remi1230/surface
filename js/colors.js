@@ -1,3 +1,25 @@
+function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
+	disposeAllMaterials();
+
+	let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+
+	material.backFaceCulling = false;
+	mesh.material = material;
+	mesh.material.emissiveColor = emissiveColor;
+	mesh.material.diffuseColor = diffuseColor;
+	mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+	mesh.material.alpha = glo.ribbon_alpha;
+	mesh.alphaIndex = 998;
+	mesh.material.wireframe = glo.wireframe;
+}
+
+function disposeAllMaterials(){
+	for(let i = 0; i < glo.scene.materials.length; i++){
+		glo.scene.materials[i].dispose();
+		i--;
+	} 
+}
+
 function makeOtherColors(){
 	if(glo.colorsType != 'none' && !glo.params.playWithColors){ return makeRandomColors(); }
 	else{ return makeColors(); }
@@ -649,11 +671,12 @@ function testCol(){
 
 function voronoi(func = min){
 	var paths = glo.curves.paths;
-	var pathsLength = paths.length;
+	const pathsULength = paths.length;
+	const pathsVLength = paths[0].length;
 	var nbPoints = glo.voronoi.nbPoints;
 	var points = []; var colors = [];
 	for(var i = 0; i < nbPoints; i++){
-		points.push({pt: glo.curves.paths[parseInt(rnd() * (pathsLength - 1))][parseInt(rnd() * (pathsLength - 1))], color: BABYLON.Color3.Random(), });
+		points.push({pt: glo.curves.paths[parseInt(rnd() * (pathsULength - 1))][parseInt(rnd() * (pathsVLength - 1))], color: BABYLON.Color3.Random(), });
 	}
 	paths.map(path => {
 		path.map(p => {

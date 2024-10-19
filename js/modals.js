@@ -273,6 +273,34 @@ function toggleDataTable(){
 	$('#dataModal').modal('open');
 }
 
+function filterTable() {
+	const inputs = document.querySelectorAll('thead input');
+	const table  = document.getElementById("dataTable");
+	const rows   = table.querySelectorAll("tbody tr");
+
+	rows.forEach(row => {
+		let shouldShow = true;
+
+		// Loop through each input filter and check the corresponding cell
+		inputs.forEach((input, index) => {
+		const filter = input.value.trim();  // Exact match, don't change case
+		const cell = row.getElementsByTagName("td")[index];
+
+		if (cell) {
+			const cellValue = cell.textContent.trim() || cell.innerText.trim();
+
+			// If a filter is present, check for exact match
+			if (filter !== "" && cellValue !== filter) {
+				shouldShow = false;
+			}
+		}
+		});
+
+		// Show or hide the row based on whether all filters match
+		row.style.display = shouldShow ? "" : "none";
+	});
+}
+
 function initDataModal(){
 	$('#dataModal').modal({
 		onCloseEnd: function() {

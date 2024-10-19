@@ -221,6 +221,51 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
     };
 };
 
+BABYLON.Mesh.prototype.colorByCurvatures = function(curvatures = glo.ribbon.getCurvatures().curvatures, pathsLength = glo.ribbon.getPaths().length) {
+	let colorsArray    = [];
+    let curveKindDatas = [];
+
+	const coeff     = 1/180;
+	const curveKind = glo.colorByCurve;
+	curvatures.forEach(curvature => {
+		const curveKindData = {
+			 azit  			  : coeff * abs(curvature.azimuth),
+			 elev  			  : coeff * abs(curvature.elevation),
+			 point 			  : coeff * abs(curvature.points),
+			 azitOrtho  	  : coeff * abs(curvature.azimuthOrtho),
+			 elevOrtho  	  : coeff * abs(curvature.elevationOrtho),
+			 pointOrtho 	  : coeff * abs(curvature.pointsOrtho)
+		};
+		curveKindDatas.push(curveKindData);
+	});
+
+	curveKindDatas.forEach(curveKindData => {
+		const curveKind = glo.colorByCurve;
+
+		curveKindData.azitMoy  = (curveKindData.azit + curveKindData.azitOrtho) / 2;
+		curveKindData.elevMoy  = (curveKindData.elev + curveKindData.elevOrtho) / 2;
+		curveKindData.pointMoy = (curveKindData.point + curveKindData.pointOrtho) / 2;
+
+		curveKindData.azitElevMoy = (curveKindData.elevMoy + curveKindData.azitMoy) / 2;
+
+		curveKindData.azitElevPointMoy = (curveKindData.azitMoy + curveKindData.elevMoy + curveKindData.pointMoy) / 3;
+
+		const data = curveKindData[curveKind];
+
+		colorsArray.push(data, data, data, 1);
+	});
+
+	glo.curveKindDatas = curveKindDatas;
+
+	const nbStepsU = glo.params.steps_u;
+	const nbStepsV = glo.params.steps_v;
+	const nbPathsLaking = 4 * ((nbStepsU * nbStepsV) - ((nbStepsU-2) * (nbStepsV-2)));
+
+	for(let i = 0; i < nbPathsLaking; i++){ colorsArray.push(colorsArray[i]); }
+
+	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsArray);
+}
+
 BABYLON.Mesh.prototype.minimizeVertices = function() {
 	var _pdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
 	var _ndata = this.getVerticesData(BABYLON.VertexBuffer.NormalKind);

@@ -40,258 +40,270 @@ function makeRandomColors(){
 }
 
 function makeColors(){
-	var colors = [];
-	var verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+	if(!glo.params.colorByCurvatures){
+		var colors = [];
+		var verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
 
-	var verticesNormalsLength = verticesNormals.length;
+		var verticesNormalsLength = verticesNormals.length;
 
-	var dim_one = false;
+		var dim_one = false;
 
-	var equations = {
-		fx: glo.params.text_input_color_x,
-		fy: glo.params.text_input_color_y,
-		fz: glo.params.text_input_color_z,
-		falpha: glo.params.text_input_color_alpha,
-		fbeta: glo.params.text_input_color_beta,
-	};
-
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
-
-	function mx(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].x;
-  };
-  function my(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  };
-  function mz(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  };
-
-  function u_mod(modulo = 2, val_to_return = 0, variable = u, index = u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = u, index = v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
-
-	xEmpty = equations.fx == '' ? true : false; yEmpty = equations.fy == '' ? true : false; zEmpty = equations.fz == '' ? true : false;
-
-	var good = test_equations(equations, dim_one);
-	if(good){
-		ribbonToWhite();
-
-		var f = {
-			x: equations.fx,
-			y: equations.fy,
-			z: equations.fz,
-			alpha: equations.falpha,
-			beta: equations.fbeta,
+		var equations = {
+			fx: glo.params.text_input_color_x,
+			fy: glo.params.text_input_color_y,
+			fz: glo.params.text_input_color_z,
+			falpha: glo.params.text_input_color_alpha,
+			fbeta: glo.params.text_input_color_beta,
 		};
 
-		reg(f, dim_one);
+		var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
+		var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	  	var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
+		function mx(index = 1, val_to_return = 0, p = pathsNow){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
 
-		if(f.x == ""){ f.x = 0; }
-		if(f.y == ""){ f.y = 0; }
-		if(f.z == ""){ f.z = 0; }
-		if(f.alpha == ""){ f.alpha = 0; }
-		if(f.beta == ""){ f.beta = 0; }
+		return p[p.length - index].x;
+	};
+	function my(index = 1, val_to_return = 0, p = pathsNow){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
 
-		var isAlpha = false;
-		var alpha = 0;
-		if(glo.params.text_input_color_alpha != ""){
-			isAlpha = true;
+		return p[p.length - index].y;
+	};
+	function mz(index = 1, val_to_return = 0, p = pathsNow){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
+
+		return p[p.length - index].z;
+	};
+
+	function u_mod(modulo = 2, val_to_return = 0, variable = u, index = u){
+		if(index%modulo == 0){ return variable; }
+
+		return val_to_return;
+	}
+	function v_mod(modulo = 2, val_to_return = 0, variable = u, index = v){
+		if(index%modulo == 0){ return variable; }
+
+		return val_to_return;
+	}
+		function mod(index, ...args){ return args[index%args.length]; }
+
+		function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
+			var funcR = func;
+			var f = {toInv:func};
+			for(var i = 0; i < it; i++){
+				var index = funcR.length - (i+1);
+				var fInvUV = reg_inv(f, 'u', 'v').toInv;
+				f.toInv = fInvUV;
+				funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
+			}
+			func = funcR;
+			return eval(func);
 		}
-		var isBeta = false;
-		var beta = 0;
-		if(glo.params.text_input_color_beta != ""){
-			isBeta = true;
-		}
 
-		var colorsNumbersX = []; var colorsNumbersY = []; var colorsNumbersZ = [];
-		var colorsAllNumbers = [];
-		var paths = glo.curves.paths; var pathsLength = paths.length;
-		var allPathsNb = pathsLength*paths[0].length;
-		var pathsNow = [];
-		var itColors = glo.params.itColors; var itLength = itColors**2; pathsLength/=itColors;
-		var n = 0;
-		for(var it = 0; it < itLength; it++){
-			for(var u = 0; u < pathsLength; u++){
-				ind_u = u;
-				var path = paths[u];
-				var pathNow = [];
-				var pathLength = path.length/itColors;
-				for(var v = 0; v < pathLength; v++){
-					var p = path[v];
-					if(n*3 + 2 > verticesNormalsLength){ n = 0; }
-					var xN = verticesNormals[n*3]; var yN = verticesNormals[n*3 + 1]; var zN = verticesNormals[n*3 + 2];
-					var xP = p.x; var yP = p.y; var zP = p.z;
-					var µN = xN*yN*zN; var µP = xP*yP*zP;
-					var $N = (xN+yN+zN)/3; var $P = (xP+yP+zP)/3; var µP = xP*yP*zP;
-					var µ$N = µN*$N; var $µN = µN+$N;
-					var µµN = µ$N*$µN;
+		xEmpty = equations.fx == '' ? true : false; yEmpty = equations.fy == '' ? true : false; zEmpty = equations.fz == '' ? true : false;
 
-					const invRad = 180/PI;
-					var O = Math.acos(yP/(h(xP,yP,zP))) * invRad;
-					var T = Math.atan2(zP, xP) * invRad;
+		var good = test_equations(equations, dim_one);
+		if(good){
+			ribbonToWhite();
 
-					var vectT = new BABYLON.Vector3(xP,yP,zP);
-					vectT = BABYLON.Vector3.Normalize(vectT);
-					xT = vectT.x; yT = vectT.y; zT = vectT.z;
-					var µT = xT*yT*zT;
-					var $T = (xT+yT+zT)/3;
-					var µ$T = µT*$T; var $µT = µT+$T;
-					var µµT = µ$T*$µT;
+			var f = {
+				x: equations.fx,
+				y: equations.fy,
+				z: equations.fz,
+				alpha: equations.falpha,
+				beta: equations.fbeta,
+			};
 
-					ind_v = v;
+			reg(f, dim_one);
 
-					x = eval(f.x);
-					y = eval(f.y);
-					z = eval(f.z);
+			var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
 
-					if(glo.params.modCos){ x = !xEmpty ? c(x) : x; y = !yEmpty ? c(y) : y; z = !zEmpty ? c(z) : z; }
+			if(f.x == ""){ f.x = 0; }
+			if(f.y == ""){ f.y = 0; }
+			if(f.z == ""){ f.z = 0; }
+			if(f.alpha == ""){ f.alpha = 0; }
+			if(f.beta == ""){ f.beta = 0; }
 
-					if(glo.params.colorsByRotate){
-						var pos = {x: x, y: 0, z: 0};
-						pos = rotateByMatrix(pos, 0, y, z);
-						x = pos.x; y = pos.y; z = pos.z;
+			var isAlpha = false;
+			var alpha = 0;
+			if(glo.params.text_input_color_alpha != ""){
+				isAlpha = true;
+			}
+			var isBeta = false;
+			var beta = 0;
+			if(glo.params.text_input_color_beta != ""){
+				isBeta = true;
+			}
+
+			let d, k, p, t;
+
+			var colorsNumbersX = []; var colorsNumbersY = []; var colorsNumbersZ = [];
+			var colorsAllNumbers = [];
+			var paths = glo.curves.paths; var pathsLength = paths.length;
+			var allPathsNb = pathsLength*paths[0].length;
+			var pathsNow = [];
+			var itColors = glo.params.itColors; var itLength = itColors**2; pathsLength/=itColors;
+			var n = 0;
+			for(var it = 0; it < itLength; it++){
+				for(var u = 0; u < pathsLength; u++){
+					ind_u = u;
+					var path = paths[u];
+					k = !(u%2) ? -1 : 1;
+					p = !(u%2) ? -u : u;
+					var pathNow = [];
+					var pathLength = path.length/itColors;
+					for(var v = 0; v < pathLength; v++){
+						d = !(v%2) ? -1 : 1;
+						t = !(v%2) ? -v : v;
+
+						var pv = path[v];
+						if(n*3 + 2 > verticesNormalsLength){ n = 0; }
+						var xN = verticesNormals[n*3]; var yN = verticesNormals[n*3 + 1]; var zN = verticesNormals[n*3 + 2];
+						var xP = pv.x; var yP = pv.y; var zP = pv.z;
+						var µN = xN*yN*zN;
+						var $N = (xN+yN+zN)/3; var $P = (xP+yP+zP)/3; var µP = xP*yP*zP;
+						var µ$N = µN*$N; var $µN = µN+$N;
+						var µµN = µ$N*$µN;
+
+						const invRad = 180/PI;
+						var O = Math.acos(yP/(h(xP,yP,zP))) * invRad;
+						var T = Math.atan2(zP, xP) * invRad;
+
+						var vectT = new BABYLON.Vector3(xP,yP,zP);
+						vectT = BABYLON.Vector3.Normalize(vectT);
+						xT = vectT.x; yT = vectT.y; zT = vectT.z;
+						var µT = xT*yT*zT;
+						var $T = (xT+yT+zT)/3;
+						var µ$T = µT*$T; var $µT = µT+$T;
+						var µµT = µ$T*$µT;
+
+						ind_v = v;
+
+						x = eval(f.x);
+						y = eval(f.y);
+						z = eval(f.z);
+
+						if(glo.params.modCos){ x = !xEmpty ? c(x) : x; y = !yEmpty ? c(y) : y; z = !zEmpty ? c(z) : z; }
+
+						if(glo.params.colorsByRotate){
+							var pos = {x: x, y: 0, z: 0};
+							pos = rotateByMatrix(pos, 0, y, z);
+							x = pos.x; y = pos.y; z = pos.z;
+						}
+
+						if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
+						if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
+						if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
+						if(isBeta){
+							alpha = eval(f.alpha);
+							beta = eval(f.beta);
+							if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+							if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
+							if(glo.params.rotAlpha != 0){ alpha*=glo.params.rotAlpha; } if(glo.params.rotBeta != 0){ beta*=glo.params.rotBeta; }
+							var pos = {x: x, y: y, z: z};
+							pos = rotateByMatrix(pos, 0, alpha, beta);
+							x = pos.x; y = pos.y; z = pos.z;
+						}
+						else if(isAlpha){
+							alpha = eval(f.alpha);
+							if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
+							if(glo.params.rotAlpha != 0){ alpha*=glo.params.rotAlpha; }
+							var pos = {x: x, y: y, z: z};
+							pos = rotateByMatrix(pos, 0, alpha, 0);
+							x = pos.x; y = pos.y; z = pos.z;
+						}
+
+						colorsNumbersX.push(x); colorsNumbersY.push(y); colorsNumbersZ.push(z);
+						colorsAllNumbers.push(x, y, z);
+						pathNow.push({x: x, y: y, z: z});
+						pathsNow.push({x: x, y: y, z: z});
+						colors.push({r: x, g: y, b: z});
+
+						n++;
 					}
-
-					if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
-					if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
-					if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
-					if(isBeta){
-						alpha = eval(f.alpha);
-						beta = eval(f.beta);
-						if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-						if(beta == Infinity || beta == -Infinity || isNaN(beta)){ beta = 0; }
-						if(glo.params.rotAlpha != 0){ alpha*=glo.params.rotAlpha; } if(glo.params.rotBeta != 0){ beta*=glo.params.rotBeta; }
-						var pos = {x: x, y: y, z: z};
-						pos = rotateByMatrix(pos, 0, alpha, beta);
-						x = pos.x; y = pos.y; z = pos.z;
-					}
-					else if(isAlpha){
-						alpha = eval(f.alpha);
-						if(alpha == Infinity || alpha == -Infinity || isNaN(alpha)){ alpha = 0; }
-						if(glo.params.rotAlpha != 0){ alpha*=glo.params.rotAlpha; }
-						var pos = {x: x, y: y, z: z};
-						pos = rotateByMatrix(pos, 0, alpha, 0);
-						x = pos.x; y = pos.y; z = pos.z;
-					}
-
-					colorsNumbersX.push(x); colorsNumbersY.push(y); colorsNumbersZ.push(z);
-					colorsAllNumbers.push(x, y, z);
-					pathNow.push({x: x, y: y, z: z});
-					pathsNow.push({x: x, y: y, z: z});
-					colors.push({r: x, g: y, b: z});
-
-					n++;
 				}
 			}
+
+			var maxX = max(colorsNumbersX); var maxY = max(colorsNumbersY); var maxZ = max(colorsNumbersZ);
+			var minX = min(colorsNumbersX); var minY = min(colorsNumbersY); var minZ = min(colorsNumbersZ);
+			var maximumX = abs(maxX - minX); var maximumY = abs(maxY - minY); var maximumZ = abs(maxZ - minZ);
+			var maxAll = max(colorsAllNumbers);
+			var minAll = min(colorsAllNumbers);
+			var maximumAll = abs(maxAll - minAll);
+			var newColors = [];
+
+			if(glo.params.playWithColorMode == 'xyz'){ colors.map(color => {
+				if(!glo.transCol){ var r = color.r / maxX; r = r == Infinity ? 0 : r; var g = color.g / maxY; g = g == Infinity ? 0 : g; var b = color.b / maxZ; b = b == Infinity ? 0 : b; }
+				else{ var r = (color.r - minX) / maximumX; r = r == Infinity ? 0 : r; var g = (color.g - minY) / maximumY; g = g == Infinity ? 0 : g; var b = (color.b - minZ) / maximumZ; b = b == Infinity ? 0 : b; }
+				r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
+				newColors.push(new BABYLON.Color4(r, g, b, 1)); });
+			}
+			else if(glo.params.playWithColorMode == 'all'){
+				colors.map(color => {
+					if(!glo.transCol){ var r = color.r / maxAll; r = r == Infinity ? 0 : r; var g = color.g / maxAll; g = g == Infinity ? 0 : g; var b = color.b / maxAll; b = b == Infinity ? 0 : b; }
+					else{ var r = (color.r - minAll) / maximumAll; r = r == Infinity ? 0 : r; var g = (color.g - minAll) / maximumAll; g = g == Infinity ? 0 : g; var b = (color.b - minAll) / maximumAll; b = b == Infinity ? 0 : b; }
+						r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
+					newColors.push(new BABYLON.Color4(r, g, b, 1));
+				});
+			}
+			else{
+				colors.map(color => {
+					var r = color.r; r = r == Infinity ? 0 : r; var g = color.g; g = g == Infinity ? 0 : g; var b = color.b; b = b == Infinity ? 0 : b;
+						r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
+					newColors.push(new BABYLON.Color4(r, g, b, 1));
+				});
+			}
+
+			glo.colors = newColors;
+
+			if(glo.params.saturation != 0){ newColors = saturation(false, true); }
+			if(glo.params.tint != 0){ newColors = tint(false, true); }
+
+			if(glo.params.rColor != 0){ var rColor = glo.params.rColor; newColors.map(newColor => { newColor.r*=rColor; }); }
+			if(glo.params.gColor != 0){ newColors = mColorShell(false, true); }
+			if(glo.params.bColor != 0){ var bColor = glo.params.bColor; newColors.map(newColor => { newColor.b*=bColor; }); }
+
+			if(glo.params.colorsAbs){ newColors.map(newColor => { newColor.r = abs(newColor.r); newColor.b = abs(newColor.b); newColor.g = abs(newColor.g); }); }
+
+			if(glo.params.colors2){
+				var a = 0;
+				colors.map(color => {
+					var r = ((abs(color.r)) / maxX);
+					var g = ((abs(color.g)) / maxY);
+					if(r == 0){ r = 1; } if(g == 0){ g = 1; }
+					var ind = parseInt(r*g*allPathsNb);
+					if(ind > newColors.length - 1){ ind = newColors.length - 1 }
+
+					newColors[ind] = new BABYLON.Color4(newColors[a].r, newColors[a].g, newColors[a].b, 1);
+					a++;
+				});
+			}
+
+			if(glo.params.invCol){
+				newColors.map(newColor => { newColor.r = 1 - newColor.r; newColor.b = 1 - newColor.b; newColor.g = 1 - newColor.g; });
+			}
+			glo.colors = newColors;
+
+			var colorsArray = []; newColors.map(newColor => { colorsArray.push(newColor.r, newColor.g, newColor.b, newColor.a); });
+			glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsArray);
+
+			return true;
 		}
 
-		var maxX = max(colorsNumbersX); var maxY = max(colorsNumbersY); var maxZ = max(colorsNumbersZ);
-		var minX = min(colorsNumbersX); var minY = min(colorsNumbersY); var minZ = min(colorsNumbersZ);
-		var maximumX = abs(maxX - minX); var maximumY = abs(maxY - minY); var maximumZ = abs(maxZ - minZ);
-		var maxAll = max(colorsAllNumbers);
-		var minAll = min(colorsAllNumbers);
-		var maximumAll = abs(maxAll - minAll);
-		var newColors = [];
-
-		if(glo.params.playWithColorMode == 'xyz'){ colors.map(color => {
-			if(!glo.transCol){ var r = color.r / maxX; r = r == Infinity ? 0 : r; var g = color.g / maxY; g = g == Infinity ? 0 : g; var b = color.b / maxZ; b = b == Infinity ? 0 : b; }
-			else{ var r = (color.r - minX) / maximumX; r = r == Infinity ? 0 : r; var g = (color.g - minY) / maximumY; g = g == Infinity ? 0 : g; var b = (color.b - minZ) / maximumZ; b = b == Infinity ? 0 : b; }
-			r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
-			newColors.push(new BABYLON.Color4(r, g, b, 1)); });
-		}
-		else if(glo.params.playWithColorMode == 'all'){
-			colors.map(color => {
-				if(!glo.transCol){ var r = color.r / maxAll; r = r == Infinity ? 0 : r; var g = color.g / maxAll; g = g == Infinity ? 0 : g; var b = color.b / maxAll; b = b == Infinity ? 0 : b; }
-				else{ var r = (color.r - minAll) / maximumAll; r = r == Infinity ? 0 : r; var g = (color.g - minAll) / maximumAll; g = g == Infinity ? 0 : g; var b = (color.b - minAll) / maximumAll; b = b == Infinity ? 0 : b; }
-					r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
-				newColors.push(new BABYLON.Color4(r, g, b, 1));
-			});
-		}
-		else{
-			colors.map(color => {
-				var r = color.r; r = r == Infinity ? 0 : r; var g = color.g; g = g == Infinity ? 0 : g; var b = color.b; b = b == Infinity ? 0 : b;
-					r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
-				newColors.push(new BABYLON.Color4(r, g, b, 1));
-			});
-		}
-
-		glo.colors = newColors;
-
-		if(glo.params.saturation != 0){ newColors = saturation(false, true); }
-		if(glo.params.tint != 0){ newColors = tint(false, true); }
-
-		if(glo.params.rColor != 0){ var rColor = glo.params.rColor; newColors.map(newColor => { newColor.r*=rColor; }); }
-		if(glo.params.gColor != 0){ newColors = mColorShell(false, true); }
-		if(glo.params.bColor != 0){ var bColor = glo.params.bColor; newColors.map(newColor => { newColor.b*=bColor; }); }
-
-		if(glo.params.colorsAbs){ newColors.map(newColor => { newColor.r = abs(newColor.r); newColor.b = abs(newColor.b); newColor.g = abs(newColor.g); }); }
-
-		if(glo.params.colors2){
-			var k = 0;
-			colors.map(color => {
-				var r = ((abs(color.r)) / maxX);
-				var g = ((abs(color.g)) / maxY);
-				if(r == 0){ r = 1; } if(g == 0){ g = 1; }
-				var ind = parseInt(r*g*allPathsNb);
-				if(ind > newColors.length - 1){ ind = newColors.length - 1 }
-
-				newColors[ind] = new BABYLON.Color4(newColors[k].r, newColors[k].g, newColors[k].b, 1);
-				k++;
-			});
-		}
-
-		if(glo.params.invCol){
-			newColors.map(newColor => { newColor.r = 1 - newColor.r; newColor.b = 1 - newColor.b; newColor.g = 1 - newColor.g; });
-		}
-		glo.colors = newColors;
-
-		var colorsArray = []; newColors.map(newColor => { colorsArray.push(newColor.r, newColor.g, newColor.b, newColor.a); });
-		glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsArray);
-
-		return true;
+		return false;
 	}
-
-	return false;
+	else{
+		glo.ribbon.colorByCurvatures();
+	}
 }
 
 function allColorsSlide(noSlide){
@@ -700,6 +712,18 @@ function voronoi(func = min){
 		});
 	});
 	return colors;
+}
+
+function meshEquationToColor(){
+	['x', 'y', 'z', 'alpha', 'beta'].forEach(inputEndName => {
+		const paramsColorName = `text_input_color_${inputEndName}`;
+		const paramsCurveName = `text_input_${inputEndName}`;
+		const inputColorName  = `input_color_${inputEndName}`;
+		const inputCurveName  = `input_${inputEndName}`;
+
+		glo.params[paramsColorName] = glo.params[paramsCurveName];
+		glo[inputColorName].text    = glo[inputCurveName].text;
+	});
 }
 
 function* playWithColNextMode(){

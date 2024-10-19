@@ -70,6 +70,10 @@ function switchCoords(normalSens = true){
 	glo.formesSuit = false;
 }
 
+async function switchColorByCurve(normalSens = true){
+	genInTwoWays(glo.colorByCurves, 'colorByCurve', normalSens);	
+}
+
 async function switchFractalOrient(normalSens = true){
 	genInTwoWays(glo.fractalizeOrients, 'fractalizeOrient', normalSens);
 

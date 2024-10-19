@@ -172,32 +172,55 @@
     </div>
   </div>
 
-  <div id="dataModal" class="modal overflow-hidden">
+  <div id="dataModal" class="modal overflow-hidden"> 
     <div class="modal-content">
       <h4 style="text-align:center;">DATAS</h4>
       <div>
         <label for="dataModalOpacity">Opacité</label>
-        <input type="range" id="dataModalOpacity" oninput="$('#dataModal').css('opacity', this.value); " onchange="event.stopPropagation(); " onclick="event.stopPropagation(); "
-              min="0.01" max="1" value="0.67" step=".01">
+        <input type="range" id="dataModalOpacity" oninput="$('#dataModal').css('opacity', this.value);" onchange="event.stopPropagation();" onclick="event.stopPropagation();" min="0.01" max="1" value="0.67" step=".01">
       </div>
-        <table id="dataTable">
-          <thead>
-            <tr>
-              <td>Edge</td>
-              <td>Vertex</td>
-              <td>Inds</td>
-              <td>U</td>
-              <td>V</td>
-              <td>X</td>
-              <td>Y</td>
-              <td>Z</td>
-            </tr>
-          </thead>
-          <tbody id="dataTableBody">
-          </tbody>
-        </table>
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <td>
+              <input type="text" id="filterEdge" placeholder="Filtrer Edge" onkeyup="filterTable()">
+              Edge
+            </td>
+            <td>
+              <input type="text" id="filterVertex" placeholder="Filtrer Vertex" onkeyup="filterTable()">
+              Vertex
+            </td>
+            <td>
+              <input type="text" id="filterInds" placeholder="Filtrer Inds" onkeyup="filterTable()">
+              Inds
+            </td>
+            <td>
+              <input type="text" id="filterU" placeholder="Filtrer U" onkeyup="filterTable()">
+              U
+            </td>
+            <td>
+              <input type="text" id="filterV" placeholder="Filtrer V" onkeyup="filterTable()">
+              V
+            </td>
+            <td>
+              <input type="text" id="filterX" placeholder="Filtrer X" onkeyup="filterTable()">
+              X
+            </td>
+            <td>
+              <input type="text" id="filterY" placeholder="Filtrer Y" onkeyup="filterTable()">
+              Y
+            </td>
+            <td>
+              <input type="text" id="filterZ" placeholder="Filtrer Z" onkeyup="filterTable()">
+              Z
+            </td>
+          </tr>
+        </thead>
+        <tbody id="dataTableBody">
+        </tbody>
+      </table>
     </div>
-  </div>
+</div>
 
   <div id="rotationConventionsModal" class="modal overflow-hidden">
     <div class="modal-content">

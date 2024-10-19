@@ -129,6 +129,9 @@ async function make_ribbon(symmetrize = true, histo = true){
 			var white = BABYLON.Color3.White();
 			glo.emissiveColor = white;
 			glo.diffuseColor  = white;
+
+			if(glo.params.meshEquationToColor){ meshEquationToColor(); }
+
 			makeOtherColors(true);
 		}
 		else{

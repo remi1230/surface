@@ -13,7 +13,6 @@ $( document ).ready(function() {
   $('.modal').not('#exportModal').modal();
   $('select').formSelect();
   glo.formes.setFormeSelect(...glo.formes.selected);
-  //glo.histo.init();
   special_randomize_colors_app(true);
   startAnim(20, 1);
   initDataModal();
@@ -48,8 +47,10 @@ $("#renderCanvas").on('pointermove', function(e){
 });
 
 document.getElementById('dataTable').addEventListener("click", function(ev){
-   showVertex(parseInt(ev.target.parentElement.childNodes[5].innerText), parseInt(ev.target.parentElement.childNodes[6].innerText),
-   parseInt(ev.target.parentElement.childNodes[7].innerText)); 
+   if(parseInt(ev.target.parentElement.childNodes[5])){
+      showVertex(parseInt(ev.target.parentElement.childNodes[5].innerText), parseInt(ev.target.parentElement.childNodes[6].innerText),
+      parseInt(ev.target.parentElement.childNodes[7].innerText));
+   }
 });
 
 window.addEventListener("keydown", function (e) {
@@ -225,7 +226,7 @@ window.addEventListener("keydown", function (e) {
                   break;
                case 'b':
                   glo.params.playWithColors = !glo.params.playWithColors;
-                  glo.params.playWithColors ? makeColors() : make_ribbon(false);
+                  remakeRibbon();
 
                   break;
                case ',':
@@ -249,7 +250,7 @@ window.addEventListener("keydown", function (e) {
                   break;
                case "n":
                   glo.voronoiMode = !glo.voronoiMode;
-                  make_ribbon();
+                  remakeRibbon();
 
                break;
                case '0':
@@ -279,11 +280,16 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case ":":
-                  //FREE
-
+                  if(glo.params.playWithColors){
+                     glo.params.meshEquationToColor = !glo.params.meshEquationToColor;
+                     remakeRibbon();
+                  }
                break;
                case "!":
-                  //FREE
+                  if(glo.params.playWithColors){
+                     glo.params.colorByCurvatures = glo.colorByCurves.next().value ? true : false;
+                     remakeRibbon();
+                  }
 
                break;
                case ")":

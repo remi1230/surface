@@ -444,6 +444,16 @@ var glo = {
 			}
 		}
 	},
+	colorByCurve: '',
+	colorByCurves: function* (){
+		const curveKinds = ['azit', 'elev', 'elevMoy', ''];
+		while (true) {
+			for (const curveKind of curveKinds) {
+				this.colorByCurve = curveKind;
+				yield curveKind;
+			}
+		}
+	},
 	colorsType: 'none',
 	colorType: function* (){
 	  var index = 0;
@@ -1111,6 +1121,7 @@ glo.symmetrizeOrders    = glo.symmetrizeOrders();
 glo.permutSigns         = glo.permutSigns();
 glo.invPositionIfs      = glo.invPosIfs();
 glo.fractalizeOrients   = glo.fractalizeOrients();
+glo.colorByCurves       = glo.colorByCurves();
 
 let dataTableBody = document.getElementById('dataTableBody');
 

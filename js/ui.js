@@ -464,7 +464,7 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
-	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '30px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
 }
 
@@ -497,26 +497,41 @@ function gui_resize(){
 	glo.advancedTexture.idealHeight = h / coeff;
 }
 
-function reg(f, dim_one) {
+function regSave(f) {
     for (var prop in f) {
         if (f && f[prop] && f[prop][0] && f[prop][0] == "'") {
             f[prop] = "0";
-        } else if(f && f[prop]) {
+        }
+		else if(f && f[prop]) {
             f[prop] = f[prop].toString();
             f[prop] = f[prop].replace(/\s/g, "");
             for (let i = 0; i < glo.regs.length; i++) {
-                if (glo.regs[i].condition && dim_one) {
-                    f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
-                } else if (!glo.regs[i].condition) {
-                    f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
-                }
-            }
-            if (dim_one) {
-                f[prop] = f[prop].replace(/v/g, "u");
+                f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
             }
         }
     }
     return f;
+}
+
+function reg(f) {
+    for (var prop in f) {
+        f[prop] = regOne(f[prop]);
+    }
+    return f;
+}
+
+function regOne(expReg) {
+	if (expReg == "'") {
+		expReg = "0";
+	}
+	else if(expReg) {
+		expReg = expReg.toString();
+		expReg = expReg.replace(/\s/g, "");
+		for (let i = 0; i < glo.regs.length; i++) {
+			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
+		}
+	}
+    return expReg;
 }
 
 function reg_inv(f, toInv_1, toInv_2){

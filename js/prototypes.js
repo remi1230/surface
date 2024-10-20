@@ -221,7 +221,7 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
     };
 };
 
-BABYLON.Mesh.prototype.colorByCurvatures = function(curvatures = glo.ribbon.getCurvatures().curvatures, pathsLength = glo.ribbon.getPaths().length) {
+BABYLON.Mesh.prototype.colorByCurvaturesSave = function(curvatures = glo.ribbon.getCurvatures().curvatures, pathsLength = glo.ribbon.getPaths().length) {
 	let colorsArray    = [];
     let curveKindDatas = [];
 
@@ -252,17 +252,97 @@ BABYLON.Mesh.prototype.colorByCurvatures = function(curvatures = glo.ribbon.getC
 
 		const data = curveKindData[curveKind];
 
-		colorsArray.push(data, data, data, 1);
+		curveKind !== 'color' ? colorsArray.push(data, data, data, 1) : colorsArray.push(curveKindData.azit, curveKindData.azitOrtho, 0, 1);
 	});
 
 	glo.curveKindDatas = curveKindDatas;
 
 	const nbStepsU = glo.params.steps_u;
 	const nbStepsV = glo.params.steps_v;
-	const nbPathsLaking = 4 * ((nbStepsU * nbStepsV) - ((nbStepsU-2) * (nbStepsV-2)));
+	const nbPathsLaking = 8 * ((nbStepsU * nbStepsV) - ((nbStepsU-2) * (nbStepsV-2)));
 
 	for(let i = 0; i < nbPathsLaking; i++){ colorsArray.push(colorsArray[i]); }
 
+	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsArray);
+}
+
+BABYLON.Mesh.prototype.colorByCurvatures = function() {
+	// Récupère les normales et les indices du mesh (par exemple un ruban)
+	let normals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+	let indices = glo.ribbon.getIndices();
+	//let positions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+
+	// Fonction pour calculer la longueur d'un vecteur
+	function vectorLength(vec) {
+		return Math.sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+	}
+
+	// Fonction pour calculer le produit scalaire de deux vecteurs
+	function dotProduct(vec1, vec2) {
+		return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
+	}
+
+	let colorsArray = [];
+	let phiValues   = [];
+
+	// Itérer sur chaque paire de faces (triangles) adjacentes
+	for (let i = 0; i < indices.length; i += 3) {
+		// Indices des trois vertices du triangle
+		let i1 = indices[i];
+		let i2 = indices[i + 1];
+		let i3 = indices[i + 2];
+
+		// Normales des vertices
+		let normal1 = [normals[3 * i1], normals[3 * i1 + 1], normals[3 * i1 + 2]];
+		let normal2 = [normals[3 * i2], normals[3 * i2 + 1], normals[3 * i2 + 2]];
+		let normal3 = [normals[3 * i3], normals[3 * i3 + 1], normals[3 * i3 + 2]];
+
+		// Moyenne des normales pour la face
+		let normal_face1 = [
+			(normal1[0] + normal2[0] + normal3[0]) / 3,
+			(normal1[1] + normal2[1] + normal3[1]) / 3,
+			(normal1[2] + normal2[2] + normal3[2]) / 3
+		];
+
+		// Trouver une face adjacente (par ex. la face suivante, simplification)
+		if (i + 3 < indices.length) {
+			let j1 = indices[i + 3];
+			let j2 = indices[i + 4];
+			let j3 = indices[i + 5];
+
+			let adj_normal1 = [normals[3 * j1], normals[3 * j1 + 1], normals[3 * j1 + 2]];
+			let adj_normal2 = [normals[3 * j2], normals[3 * j2 + 1], normals[3 * j2 + 2]];
+			let adj_normal3 = [normals[3 * j3], normals[3 * j3 + 1], normals[3 * j3 + 2]];
+
+			let normal_face2 = [
+				(adj_normal1[0] + adj_normal2[0] + adj_normal3[0]) / 3,
+				(adj_normal1[1] + adj_normal2[1] + adj_normal3[1]) / 3,
+				(adj_normal1[2] + adj_normal2[2] + adj_normal3[2]) / 3
+			];
+
+			// Calcul de l'angle dièdre entre les deux faces
+			let dot = dotProduct(normal_face1, normal_face2);
+			let length1 = vectorLength(normal_face1);
+			let length2 = vectorLength(normal_face2);
+			let cosPhi = dot / (length1 * length2);
+			let phi = Math.acos(cosPhi) * glo.params.coeffPhi;
+			//let phi = Math.pow(Math.acos(cosPhi), 2);  // Angle dièdre en radians
+			//let phi = Math.log(Math.acos(cosPhi) + 1);
+			phiValues.push(phi);
+		}
+	}
+
+	// Normalisation des angles dièdres entre 0 et 1
+	/*let minPhi = phiValues.reduce((min, val) => Math.min(min, val), Infinity);
+	let maxPhi = phiValues.reduce((max, val) => Math.max(max, val), -Infinity);
+	phiValues  = phiValues.map(phi => (phi - minPhi) / (maxPhi - minPhi));*/
+
+	for (let i = 0; i < phiValues.length; i++) {
+		let colorValue = phiValues[i];
+		colorsArray.push(colorValue, 0, 1 - colorValue, 1);
+	}
+
+	glo.colors = colorsArray;
 	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsArray);
 }
 

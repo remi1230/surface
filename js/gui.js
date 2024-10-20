@@ -1055,7 +1055,7 @@ function add_step_ABCD_sliders(){
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, second = 'true', action = null){
     var header = new BABYLON.GUI.TextBlock();
-    if(second){ parmamControl(header, "header_" + name, 'header right second noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true); }
+    if(second){ parmamControl(header, "header_" + name, 'header right second noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 10, pT: 2, }, true); }
     else{ parmamControl(header, "header_" + name, 'header right third noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true); }
     parent.addControl(header);
 
@@ -1127,6 +1127,7 @@ function add_step_ABCD_sliders(){
   addSlider(panelColors, "gColorSlider", "Shell", 0, 2, -1, 1, 0.01, function(value){ glo.params.gColor = value; }, false, mColorShell);
   addSlider(panelColors, "bColorSlider", "B", 0, 2, -1, 1, 0.01, function(value){ glo.params.bColor = value; }, false, mColorB);
   addSlider(panelColors, "itColorsSlider", "IT", 1, 0, 1, 256, 1, function(value){ glo.params.itColors = value; }, false);
+  addSlider(panelColors, "coeffColorByCurvature", "Coeff ϕ", 10, 0, 1, 256, 1, function(value){ glo.params.coeffPhi = value; }, false);
 }
 
 function add_symmetrize_sliders(){

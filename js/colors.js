@@ -123,7 +123,7 @@ function makeColors(){
 				beta: equations.fbeta,
 			};
 
-			reg(f, dim_one);
+			reg(f);
 
 			var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
 
@@ -148,7 +148,7 @@ function makeColors(){
 
 			var colorsNumbersX = []; var colorsNumbersY = []; var colorsNumbersZ = [];
 			var colorsAllNumbers = [];
-			var paths = glo.curves.paths; var pathsLength = paths.length;
+			var paths = glo.ribbon.getPaths(); var pathsLength = paths.length;
 			var allPathsNb = pathsLength*paths[0].length;
 			var pathsNow = [];
 			var itColors = glo.params.itColors; var itLength = itColors**2; pathsLength/=itColors;
@@ -682,13 +682,13 @@ function testCol(){
 }
 
 function voronoi(func = min){
-	var paths = glo.curves.paths;
+	var paths = glo.ribbon.getPaths();
 	const pathsULength = paths.length;
 	const pathsVLength = paths[0].length;
 	var nbPoints = glo.voronoi.nbPoints;
 	var points = []; var colors = [];
 	for(var i = 0; i < nbPoints; i++){
-		points.push({pt: glo.curves.paths[parseInt(rnd() * (pathsULength - 1))][parseInt(rnd() * (pathsVLength - 1))], color: BABYLON.Color3.Random(), });
+		points.push({pt: paths[parseInt(rnd() * (pathsULength - 1))][parseInt(rnd() * (pathsVLength - 1))], color: BABYLON.Color3.Random(), });
 	}
 	paths.map(path => {
 		path.map(p => {
@@ -708,9 +708,11 @@ function voronoi(func = min){
 				}
 			}
 
-			colors.push(new BABYLON.Color3(colorRef.r, colorRef.g, colorRef.b));
+			colors.push(colorRef.r, colorRef.g, colorRef.b, 1);
 		});
 	});
+	glo.colors = colors;
+
 	return colors;
 }
 

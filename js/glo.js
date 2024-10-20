@@ -319,7 +319,6 @@ var glo = {
 		{ exp: /Z([^,%*+-/)])/g, upd: "Z*$1" },
 		{ exp: /\)([^,%*+-/)'])/g, upd: ")*$1" },
 		{ exp: /(\d+)([^,%*+-/.\d)])/g, upd: "$1*$2" },
-		{ exp: /v/g, upd: "u", condition: "dim_one" },
 		{ exp: /u\*_mod/g, upd: "u_mod" },
 		{ exp: /v\*_mod/g, upd: "v_mod" },
 		{ exp: /be\*ta/g, upd: "beta" },
@@ -385,7 +384,6 @@ var glo = {
 	},
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
-		//const coordinates = ['spheric', 'cylindrical', 'curvature', 'quaternion', 'quaternionRotAxis', 'cartesian'];
 		const coordinates = ['spheric', 'cylindrical', 'curvature', 'cartesian'];
 		while (true) {
 			for (const coord of coordinates) {
@@ -446,7 +444,8 @@ var glo = {
 	},
 	colorByCurve: '',
 	colorByCurves: function* (){
-		const curveKinds = ['azit', 'elev', 'elevMoy', ''];
+		//const curveKinds = ['azit', 'elev', 'elevMoy', 'color', ''];
+		const curveKinds = ['phi', ''];
 		while (true) {
 			for (const curveKind of curveKinds) {
 				this.colorByCurve = curveKind;
@@ -927,6 +926,7 @@ var glo = {
 		scalingZ: 1,
 		lastPathEqualFirstPath: false,
 		normByFace: true,
+		coeffPhi: 10,
 	},
 	theme:{
 		slider:{

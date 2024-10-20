@@ -17,7 +17,7 @@ f = {
 	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one, fractalize = false, onePoint = false)
 {
-	reg(f, dim_one); reg(f2, dim_one);
+	reg(f); reg(f2);
 
 	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
@@ -197,8 +197,8 @@ f = {
 
 	} = makeCommonCurveVariables();
 
-	reg(f,  dim_one);
-	reg(f2, dim_one);
+	reg(f);
+	reg(f2);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;
@@ -376,8 +376,8 @@ f = {
 			beta, theta, alpha2, beta2, alpha3, beta3
 	} = makeCommonCurveVariables();
 
-	reg(f,  dim_one);
-	reg(f2, dim_one);
+	reg(f);
+	reg(f2);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;

@@ -81,112 +81,120 @@ function makeOnePoint(u, v){
 }
 
 async function make_ribbon(symmetrize = true, histo = true){
-	glo.emissiveColorSave = {...glo.emissiveColor};
-	glo.diffuseColorSave  = {...glo.diffuseColor};
+	const paths = glo.curves.paths;
 
-	var nameRibbon = "Ribbon";
-	glo.numRibbon++;
+	if(paths.length){
+		glo.emissiveColorSave = {...glo.emissiveColor};
+		glo.diffuseColorSave  = {...glo.diffuseColor};
 
-	var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-	material.backFaceCulling = false;
+		var nameRibbon = "Ribbon";
+		glo.numRibbon++;
 
-	var paths = glo.curves.paths;
-	if(glo.normalMode && !glo.fromSlider){ paths = glo.curves.pathsSecond; }
-	else{
-		delete glo.verticesNormals;
-		delete glo.verticesPositions;
-		delete glo.verticesUVs;
-	}
+		var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+		material.backFaceCulling = false;
 
-	if(glo.fromSlider){ delete glo.verticesColors; }
-
-	if(glo.params.expansion){ expanseRibbon(); }
-
-	scaleVertexsDist(glo.scaleVertex);
-
-	const isClosedArray = glo.params.lastPathEqualFirstPath;
-
-	ribbonDispose();
-	if(!glo.params.playWithColors && glo.colorsType == 'none'){
-		if(!glo.voronoiMode){
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray}, glo.scene, );
-		}
+		if(glo.normalMode && !glo.fromSlider){ paths = glo.curves.pathsSecond; }
 		else{
-			var colorsRibbon = voronoi();
-			var white = BABYLON.Color3.White();
-			glo.emissiveColor = white;
-			glo.diffuseColor  = white;
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: colorsRibbon, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+			delete glo.verticesNormals;
+			delete glo.verticesPositions;
+			delete glo.verticesUVs;
 		}
-	}
-	else{
+
+		if(glo.fromSlider){ delete glo.verticesColors; }
+
+		if(glo.params.expansion){ expanseRibbon(); }
+
+		scaleVertexsDist(glo.scaleVertex);
+
+		const isClosedArray = glo.params.lastPathEqualFirstPath;
+
+		let colorsVoronoi = false; let colorsRibbon;
 		ribbonDispose();
-		if(1 == 1){
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
-			glo.colorsRibbonSave = {};
-			objCols = {colsArr: colorsRibbon};
-			Object.assign(glo.colorsRibbonSave, objCols);
-			var white = BABYLON.Color3.White();
-			glo.emissiveColor = white;
-			glo.diffuseColor  = white;
-
-			if(glo.params.meshEquationToColor){ meshEquationToColor(); }
-
-			makeOtherColors(true);
-		}
-		else{
-			if(typeof(glo.colorsRibbonSave) != "undefined"){
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: glo.colorsRibbonSave.colsArr, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+		if(!glo.params.playWithColors && glo.colorsType == 'none'){
+			if(!glo.voronoiMode){
+				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray}, glo.scene, );
 			}
 			else{
+				var white = BABYLON.Color3.White();
+				glo.emissiveColor = white;
+				glo.diffuseColor  = white;
 				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+				colorsVoronoi = voronoi();
 			}
 		}
+		else{
+			ribbonDispose();
+			if(1 == 1){
+				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+				glo.colorsRibbonSave = {};
+				objCols = {colsArr: colorsRibbon};
+				Object.assign(glo.colorsRibbonSave, objCols);
+				var white = BABYLON.Color3.White();
+				glo.emissiveColor = white;
+				glo.diffuseColor  = white;
+
+				if(glo.params.meshEquationToColor){ meshEquationToColor(); }
+
+				makeOtherColors(true);
+			}
+			else{
+				if(typeof(glo.colorsRibbonSave) != "undefined"){
+					glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: glo.colorsRibbonSave.colsArr, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+				}
+				else{
+					glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
+				}
+			}
+		}
+
+		if(colorsVoronoi){
+			glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsVoronoi);
+		}
+
+		glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
+
+		const norm = glo.params.functionIt.norm;
+
+		if(symmetrize){ await makeSymmetrize(); }
+		if(glo.params.fractalize.actived){
+			await glo.ribbon.fractalize();
+			if(glo.params.fractalize.refractalize){ await glo.ribbon.fractalize(); }
+		}
+		if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
+		
+		giveMaterialToMesh();
+
+		glo.is_ribbon = true;
+		if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
+
+		glo.emissiveColor = {...glo.emissiveColorSave};
+		glo.diffuseColor  = {...glo.diffuseColorSave};
+
+		await cutsRibbon();
+
+		makeLineSystem();
+
+		if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
+
+		glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
+		flatRibbon();
+
+		if(glo.meshWithTubes){ await meshWithTubes(); }
+
+		make_planes();
+
+		applyTransformations();
+		glo.ribbon.moyPosToOrigin();
+
+		glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
+		glo.params.lastPathEqualFirstPath = false;
+
+		glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
+
+		glo.ribbon.resetCurveByStep();
+
+		if(histo){ glo.histo.save(); }
 	}
-
-	glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
-
-	const norm = glo.params.functionIt.norm;
-
-	if(symmetrize){ await makeSymmetrize(); }
-	if(glo.params.fractalize.actived){
-		await glo.ribbon.fractalize();
-		if(glo.params.fractalize.refractalize){ await glo.ribbon.fractalize(); }
-	}
-	if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
-	
-	giveMaterialToMesh();
-
-	glo.is_ribbon = true;
-    if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
-
-  	glo.emissiveColor = {...glo.emissiveColorSave};
-	glo.diffuseColor  = {...glo.diffuseColorSave};
-
-	await cutsRibbon();
-
-	makeLineSystem();
-
-	if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
-
-	glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
-	flatRibbon();
-
-	if(glo.meshWithTubes){ await meshWithTubes(); }
-
-	make_planes();
-
-	applyTransformations();
-	glo.ribbon.moyPosToOrigin();
-
-	glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
-	glo.params.lastPathEqualFirstPath = false;
-
-	glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
-
-	glo.ribbon.resetCurveByStep();
-
-	if(histo){ glo.histo.save(); }
 }
 
 function ribbonDispose(all = true){
@@ -401,7 +409,7 @@ function makeRndSurface(){
 function isUV(){
 	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z,
 		          glo.params.text_input_alpha, glo.params.text_input_beta, glo.params.text_input_suit_x, glo.params.text_input_suit_y,
-				  glo.params.text_input_suit_z, glo.params.text_input_suit_alpha, glo.params.text_input_suit_beta];
+				  glo.params.text_input_suit_z, glo.params.text_input_suit_alpha, glo.params.text_input_suit_beta].map(input => regOne(input));
 	
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }

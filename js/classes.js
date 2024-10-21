@@ -63,7 +63,8 @@ f = {
 		glo.currentCurveInfos.u = u;
 		path = [];
 		let index_v = 0; ind_u = u; v = this.min_v - this.step_v;
-		for (let j = 0; j <= this.nb_steps_v; j++) {
+		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
+		for (let j = 0; j <= stepsV; j++) {
 			v += this.step_v;
 			ind_v = v;
 			glo.currentCurveInfos.v = v;
@@ -151,12 +152,14 @@ f = {
 		glo.currentCurveInfos.index_u = index_u;
 	}
 
+	if(!uvInfos.isV){ this.paths[0] = this.paths.flat(); }
+
   if(!onePoint){
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 	glo.lines = this.paths;
 
 	this.pathsSave = this.paths.slice();
-	this.paths     = closedPaths(this.paths);
+	this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
 
 	this.closed = this.pathsSave.length !== this.paths.length;
   }
@@ -237,8 +240,9 @@ f = {
 		glo.currentCurveInfos.u = u;
 		p = !(i%2) ? -u : u;
 		let index_v = 0; ind_u = u;
-		v = this.min_v - this.step_v
-		for (let j = 0; j <= this.nb_steps_v; j++) {
+		v = this.min_v - this.step_v;
+		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
+		for (let j = 0; j <= stepsV; j++) {
 			v += this.step_v;
 			ind_v = v;
 			glo.currentCurveInfos.v = v;
@@ -334,6 +338,8 @@ f = {
 		index_u++;
 		glo.currentCurveInfos.index_u = index_u;
 	}
+
+	if(!uvInfos.isV){ this.paths[0] = this.paths.flat(); }
   
   if(!onePoint){
 	if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
@@ -341,7 +347,7 @@ f = {
 	glo.lines = this.paths;
 
 	this.pathsSave = this.paths.slice();
-	this.paths     = closedPaths(this.paths);
+	this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
   }
   else{
 	return this.paths[0][1];
@@ -421,7 +427,8 @@ f = {
 		p = !(i%2) ? -u : u;
 		let index_v = 0; ind_u = u;
 		v = this.min_v - this.step_v
-		for (let j = 0; j <= this.nb_steps_v; j++) {
+		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
+		for (let j = 0; j <= stepsV; j++) {
 			v += this.step_v;
 			ind_v = v;
 			glo.currentCurveInfos.v = v;
@@ -514,6 +521,8 @@ f = {
 		glo.currentCurveInfos.index_u = index_u;
 	}
 
+	if(!uvInfos.isV){ this.paths[0] = this.paths.flat(); }
+
 	if(!onePoint){
 		if(glo.closeFirstWithLastPath){ this.paths.push(this.paths[0]); }
 
@@ -522,7 +531,7 @@ f = {
 
 		glo.lines      = this.paths;
 		this.pathsSave = this.paths.slice();
-		this.paths     = closedPaths(this.paths);
+		this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
 	}
 	else{
 		return this.paths[0][1];

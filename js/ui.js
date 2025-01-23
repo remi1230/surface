@@ -497,22 +497,6 @@ function gui_resize(){
 	glo.advancedTexture.idealHeight = h / coeff;
 }
 
-function regSave(f) {
-    for (var prop in f) {
-        if (f && f[prop] && f[prop][0] && f[prop][0] == "'") {
-            f[prop] = "0";
-        }
-		else if(f && f[prop]) {
-            f[prop] = f[prop].toString();
-            f[prop] = f[prop].replace(/\s/g, "");
-            for (let i = 0; i < glo.regs.length; i++) {
-                f[prop] = f[prop].replace(glo.regs[i].exp, glo.regs[i].upd);
-            }
-        }
-    }
-    return f;
-}
-
 function reg(f) {
     for (var prop in f) {
         f[prop] = regOne(f[prop]);

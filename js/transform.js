@@ -52,29 +52,45 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
+	function m(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
+		const x = p.x, y = p.y, z = p.z;
+
+		if((ncx === undefined || ncx === 1) && ncy === undefined){ ncx = 1; ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx; }
+		else if(ncx !== 1 && ncy === undefined && ncz === undefined && cnx === undefined && cny === undefined && cnz === undefined){
+			ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx;
+		}
+
+		ncz = ncz === undefined ? 1 : ncz;
+		cnx = cnx === undefined ? 1 : cnx;
+		cny = cny === undefined ? 1 : cny;
+		cnz = cnz === undefined ? 1 : cnz;
+
+		return ncx*cos(cnx*x)*ncy*cos(cny*y)*ncz*cos(cnz*z);
+	}
+
 	function mx(index = 1, val_to_return = 0, p = path){
 		index = parseInt(index);
 		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
+		if(p.length == 0){ return val_to_return; }
+		if(p.length < index){ return val_to_return; }
 
-    return p[p.length - index].x;
+		return p[p.length - index].x;
   }
 	function my(index = 1, val_to_return = 0, p = path){
 			index = parseInt(index);
 			if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
 
-		return p[p.length - index].y;
+			return p[p.length - index].y;
 	}
 	function mz(index = 1, val_to_return = 0, p = path){
 			index = parseInt(index);
 			if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
 
-		return p[p.length - index].z;
+			return p[p.length - index].z;
 	}
 
 	function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
@@ -193,8 +209,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						const µ$T = µT*$T; var $µT = µT+$T;
 						const µµT = µ$T*$µT;
 
+						glo.currentCurveInfos.vect = vect3;
+
 						r = eval(inputSymREq.fx);
-						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT);
+						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
 						const dirXY   = directionXY(angleXY, r);
 						
 						newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
@@ -217,7 +235,9 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 						}
 					}
 
-					newCurves[indk][i].push(new BABYLON.Vector3(newPt.x, newPt.y, newPt.z));
+					const newVect = new BABYLON.Vector3(newPt.x, newPt.y, newPt.z);
+
+					newCurves[indk][i].push(newVect);
 					index_v++;
 					n++;
 				});

@@ -81,7 +81,7 @@ function makeOnePoint(u, v){
 }
 
 async function make_ribbon(symmetrize = true, histo = true){
-	const paths = glo.curves.paths;
+	let paths = glo.curves.paths;
 
 	if(paths.length){
 		glo.emissiveColorSave = {...glo.emissiveColor};
@@ -217,7 +217,7 @@ async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false 
 }
 
 function makeLineSystem(){
-	let paths = !glo.normalMode ? glo.curves.paths : glo.curves.pathsSecond;
+	let paths = !glo.normalMode ? glo.ribbon.paths : glo.curves.pathsSecond;
 
 	if(!paths){ paths = glo.curves.paths; }
 
@@ -231,7 +231,7 @@ function makeLineSystem(){
 	glo.curves.lineSystem.visibility = glo.lines_visible;
 
 	if(glo.params.doubleLineSystem){
-		let paths    = !glo.normalMode ? reformatPaths() : reformatPaths(glo.curves.pathsSecond);
+		let paths    = !glo.normalMode ? reformatPaths(glo.ribbon.getPaths(glo.ribbon.savePos)) : reformatPaths(glo.curves.pathsSecond);
 		glo.dblLines = paths;
 		
 		glo.curves.lineSystemDouble = BABYLON.MeshBuilder.CreateLineSystem("lineSystemDouble", { lines: paths, }, glo.scene);

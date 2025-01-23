@@ -124,8 +124,9 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "ç":
-                  //FREE
+                  glo.rotateByMeshCenter = !glo.rotateByMeshCenter;
 
+                  remakeRibbon();
                   break;
                case "à":
                   //FREE
@@ -135,10 +136,19 @@ window.addEventListener("keydown", function (e) {
                   glo.slider_nb_steps_u.maximum/=2;
                   glo.slider_nb_steps_v.maximum/=2;
 
+                  if(!glo.params.symmetrizeX && !glo.params.symmetrizeY && !glo.params.symmetrizeZ){
+                     glo.slider_nb_steps_u.value/=2;
+                     glo.slider_nb_steps_v.value/=2;
+                  }
                   break;
                case "l":
                   glo.slider_nb_steps_u.maximum*=2;
                   glo.slider_nb_steps_v.maximum*=2;
+
+                  if(!glo.params.symmetrizeX && !glo.params.symmetrizeY && !glo.params.symmetrizeZ){
+                     glo.slider_nb_steps_u.value*=2;
+                     glo.slider_nb_steps_v.value*=2;
+                  }
 
                   break;
                case ";":
@@ -183,7 +193,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "q":
-                  //FREE
+                  glo.ribbon.switchPaths();
 
                   break;
                case "ù":

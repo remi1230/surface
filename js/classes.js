@@ -19,8 +19,6 @@ f = {
 {
 	reg(f); reg(f2);
 
-	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
-
 	this.min_u      = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u      = parametres.u.max;
 	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
@@ -54,9 +52,12 @@ f = {
 	let n = 0;
 	let index_u = 0, ind_u = 0;
 
+	const additiveSurface = glo.additiveSurface;
+
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	let u = this.min_u - this.step_u, v = this.min_v - this.step_v, ind_v = 0;
 	for (let i = 0; i <= stepsU; i++) {
+		if(additiveSurface){ glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
 		k = !(i%2) ? -1 : 1;
 		u += this.step_u;
 		p = !(i%2) ? -u : u;
@@ -113,7 +114,7 @@ f = {
 
 			alpha2 = eval(f2.alpha);
 			beta2  = eval(f2.beta);
-			let pos = rotateByBabylonMatrix({x, y, z}, alpha2, beta2, theta);
+			let pos = rotateOnCenterByBabylonMatrix({x, y, z}, alpha2, beta2, theta);
 			x = pos.x; y = pos.y; z = pos.z;
 
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
@@ -141,7 +142,10 @@ f = {
 				glo.savePos.x = x; glo.savePos.y = y; glo.savePos.z = z;
 			}
 
-			path.push(new BABYLON.Vector3(x, y, z));
+			const newVect = new BABYLON.Vector3(x, y, z);
+			glo.currentCurveInfos.vect = newVect;
+
+			path.push(newVect);
 			glo.currentCurveInfos.currentPath = path;
 			index_v++; n++;
 			glo.currentCurveInfos.index_v = index_v;
@@ -190,8 +194,6 @@ f = {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
 
-	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
-
 	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
@@ -229,12 +231,15 @@ f = {
 
 	let d, k, p, t;
 
+	const additiveSurface = glo.additiveSurface;
+
 	let n = 0;
 	let path = [];
 	let index_u = 0, ind_u = 0, ind_v = 0;
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
 	for (let i = 0; i <= stepsU; i++) {
+		if(additiveSurface){ glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
 		k = !(i%2) ? -1 : 1;
 		u += this.step_u;
 		glo.currentCurveInfos.u = u;
@@ -258,10 +263,10 @@ f = {
 
 			let pos;
 			if(!cyl){
-				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, beta, alpha);
+				pos = rotateOnCenterByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, beta, alpha);
 			}
 			else{
-				pos = rotateByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, 0, alpha);
+				pos = rotateOnCenterByBabylonMatrix({x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r}, 0, 0, alpha);
 				pos.z = beta;
 			}
 
@@ -299,7 +304,7 @@ f = {
 			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
 			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 
-			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
+			pos = rotateOnCenterByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
@@ -326,7 +331,10 @@ f = {
 				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
 			}	
 
-			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+			const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+			glo.currentCurveInfos.vect = newVect;
+
+			this.new_p2 = newVect;
 
 			path.push(this.new_p2);
 			index_v++; n++;
@@ -373,7 +381,6 @@ f = {
 	theta: glo.params.text_input_suit_theta,
 }, dim_one = glo.dim_one, fractalize = false, onePoint = false)
 {
-	glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
 
 	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
 	var {
@@ -414,12 +421,15 @@ f = {
 	let moyPos = {x: 0, y: 0, z: 0};
 	let pos    = {x: 0, y: 0, z: 0};
 
+	const additiveSurface = glo.additiveSurface;
+
 	let n = 0;
 	let path = [];
 	let index_u = 0, ind_u = 0, ind_v = 0;
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
 	for (let i = 0; i <= stepsU; i++) {
+		if(additiveSurface){ glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
 		if(glo.params.curvaturetoZero){ pos = {x: 0, y: 0, z: 0}; path.push(BABYLON.Vector3.Zero()); }
 		k = !(i%2) ? -1 : 1;
 		u += this.step_u;
@@ -479,7 +489,7 @@ f = {
 			if(isY){ const y2 = eval(f2.y); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
 			if(isZ){ const z2 = eval(f2.z); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
 			
-			pos = rotateByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
+			pos = rotateOnCenterByBabylonMatrix({x: pos.x, y: pos.y, z: pos.z}, alpha3, beta3, theta);
 
 			pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
 			pos = functionIt(pos.x, pos.y, pos.z);
@@ -504,9 +514,12 @@ f = {
 			if(glo.additiveSurface){
 				pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
 				glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
-			}	
+			}
+			
+			const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+			glo.currentCurveInfos.vect = newVect;
 
-			this.new_p2 = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+			this.new_p2 = newVect;
 
 			moyPos.x += pos.x; moyPos.y += pos.y; moyPos.z += pos.z;
 

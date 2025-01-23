@@ -802,6 +802,47 @@ BABYLON.Mesh.prototype.resetCurveByStep = function () {
 	}
 }
 
+BABYLON.Mesh.prototype.circlelifyPaths = function(dist = 10, originalPaths = this.getPaths().slice()) {
+	let newPaths = [];
+
+    originalPaths.forEach(path => {
+		let newPath = [];
+        path.forEach(vect => {
+			if(h(vect.x, vect.y, vect.z) < dist){ newPath.push(vect); }
+		});
+		newPaths.push(newPath);
+    });
+
+    glo.curves.paths = newPaths;
+
+	make_ribbon();
+}
+
+BABYLON.Mesh.prototype.switchPaths = function () {
+	const paths       = this.getPaths();
+	const pathsLength = paths.length;
+
+	let newPaths = [];
+	for(let i = 1; i <= pathsLength; i++){
+		const switchPath       = paths[pathsLength - i];
+		const switchPathLength = switchPath.length;
+
+		let newPath = [];
+		for(let i = 1; i <= switchPathLength; i++){
+			//newPath.push(switchPath[i-1].cross(switchPath[switchPathLength - i]));
+			newPath.push(getNormalVector(switchPath[switchPathLength - i]));
+		}
+
+		newPaths.push(newPath);
+	}
+
+	glo.curves.paths = newPaths;
+	glo.lines        = newPaths;
+	this.paths       = newPaths;
+
+	make_ribbon();
+}
+
 BABYLON.Mesh.prototype.animConstructMesh = function () {
 	this.curveByStep.next();
 }

@@ -66,9 +66,13 @@ function rotateOnCenterByBabylonMatrix(pos, alpha, beta, theta, center) {
         if (theta == Infinity || theta == -Infinity || isNaN(theta)) { theta = 0; }
 
 		pos = pos.length !== undefined ? pos : new BABYLON.Vector3(pos.x, pos.y, pos.z);
-        
-        // Définir le centre de rotation
-        center = center || new BABYLON.Vector3(0, 0, 0);
+
+		const boundingSphere = glo.ribbon.getBoundingInfo().boundingSphere;
+
+		// Définir le centre de rotation
+		if(!center){
+			center = !glo.rotateByMeshCenter ? boundingSphere.centerWorld : boundingSphere.center;
+		}
 
         // Convertir la position en relation avec le centre de rotation
         let relativePos = pos.subtract(center);
@@ -338,7 +342,23 @@ function getMaxDistanceVerticeToOrigin(){
 	return maxDist;
 }
 
-function getAzimuthElevationAngles(vector) {
+function getAzimuthElevationAngles(vector, center = { x: 0, y: 0, z: 0 }) {
+    // Calcul des coordonnées relatives du vecteur par rapport au centre
+    var relativeX = vector.x - center.x;
+    var relativeY = vector.y - center.y;
+    var relativeZ = vector.z - center.z;
+
+    // Calcul de l'angle d'azimut (angle autour de l'axe Y)
+    var azimuth = Math.atan2(relativeZ, relativeX);
+
+    // Calcul de l'angle d'élévation (angle par rapport au plan horizontal)
+    var elevation = Math.atan2(relativeY, Math.sqrt(relativeX * relativeX + relativeZ * relativeZ));
+
+    return { x: azimuth, y: elevation };
+}
+
+
+function getAzimuthElevationAnglesSave(vector) {
     // Calcul de l'angle d'azimut (angleX)
     var azimuth = Math.atan2(vector.z, vector.x);
 
@@ -482,6 +502,7 @@ function w(val, isCos = 1){
 	let res = isCos ? Math.acos(val) : Math.asin(val);
 	return isNaN(res) ? val : res;
 }
+
 
 function customDecrease(x, m, k) {
     return x * Math.pow(x / m, k);

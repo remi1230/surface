@@ -90,19 +90,6 @@ function drawNormalEquations(symmetrize = false){
   }
 	function mod(index, ...args){ return args[index%args.length]; }
 
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
-
 	var good = test_equations(equations, dim_one);
 	if(good){
 		var f = {

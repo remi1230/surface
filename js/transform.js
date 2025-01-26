@@ -52,6 +52,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
+	function q(nu, nv){
+		return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
+	}
+
 	function m(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
 		const x = p.x, y = p.y, z = p.z;
 
@@ -105,19 +109,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	}
 	function mod(index, ...args){ return args[index%args.length]; }
 
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
-
 	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 
 	const stepU = 2*glo.params.u / glo.params.steps_u;
@@ -161,12 +152,15 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 				k = !(i%2) ? -1 : 1;
 				index_v = 0;
 				u = i * stepU;
+				glo.currentCurveInfos.u = u;
 				p = !(i%2) ? -u : u;
 				newCurves[indk][i] = [];
 				line.forEach((vect, j) => {
 					d = !(j%2) ? -1 : 1;
 					v = j * stepV;
 					t = !(j%2) ? -v : v;
+
+					glo.currentCurveInfos.v = v;
 
 					let newPt = vect;
 

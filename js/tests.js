@@ -1,4 +1,7 @@
 function test_equations(equations, dim_one = false, forCol = false){
+	function q(nu, nv){
+		return h(nu, nv);
+	}
 	function m(ncx = 1, ncy = 1, ncz = 1, cnx = 1, cny = 1, cnz = 1, p = {x: 1, y: 1, z: 1}){
 		const x = p.x, y = p.y, z = p.z;
 
@@ -42,19 +45,6 @@ function test_equations(equations, dim_one = false, forCol = false){
     return val_to_return;
   }
 	function mod(index, ...args){ return args[index%args.length]; }
-
-	function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-		var funcR = func;
-		var f = {toInv:func};
-		for(var i = 0; i < it; i++){
-			var index = funcR.length - (i+1);
-			var fInvUV = reg_inv(f, 'u', 'v').toInv;
-			f.toInv = fInvUV;
-			funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-		}
-		func = funcR;
-		return eval(func);
-	}
 
 	var d = 1, k = 1, p = 1, t = 1;
 

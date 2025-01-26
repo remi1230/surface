@@ -31,7 +31,7 @@ f = {
 
 	this.paths = []; let path = []; this.lines = [];
 
-	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -194,7 +194,7 @@ f = {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
 
-	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -382,7 +382,7 @@ f = {
 }, dim_one = glo.dim_one, fractalize = false, onePoint = false)
 {
 
-	var {mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -553,6 +553,24 @@ f = {
 
 function makeCommonCurveFunctions(){
 	return {
+		q: function(nu, nv){
+			return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
+		},
+		m: function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
+			const x = p.x, y = p.y, z = p.z;
+	
+			if((ncx === undefined || ncx === 1) && ncy === undefined){ ncx = 1; ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx; }
+			else if(ncx !== 1 && ncy === undefined && ncz === undefined && cnx === undefined && cny === undefined && cnz === undefined){
+				ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx;
+			}
+	
+			ncz = ncz === undefined ? 1 : ncz;
+			cnx = cnx === undefined ? 1 : cnx;
+			cny = cny === undefined ? 1 : cny;
+			cnz = cnz === undefined ? 1 : cnz;
+	
+			return ncx*cos(cnx*x)*ncy*cos(cny*y)*ncz*cos(cnz*z);
+		},
 		mx: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
 			index = parseInt(index);
 			if(index <= 0){ index = 1; }

@@ -503,7 +503,6 @@ function w(val, isCos = 1){
 	return isNaN(res) ? val : res;
 }
 
-
 function customDecrease(x, m, k) {
     return x * Math.pow(x / m, k);
 }

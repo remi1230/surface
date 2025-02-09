@@ -553,13 +553,13 @@ f = {
 
 function makeCommonCurveFunctions(){
 	return {
-		q: function(nu, nv){
+		q: function(nu, nv = nu){
 			return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
 		},
-		m: function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
+		m: function(cnx = 1, cny = cnx, cnz = cny, ncx = 1, ncy = ncx, ncz = ncy, p = glo.currentCurveInfos.vect){
 			const x = p.x, y = p.y, z = p.z;
 	
-			if((ncx === undefined || ncx === 1) && ncy === undefined){ ncx = 1; ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx; }
+			/*if((ncx === undefined || ncx === 1) && ncy === undefined){ ncx = 1; ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx; }
 			else if(ncx !== 1 && ncy === undefined && ncz === undefined && cnx === undefined && cny === undefined && cnz === undefined){
 				ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx;
 			}
@@ -567,7 +567,7 @@ function makeCommonCurveFunctions(){
 			ncz = ncz === undefined ? 1 : ncz;
 			cnx = cnx === undefined ? 1 : cnx;
 			cny = cny === undefined ? 1 : cny;
-			cnz = cnz === undefined ? 1 : cnz;
+			cnz = cnz === undefined ? 1 : cnz;*/
 	
 			return ncx*cos(cnx*x)*ncy*cos(cny*y)*ncz*cos(cnz*z);
 		},

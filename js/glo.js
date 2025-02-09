@@ -245,7 +245,7 @@ var glo = {
 		{ exp: /s([^*\(R]*)R/g, upd: "sin($1R)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
 		{ exp: /q(?![\(])/g, upd: "h(u,v)" },
-		{ exp: /m(?![\(xyz])/g, upd: "cos(x)*cos(y)*cos(z)" },
+		{ exp: /m(?![\(xyz])/g, upd: "m()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
 		{ exp: /sudv|svdu/g, upd: "sin(u/v)" },

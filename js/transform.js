@@ -52,7 +52,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	function q(nu, nv){
+	function q(nu, nv = nu){
 		return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
 	}
 

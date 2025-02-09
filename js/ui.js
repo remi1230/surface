@@ -88,7 +88,7 @@ async function switchFractalOrient(normalSens = true){
 function switchSymmetrizeOrder(normalSens = true){
 	genInTwoWays(glo.symmetrizeOrders, 'symmetrizeOrder', normalSens);
 
-	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "Symmetrize order : " + glo.symmetrizeOrder.toUpperCase();
+	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "S order : " + glo.symmetrizeOrder.toUpperCase();
 
 	remakeRibbon();
 }
@@ -447,9 +447,17 @@ function otherDesigns(){
 
 function param_special_controls(){
 	glo.allControls.getByName('inputsColorsEquations').top = '27%';
-	glo.allControls.getByName('centerLocal').paddingTop    = '17px';
-	glo.allControls.getByName('centerLocal').width         = '150px';
-	glo.allControls.getByName('centerLocal').height        = '50px';
+	glo.allControls.getByName('centerLocal').width         = '115px';
+	glo.allControls.getByName('symmetrizeOrder').width     = '115px';
+	glo.allControls.getByName('symmetrizeAdding').width     = '125px';
+	glo.allControls.getByName('centerLocal').height        = '30px';
+
+	glo.allControls.getByName('centerLocal').paddingRight     = '5px';
+	glo.allControls.getByName('symmetrizeOrder').paddingLeft  = '5px';
+	glo.allControls.getByName('symmetrizeAdding').paddingLeft = '10px';
+
+	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').height      = '40px';
+	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').paddingLeft = '5px';
   
 	glo.allControls.haveThisClass('slider').map(slider => {
 		for(const prop in glo.theme.slider){ slider[prop] = glo.theme.slider[prop]; }

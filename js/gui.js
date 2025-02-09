@@ -1131,9 +1131,14 @@ function add_step_ABCD_sliders(){
 }
 
 function add_symmetrize_sliders(){
-  var panel = new BABYLON.GUI.StackPanel();
+  var panel       = new BABYLON.GUI.StackPanel();
+  var panelButton = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 54, pR: 0.5});
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, t: 80.5, pR: 0.5});
   glo.advancedTexture.addControl(panel);
+  glo.advancedTexture.addControl(panelButton);
+
+  panelButton.backgroundColor = 'red';
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1166,14 +1171,15 @@ function add_symmetrize_sliders(){
     parent.addControl(slider);
   }
 
-  function add_button(name, text, width, height, paddingTop, paddingLeft, paddingRight, event){
+  function add_button(name, text, width, height, paddingTop, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     parmamControl(button, name, 'button right fourth noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight, pT: paddingTop}, true);
     designButton(button);
-    button.onPointerUpObservable.add(function() {
-      event();
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
     });
-    panel.addControl(button);
+    panelButton.addControl(button);
   }
 
   addSlider(panel, "blendForce", "blend force", 1, 3, 0, 24, .001, function(value){ glo.params.blender.force = value; });
@@ -1183,11 +1189,20 @@ function add_symmetrize_sliders(){
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
   addSlider(panel, "checkerboard", "Checkerboard", 0, 1, 0, 24, .5, function(value){ glo.params.checkerboard = value; });
 
-  add_button("centerLocal", "Center on origin", 40, 30, 0, 5, 0, function(){
+  add_button("centerLocal", "⊕ on origin", 100, 30, 0, 0, 0, function(){
     glo.params.centerIsLocal = !glo.params.centerIsLocal;
-    glo.allControls.getByName('centerLocal').textBlock.text = glo.params.centerIsLocal ? "Center on mesh" : "Center on origin";
+    glo.allControls.getByName('centerLocal').textBlock.text = glo.params.centerIsLocal ? "⊕ on mesh" : "⊕ on origin";
     remakeRibbon();
   });
+  
+  add_button("symmetrizeOrder", "S order : XYZ", 100, 30, 0, 0, 0, 
+    function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
+
+    add_button("symmetrizeAdding", "S add : OUI", 100, 30, 0, 0, 0, function(value){
+    glo.addSymmetry = !glo.addSymmetry;
+    glo.allControls.getByName('symmetrizeAdding').textBlock.text = "S add : " + (glo.addSymmetry ? 'OUI' : 'NON');
+    remakeRibbon();
+  }, function(value){ });
 }
 
 function add_blender_sliders(){
@@ -1403,12 +1418,12 @@ function add_sixth_panel_sliders(){
   addSlider(panelSliders, "scaleNorm", "Scale norm", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; });
 
   const buttonSizes = {width: 215, height: 33};
-  addButton(panelButtonSymmetrizeOrder, "symmetrizeOrder", "Symmetrize order : XYZ", buttonSizes.width, buttonSizes.height, 0, 0, function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
-  addButton(panelButtonSymmetrizeAdding, "symmetrizeAdding", "Symmetrize adding : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
+  //addButton(panelButtonSymmetrizeOrder, "symmetrizeOrder", "Symmetrize order : XYZ", buttonSizes.width, buttonSizes.height, 0, 0, function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
+  /*addButton(panelButtonSymmetrizeAdding, "symmetrizeAdding", "Symmetrize adding : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
     glo.addSymmetry = !glo.addSymmetry;
     glo.allControls.getByName('symmetrizeAdding').textBlock.text = "Symmetrize adding : " + (glo.addSymmetry ? 'OUI' : 'NON');
     remakeRibbon();
-  }, function(value){ });
+  }, function(value){ });*/
   addButton(panelButtonSlidersUVOnOneSignU, "slidersUVOnOneSignU", "Slider U sign : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
     glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
     let slidersUVOnOneSignU  = glo.allControls.getByName('slidersUVOnOneSignU');

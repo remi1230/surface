@@ -1,5 +1,5 @@
 function test_equations(equations, dim_one = false, forCol = false){
-	function q(nu, nv){
+	function q(nu, nv = nu){
 		return h(nu, nv);
 	}
 	function m(ncx = 1, ncy = 1, ncz = 1, cnx = 1, cny = 1, cnz = 1, p = {x: 1, y: 1, z: 1}){

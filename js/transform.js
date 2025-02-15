@@ -59,20 +59,23 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	function m(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
 		const x = p.x, y = p.y, z = p.z;
 
-		if((ncx === undefined || ncx === 1) && ncy === undefined){ ncx = 1; ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx; }
-		else if(ncx !== 1 && ncy === undefined && ncz === undefined && cnx === undefined && cny === undefined && cnz === undefined){
-			ncy = ncx; ncz = ncx; cnx = ncx; cny = ncx; cnz = ncx;
-		}
+		if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
+		else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
+
+		if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
 
 		ncz = ncz === undefined ? 1 : ncz;
+		ncy = ncy === undefined ? 1 : ncy;
+		ncx = ncx === undefined ? 1 : ncx;
+
 		cnx = cnx === undefined ? 1 : cnx;
 		cny = cny === undefined ? 1 : cny;
 		cnz = cnz === undefined ? 1 : cnz;
 
-		return ncx*cos(cnx*x)*ncy*cos(cny*y)*ncz*cos(cnz*z);
+		return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
 	}
 
-	function mx(index = 1, val_to_return = 0, p = path){
+	function mx(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
 		index = parseInt(index);
 		if(index <= 0){ index = 1; }
 		if(p.length == 0){ return val_to_return; }
@@ -80,7 +83,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 		return p[p.length - index].x;
   }
-	function my(index = 1, val_to_return = 0, p = path){
+	function my(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
 			index = parseInt(index);
 			if(index <= 0){ index = 1; }
 			if(p.length == 0){ return val_to_return; }
@@ -88,7 +91,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 			return p[p.length - index].y;
 	}
-	function mz(index = 1, val_to_return = 0, p = path){
+	function mz(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
 			index = parseInt(index);
 			if(index <= 0){ index = 1; }
 			if(p.length == 0){ return val_to_return; }
@@ -133,14 +136,16 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	const centerLocal        = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : {x:0,y:0,z:0};
 
 	let index_u = 0, index_v = 0;
-	let newRibbons          = [];
-	let newCurves           = [];
-	glo.curves.linesSystems = [];
+	let newRibbons             = [];
+	let newCurves              = [];
+	glo.curves.linesSystems    = [];
+	glo.currentCurveInfos.path = [];
 	for(let indk = 1; indk <= nbSyms; indk++){
 		n = 0;
 		const angle = indk * stepAngle;
 		index_u = 0;
 		newCurves[indk] = [];
+		glo.currentCurveInfos.path = [];
 
 		if((goodR || isCenterOffset) && first){
 			let verticesNormals;
@@ -155,6 +160,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 				glo.currentCurveInfos.u = u;
 				p = !(i%2) ? -u : u;
 				newCurves[indk][i] = [];
+				glo.currentCurveInfos.path = [];
 				line.forEach((vect, j) => {
 					d = !(j%2) ? -1 : 1;
 					v = j * stepV;
@@ -235,6 +241,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 					index_v++;
 					n++;
 				});
+				glo.currentCurveInfos.path = newCurves[indk][i];
 				index_u++;
 			});
 

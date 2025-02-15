@@ -206,6 +206,10 @@ function cpowh(...dists){
 	return cpow(res, 0.5);
 }
 
+function S(val, cp = true){
+	return cp ? cpow(val, val) : val**val;
+}
+
 function µ(res, varForSign){
 	return sign(varForSign) === sign(res) ? res : -res;
 }

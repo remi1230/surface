@@ -136,7 +136,7 @@ window.addEventListener("keydown", function (e) {
                   glo.slider_nb_steps_u.maximum/=2;
                   glo.slider_nb_steps_v.maximum/=2;
 
-                  if(!glo.params.symmetrizeX && !glo.params.symmetrizeY && !glo.params.symmetrizeZ){
+                  if(glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ < 2){
                      glo.slider_nb_steps_u.value/=2;
                      glo.slider_nb_steps_v.value/=2;
                   }
@@ -145,7 +145,7 @@ window.addEventListener("keydown", function (e) {
                   glo.slider_nb_steps_u.maximum*=2;
                   glo.slider_nb_steps_v.maximum*=2;
 
-                  if(!glo.params.symmetrizeX && !glo.params.symmetrizeY && !glo.params.symmetrizeZ){
+                  if(glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ < 2){
                      glo.slider_nb_steps_u.value*=2;
                      glo.slider_nb_steps_v.value*=2;
                   }

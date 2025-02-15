@@ -505,11 +505,46 @@ function gui_resize(){
 	glo.advancedTexture.idealHeight = h / coeff;
 }
 
+function regSave(f) {
+	console.log("//**************************************//");
+	console.log("TEST REG FUNCTION");
+    for (var prop in f) {
+        f[prop] = regOne(f[prop]);
+		console.log("");
+    }
+	console.log("//**************************************//");
+    return f;
+}
+
 function reg(f) {
     for (var prop in f) {
         f[prop] = regOne(f[prop]);
     }
     return f;
+}
+
+function regOneSave(expReg) {
+	if (expReg == "'") {
+		expReg = "0";
+	}
+	else if(expReg) {
+		expReg = expReg.toString();
+		//expReg = expReg.replace(/\s/g, "");
+
+		console.log("_________________________________________________");
+		console.log("TEST ONE STR : " + expReg);
+		for (let i = 0; i < glo.regs.length; i++) { 
+			console.log("Reg.exp : " + glo.regs[i].exp + "    Reg.upd : " + glo.regs[i].upd); 
+			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
+			console.log("Str trans : " + expReg);
+			console.log("---------------------------------------------");
+			console.log("");
+		}
+		console.log("_________________________________________________");
+		console.log("");
+		console.log("");
+	}
+    return expReg;
 }
 
 function regOne(expReg) {
@@ -518,7 +553,6 @@ function regOne(expReg) {
 	}
 	else if(expReg) {
 		expReg = expReg.toString();
-		expReg = expReg.replace(/\s/g, "");
 		for (let i = 0; i < glo.regs.length; i++) {
 			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
 		}

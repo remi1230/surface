@@ -238,10 +238,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 					const newVect = new BABYLON.Vector3(newPt.x, newPt.y, newPt.z);
 
 					newCurves[indk][i].push(newVect);
+					glo.currentCurveInfos.path.push(newVect);
 					index_v++;
 					n++;
 				});
-				glo.currentCurveInfos.path = newCurves[indk][i];
 				index_u++;
 			});
 

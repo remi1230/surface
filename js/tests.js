@@ -1,4 +1,6 @@
 function test_equations(equations, dim_one = false, forCol = false){
+	glo.formule = [];
+	
 	function q(nu, nv = nu){
 		return h(nu, nv);
 	}

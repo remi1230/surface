@@ -44,6 +44,8 @@ async function make_curves(u_params = {
 }
 
 function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = false, onePoint = false) {
+	glo.formule = [];
+	
     if (glo.coordsType !== 'cartesian') {
         if (f) {
             f.alpha2 = f.alpha;

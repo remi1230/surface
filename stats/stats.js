@@ -83,13 +83,6 @@ generalInfosDialogContainer.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
 });
-/*window.onresize = function() {
-    clearTimeout(timeout);
-    timeout = setTimeout(function() {
-        resizeImages('');
-        resizeImages();
-    }, 250);
-};*/
 
 //****************** MAIN FUNCTIONS ******************//
 function datasToTable(datas = glo.datasStats){
@@ -291,7 +284,7 @@ function showGeneralInfos(e){
     showNumberTimeByTime(genInfos.nbComments, 'generalInfo-commentaires');
     showNumberTimeByTime(genInfos.nbMakes, 'generalInfo-makes');
     showNumberTimeByTime(genInfos.nbRemixs, 'generalInfo-remixs');
-    showNumberTimeByTime(glo.userRes.followers.length, 'generalInfo-followers');
+    showNumberTimeByTime(glo.userRes.followers.length + 1, 'generalInfo-followers');
     showNumberTimeByTime(genInfos.viewMean, 'generalInfo-views');
     showNumberTimeByTime(genInfos.downMean, 'generalInfo-downs');
     showNumberTimeByTime(genInfos.likeMean, 'generalInfo-likes');

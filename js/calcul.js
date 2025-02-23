@@ -595,37 +595,60 @@ function addCommonTools(obj){
 		return -sum_sqr;
 	};
 
-	obj.max = function(arr){
+	obj.U = function(...arr){
 		return arr.reduce(function(a,b) { return Math.max(a, b); });
 	};
-	obj.min = function(arr){
+	obj.V = function(...arr){
 		return arr.reduce(function(a,b) { return Math.min(a, b); });
 	};
-	obj.fact = function fact(n){
-		n = parseInt(Math.abs(n));
-		if(n == 0){ return 0; }
-	  return Array.from(Array(n), (x, index) => index + 1).reduce((accumulateur, valeurCourante) => accumulateur * valeurCourante );
+
+	obj.W = function(x) {
+		const phi = (1 + Math.sqrt(5)) / 2;
+		return (Math.pow(phi, x) - Math.cos(Math.PI * x) * Math.pow(phi, -x)) / Math.sqrt(5);
 	};
 
-	obj.fact_dec = function (n, div = 1, t = 1){
-		if(n <= 1){ return 1; }
-		n/=div;
-		return n * fact(n-t);
+	obj.X = function(n) {
+		function gamma(z) {
+			const g = 7;
+			const p = [
+				0.99999999999980993,
+				676.5203681218851,
+				-1259.1392167224028,
+				771.32342877765313,
+				-176.61502916214059,
+				12.507343278686905,
+				-0.13857109526572012,
+				9.9843695780195716e-6,
+				1.5056327351493116e-7
+			];
+			if (z < 0.5) {
+				return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+			} else {
+				z -= 1;
+				let x = p[0];
+				for (let i = 1; i < p.length; i++) {
+					x += p[i] / (z + i);
+				}
+				const t = z + g + 0.5;
+				return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+			}
+		}
+		return gamma(n + 1);
 	};
 
-	obj.fib = function (n, div = 1, t1 = 1, t2 = 2){
+	obj.Y = function (n, div = 1, t1 = 1, t2 = 2){
 		if(n > 20 && div < 1.1){ n = 20; }
 		if(n <= 1){ return 0; }
 		if(n <= 2){ return 1; }
 		n/=div;
-		return fib(n-t1) + fib(n-t2);
+		return Y(n-t1) + Y(n-t2);
 	};
+
+	/*obj.se = function(n, div = 1){
+		return (n*(n+1)) / (2*div);
+	};*/
 
 	obj.se = function(n, div = 1){
-		return (n*(n+1)) / (2*div);
-	};
-
-	obj.sp = function(n, div = 1){
 		const m = Math.abs(n);
 		return Math.sign(n) * ((m*(m+1)) / (2*div));
 	};

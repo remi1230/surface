@@ -520,6 +520,9 @@ function reg(f) {
     for (var prop in f) {
         f[prop] = regOne(f[prop]);
     }
+
+	glo.formule.push(f);
+
     return f;
 }
 

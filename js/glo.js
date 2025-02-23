@@ -40,7 +40,7 @@ var glo = {
 			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true, },
 			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "7(cv + e)(cu)***2", fy: "7(cv + e)(su)***2", fz: "7(sv)***2", check: false, },
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
-			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "G(cv + 1)", beta:"G(cv + 1)", theta: "", check: false, },
+			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "G(cv + Q)", beta:"G(cv + Q)", theta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: 0, distance: 60}},
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "(cucv)***2", fy: "(svcu)***2", fz: "Q/2s(u)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 80}},
@@ -235,6 +235,7 @@ var glo = {
 			return n;
 		},
 	},
+	formule: [],
 	controls_grid: [],
 	regs: [
 		{ exp: /\s/g, upd: "" },
@@ -310,6 +311,7 @@ var glo = {
 		{ exp: /k([^,%*+-/)])/g, upd: "k*$1" },
 		{ exp: /L([^,%*+-/)])/g, upd: "L*$1" },
 		{ exp: /M([^,%*+-/)])/g, upd: "M*$1" },
+		{ exp: /S([^,%*+-/\())])/g, upd: "S($1)" },
 		{ exp: /p([^,%*+-/)])/g, upd: "p*$1" },
 		//{ exp: /t([^,%*+-/)])/g, upd: "t*$1" },
 		{ exp: /(?<!fac)t([^,%*+\-/)])/g, upd: "t*$1" },

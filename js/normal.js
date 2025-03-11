@@ -20,7 +20,7 @@ function getNormalVector(originalVector) {
     return normalVector;
 }
 
-function drawNormalEquations(symmetrize = false){
+async function drawNormalEquations(symmetrize = false){
 	if(typeof(glo.verticesNormals) == "undefined"){
 		glo.verticesNormals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
 		glo.verticesPositions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -53,42 +53,7 @@ function drawNormalEquations(symmetrize = false){
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	function mx(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].x;
-  };
-  function my(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].y;
-  };
-  function mz(index = 1, val_to_return = 0, p = pathsNow){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-    if(p.length == 0){ return val_to_return; }
-    if(p.length < index){ return val_to_return; }
-
-    return p[p.length - index].z;
-  };
-
-	function u_mod(modulo = 2, val_to_return = 0, variable = index_u, index = index_u){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-  function v_mod(modulo = 2, val_to_return = 0, variable = index_v, index = index_v){
-    if(index%modulo == 0){ return variable; }
-
-    return val_to_return;
-  }
-	function mod(index, ...args){ return args[index%args.length]; }
+	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 
 	var good = test_equations(equations, dim_one);
 	if(good){
@@ -125,22 +90,24 @@ function drawNormalEquations(symmetrize = false){
 		else{ var paths = Object.assign([], glo.curves.pathsSecond) }
 
 		glo.curves.pathsSecond = [];
-		var pathsLength = paths.length;
-		var line_visible = glo.lines_visible;
+		var pathsLength        = paths.length;
 
-		var ind_u = u; var ind_v = v; var index_u = 0;
+		const stepU = 2*glo.params.u / glo.params.steps_u;
+	    const stepV = 2*glo.params.v / glo.params.steps_v;
+
+		var index_u = 0;
 		var n = 0; var itLength = 1; var itColors = 1;
 		for(var it = 0; it < itLength; it++){
-			for(var u = 0; u < pathsLength; u++){
-				ind_u = u;
+			for(var indU = 0; indU < pathsLength; indU++){
+				u = indU * stepU;
 				var index_v = 0;
-				var path = paths[u];
+				var path = paths[indU];
 				var pathNow = [];
 				var pathLength = path.length/itColors;
 				index_u++;
-				for(var v = 0; v < pathLength; v++){
-					ind_v = v;
-					var p = path[v];
+				for(var indV = 0; indV < pathLength; indV++){
+					v = indV * stepV;
+					var p = path[indV];
 					if(n*3 + 2 > verticesLength){ n = 0; }
 					var xN = vertices[n*3]; var yN = vertices[n*3 + 1]; var zN = vertices[n*3 + 2];
 					var µN = xN*yN*zN;
@@ -208,6 +175,8 @@ function drawNormalEquations(symmetrize = false){
 					y = yP + ((y*scale) * yN);
 					z = zP + ((z*scale) * zN);
 
+					glo.currentCurveInfos.vect = p;
+
 					pathNow.push(new BABYLON.Vector3(x, y, z));
 
 					n++; index_v++;
@@ -216,6 +185,8 @@ function drawNormalEquations(symmetrize = false){
 			}
 
 			if(glo.closeFirstWithLastPath){ glo.curves.pathsSecond.push(glo.curves.pathsSecond[0]); }
+
+			if(isClosedPaths(glo.ribbon.getPaths())){ glo.curves.pathsSecond.push(glo.curves.pathsSecond[0]); }
 
 			glo.lines = glo.curves.pathsSecond;
 		}

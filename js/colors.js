@@ -59,55 +59,7 @@ function makeColors(){
 		var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 		var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-		function mx(index = 1, val_to_return = 0, p = pathsNow){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
-
-		return p[p.length - index].x;
-	};
-	function my(index = 1, val_to_return = 0, p = pathsNow){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
-
-		return p[p.length - index].y;
-	};
-	function mz(index = 1, val_to_return = 0, p = pathsNow){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
-
-		return p[p.length - index].z;
-	};
-
-	function u_mod(modulo = 2, val_to_return = 0, variable = u, index = u){
-		if(index%modulo == 0){ return variable; }
-
-		return val_to_return;
-	}
-	function v_mod(modulo = 2, val_to_return = 0, variable = u, index = v){
-		if(index%modulo == 0){ return variable; }
-
-		return val_to_return;
-	}
-		function mod(index, ...args){ return args[index%args.length]; }
-
-		function q(func, it = 1, op = "+", u = ind_u, v = ind_v){
-			var funcR = func;
-			var f = {toInv:func};
-			for(var i = 0; i < it; i++){
-				var index = funcR.length - (i+1);
-				var fInvUV = reg_inv(f, 'u', 'v').toInv;
-				f.toInv = fInvUV;
-				funcR = funcR.substring(0, index) + op + fInvUV + ")" + funcR.substring(index + 1);
-			}
-			func = funcR;
-			return eval(func);
-		}
+		var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 
 		xEmpty = equations.fx == '' ? true : false; yEmpty = equations.fy == '' ? true : false; zEmpty = equations.fz == '' ? true : false;
 
@@ -233,11 +185,11 @@ function makeColors(){
 				}
 			}
 
-			var maxX = max(colorsNumbersX); var maxY = max(colorsNumbersY); var maxZ = max(colorsNumbersZ);
-			var minX = min(colorsNumbersX); var minY = min(colorsNumbersY); var minZ = min(colorsNumbersZ);
+			var maxX = U(...colorsNumbersX); var maxY = U(...colorsNumbersY); var maxZ = U(...colorsNumbersZ);
+			var minX = V(...colorsNumbersX); var minY = V(...colorsNumbersY); var minZ = V(...colorsNumbersZ);
 			var maximumX = abs(maxX - minX); var maximumY = abs(maxY - minY); var maximumZ = abs(maxZ - minZ);
-			var maxAll = max(colorsAllNumbers);
-			var minAll = min(colorsAllNumbers);
+			var maxAll = U(...colorsAllNumbers);
+			var minAll = V(...colorsAllNumbers);
 			var maximumAll = abs(maxAll - minAll);
 			var newColors = [];
 

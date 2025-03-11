@@ -205,9 +205,15 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "(":
-                  //FREE
+                  if(glo.nbSymIter > 1){ glo.nbSymIter--; }
+                  remakeRibbon();
 
                   break;
+               case ")":
+                  glo.nbSymIter++;
+                  remakeRibbon();
+
+               break;
                case '"':
                   special_randomize_colors_app();
 
@@ -240,7 +246,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case ',':
-                  //FREE
+                  remakeRibbon();
 
                   break;
                case 'u':
@@ -300,10 +306,6 @@ window.addEventListener("keydown", function (e) {
                      glo.params.colorByCurvatures = glo.colorByCurves.next().value ? true : false;
                      remakeRibbon();
                   }
-
-               break;
-               case ")":
-                  //FREE
 
                break;
                case "PageUp":

@@ -52,65 +52,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-	function q(nu, nv = nu){
-		return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
-	}
-
-	function m(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
-		const x = p.x, y = p.y, z = p.z;
-
-		if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
-		else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
-
-		if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
-
-		ncz = ncz === undefined ? 1 : ncz;
-		ncy = ncy === undefined ? 1 : ncy;
-		ncx = ncx === undefined ? 1 : ncx;
-
-		cnx = cnx === undefined ? 1 : cnx;
-		cny = cny === undefined ? 1 : cny;
-		cnz = cnz === undefined ? 1 : cnz;
-
-		return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
-	}
-
-	function mx(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
-		index = parseInt(index);
-		if(index <= 0){ index = 1; }
-		if(p.length == 0){ return val_to_return; }
-		if(p.length < index){ return val_to_return; }
-
-		return p[p.length - index].x;
-  }
-	function my(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-			if(p.length == 0){ return val_to_return; }
-			if(p.length < index){ return val_to_return; }
-
-			return p[p.length - index].y;
-	}
-	function mz(index = 1, val_to_return = 0, p = glo.currentCurveInfos.path){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-			if(p.length == 0){ return val_to_return; }
-			if(p.length < index){ return val_to_return; }
-
-			return p[p.length - index].z;
-	}
-
-	function u_mod(modulo = 2, val_to_return = 0, variable = u, index = index_u){
-		if(index%modulo == 0){ return variable; }
-
-		return val_to_return;
-	}
-	function v_mod(modulo = 2, val_to_return = 0, variable = v, index = index_v){
-		if(index%modulo == 0){ return variable; }
-
-		return val_to_return;
-	}
-	function mod(index, ...args){ return args[index%args.length]; }
+	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 
 	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
 
@@ -120,11 +62,30 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	let inputSymREq = {fx: glo.input_sym_r.text};
 
 	let u,v,d,k,n,p,t;
+	let X = 0 ;
+	let Y = 0 ;
+
+	let f3;
 
 	if(glo.input_sym_r.text){
 		reg(inputSymREq, glo.dim_one);
 	}
 	const goodR = glo.input_sym_r.text ? test_equations(inputSymREq, glo.dim_one) : false;
+	if(goodR){
+		f3 = {evalX: false, evalY: false};
+		if(glo.input_eval_x.text && glo.input_eval_y.text){
+			f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
+			reg(f3);
+		}
+		else if(glo.input_eval_x.text){
+			f3 = {evalX: glo.input_eval_x.text, evalY: false};
+			reg(f3);
+		}
+		else if(glo.input_eval_x.text){
+			f3 = {evalX: false, evalY: glo.input_eval_y.text};
+			reg(f3);
+		}
+	}
 
 	const savedIndices = glo.ribbon.getIndices().slice();
 
@@ -211,6 +172,8 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 						glo.currentCurveInfos.vect = vect3;
 
+						if(f3.evalX){ X = eval(f3.evalX); }
+						if(f3.evalY){ Y = eval(f3.evalY); }
 						r = eval(inputSymREq.fx);
 						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
 						const dirXY   = directionXY(angleXY, r);
@@ -854,4 +817,8 @@ function countSyms(){
 	return (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
 	(glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
 	(glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
+}
+
+function isSym(){
+	return (glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ) ? true : false;
 }

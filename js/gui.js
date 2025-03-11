@@ -611,9 +611,11 @@ function add_inputs_equations(){
   var panelColorsEquations = new BABYLON.GUI.StackPanel();
   var panelSuitsEquations  = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
+  let panelEvalY           = new BABYLON.GUI.StackPanel();
   parmamControl(panel, "inputsEquations", 'panel left first');
   parmamControl(panelColorsEquations, "inputsColorsEquations", 'panel right third noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 24});
   parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 26});
+  parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 60, pR: 1, t: 535, h: 100, pL: -330}, true);
 
   var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 86, pR: 1};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
@@ -625,6 +627,7 @@ function add_inputs_equations(){
   glo.advancedTexture.addControl(panelColorsEquations);
   glo.advancedTexture.addControl(panelSuitsEquations);
   glo.advancedTexture.addControl(panelSymsEquations);
+  glo.advancedTexture.addControl(panelEvalY);
 
   glo.text_input_alpha = "";
   glo.text_input_beta  = "";
@@ -634,11 +637,11 @@ function add_inputs_equations(){
   function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, event = true){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
-    if(parent.name !== 'inputsEquations'){ header.paddingLeft = "20%"; }
+    if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
     parent.addControl(header);
 
     var input = new BABYLON.GUI.InputText();
-    parmamControl(input, name, classNameInput, {w: "350", fontWeight: "500", fontSize: "19", text: textField}, true);
+    parmamControl(input, name, classNameInput, {w: "350", fontWeight: "500", fontSize: "19", text: textField, h:25}, true);
 
     input.inputsEquationsIndex = indexInInputsEquations;
     indexInInputsEquations++;
@@ -646,7 +649,7 @@ function add_inputs_equations(){
     async function inputChangeEvent(){
       if(colorEquation){ glo.params.playWithColors = true; }
       if(glo.normalMode){
-        if(!colorEquation && !glo.params.playWithColors){ drawNormalEquations(); }
+        if(!colorEquation && !glo.params.playWithColors){ /*await drawNormalEquations(isSym());*/ await remakeRibbon(); }
         else{
           var equations = {
             fx: glo.params.text_input_color_x,
@@ -654,11 +657,12 @@ function add_inputs_equations(){
             fz: glo.params.text_input_color_z,
             falpha: glo.params.text_input_color_alpha,
             fbeta: glo.params.text_input_color_beta,
+            alpha: glo.input_eval_y.text,
           };
           if(test_equations(equations, false)){
             glo.fromSlider = true;
             await make_curves(undefined, undefined, undefined, undefined, !glo.params.fractalize.actived ? false : 'fractalize');
-            glo.fromSlider = false; drawNormalEquations(true);
+            glo.fromSlider = false; await drawNormalEquations(isSym());
           } 
         }
       }
@@ -676,6 +680,7 @@ function add_inputs_equations(){
             fz: glo.params.text_input_color_z,
             falpha: glo.params.text_input_color_alpha,
             fbeta: glo.params.text_input_color_beta,
+            alpha: glo.input_eval_y.text,
           };
           glo.params.playWithColors = true;
           glo.histoColo.save();
@@ -758,6 +763,9 @@ function add_inputs_equations(){
   add_input(panelSuitsEquations, "Rot Z", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
 
   add_input(panelSymsEquations, "R Symmetrize", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r");
+
+  add_input(panelEvalY, "Eval X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
+  add_input(panelEvalY, "Eval Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
 }
 
 function add_radios(suit = false){
@@ -1072,7 +1080,7 @@ function add_step_ABCD_sliders(){
       header.text = text + ": " + value.toFixed(decimalPrecision);
       if(second){
         if(!glo.normalMode){ await remakeRibbon(); }
-        else{ drawNormalEquations(); }
+        else{ drawNormalEquations(isSym()); }
       }
       else{
         glo.params.playWithColors = true;
@@ -1083,7 +1091,7 @@ function add_step_ABCD_sliders(){
             else{ makeColors(); }
           }
         }
-        else{ glo.fromSlider = true; make_ribbon(); glo.fromSlider = false; drawNormalEquations(); }
+        else{ glo.fromSlider = true; make_ribbon(); glo.fromSlider = false; drawNormalEquations(isSym()); }
       }
       slider.lastValue = value;
     });
@@ -1320,8 +1328,6 @@ function add_functionIt_sliders(){
 
 function add_sixth_panel_sliders(){
   let panelSliders                   = new BABYLON.GUI.StackPanel();
-  let panelButtonSymmetrizeOrder     = new BABYLON.GUI.StackPanel();
-  let panelButtonSymmetrizeAdding    = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
   let panelButtonInvFormulaCosSin    = new BABYLON.GUI.StackPanel();
@@ -1340,10 +1346,8 @@ function add_sixth_panel_sliders(){
     };
   }
   addPanel(panelSliders, 'panelSliders', 26);
+  const posPanel = createIncrementer(67, 5);
 
-  const posPanel = createIncrementer(57, 5);
-  addPanel(panelButtonSymmetrizeOrder, 'panelButtonSymmetrizeOrder', posPanel());
-  addPanel(panelButtonSymmetrizeAdding, 'panelButtonSymmetrizeAdding', posPanel());
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel());
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel());
   addPanel(panelButtonInvFormulaCosSin, 'panelButtonInvFormulaCosSin', posPanel());
@@ -1418,12 +1422,7 @@ function add_sixth_panel_sliders(){
   addSlider(panelSliders, "scaleNorm", "Scale norm", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; });
 
   const buttonSizes = {width: 215, height: 33};
-  //addButton(panelButtonSymmetrizeOrder, "symmetrizeOrder", "Symmetrize order : XYZ", buttonSizes.width, buttonSizes.height, 0, 0, function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
-  /*addButton(panelButtonSymmetrizeAdding, "symmetrizeAdding", "Symmetrize adding : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
-    glo.addSymmetry = !glo.addSymmetry;
-    glo.allControls.getByName('symmetrizeAdding').textBlock.text = "Symmetrize adding : " + (glo.addSymmetry ? 'OUI' : 'NON');
-    remakeRibbon();
-  }, function(value){ });*/
+
   addButton(panelButtonSlidersUVOnOneSignU, "slidersUVOnOneSignU", "Slider U sign : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
     glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
     let slidersUVOnOneSignU  = glo.allControls.getByName('slidersUVOnOneSignU');

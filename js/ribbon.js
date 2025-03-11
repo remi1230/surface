@@ -18,6 +18,7 @@ async function make_curves(u_params = {
 	fSuitX: glo.params.text_input_suit_x,
 	fSuitY: glo.params.text_input_suit_y,
 	fSuitZ: glo.params.text_input_suit_z,
+	fevalY: glo.params.text_input_eval_y,
 }, dim_one = glo.dim_one, fractalize = false, histo = true){
 
 	var good = test_equations(equations, dim_one);
@@ -411,7 +412,8 @@ function makeRndSurface(){
 function isUV(){
 	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z,
 		          glo.params.text_input_alpha, glo.params.text_input_beta, glo.params.text_input_suit_x, glo.params.text_input_suit_y,
-				  glo.params.text_input_suit_z, glo.params.text_input_suit_alpha, glo.params.text_input_suit_beta].map(input => regOne(input));
+				  glo.params.text_input_suit_z, glo.params.text_input_suit_alpha,
+				  glo.params.text_input_suit_beta, glo.input_eval_x.text, glo.input_eval_y.text].map(input => regOne(input));
 	
 	return {isU: inputs.some(input => input.includes('u') ), isV: inputs.some(input => input.includes('v') )};
 }

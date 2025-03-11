@@ -607,7 +607,7 @@ function addCommonTools(obj){
 		return (Math.pow(phi, x) - Math.cos(Math.PI * x) * Math.pow(phi, -x)) / Math.sqrt(5);
 	};
 
-	obj.X = function(n) {
+	obj.èé = function(n) {
 		function gamma(z) {
 			const g = 7;
 			const p = [
@@ -636,17 +636,39 @@ function addCommonTools(obj){
 		return gamma(n + 1);
 	};
 
-	obj.Y = function (n, div = 1, t1 = 1, t2 = 2){
-		if(n > 20 && div < 1.1){ n = 20; }
-		if(n <= 1){ return 0; }
-		if(n <= 2){ return 1; }
-		n/=div;
-		return Y(n-t1) + Y(n-t2);
+	obj.é = function(val, pre = 1) {
+		let precision = 1 / Math.pow(2, pre - 1);
+		return Math.ceil(val / precision) * precision;
 	};
 
-	/*obj.se = function(n, div = 1){
-		return (n*(n+1)) / (2*div);
-	};*/
+	obj.è = function(val){
+		val = val ? val : 1;
+		return Math.sign(val) * Math.log(Math.abs(val));
+	};
+
+	obj.éé = function(val){
+		return Math.acos(val);
+	};
+
+	obj.èè = function(val){
+		return Math.asin(val);
+	};
+
+	obj.éè = function(val){
+		return Math.asin(val) * Math.acos(val);
+	};
+
+	obj.ç = function(val){
+		return Math.cosh(val);
+	};
+
+	obj.çç = function(val){
+		return Math.sinh(val);
+	};
+
+	obj.ù = function(a = glo.currentCurveInfos.u, b = glo.currentCurveInfos.v, t = 0){
+		return a + (b-a)*t;
+	};
 
 	obj.se = function(n, div = 1){
 		const m = Math.abs(n);

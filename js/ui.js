@@ -449,7 +449,7 @@ function param_special_controls(){
 	glo.allControls.getByName('inputsColorsEquations').top = '27%';
 	glo.allControls.getByName('centerLocal').width         = '115px';
 	glo.allControls.getByName('symmetrizeOrder').width     = '115px';
-	glo.allControls.getByName('symmetrizeAdding').width     = '125px';
+	glo.allControls.getByName('symmetrizeAdding').width    = '125px';
 	glo.allControls.getByName('centerLocal').height        = '30px';
 
 	glo.allControls.getByName('centerLocal').paddingRight     = '5px';
@@ -518,7 +518,7 @@ function regSave(f) {
 
 function reg(f) {
     for (var prop in f) {
-        f[prop] = regOne(f[prop]);
+        if(f[prop]){ f[prop] = regOne(f[prop]); }
     }
 
 	glo.formule.push(f);

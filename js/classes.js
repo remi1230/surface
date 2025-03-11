@@ -19,6 +19,9 @@ f = {
 {
 	reg(f); reg(f2);
 
+	let f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
+	reg(f3);
+
 	this.min_u      = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 	this.max_u      = parametres.u.max;
 	this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
@@ -31,7 +34,7 @@ f = {
 
 	this.paths = []; let path = []; this.lines = [];
 
-	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -48,6 +51,8 @@ f = {
 	const isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	let d,k,p,t;
+
+	let X, Y;
 
 	let n = 0;
 	let index_u = 0, ind_u = 0;
@@ -72,6 +77,9 @@ f = {
 
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
+
+			if(f3.evalX){ X = eval(f3.evalX); }
+			if(f3.evalY){ Y = eval(f3.evalY); }
 
 			x = eval(f.x);
 			y = eval(f.y);
@@ -194,7 +202,7 @@ f = {
 	var cyl = false;
 	if(glo.coordsType == 'cylindrical'){ cyl = true; }
 
-	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -204,6 +212,9 @@ f = {
 
 	reg(f);
 	reg(f2);
+
+	let f3 = {evalY: glo.input_eval_y.text};
+	reg(f3);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;
@@ -230,6 +241,7 @@ f = {
 	const isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	let d, k, p, t;
+	let Y;
 
 	const additiveSurface = glo.additiveSurface;
 
@@ -254,6 +266,8 @@ f = {
 
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
+
+			if(f3.evalY){ Y = eval(f3.evalY); }
 
 			r     = eval(f.r);
 			alpha = eval(f.alpha);
@@ -382,7 +396,7 @@ f = {
 }, dim_one = glo.dim_one, fractalize = false, onePoint = false)
 {
 
-	var {q, m, mx, my, mz, u_mod, v_mod, mod} = makeCommonCurveFunctions();
+	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 	var {
 			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
 			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
@@ -391,6 +405,9 @@ f = {
 
 	reg(f);
 	reg(f2);
+
+	let f3 = {evalY: glo.input_eval_y.text};
+	reg(f3);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
 	this.p2_first = glo.firstPoint;
@@ -411,6 +428,7 @@ f = {
     const uvInfos = isUV();
 
 	let d, k, p, t;
+	let Y;
 
 	initVarsInObj(f, "", 0); initVarsInObj(f2, "", 0);
 
@@ -445,6 +463,8 @@ f = {
 
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
+
+			if(f3.evalY){ Y = eval(f3.evalY); }
 
 			r     = eval(f.r);
 			alpha = eval(f.alpha);
@@ -558,20 +578,20 @@ function makeCommonCurveFunctions(){
 		},
 		m: function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
 			const x = p.x, y = p.y, z = p.z;
-
+	
 			if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
 			else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
-
+	
 			if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
-
+	
 			ncz = ncz === undefined ? 1 : ncz;
 			ncy = ncy === undefined ? 1 : ncy;
 			ncx = ncx === undefined ? 1 : ncx;
-
+	
 			cnx = cnx === undefined ? 1 : cnx;
 			cny = cny === undefined ? 1 : cny;
 			cnz = cnz === undefined ? 1 : cnz;
-
+	
 			return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
 		},
 		mx: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
@@ -598,8 +618,8 @@ function makeCommonCurveFunctions(){
 
 			return p[p.length - index].z;
 		},
-		u_mod: function(modulo = 2, val_to_return = 0, variable = glo.currentCurveInfos.u, index = glo.currentCurveInfos.index_u){
-			if(index%modulo == 0){ return variable; }
+		P: function(modulo = 2, val_to_return = 0, varToUse, ind){
+			if(ind%modulo == 0){ return varToUse; }
 	
 			return val_to_return;
 		},
@@ -608,7 +628,9 @@ function makeCommonCurveFunctions(){
 	
 			return val_to_return;
 		},
-		mod: function(index, ...args){ return args[index%args.length]; }
+		N: function(index, ...args){ 
+			return args[index%args.length]; 
+		}
 	}
 }
 

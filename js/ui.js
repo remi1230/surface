@@ -505,6 +505,20 @@ function gui_resize(){
 	glo.advancedTexture.idealHeight = h / coeff;
 }
 
+function uvToXy(remake = true){
+	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
+
+	["x", "y", "z", "suit_x", "suit_y", "suit_z", "alpha", "beta", "suit_alpha", "suit_beta",
+	 "suit_theta", "color_x", "color_y", "color_z", "color_alpha", "color_beta", "sym_r"].forEach(nameInput =>  {
+		regs.forEach(reg => {
+			glo[`input_${nameInput}`].text = glo[`input_${nameInput}`].text.replace(reg.exp, reg.upd);
+		});
+		glo.params[`text_input_${nameInput}`] = glo[`input_${nameInput}`].text;
+	 });
+
+	 if(remake){ remakeRibbon(); }
+}
+
 function regSave(f) {
 	console.log("//**************************************//");
 	console.log("TEST REG FUNCTION");

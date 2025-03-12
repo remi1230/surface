@@ -111,6 +111,7 @@ var glo = {
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
 					if(draw){
 						if(glo.normalMode){ resetInputsRibbonEquations(); }
+
 						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
 						var ftheta = typeof(sel.theta) != "undefined" ? ftheta = sel.theta : ftheta = "";
@@ -160,6 +161,7 @@ var glo = {
 
 						glo.toHisto = true;
 						if(!glo.dim_one){
+							if(glo.params.uvToXy){ uvToXy(false); }
 							const fractalize = glo.params.fractalize;
 							if(!glo.normalMode){ await make_curves(undefined, undefined, undefined, undefined, fractalize.actived); }
 							else{
@@ -247,12 +249,12 @@ var glo = {
 		{ exp: /à/g, upd: "cos(8u)sin(8v)" },
 		{ exp: /\(([^)]+)\)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
 		{ exp: /(.*?)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
-		{ exp: /c([^*\(R]*)R/g, upd: "cos($1R)" },
-		{ exp: /s([^*\(R]*)R/g, upd: "sin($1R)" },
-		{ exp: /c([^*\(X]*)X/g, upd: "cos($1X)" },
-		{ exp: /s([^*\(X]*)X/g, upd: "sin($1X)" },
-		{ exp: /c([^*\(Y]*)Y/g, upd: "cos($1Y)" },
-		{ exp: /s([^*\(Y]*)Y/g, upd: "sin($1Y)" },
+		{ exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
+		{ exp: /s([^*\(R\)]*)R/g, upd: "sin($1R)" },
+		{ exp: /c([^*\(X\)]*)X/g, upd: "cos($1X)" },
+		{ exp: /s([^*\(X\)]*)X/g, upd: "sin($1X)" },
+		{ exp: /c([^*\(Y\)]*)Y/g, upd: "cos($1Y)" },
+		{ exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
 		{ exp: /q(?![\(])/g, upd: "h(u,v)" },
 		{ exp: /m(?![\(xyz])/g, upd: "m()" },

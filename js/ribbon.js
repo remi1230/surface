@@ -18,6 +18,7 @@ async function make_curves(u_params = {
 	fSuitX: glo.params.text_input_suit_x,
 	fSuitY: glo.params.text_input_suit_y,
 	fSuitZ: glo.params.text_input_suit_z,
+	fevalX: glo.params.text_input_eval_x,
 	fevalY: glo.params.text_input_eval_y,
 }, dim_one = glo.dim_one, fractalize = false, histo = true){
 

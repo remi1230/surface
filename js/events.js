@@ -201,7 +201,8 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "'":
-                  //FREE
+                  glo.params.uvToXy = !glo.params.uvToXy;
+                  uvToXy();
 
                   break;
                case "(":

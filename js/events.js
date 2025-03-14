@@ -197,7 +197,26 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "ù":
-                  //FREE
+                  glo.HDstepUV = !glo.HDstepUV;
+
+                  if(glo.HDstepUV){
+                     glo.stepUVSave = {stepU: glo.slider_nb_steps_u.value, stepV: glo.slider_nb_steps_v.value,
+                                       stepUMax: glo.slider_nb_steps_u.maximum, stepVMax: glo.slider_nb_steps_v.maximum};
+
+                     glo.slider_nb_steps_u.maximum = 1524;
+                     glo.slider_nb_steps_v.maximum = 1524;
+
+                     glo.slider_nb_steps_u.value = 712;
+                     glo.slider_nb_steps_v.value = 712;
+
+                  }
+                  else{
+                     glo.slider_nb_steps_u.maximum = glo.stepUVSave.stepUMax;
+                     glo.slider_nb_steps_v.maximum = glo.stepUVSave.stepVMax;
+                     glo.slider_nb_steps_u.value   = glo.stepUVSave.stepU;
+                     glo.slider_nb_steps_v.value   = glo.stepUVSave.stepV;
+                  }
+                  
 
                   break;
                case "'":

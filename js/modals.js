@@ -19,11 +19,24 @@ function stopPropagationEvent(event) {
     event.stopPropagation();
 }
 
+const extraireTexteEtNombre = (chaine) => {
+    const resultat = chaine.match(/^(.*?)(\d+)?$/);
+    return {
+        filename   : resultat[1],
+        fileNumber : resultat[2] ? parseInt(resultat[2], 10) : false
+    };
+};
+
 function exportModal(){
 	glo.modalOpen = true;
 	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 	var instance = M.Modal.getInstance(document.querySelector('#exportModal'));
     instance.open();
+
+	let {filename, fileNumber} = extraireTexteEtNombre($("#filename").val());
+	if(fileNumber){
+		$("#filename").val(filename + (fileNumber + 1));
+	}
 }
 function importModal(){
 	glo.modalOpen = true;

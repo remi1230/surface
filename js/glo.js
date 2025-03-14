@@ -110,6 +110,7 @@ var glo = {
 					sel.check = true;
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
 					if(draw){
+						glo.HDstepUV = false;
 						if(glo.normalMode){ resetInputsRibbonEquations(); }
 
 						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
@@ -323,6 +324,7 @@ var glo = {
 		{ exp: /k([^,%*+-/)])/g, upd: "k*$1" },
 		{ exp: /L([^,%*+-/)])/g, upd: "L*$1" },
 		{ exp: /M([^,%*+-/)])/g, upd: "M*$1" },
+		{ exp: /X([^,%*+-/)])/g, upd: "X*$1" },
 		{ exp: /Y([^,%*+-/)])/g, upd: "Y*$1" },
 		{ exp: /S([^,%*+-/\())])/g, upd: "S($1)" },
 		{ exp: /p([^,%*+-/)])/g, upd: "p*$1" },

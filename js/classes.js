@@ -213,7 +213,7 @@ f = {
 	reg(f);
 	reg(f2);
 
-	let f3 = {evalY: glo.input_eval_y.text};
+	let f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
 	reg(f3);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
@@ -241,7 +241,7 @@ f = {
 	const isZ = glo.params.text_input_suit_z != "" ? true : false;
 
 	let d, k, p, t;
-	let Y;
+	let X, Y;
 
 	const additiveSurface = glo.additiveSurface;
 
@@ -267,6 +267,7 @@ f = {
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
 
+			if(f3.evalX){ X = eval(f3.evalX); }
 			if(f3.evalY){ Y = eval(f3.evalY); }
 
 			r     = eval(f.r);
@@ -406,7 +407,7 @@ f = {
 	reg(f);
 	reg(f2);
 
-	let f3 = {evalY: glo.input_eval_y.text};
+	let f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
 	reg(f3);
 
 	this.p1_first = new BABYLON.Vector3.Zero;
@@ -428,7 +429,7 @@ f = {
     const uvInfos = isUV();
 
 	let d, k, p, t;
-	let Y;
+	let X, Y;
 
 	initVarsInObj(f, "", 0); initVarsInObj(f2, "", 0);
 
@@ -464,6 +465,7 @@ f = {
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
 
+			if(f3.evalX){ X = eval(f3.evalX); }
 			if(f3.evalY){ Y = eval(f3.evalY); }
 
 			r     = eval(f.r);

@@ -67,6 +67,12 @@ async function drawNormalEquations(symmetrize = false){
 
 		reg(f, dim_one);
 
+		let f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
+		reg(f3);
+
+		let X = 0;
+		let Y = 0;
+
 	  var x = 0; var y = 0; var z = 0; var alpha = 0; var beta = 0;
 
 		if(f.x == ""){ f.x = 0; }
@@ -130,6 +136,9 @@ async function drawNormalEquations(symmetrize = false){
 					var $T = (xT+yT+zT)/3;
 					var µ$T = µT*$T; var $µT = µT+$T;
 					var µµT = µ$T*$µT;
+
+					if(f3.evalX){ X = eval(f3.evalY); }
+					if(f3.evalY){ Y = eval(f3.evalY); }
 
 					x = eval(f.x);
 					y = eval(f.y);

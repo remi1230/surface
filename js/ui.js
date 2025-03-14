@@ -516,6 +516,11 @@ function uvToXy(remake = true){
 		glo.params[`text_input_${nameInput}`] = glo[`input_${nameInput}`].text;
 	 });
 
+	 if(!glo.input_eval_x.text && !glo.input_eval_y.text){
+		glo.input_eval_x.text = 'u';
+		glo.input_eval_y.text = 'v';
+	 }
+
 	 if(remake){ remakeRibbon(); }
 }
 

@@ -95,6 +95,11 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	glo.ribbon.refreshBoundingInfo();
 	glo.ribbon.boundingInfos = glo.ribbon.getBoundingInfo();
 	const centerLocal        = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : {x:0,y:0,z:0};
+	const center             = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
+	const rotate             = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
+
+	let verticesNormals;
+	if(goodR){ verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind); }
 
 	let index_u = 0, index_v = 0;
 	let newRibbons             = [];
@@ -109,11 +114,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		glo.currentCurveInfos.path = [];
 
 		if((goodR || isCenterOffset) && first){
-			let verticesNormals;
-			if(goodR){ verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind); }
-			const rotate = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
-			const center = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
-			
 			curvesPathsSave.forEach((line, i) => {
 				k = !(i%2) ? -1 : 1;
 				index_v = 0;
@@ -174,7 +174,7 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 
 						if(f3.evalX){ X = eval(f3.evalX); }
 						if(f3.evalY){ Y = eval(f3.evalY); }
-						r = eval(inputSymREq.fx);
+						r = eval(inputSymREq.fx) * glo.scaleNorm;
 						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
 						const dirXY   = directionXY(angleXY, r);
 						
@@ -234,6 +234,10 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
 	}
 
+	initRibbon(coeff);
+}
+
+function initRibbon(coeff){
 	const positions = glo.ribbon.getPositionData();
 	glo.ribbon.setVerticesData(BABYLON.VertexBuffer.PositionKind, positions, true);
 	glo.ribbon.updateIndices(glo.ribbon.getIndices());
@@ -244,6 +248,64 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
 	glo.lines          = glo.curves.paths;
 	glo.ribbon.savePos = positions.slice();
 }
+
+function showRibonFacets(){
+	glo.flatMesh = !glo.flatMesh;
+	if(glo.flatMesh){ glo.ribbon.convertToFlatShadedMesh(); }
+	else{ remakeRibbon(); }
+}
+
+async function doubleResolution() {
+	meshLines = glo.curves.paths.slice();
+
+	// Étape 1 : Interpolation horizontale
+	const horizontalRows = meshLines.map(row => {
+	  const newRow = [];
+	  for (let j = 0; j < row.length; j++) {
+		// On ajoute le point original
+		newRow.push(row[j]);
+		// Entre chaque point (sauf le dernier), on insère son milieu
+		if (j < row.length - 1) {
+		  const nextPoint = row[j + 1];
+		  const midPoint = new BABYLON.Vector3(
+			(row[j].x + nextPoint.x) / 2,
+			(row[j].y + nextPoint.y) / 2,
+			(row[j].z + nextPoint.z) / 2
+		  );
+		  newRow.push(midPoint);
+		}
+	  }
+	  return newRow;
+	});
+  
+	// Étape 2 : Interpolation verticale
+	const finalGrid = [];
+	for (let i = 0; i < horizontalRows.length; i++) {
+	  // Ajout de la ligne déjà interpolée horizontalement
+	  finalGrid.push(horizontalRows[i]);
+	  // S'il y a une ligne suivante, on calcule la ligne intermédiaire
+	  if (i < horizontalRows.length - 1) {
+		const newRow = [];
+		const rowA = horizontalRows[i];
+		const rowB = horizontalRows[i + 1];
+		for (let j = 0; j < rowA.length; j++) {
+		  const midPoint = new BABYLON.Vector3(
+			(rowA[j].x + rowB[j].x) / 2,
+			(rowA[j].y + rowB[j].y) / 2,
+			(rowA[j].z + rowB[j].z) / 2
+		  );
+		  newRow.push(midPoint);
+		}
+		finalGrid.push(newRow);
+	  }
+	}
+	
+	glo.curves.paths = finalGrid;
+
+	await make_ribbon();
+	//initRibbon();
+  }
+  
 
 function functionIt(x, y, z){
 	const cpowX  = glo.params.functionIt.cpow.x;
@@ -506,7 +568,7 @@ function symmetrizeByR(pos, r){
 	return pos;
 }
 
-function expanseRibbon(){
+function expanseRibbonSave(){
 	const expansion = glo.params.expansion;
 
 	glo.curves.paths.forEach((line, i) => {
@@ -524,6 +586,35 @@ function expanseRibbon(){
 				glo.curves.paths[i][j].y += dirXY.y;
 				glo.curves.paths[i][j].z += dirXY.z;
 			}
+		});
+	});
+}
+
+async function expanseRibbon(){
+	const expansion       = glo.params.expansion;
+	const centerLocal     = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : {x:0,y:0,z:0};
+    const center          = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
+    const verticesNormals = await glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+
+	let n = 0;
+	glo.curves.paths.forEach((line, i) => {
+		line.forEach((path, j) => {
+				const xN = verticesNormals[n*3]; const yN = verticesNormals[n*3 + 1]; const zN = verticesNormals[n*3 + 2];
+				const normalVector = new BABYLON.Vector3(xN, yN, zN);
+
+				const angleXY = getAzimuthElevationAngles(normalVector, center);
+				const dist    = BABYLON.Vector3.Distance(path, BABYLON.Vector3.Zero());
+
+				angleXY.x += glo.angleToUpdateRibbon.x;
+				angleXY.y += glo.angleToUpdateRibbon.y;
+
+				const dirXY = directionXY(angleXY, dist, expansion);
+
+				glo.curves.paths[i][j].x += dirXY.x;
+				glo.curves.paths[i][j].y += dirXY.y;
+				glo.curves.paths[i][j].z += dirXY.z;
+
+				n++;
 		});
 	});
 }

@@ -244,10 +244,11 @@ var glo = {
 	regs: [
 		{ exp: /\s/g, upd: "" },
 		{ exp: /f\((.*?)\)/g, upd: "cos($1)sin($1)" },
-		{ exp: /à\(\s*\)/g, upd: "cos(8u)sin(8v)" },
+		{ exp: /à(?![\(])/g, upd: "à()" },
+		/*{ exp: /à\(\s*\)/g, upd: "cos(8u)sin(8v)" },
 		{ exp: /à\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)/g, upd: "cos($1u)sin($2v)" },
 		{ exp: /à\(\s*(-?\d*\.?\d+)\s*\)/g, upd: "cos($1u)sin($1v)" },
-		{ exp: /à/g, upd: "cos(8u)sin(8v)" },
+		{ exp: /à/g, upd: "cos(8u)sin(8v)" },*/
 		{ exp: /\(([^)]+)\)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
 		{ exp: /(.*?)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
 		{ exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
@@ -488,7 +489,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'twelfth'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -1061,7 +1062,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'twelfth'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',

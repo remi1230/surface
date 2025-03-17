@@ -92,6 +92,7 @@ function add_gui_controls(){
   add_functionIt_sliders();
   add_ninethPanel_controls();
   add_fractalize_controls();
+  add_twelfth_panel_sliders();
 
   guiControls_AddIdentificationFunctions();
 
@@ -1491,6 +1492,160 @@ function add_sixth_panel_sliders(){
   }, function(value){ glo.invPositionIfs = glo.invPosIfs(); glo.invPosIf = ''; remakeRibbon(); });
 }
 
+function add_twelfth_panel_sliders(){
+  let panelButton1 = new BABYLON.GUI.StackPanel();
+  let panelButton2 = new BABYLON.GUI.StackPanel();
+  let panelButton3 = new BABYLON.GUI.StackPanel();
+  let panelButton4 = new BABYLON.GUI.StackPanel();
+  let panelButton5 = new BABYLON.GUI.StackPanel();
+  let panelButton6 = new BABYLON.GUI.StackPanel();
+
+  function addPanel(panel, name, top, isVertical = true, width = 20, height = 5){
+    parmamControl(panel, name, 'panel right twelfth noAutoParam', {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
+    glo.advancedTexture.addControl(panel);
+  }
+  function createIncrementer(start, increment) {
+    let count = start - increment;
+    return function() {
+      count += increment;
+      return count;
+    };
+  }
+  addPanel(panelButton1, 'panelButtonTwelfth1', 26);
+  const posPanel = createIncrementer(26, 50);
+
+  //panelButton1.background = 'red';
+
+  addPanel(panelButton2, 'panelButtonTwelfth2', 31);
+  addPanel(panelButton3, 'panelButtonTwelfth3', 36, false);
+  addPanel(panelButton4, 'panelButtonTwelfth4', 41, false);
+  /*addPanel(panelButton5, 'panelButtonTwelfth5', posPanel(), false);
+  addPanel(panelButton6, 'panelButtonTwelfth6', posPanel(), false);*/
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right sixth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parent.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
+    parmamControl(slider, name, 'slider right sixth', options, true);
+    slider.startValue = val;
+
+    slider.onValueChangedObservable.add(async function(value) {
+        if(!name.includes('scaleNorm')){ header.text = text + ": " + value.toFixed(decimalPrecision); }
+        else{
+          if(value < 0){
+            val = parseFloat(value.toFixed(decimalPrecision));
+            val     = -(1 / (val - 1));
+            val     = parseFloat(val.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+          else{
+            val = 1 + parseFloat(value.toFixed(decimalPrecision));
+            header.text = text + ": " + val;
+          }
+          value = val;
+        }
+
+        slider.lastValue = value;
+
+        event(value);
+
+        remakeRibbon();
+    });
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        slider.value = slider.startValue;
+        remakeRibbon();
+      }
+    });
+
+    /*slider.onWheelObservable.add(function (e) {
+      var val = e.y < 0 ? val = step : val = -step; slider.value += val;
+    });*/
+    slider.onPointerUpObservable.add(function (e) {
+      
+    });
+    parent.addControl(slider);
+  }
+
+  function addButton(panelButton, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button right twelfth', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
+    });
+    panelButton.addControl(button);
+  }
+
+  //addSlider(panelSliders, "checkerboardNbSteps", "Checkerboard nb steps", 2, 1, 1.5, 24, .5, function(value){ glo.params.checkerboardNbSteps = value; });
+
+  const buttonSizes = {width: 120, height: 33};
+
+  addButton(panelButton1, "normByFaceButton", "Norm By F", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    swapControlBackground("normByFaceButton");
+    glo.params.normByFace = !glo.params.normByFace;
+    remakeRibbon();
+  }, function(value){ });
+  addButton(panelButton1, "doubleLineSystemButton", "Dbl lines", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    swapControlBackground("doubleLineSystemButton");
+    glo.params.doubleLineSystem = !glo.params.doubleLineSystem;
+    remakeRibbon();
+  }, function(value){ });
+  addButton(panelButton1, "hdMaxButton", " HD Max ", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    swapControlBackground("hdMaxButton");
+    hdMax();
+    remakeRibbon();
+  }, function(value){ });
+  addButton(panelButton2, "uvToXyButton", "UV → XY", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    swapControlBackground("hdMaxButton");
+    glo.params.uvToXy = !glo.params.uvToXy;
+    uvToXy();
+  }, function(value){ });
+  addButton(panelButton2, "resetEquationsButton", "RESET", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    resetEquationsParamSliders();
+  }, function(value){ });
+  addButton(panelButton2, "switchWritingTypeButton", "Long W", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    swapControlBackground("switchWritingTypeButton");
+    glo.switchWritingType = !glo.switchWritingType;
+    switchWritingType(glo.switchWritingType);
+  }, function(value){ });
+  addButton(panelButton3, "uMoreOneButton", "U ++", 70, buttonSizes.height, 26, 0, function(value){
+    slidersAnim('u', 0, 0.01);
+  }, function(value){ });
+  addButton(panelButton3, "uLessOneButton", "U --", 50, buttonSizes.height, 7, 0, function(value){
+    slidersAnim('u', 0, -0.01);
+  }, function(value){ });
+  addButton(panelButton3, "vMoreOneButton", "V ++", 70, buttonSizes.height, 25, 0, function(value){
+    slidersAnim('v', 0, 0.01);
+  }, function(value){ });
+  addButton(panelButton3, "vLessOneButton", "V --", 50, buttonSizes.height, 7, 0, function(value){
+    slidersAnim('v', 0, -0.01);
+  }, function(value){ });
+  addButton(panelButton3, "showRibonFacetsButton", "Facets", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    showRibonFacets();
+  }, function(value){ });
+  addButton(panelButton4, "uMoreLittleOneButton", "U +", 70, buttonSizes.height, 26, 0, function(value){
+    slidersAnim('u', 0, 0.001);
+  }, function(value){ });
+  addButton(panelButton4, "uLessLittleOneButton", "U -", 50, buttonSizes.height, 7, 0, function(value){
+    slidersAnim('u', 0, -0.001);
+  }, function(value){ });
+  addButton(panelButton4, "vMoreLittleOneButton", "V +", 70, buttonSizes.height, 25, 0, function(value){
+    slidersAnim('v', 0, 0.001);
+  }, function(value){ });
+  addButton(panelButton4, "vLessLittleOneButton", "V -", 50, buttonSizes.height, 7, 0, function(value){
+    slidersAnim('v', 0, -0.001);
+  }, function(value){ });
+  addButton(panelButton4, "camToZeroButton", "View on ⊙", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    cameraOnPos({x: 0, y: 0, z: 0});
+  }, function(value){ });
+  
+}
+
 function add_transformation_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right fifth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 26, pR: 1});
@@ -1560,7 +1715,7 @@ function add_transformation_sliders(){
   addSlider(panel, "cSymmetryX", "cSymmetryX", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.x = value; remakeRibbon(); });
   addSlider(panel, "cSymmetryY", "cSymmetryY", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.y = value; remakeRibbon(); });
   addSlider(panel, "cSymmetryZ", "cSymmetryZ", 0, 1, -24, 24, .1, function(value){ glo.centerSymmetry.z = value; remakeRibbon(); });
-  addSlider(panel, "expansion", "expansion", 0, 2, -24, 24, .1, function(value){ remakeRibbon(); });
+  addSlider(panel, "expansion", "expansion", 0, 2, -24, 24, .1, async function(value){ await remakeRibbon(); });
   addSlider(panel, "scaleVertex", "scaleVertexs", 1, 2, -24, 24, .1, function(value){ glo.scaleVertex = value; remakeRibbon(); });
 }
 

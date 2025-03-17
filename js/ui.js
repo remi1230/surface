@@ -458,6 +458,10 @@ function param_special_controls(){
 
 	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').height      = '40px';
 	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').paddingLeft = '5px';
+
+	glo.allControls.getByName('panelButtonTwelfth1').isVertical = false;
+	glo.allControls.getByName('panelButtonTwelfth2').isVertical = false;
+	glo.allControls.getByName('panelButtonTwelfth3').isVertical = false;
   
 	glo.allControls.haveThisClass('slider').map(slider => {
 		for(const prop in glo.theme.slider){ slider[prop] = glo.theme.slider[prop]; }
@@ -474,6 +478,28 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
+}
+
+function hdMax(){
+	glo.HDstepUV = !glo.HDstepUV;
+
+	if(glo.HDstepUV){
+		glo.stepUVSave = {stepU: glo.slider_nb_steps_u.value, stepV: glo.slider_nb_steps_v.value,
+						stepUMax: glo.slider_nb_steps_u.maximum, stepVMax: glo.slider_nb_steps_v.maximum};
+
+		glo.slider_nb_steps_u.maximum = 1524;
+		glo.slider_nb_steps_v.maximum = 1524;
+
+		glo.slider_nb_steps_u.value = 712;
+		glo.slider_nb_steps_v.value = 712;
+
+	}
+	else{
+		glo.slider_nb_steps_u.maximum = glo.stepUVSave.stepUMax;
+		glo.slider_nb_steps_v.maximum = glo.stepUVSave.stepVMax;
+		glo.slider_nb_steps_u.value   = glo.stepUVSave.stepU;
+		glo.slider_nb_steps_v.value   = glo.stepUVSave.stepV;
+	}
 }
 
 function paramRadios(){

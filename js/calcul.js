@@ -669,10 +669,12 @@ function addCommonTools(obj){
 	obj.ù = function(a = glo.currentCurveInfos.u, b = glo.currentCurveInfos.v, t = 0){
 		return a + (b-a)*t;
 	};
-
 	obj.se = function(n, div = 1){
 		const m = Math.abs(n);
 		return Math.sign(n) * ((m*(m+1)) / (2*div));
+	};
+	obj.à = function(nbU = 8, nbV = nbU){
+		return cos(nbU * glo.currentCurveInfos.u) * sin(nbV * glo.currentCurveInfos.v);
 	};
 }
 addCommonTools(this);

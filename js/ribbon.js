@@ -106,7 +106,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 		if(glo.fromSlider){ delete glo.verticesColors; }
 
-		if(glo.params.expansion){ expanseRibbon(); }
+		if(glo.params.expansion){ await expanseRibbon(); }
 
 		scaleVertexsDist(glo.scaleVertex);
 
@@ -189,6 +189,8 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 		applyTransformations();
 		glo.ribbon.moyPosToOrigin();
+
+		if(glo.flatMesh){ glo.ribbon.convertToFlatShadedMesh(); }
 
 		glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
 		glo.params.lastPathEqualFirstPath = false;

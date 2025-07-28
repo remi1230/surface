@@ -459,9 +459,21 @@ function param_special_controls(){
 	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').height      = '40px';
 	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').paddingLeft = '5px';
 
-	glo.allControls.getByName('panelButtonTwelfth1').isVertical = false;
-	glo.allControls.getByName('panelButtonTwelfth2').isVertical = false;
-	glo.allControls.getByName('panelButtonTwelfth3').isVertical = false;
+	for(i = 1; i < 8; i++){ glo.allControls.getByName(`panelButtonEleventh${i}`).isVertical = false; }
+
+	glo.allControls.getByName(`pickerColorPanel1`).isVertical = false;
+	glo.allControls.getByName(`pickerColorPanel2`).isVertical = false;
+	glo.allControls.getByName(`pickerColorPanel3`).isVertical = false;
+	glo.allControls.getByName(`colorHeaderPanel`).height  = "5%";
+	glo.allControls.getByName(`colorHeaderPanel`).top     = "5%";
+	glo.allControls.getByName(`pickerColorPanel1`).height = "12%";
+	glo.allControls.getByName(`pickerColorPanel1`).left   = "5%";
+	glo.allControls.getByName(`pickerColorPanel2`).top    = "15%";
+	glo.allControls.getByName(`pickerColorPanel2`).left   = "40.5%";
+	glo.allControls.getByName(`pickerColorPanel2`).height = "12%";
+	glo.allControls.getByName(`pickerColorPanel3`).top    = "30%";
+	glo.allControls.getByName(`pickerColorPanel3`).left   = "40.5%";
+	glo.allControls.getByName(`pickerColorPanel3`).height = "12%";
   
 	glo.allControls.haveThisClass('slider').map(slider => {
 		for(const prop in glo.theme.slider){ slider[prop] = glo.theme.slider[prop]; }

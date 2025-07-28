@@ -359,7 +359,7 @@ function viewOnZ(orient = 1, alpha = PI/2, beta = PI/2){
 	}
 }
 
-function viewOnAxis(options = {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}){
+function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	if(!options.axis){ options.axis = "X"; }
 	if(!options.direction){ options.direction = -1; }
 	if(!options.alpha && options.alpha !== 0){ options.alpha = PI/4; }

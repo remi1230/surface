@@ -190,30 +190,6 @@ function replaceLast(x, y, z){
     return a.join("");
 }
 
-function cpow(val, exp){
-	return sign(val) * Math.abs(val)**exp;
-}
-
-function cpowi(val, exp){
-	return pow(Math.abs(val), exp);
-}
-
-function cpowh(...dists){
-	let res = 0;
-	dists.forEach(dist => {
-		res += cpow(dist, 2);
-	});
-	return cpow(res, 0.5);
-}
-
-function S(val, cp = true){
-	return cp ? cpow(val, val) : val**val;
-}
-
-function µ(res, varForSign){
-	return sign(varForSign) === sign(res) ? res : -res;
-}
-
 function round(val, pre){
 	prePow = 10**pre;
 	return Math.round(val * prePow, pre) / prePow;
@@ -502,11 +478,6 @@ function calculCurvatureByOrigin(vect){
 	return {azimuth: calculateAzimuth(vect), elevation: calculateElevation(vect)};
 }
 
-function w(val, isCos = 1){
-	let res = isCos ? Math.acos(val) : Math.asin(val);
-	return isNaN(res) ? val : res;
-}
-
 function customDecrease(x, m, k) {
     return x * Math.pow(x / m, k);
 }
@@ -531,150 +502,202 @@ function code_car(car){
 	return parseInt(car.charCodeAt());
 }
 
-function addCommonTools(obj){
-	obj.pi = Math.PI;
-	obj.ep = 0.0000001;
-	obj.mu = glo.params.u + 1;
-
-	obj.cos    = Math.cos; obj.sin = Math.sin; obj.tan = Math.tan;  obj.atan = Math.atan; obj.atantwo = Math.atan2;
-	obj.cosh   = Math.cosh; obj.sinh = Math.sinh; obj.tanh = Math.tanh;  obj.atanh = Math.atanh;
-	obj.c 	   = obj.cos; obj.s = obj.sin;
-	obj.abs    = Math.abs;
-	obj.a 	   = Math.abs;
-	obj.ceil   = Math.ceil;
-	obj.exp    = Math.exp;
-	obj.e 	   = Math.exp;
-	obj.hypot  = Math.hypot;
-	obj.h 	   = Math.hypot;
-	obj.log    = Math.log;
-	obj.l      = Math.log;
-	obj.logten = Math.log10;
-	obj.pow    = Math.pow;
-	obj.rnd    = Math.random;
-	obj.sign   = Math.sign;
-	obj.si     = Math.sign;
-	obj.sq     = Math.sqrt;
-
-	obj.cp = function(val, coeff = 1){ return cos(coeff*PI*val); };
-	obj.sp = function(val, coeff = 1){ return sin(coeff*PI*val); };
-	obj.ch = function(val1, val2, val3 = 0, coeff = 1){ return cos(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
-	obj.sh = function(val1, val2, val3 = 0, coeff = 1){ return sin(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
-
-	obj.b = function(val){
-		if(val > 0){ return val < 1 ? val + 1 : val; }
-		else{ return val > -1 ? val - 1 : val; }
-	};
-
-	obj.pc = function(val, p){
-		if(p%2==0 || p<1){ return val < 0 ? (abs(val)**p) * -1 : val**p; }
-		return val**p;
-	};
-
-	obj.sc = function(val, valSign){
-		return Math.sign(valSign) * Math.abs(val);
-	};
-
-	obj.lc = function(val){
-		return val < 0 ? (l(abs(val))) * -1 : l(val);
-	};
-
-	obj.ec = function(val){
-		return val < 0 ? (e(abs(val))) * -1 : e(val);
-	};
-
-	obj.hc = function(...args){
-		args = args.map(arg => {
-			return arg < 0 ? (arg**2) * -1 : arg**2;
-		});
-
-		let sum_sqr;
-		var sum = args.reduce(function(a,b) { return a+b; });
-		if(sum >= 0){ return sum**0.5; }
-		else{ sum_sqr = abs(sum)**0.5; }
-
-		return -sum_sqr;
-	};
-
-	obj.U = function(...arr){
-		return arr.reduce(function(a,b) { return Math.max(a, b); });
-	};
-	obj.V = function(...arr){
-		return arr.reduce(function(a,b) { return Math.min(a, b); });
-	};
-
-	obj.W = function(x) {
-		const phi = (1 + Math.sqrt(5)) / 2;
-		return (Math.pow(phi, x) - Math.cos(Math.PI * x) * Math.pow(phi, -x)) / Math.sqrt(5);
-	};
-
-	obj.èé = function(n) {
-		function gamma(z) {
-			const g = 7;
-			const p = [
-				0.99999999999980993,
-				676.5203681218851,
-				-1259.1392167224028,
-				771.32342877765313,
-				-176.61502916214059,
-				12.507343278686905,
-				-0.13857109526572012,
-				9.9843695780195716e-6,
-				1.5056327351493116e-7
-			];
-			if (z < 0.5) {
-				return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
-			} else {
-				z -= 1;
-				let x = p[0];
-				for (let i = 1; i < p.length; i++) {
-					x += p[i] / (z + i);
-				}
-				const t = z + g + 0.5;
-				return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
-			}
-		}
-		return gamma(n + 1);
-	};
-
-	obj.é = function(val, pre = 1) {
-		let precision = 1 / Math.pow(2, pre - 1);
-		return Math.ceil(val / precision) * precision;
-	};
-
-	obj.è = function(val){
-		val = val ? val : 1;
-		return Math.sign(val) * Math.log(Math.abs(val));
-	};
-
-	obj.éé = function(val){
-		return Math.acos(val);
-	};
-
-	obj.èè = function(val){
-		return Math.asin(val);
-	};
-
-	obj.éè = function(val){
-		return Math.asin(val) * Math.acos(val);
-	};
-
-	obj.ç = function(val){
-		return Math.cosh(val);
-	};
-
-	obj.çç = function(val){
-		return Math.sinh(val);
-	};
-
-	obj.ù = function(a = glo.currentCurveInfos.u, b = glo.currentCurveInfos.v, t = 0){
-		return a + (b-a)*t;
-	};
-	obj.se = function(n, div = 1){
-		const m = Math.abs(n);
-		return Math.sign(n) * ((m*(m+1)) / (2*div));
-	};
-	obj.à = function(nbU = 8, nbV = nbU){
-		return cos(nbU * glo.currentCurveInfos.u) * sin(nbV * glo.currentCurveInfos.v);
-	};
+function convexHull(points) {
+    if (points.length < 4) {
+        throw new Error("Au moins 4 points requis pour construire un convex hull en 3D");
+    }
+    
+    // Fonctions utilitaires
+    function subtract(a, b) {
+        return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
+    }
+    function cross(a, b) {
+        return {
+            x: a.y * b.z - a.z * b.y,
+            y: a.z * b.x - a.x * b.z,
+            z: a.x * b.y - a.y * b.x
+        };
+    }
+    function dot(a, b) {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+    function distanceToPlane(pt, face) {
+        // face: { normal, offset, vertices }
+        return dot(face.normal, pt) + face.offset;
+    }
+    function computeFaceNormal(i, j, k) {
+        let a = points[i], b = points[j], c = points[k];
+        let u = subtract(b, a), v = subtract(c, a);
+        let normal = cross(u, v);
+        let len = Math.sqrt(dot(normal, normal));
+        if (len > 0) {
+            normal.x /= len;
+            normal.y /= len;
+            normal.z /= len;
+        }
+        return normal;
+    }
+    
+    // --- Étape 1 : Création du premier tétraèdre ---
+    // Recherche des points extrêmes selon x
+    let minX = 0, maxX = 0;
+    for (let i = 1; i < points.length; i++) {
+        if (points[i].x < points[minX].x) minX = i;
+        if (points[i].x > points[maxX].x) maxX = i;
+    }
+    let v0 = minX, v1 = maxX;
+    
+    // Trouver le point le plus éloigné de la ligne v0-v1
+    let maxDist = -Infinity, v2 = -1;
+    let lineDir = subtract(points[v1], points[v0]);
+    let lineLength = Math.sqrt(dot(lineDir, lineDir));
+    for (let i = 0; i < points.length; i++) {
+        if (i === v0 || i === v1) continue;
+        let diff = subtract(points[i], points[v0]);
+        let d = Math.sqrt(dot(cross(diff, lineDir), cross(diff, lineDir))) / lineLength;
+        if (d > maxDist) { maxDist = d; v2 = i; }
+    }
+    
+    // Trouver le point le plus éloigné du plan défini par (v0, v1, v2)
+    let normal = computeFaceNormal(v0, v1, v2);
+    let offset = -dot(normal, points[v0]);
+    maxDist = -Infinity;
+    let v3 = -1;
+    for (let i = 0; i < points.length; i++) {
+        if (i === v0 || i === v1 || i === v2) continue;
+        let d = Math.abs(dot(normal, points[i]) + offset);
+        if (d > maxDist) { maxDist = d; v3 = i; }
+    }
+    if (v3 === -1) {
+        throw new Error("Tous les points sont coplanaires");
+    }
+    
+    // --- Étape 2 : Création des faces du tétraèdre ---
+    let faces = [];
+    function addFace(i, j, k) {
+        let normal = computeFaceNormal(i, j, k);
+        let offset = -dot(normal, points[i]);
+        faces.push({ vertices: [i, j, k], normal, offset, outside: [] });
+    }
+    
+    // On détermine l'orientation en testant la position de v3 par rapport à la face (v0,v1,v2)
+    let d = dot(normal, points[v3]) + offset;
+    if (d > 0) {
+        // v3 est au-dessus, orientation correcte
+        addFace(v0, v1, v2);
+        addFace(v0, v3, v1);
+        addFace(v1, v3, v2);
+        addFace(v2, v3, v0);
+    } else {
+        // v3 est en dessous, inverser l'ordre pour la première face
+        addFace(v0, v2, v1);
+        addFace(v0, v1, v3);
+        addFace(v1, v2, v3);
+        addFace(v2, v0, v3);
+    }
+    
+    // Associer chaque point non utilisé aux faces s’il se trouve à l'extérieur
+    for (let i = 0; i < points.length; i++) {
+        if (i === v0 || i === v1 || i === v2 || i === v3) continue;
+        for (let face of faces) {
+            if (distanceToPlane(points[i], face) > 1e-6) {
+                face.outside.push(i);
+            }
+        }
+    }
+    
+    // --- Étape 3 : Boucle principale du QuickHull ---
+    function getFurthestPoint(face) {
+        let maxD = -Infinity, furthest;
+        for (let idx of face.outside) {
+            let d = distanceToPlane(points[idx], face);
+            if (d > maxD) { maxD = d; furthest = idx; }
+        }
+        return furthest;
+    }
+    
+    function visibleFacesFromPoint(pIndex) {
+        let vis = [];
+        for (let face of faces) {
+            if (distanceToPlane(points[pIndex], face) > 1e-6) {
+                vis.push(face);
+            }
+        }
+        return vis;
+    }
+    
+    while (faces.some(face => face.outside.length > 0)) {
+        // Sélection d'une face ayant des points à l'extérieur
+        let face = faces.find(face => face.outside.length > 0);
+        let p = getFurthestPoint(face);
+        
+        // Récupérer toutes les faces visibles depuis le point p
+        let visible = visibleFacesFromPoint(p);
+        
+        // Déterminer l'horizon : les arêtes communes entre faces visibles et non visibles
+        let horizon = [];
+        function addEdge(a, b) {
+            // Si l'arête inverse existe déjà, on la retire (elle est interne)
+            for (let i = 0; i < horizon.length; i++) {
+                let edge = horizon[i];
+                if (edge[0] === b && edge[1] === a) {
+                    horizon.splice(i, 1);
+                    return;
+                }
+            }
+            horizon.push([a, b]);
+        }
+        for (let f of visible) {
+            let verts = f.vertices;
+            addEdge(verts[0], verts[1]);
+            addEdge(verts[1], verts[2]);
+            addEdge(verts[2], verts[0]);
+        }
+        
+        // Retirer les faces visibles du hull
+        faces = faces.filter(f => visible.indexOf(f) === -1);
+        
+        // Créer de nouvelles faces reliant p aux arêtes de l'horizon
+        let newFaces = [];
+        for (let edge of horizon) {
+            let i = edge[0], j = edge[1];
+            let normal = computeFaceNormal(i, j, p);
+            let offset = -dot(normal, points[i]);
+            newFaces.push({ vertices: [i, j, p], normal, offset, outside: [] });
+        }
+        
+        // Regrouper les points extérieurs des faces supprimées
+        let allOutside = [];
+        for (let f of visible) {
+            allOutside = allOutside.concat(f.outside);
+        }
+        // Retirer le point p et les doublons
+        allOutside = allOutside.filter((idx, i, self) => idx !== p && self.indexOf(idx) === i);
+        // Réassigner les points aux nouvelles faces
+        for (let idx of allOutside) {
+            for (let face of newFaces) {
+                if (distanceToPlane(points[idx], face) > 1e-6) {
+                    face.outside.push(idx);
+                }
+            }
+        }
+        faces = faces.concat(newFaces);
+    }
+    
+    // --- Étape 4 : Extraction des indices du convex hull ---
+    let indices = [];
+    for (let face of faces) {
+        indices.push(face.vertices[0], face.vertices[1], face.vertices[2]);
+    }
+    return indices;
 }
-addCommonTools(this);
+
+function rgbNormalizedToHex({ r, g, b }) {
+	// Convertit chaque composante en entier entre 0 et 255
+	const to255 = x => Math.round(Math.min(1, Math.max(0, x)) * 255);
+
+	// Convertit en hex, en ajoutant un 0 si besoin
+	const toHex = x => to255(x).toString(16).padStart(2, '0');
+
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}

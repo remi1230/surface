@@ -59,8 +59,6 @@ function makeColors(){
 		var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 		var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
 
-		var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
-
 		xEmpty = equations.fx == '' ? true : false; yEmpty = equations.fy == '' ? true : false; zEmpty = equations.fz == '' ? true : false;
 
 		var good = test_equations(equations, dim_one);

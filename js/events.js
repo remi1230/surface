@@ -129,7 +129,8 @@ window.addEventListener("keydown", function (e) {
                   remakeRibbon();
                   break;
                case "à":
-                  //FREE
+                  glo.params.NaNToZero = !glo.params.NaNToZero;
+                  remakeRibbon();
 
                   break;
                case "k":
@@ -222,7 +223,7 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case '*':
-                  resetEquationsParamSliders();
+                  //resetEquationsParamSliders();
 
                   break;
                case '<':
@@ -466,7 +467,9 @@ window.addEventListener("keydown", function (e) {
 
                break;
             case "C":
-            //FREE
+               glo.invPointsByDistToOrigin = !glo.invPointsByDistToOrigin;
+
+               remakeRibbon();
 
                break;
             case "a":
@@ -489,7 +492,7 @@ window.addEventListener("keydown", function (e) {
                break;*/
             case "x":
             case "X":
-               //FREE
+               fibonacciSphereRibbon();
 
                break;
             case "y":
@@ -499,7 +502,8 @@ window.addEventListener("keydown", function (e) {
                break;
             case "z":
             case "Z":
-               //FREE
+               cubeRibbon();
+
                break;
             case "H":
             case "h":
@@ -508,9 +512,15 @@ window.addEventListener("keydown", function (e) {
                break;
             case "S":
             case "s":
-               //FREE
-               //glo.normalOnNormalMode = !glo.normalOnNormalMode;
+               glo.params.distDel*=2;
+               if(isDel()){ remakeRibbon(); }
 
+               break;
+            case "T":
+            case "t":
+               glo.params.distDel/=2;
+               if(isDel()){ remakeRibbon(); }
+               
                break;
             case "E":
             case "e":
@@ -538,10 +548,6 @@ window.addEventListener("keydown", function (e) {
                gridToCenterMesh();
 
                break;
-            case "T":
-            case "t":
-               //gridToOrigin(); break;
-               //FREE
             case "U":
             case "u":
             glo.transCol = !glo.transCol;
@@ -575,10 +581,7 @@ window.addEventListener("keydown", function (e) {
             break;
             case "V":
             case "v":
-               glo.camera.alpha = glo.camera.start.alpha;
-               glo.camera.beta  = glo.camera.start.beta;
-               glo.camera.setPosition(glo.camera.start.pos.clone());
-               glo.camera.setTarget(glo.camera.start.target.clone());
+               viewOnAxis();
 
             break;
             case "Y":

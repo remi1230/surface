@@ -25,84 +25,84 @@ var glo = {
 	formes:{
 		selected:['Torus', 'cartesian'],
 		select:[
-			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "3v", fz: "6cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
+			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "7cosh(v/2)cu", fy: "3.5v", fz: "7cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
 			{text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", beta:"cusu", theta: "cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
 			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", theta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
-			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "5cu", fy: "5cv", fz: "5cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 100} },
+			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cu", fy: "7cv", fz: "7cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 100} },
 			{text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32, fx: "sinh(v)su", fy: "3u", fz: "-sinh(v)cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
-			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: false, },
+			{text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "u", fy: "usv", fz: "ucvsu", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 512, nb_steps_v: 32,  fx: "uc(0.5v)/2", fy: "h(u,v)+sv - 3", fz: "h(u,v)u/12", beta: "h(u,v)/G", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: 0}},
-			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: 1, nb_steps_u: 256, nb_steps_v: 12,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, orient:{distance: 50}},
-			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, },
-			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "u", fy: "v", fz: "uv", check: false, orient:{distance: 40}},
+			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: 1, nb_steps_u: 256, nb_steps_v: 12, fx: "7(1+ 0.5vc(0.5u))cu", fy: "7(1+ 0.5vc(0.5u))su", fz: "3.5vs(0.5u)", check: false, orient:{distance: 50}},
+			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "2u", fy: "2v", fz: "2uv", check: false, orient:{distance: 40}},
 			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
-			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true, },
-			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "7(cv + e)(cu)***2", fy: "7(cv + e)(su)***2", fz: "7(sv)***2", check: false, },
+			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "3(cv + e)cu", fy: "3(cv + e)su", fz: "3sv", check: true, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "3(cv + e)(cu)***2", fy: "3(cv + e)(su)***2", fz: "3(sv)***2", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
-			{text: "Torus twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cv + 2)cu", fy: "7(cv + 2)su", fz: "7sv", alpha: "G(cv + Q)", beta:"G(cv + Q)", theta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: 0, distance: 60}},
+			{text: "Twisted Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "3(cv + 2)cu", fy: "3(cv + 2)su", fz: "3sv", alpha: "G(cv + Q)", beta:"G(cv + Q)", theta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: 0, distance: 60}},
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
-			{text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "(cucv)***2", fy: "(svcu)***2", fz: "Q/2s(u)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 80}},
-			{text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "(cucv)***2", fy: "(sucv)***2", fz: "Q/2(sv)***0", alpha: "", theta: "pi/4", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
+			{text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cucv)***2", fy: "7(svcu)***2", fz: "7Q/2s(u)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 80}},
+			{text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cucv)***2", fy: "7(sucv)***2", fz: "7Q/2(sv)***0", alpha: "", theta: "pi/4", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
 			{text: "Egg", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 133, nb_steps_v: 133,  fx: "", fy: "(pow(36 - su², 0.5) + cu)cu", fz: "4su", beta: "v", check: false, suit: true, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8, distance: 80}},
 			{text: "Glass", typeCoords: 'cartesian', udef: PI, vdef: 3*PI/8, nb_steps_u: 255, nb_steps_v: 255,  fx: "7c(u+1)c(v+1.2)", fy: "7s(u+1)c(v+1.2)", fz: "9sv", alpha: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
 			{text: "Heart", typeCoords: 'cartesian', udef: 2*PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "16sv**3", fy: "13cv-5c(2v)-2c(3v)-c(4v)", fz: "u/8", alpha: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 40}},
-			{text: "Horn", typeCoords: 'cartesian', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "usv", fy: "ucv", fz: "2u²-3", beta: "u²", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
+			{text: "Horn", typeCoords: 'cartesian', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "4usv", fy: "4ucv", fz: "4(2u²-3)", beta: "u²", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 80}},
 			{text: "Knot torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 256,  fx: "(cu + 10)cv", fy: "(cu + 10)sv", fz: "su", alpha: "v", beta: "v", check: false, suit: true, orient: {axis: "Z", direction: -1, alpha: PI/2.5, beta: 0, distance: 60}},
-			{text: "Pseudosphere", typeCoords: 'cartesian', udef: 1.24, vdef: PI, nb_steps_u: 256, nb_steps_v: 92,  fx: "12cvcu**pi", fy: "12svcu**pi", fz: "12cpow(sinh(u), e)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0, distance: 45}},
-			{text: "CircleSpi", typeCoords: 'spheric', udef: 1.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "4u", fy: "v", fz: "exp(1/l(2a(u)))", check: false, orient: {axis: "Z", direction: 1, alpha: PI/2, beta: -PI/8}},
-			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4u", fy: "v", fz: "2cupvcv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/8, beta: 0}},
-			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cusv", fy: "ucusv", fz: "vcusv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/4, beta: 0}},
-			{text: "Flower", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "8vh(c(u8),s(12v))", fy: "v+pi/4", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
-			{text: "Hyperbola", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "20", fy: "2v", fz: "pi/8", alpha: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/6}},
-			{text: "Interrogation", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8", check: false, orient: {axis: "X", direction: 1, alpha: -3*PI/2, beta: PI}},
-			{text: "Heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8suv", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: PI}},
-			{text: "Nautile", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12cu", fy: "u", fz: "v", alpha: "", beta: "cv", theta: "cusu", check: false, orient: {axis: "Y", direction: -1, alpha: -5*PI/4, beta: 0} },
-			{text: "Pen mine", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "12(u+c(u+c(v+vsu)))", fy: "u+cu", fz: "v", check: false, orient: {axis: "Z", direction: 1, alpha: -2*PI/3, beta: -9*PI/8}},
+			{text: "Pseudosphere", typeCoords: 'cartesian', udef: 1.24, vdef: PI, nb_steps_u: 256, nb_steps_v: 92,  fx: "7cvcu**pi", fy: "7svcu**pi", fz: "7cpow(sinh(u), e)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0, distance: 45}},
+			{text: "CircleSpi", typeCoords: 'spheric', udef: 1.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "u", fy: "v", fz: "exp(1/l(2a(u)))", check: false, orient: {axis: "Z", direction: 1, alpha: PI/2, beta: -PI/8}},
+			{text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "cupvcv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/8, beta: 0}},
+			{text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "cusv", fy: "ucusv", fz: "vcusv", check: false, orient: {axis: "X", direction: -1, alpha: -PI/4, beta: 0}},
+			{text: "Flower", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "vh(c(u8),s(12v))", fy: "v+pi/4", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
+			{text: "Hyperbola", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "1", fy: "2v", fz: "pi/8", alpha: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/6}},
+			{text: "Interrogation", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8", check: false, orient: {axis: "X", direction: 1, alpha: -3*PI/2, beta: PI}},
+			{text: "Heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "u", fz: "v/2", alpha: "", beta: "", theta: "(cu**8)8suv", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: PI}},
+			{text: "Nautile", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "cu", fy: "u", fz: "v", alpha: "", beta: "cv", theta: "cusu", check: false, orient: {axis: "Y", direction: -1, alpha: -5*PI/4, beta: 0} },
+			{text: "Pen mine", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "(u+c(u+c(v+vsu)))", fy: "u+cu", fz: "v", check: false, orient: {axis: "Z", direction: 1, alpha: -2*PI/3, beta: -9*PI/8}},
 			{text: "Propeller", typeCoords: 'spheric', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "s(.2v)", fz: "vc(.2v)s(.2u)", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: PI, distance: 37}},
-			{text: "Seashell heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "5u(cv+1)", fy: "usv", fz: "ucv", check: false, orient: {axis: "Y", direction: -1, alpha: -5*PI/4, beta: -PI/4}},
-			{text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "12", fy: "v", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8} },
-			{text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "12", fy: "u", fz: "v", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8}},
-			{text: "Sphere rosette", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u-v", fz: "u+v", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8}},
-			{text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "6u", fy: "pi/4", fz: "u+v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
-			{text: "Spiral penta curve", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 5,  fx: "6u", fy: "pi/4", fz: "2(u+v)", beta: "a(u/(3+2/3))+pi/(2**0.5)", check: false, orient: {axis: "X", direction: 1, alpha: 3.5*PI/4, beta: 0}},
+			{text: "Seashell heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u(cv+1)", fy: "usv", fz: "ucv", check: false, orient: {axis: "Y", direction: -1, alpha: -5*PI/4, beta: -PI/4}},
+			{text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "1", fy: "v", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8} },
+			{text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "1", fy: "u", fz: "v", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8}},
+			{text: "Sphere rosette", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u-v", fz: "u+v", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8}},
+			{text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx: "u", fy: "pi/4", fz: "u+v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
+			{text: "Spiral penta curve", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 5,  fx: "u", fy: "pi/4", fz: "2(u+v)", beta: "a(u/(3+2/3))+pi/(2**0.5)", check: false, orient: {axis: "X", direction: 1, alpha: 3.5*PI/4, beta: 0}},
 			{text: "Twisted weathercock", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "pi+c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", theta: "u/1.1", check: false, orient: {axis: "X", direction: -1, alpha: PI, beta: -PI/12, distance: 20}},
-			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256, fx: "4u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0}},
-			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "12c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,  orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
-			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "5", fy: "v", fz: "5u", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/12}},
+			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256, fx: "u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 0, beta: 0}},
+			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,  orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
+			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "1", fy: "v", fz: "u", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/12}},
 			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "us(fact(v))", fz: "6ucvs(60u)", check: false, orient: {axis: "Z", direction: -1, alpha: PI/8, beta: -PI/16, distance: 300}},
-			{text: "Heart", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 96,  fx: "2uv", fy: "usv", fz: "cvs(60u)", beta: "u", check: false, orient: {axis: "X", direction: 1, alpha: PI/6, beta: -PI/12}},
-			{text: "Jewel", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 256,  fx: "2uv", fy: "usv", fz: "cvs(60u)", beta: "v-u", check: false, orient: {axis: "X", direction: 1, alpha: 6*PI/5, beta: -PI/12}},
+			{text: "Heart", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 96,  fx: "uv", fy: "usv", fz: "cvs(60u)", beta: "u", check: false, orient: {axis: "X", direction: 1, alpha: PI/6, beta: -PI/12}},
+			{text: "Jewel", typeCoords: 'cylindrical', udef: PI/2, vdef: PI*1.5, nb_steps_u: 256, nb_steps_v: 256,  fx: "uv", fy: "usv", fz: "cvs(60u)", beta: "v-u", check: false, orient: {axis: "X", direction: 1, alpha: 6*PI/5, beta: -PI/12}},
 			{text: "Hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "v²", fy: "u", fz: "v", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
 			{text: "Inverse hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
 			{text: "Invsin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 127,  fx: "1/(4v)", fy: "u", fz: "4v+s(6Gu)", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
 			{text: "Invspin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 63, nb_steps_v: 161,  fx: "1/(12v)", fy: "u", fz: "(8+2/3)v", beta: "3vsi(v)/2", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/12}},
 			{text: "Moebius", typeCoords: 'cylindrical', udef: PI, vdef: 1, nb_steps_u: 132, nb_steps_v: 132,  fx: "(1+ 0.5vc(0.5u))cu", fy: "(1+ 0.5vc(0.5u))su", fz: "0.5vs(0.5u)", check: false, orient: {axis: "X", direction: -1, alpha: PI/3, beta: -PI/12, distance: 5}},
-			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "3u", fy: "v", fz: "3v", check: false, },
-			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", beta: "c(60u)/12", check: false, },
+			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "u", fy: "v", fz: "v", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", beta: "c(60u)/12", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
-			{text: "Spiral 4", typeCoords: 'cylindrical', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "12uv", fy: "pi", fz: "u", alpha: "", beta: "ch(u,v)pi", theta: "v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
+			{text: "Spiral 4", typeCoords: 'cylindrical', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "4uv", fy: "pi", fz: "u", alpha: "", beta: "ch(u,v)pi", theta: "v", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
 			{text: "Loop spiral", typeCoords: 'curvature', udef: PI, vdef: PI, nb_steps_u: 528, nb_steps_v: 92,  fx: "1", fy: "u+v²", fz: "u-v²", alpha: "", beta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: -PI/8, distance: 80}},
 			{text: "Ashtray", typeCoords: 'quaternion', udef: 4*PI, vdef: PI, nb_steps_u: 266, nb_steps_v: 264,  fx: "u", fy: "usv", fz: "ucvsu", alpha: "u", beta: "pi", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/6}},
 			{text: "Curve", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "ch(u,v)12", fy: "ch(u,v)", fz: "sh(u,v)", alpha: "ch(u,v)", beta: "pih(u,v)12", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/6}},
-			{text: "Helix", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "4v", fy: "u", fz: "v", alpha: "G", beta: "pi", check: false, },
-			{text: "Helix II", typeCoords: 'quaternion', udef: 2*PI, vdef: PI/2, nb_steps_u: 528, nb_steps_v: 64,  fx: "12u", fy: "v", fz: "cu", alpha: "su", beta: "v", check: false, },
-			{text: "Horn", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "6v", fy: "u²+v²", fz: "u²-v²", alpha: "h(u,v)", beta: "u", check: false, },
-			{text: "Line", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "vcu/8", check: false, },
-			{text: "Moebius", typeCoords: 'quaternion', udef: 6*PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 64,  fx: "h(u, v)", fy: "h(u, v)", fz: "v²", alpha: "h(O, u)", beta: "h(O, u)", check: false, },
-			{text: "Ribbon", typeCoords: 'quaternion', udef: 0, vdef: PI/2, nb_steps_u: 1, nb_steps_v: 512,  fx: "12hc(u,v)", fy: "u***0", fz: "", alpha: "hc(u,v)", beta: "pihc(u,v)", check: false, orient: {axis: "Z", direction: 1, alpha: PI/16, beta: -PI/16}},
+			{text: "Helix", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "v", fy: "u", fz: "v", alpha: "G", beta: "pi", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Helix II", typeCoords: 'quaternion', udef: 2*PI, vdef: PI/2, nb_steps_u: 528, nb_steps_v: 64,  fx: "u", fy: "v", fz: "cu", alpha: "su", beta: "v", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Horn", typeCoords: 'quaternion', udef: PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 256,  fx: "v", fy: "u²+v²", fz: "u²-v²", alpha: "h(u,v)", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Line", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "vcu/8", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Moebius", typeCoords: 'quaternion', udef: 6*PI, vdef: PI, nb_steps_u: 256, nb_steps_v: 64,  fx: "h(u, v)", fy: "h(u, v)", fz: "v²", alpha: "h(O, u)", beta: "h(O, u)", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Ribbon", typeCoords: 'quaternion', udef: 0, vdef: PI/2, nb_steps_u: 1, nb_steps_v: 512,  fx: "hc(u,v)", fy: "u***0", fz: "", alpha: "hc(u,v)", beta: "pihc(u,v)", check: false, orient: {axis: "Z", direction: 1, alpha: PI/16, beta: -PI/16}},
 			{text: "Shell", typeCoords: 'quaternion', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "u", fz: "v", alpha: "", beta: "u", check: false, orient: {axis: "Z", direction: -1, alpha: PI/8, beta: -PI/12}},
 			{text: "Spaceship", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "h(u+v, u-v)", fy: "u", fz: "v", alpha: "uv", beta: "piG", check: false, orient: {axis: "X", direction: 1, alpha: PI/8, beta: -PI/6}},
-			{text: "Sphere", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "7cucv", fz: "7sucv", alpha: "7sv", beta: "pi", check: false, orient: {axis: "X", direction: -1, alpha: 9*PI/8, beta: -PI/8}},
-			{text: "Sphere tetra", typeCoords: 'quaternion', udef: PI, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "12", fy: "cu", fz: "cv", alpha: "cupv", beta: "pi", check: false, orient: {axis: "X", direction: -1, alpha: PI, beta: -PI/8}},
+			{text: "Sphere", typeCoords: 'quaternion', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "cucv", fz: "sucv", alpha: "7sv", beta: "pi", check: false, orient: {axis: "X", direction: -1, alpha: 9*PI/8, beta: -PI/8}},
+			{text: "Sphere tetra", typeCoords: 'quaternion', udef: PI, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "1", fy: "cu", fz: "cv", alpha: "cupv", beta: "pi", check: false, orient: {axis: "X", direction: -1, alpha: PI, beta: -PI/8}},
 			{text: "Spiral", typeCoords: 'quaternion', udef: 2*PI, vdef: 2*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uv", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, orient: {axis: "X", direction: -1, alpha: PI/2, beta: 0, distance: 120}},
 			{text: "Ying-Yang", typeCoords: 'quaternion', udef: 2*PI, vdef: (11/6)*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "h(u,v)", alpha: "h(u,v)", beta: "h(u,v)", check: false, orient: {axis: "X", direction: -1, alpha: PI/2, beta: PI/12, distance: 30}},
-			{text: "Jewel", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "12u²", fy: "u", fz: "v", alpha: "pi", beta: "cusv", check: false, orient: {axis: "Y", direction: -1, alpha: PI/6, beta: 0, distance: 80}},
-			{text: "Flower", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "8h(u,v)", fy: "sh(u,v)u", fz: "sh(u,v)v", alpha: "sh(u,v)vu", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/4, beta: PI}},
-			{text: "Flower2", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "8sh(c(0.5u)G,c(0.5v)G)", fy: "sh(cu,cv)v", fz: "sh(u,v)u", alpha: "sh(u,v)vu", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/4, beta: 0, distance: 30}},
+			{text: "Jewel", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "1u²", fy: "u", fz: "v", alpha: "pi", beta: "cusv", check: false, orient: {axis: "Y", direction: -1, alpha: PI/6, beta: 0, distance: 80}},
+			{text: "Flower", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "h(u,v)", fy: "sh(u,v)u", fz: "sh(u,v)v", alpha: "sh(u,v)vu", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/4, beta: PI}},
+			{text: "Flower2", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 264, nb_steps_v: 264,  fx: "sh(c(0.5u)G,c(0.5v)G)", fy: "sh(cu,cv)v", fz: "sh(u,v)u", alpha: "sh(u,v)vu", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/4, beta: 0, distance: 30}},
 			{text: "Shell", typeCoords: 'quaternionRotAxis', udef: 4.5*PI, vdef: PI/2, nb_steps_u: 256, nb_steps_v: 256,  fx: "u", fy: "u", fz: "v", alpha: "1", beta: "", check: false, orient: {axis: "Y", direction: -1, alpha: PI/6, beta: 0}},
-			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "12", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, orient: {axis: "X", direction: 1, alpha: 8*PI/7, beta: -PI/12}},
+			{text: "Sphere", typeCoords: 'quaternionRotAxis', udef: PI/2, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u", fz: "v", alpha: "pi", beta: "", check: false, orient: {axis: "X", direction: 1, alpha: 8*PI/7, beta: -PI/12}},
 		],
 		setFormeSelect: async function(txt, coordsType, draw = true){
 			for (const sel of this.select) {
@@ -242,15 +242,36 @@ var glo = {
 	formule: [],
 	controls_grid: [],
 	regs: [
+		{
+			exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
+			upd: 'cpow($1,$2)'
+		},
+		// 2) (gauche) *** droiteSimple (identifiant ou nombre)
+		{
+			exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
+			upd: 'cpow($1,$2)'
+		},
+		// 3) identifiant(groupe) ***(identifiant|nombre|groupe)
+		{
+			exp: /([A-Za-z_$][\w$]*\(\s*[^()]+?\s*\))\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?|\(\s*[^()]+?\s*\))/g,
+			upd: 'cpow($1,$2)'
+		},
+		// 4) identifiant ***(groupe)
+		{
+			exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
+			upd: 'cpow($1,$2)'
+		},
+		// 5) identifiant ***(identifiant|nombre)
+		{
+			exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
+			upd: 'cpow($1,$2)'
+		},
 		{ exp: /\s/g, upd: "" },
-		{ exp: /f\((.*?)\)/g, upd: "cos($1)sin($1)" },
 		{ exp: /à(?![\(])/g, upd: "à()" },
-		/*{ exp: /à\(\s*\)/g, upd: "cos(8u)sin(8v)" },
-		{ exp: /à\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)/g, upd: "cos($1u)sin($2v)" },
-		{ exp: /à\(\s*(-?\d*\.?\d+)\s*\)/g, upd: "cos($1u)sin($1v)" },
-		{ exp: /à/g, upd: "cos(8u)sin(8v)" },*/
-		{ exp: /\(([^)]+)\)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
-		{ exp: /(.*?)\*\*\*([^)]+)/g, upd: "cpow($1, $2)" },
+		{ exp: /ç(?![\(])/g, upd: "ç()" },
+		{ exp: /aa(?![\(])/g, upd: "aa()" },
+		{ exp: /bb(?![\(])/g, upd: "bb()" },
+		{ exp: /(?<![cp])o(?![\(])/g, upd: "o()" },
 		{ exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
 		{ exp: /s([^*\(R\)]*)R/g, upd: "sin($1R)" },
 		{ exp: /c([^*\(X\)]*)X/g, upd: "cos($1X)" },
@@ -302,6 +323,8 @@ var glo = {
 		{ exp: /r([^,%*+-/nmC)])/g, upd: "r*$1" },
 		{ exp: /alpha([^,%*+-/nt)])/g, upd: "alpha*$1" },
 		{ exp: /beta([^,%*+-/nt)])/g, upd: "beta*$1" },
+		{ exp: /(?<!s)i([^,%*+\-\/)])/g, upd: "i*$1" },
+		{ exp: /j([^,%*+-/)])/g, upd: "j*$1" },
 		{ exp: /xN([^,%*+-/)])/g, upd: "xN*$1" },
 		{ exp: /yN([^,%*+-/)])/g, upd: "yN*$1" },
 		{ exp: /zN([^,%*+-/)])/g, upd: "zN*$1" },
@@ -489,7 +512,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'twelfth'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -791,6 +814,7 @@ var glo = {
 	is_sliderGainPos: false,
 	sliderGainSign: 0,
 	slidersUVOnOneSign: {u: false, v: false},
+	meshChannel: new BroadcastChannel('mesh_channel'),
 	params:{
 		u: 4*PI,
 		v: PI,
@@ -809,6 +833,7 @@ var glo = {
 		K: 1,
 		L: 1,
 		M: 1,
+		invPtsPowCoeff: 0.00,
 		saturation: 0,
 		tint: 0,
 		rotAlpha: 0,
@@ -950,6 +975,8 @@ var glo = {
 		lastPathEqualFirstPath: false,
 		normByFace: true,
 		coeffPhi: 10,
+		symmAngle: {x: 0, y: 0},
+		distDel: 5,
 	},
 	theme:{
 		slider:{
@@ -1062,7 +1089,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'twelfth'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',
@@ -1080,6 +1107,15 @@ var glo = {
 	lineStep: {},
 	linesStep: [],
 };
+
+glo.meshChannel.onmessage = (event) => {
+	const { action, rotType } = event.data;
+
+	if (action === 'setRotateType') {
+		glo.rotType.next();
+	}
+};
+
 function getByName(name){
 	var elemToReturn = false;
 	this.map(elem => {

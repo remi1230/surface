@@ -1,9 +1,7 @@
 function test_equations(equations, dim_one = false, forCol = false){
 	glo.formule = [];
-
-	var {q, m, mx, my, mz, P, v_mod, N} = makeCommonCurveFunctions();
 	
-	var d = 1, k = 1, p = 1, t = 1;
+	var d = 1, k = 1, p = 1, t = 1, i = 1, j = 1;
 
 	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
 	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
@@ -11,13 +9,13 @@ function test_equations(equations, dim_one = false, forCol = false){
 	var X = 1;
 	var Y = 1;
 
-	var f = equations;
+	var eq = equations;
 
 	for (let prop in equations){
-		if(!f[prop] || f[prop] == ""){ f[prop] = 0; }
+		if(!eq[prop] || eq[prop] == ""){ eq[prop] = 0; }
 	}
 
-	reg(f, dim_one);
+	reg(eq, dim_one);
 
 	var path = [];
 
@@ -38,9 +36,9 @@ function test_equations(equations, dim_one = false, forCol = false){
 	var O = 1; var T = 1;
 	try{
 		const results = {};
-		for (const key in f) {
-			if (f.hasOwnProperty(key)) {
-			results[key] = eval(f[key]);
+		for (const key in eq) {
+			if (eq.hasOwnProperty(key)) {
+			results[key] = eval(eq[key]);
 			}
 		}
 

@@ -457,37 +457,34 @@ BABYLON.Mesh.prototype.delLastPathIndices = function(nb = glo.params.steps_v * 6
     }
 };
 
-BABYLON.Mesh.prototype.delLastPathIndicesSave = function() {
-    let indices = this.getIndices();
+BABYLON.Mesh.prototype.delLastPathIndicesSave = function(nb = glo.params.steps_v * 6) {
+    /*let indices = this.getIndices();
 
     if (indices.length) {
         const nbSyms = countSyms();  // Nombre de rubans symétrisés
-        const M = glo.params.steps_u; // Nombre de points par chemin
-        const N = glo.params.steps_v; // Nombre de chemins par ruban
-        const verticesPerRibbon = M * N;
-        const indicesPerRibbon = (M - 1) * (N - 1) * 6;  // Nombre total d'indices par ruban
+        const totalIndicesPerRibbon = (glo.params.steps_u) * (glo.params.steps_v) * 6;  // Nombre total d'indices par ruban
 
         let indsToDel = [];
+        
+        for (let n = 0; n < nbSyms; n++) { 
+            // Calculer l'offset pour chaque ruban dans le tableau d'indices
+            const ribbonOffset = n * totalIndicesPerRibbon;
 
-        for (let n = 0; n < nbSyms; n++) {
-            // Calculer l'offset en indices pour chaque ruban
-            const indexOffset = n * indicesPerRibbon;
-            // Calculer le nombre d'indices à supprimer pour le dernier chemin
-            const indicesToDeletePerRibbon = (M - 1) * 6;  // Nombre d'indices pour le dernier ensemble de faces
-            // Les indices à supprimer commencent à cette position
-            const startIndexToDelete = indexOffset + indicesPerRibbon - indicesToDeletePerRibbon;
-
-            for (let i = 0; i < indicesToDeletePerRibbon; i++) {
-                indsToDel.push(startIndexToDelete + i);
+            for (let i = 1; i <= nb; i++) { 
+                // Supprimer les indices correspondant au dernier chemin de chaque ruban
+                indsToDel.push(indices.length - ribbonOffset - (i * (0 + 1))); // Ajustement ici pour prendre en compte l'effet sur les rubans suivants
             }
         }
 
         // Supprimer les indices sélectionnés
-        let newIndices = Uint32ArrayDelete(indices, indsToDel);
+        let newIndices = Uint32ArrayDelete(indices, indsToDel); 
 
         // Reconstruire les données de vertex avec les nouveaux indices
-        this.updateIndices(newIndices);
-    }
+        this.reBuildVertexData(newIndices);
+    }*/
+
+	glo.curves.paths.pop();
+	make_ribbon();
 };
 
 BABYLON.Mesh.prototype.tIndices = function() {
@@ -507,6 +504,7 @@ BABYLON.Mesh.prototype.tIndices = function() {
 
     _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
 }
+
 BABYLON.Mesh.prototype.cIndices = function() {
     let inds = this.getIndices();
 

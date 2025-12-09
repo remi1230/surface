@@ -68,6 +68,10 @@ Game = function(canvasId) {
     engine.runRenderLoop(function() {
       if (glo.rotateType != 'none') { rotate_camera(); }
       if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
+      if (glo.withTime) {
+        w+=wstep;
+        remakeRibbon(); 
+      }
       _this.scene.render();
     });
   });

@@ -15,6 +15,11 @@ const deepCopy = (inObject) => {
   }
   return outObject
 }
+
+let g     = 0;
+let w     = 0;
+let wstep = 0.001;
+
 var num_mesh = 0;
 var r = 1;
 const PI = Math.PI;
@@ -312,6 +317,8 @@ var glo = {
 		{ exp: /vv([^,%*+-/)])/g, upd: "vv*$1" },
 		{ exp: /u([^,%*+-/)])/g, upd: "u*$1" },
 		{ exp: /v([^,%*+-/)])/g, upd: "v*$1" },
+		{ exp: /g([^,%*+-/)])/g, upd: "g*$1" },
+		{ exp: /w([^,%*+-/)])/g, upd: "w*$1" },
 		{ exp: /µP([^,%*+-/)])/g, upd: "µP*$1" },
 		{ exp: /µN([^,%*+-/)])/g, upd: "µN*$1" },
 		{ exp: /\$N([^,%*+-/)])/g, upd: "$N*$1" },

@@ -66,6 +66,10 @@ window.addEventListener("keydown", function (e) {
    else{ 
       if(e.ctrlKey){
          switch (key) {
+            case "q": 
+               glo.withTime = !glo.withTime;
+               w = 0;
+            break;
             case "x": case "y": case "z":
                negativeMeshGeometry(key);
             break;
@@ -397,12 +401,16 @@ window.addEventListener("keydown", function (e) {
                   //FREE
 
                break;
-               case "b":
-                  //FREE
+               case "c":
+                  wstep/=2;
 
                break;
-               case "c":
-                  //FREE
+               case "v":
+                  w = 0;
+
+               break;
+               case "b":
+                  wstep*=2;
 
                break;
                case "j":

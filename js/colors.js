@@ -61,6 +61,8 @@ function makeColors(){
 
 		xEmpty = equations.fx == '' ? true : false; yEmpty = equations.fy == '' ? true : false; zEmpty = equations.fz == '' ? true : false;
 
+		let origin = new BABYLON.Vector3(0,0,0);
+
 		var good = test_equations(equations, dim_one);
 		if(good){
 			ribbonToWhite();
@@ -123,6 +125,8 @@ function makeColors(){
 						var $N = (xN+yN+zN)/3; var $P = (xP+yP+zP)/3; var µP = xP*yP*zP;
 						var µ$N = µN*$N; var $µN = µN+$N;
 						var µµN = µ$N*$µN;
+
+						g = BABYLON.Vector3.Distance(origin, pv); 
 
 						const invRad = 180/PI;
 						var O = Math.acos(yP/(h(xP,yP,zP))) * invRad;
@@ -205,6 +209,14 @@ function makeColors(){
 					newColors.push(new BABYLON.Color4(r, g, b, 1));
 				});
 			}
+			else if(glo.params.playWithColorMode == 'norm'){
+				colors.map(color => {
+					var r = color.r; r = r == Infinity ? 0 : r; var g = color.g; g = g == Infinity ? 0 : g; var b = color.b; b = b == Infinity ? 0 : b;
+					r = isNaN(r) ? 0 : r; g = isNaN(g) ? 0 : g; b = isNaN(b) ? 0 : b;
+					let vcol = BABYLON.Vector3.Normalize(new BABYLON.Vector3(r, g, b));
+					newColors.push(new BABYLON.Color4(vcol.x, vcol.y, vcol.z, 1));
+				});
+			}
 			else{
 				colors.map(color => {
 					var r = color.r; r = r == Infinity ? 0 : r; var g = color.g; g = g == Infinity ? 0 : g; var b = color.b; b = b == Infinity ? 0 : b;
@@ -212,6 +224,7 @@ function makeColors(){
 					newColors.push(new BABYLON.Color4(r, g, b, 1));
 				});
 			}
+
 
 			glo.colors = newColors;
 
@@ -680,7 +693,7 @@ function meshEquationToColor(){
 
 function* playWithColNextMode(){
   var index = 0;
-  var tab = ['xyz', 'all', 'none'];
+  var tab = ['xyz', 'norm', 'all', 'none'];
   while(true){
 		index++;
 		if(index == tab.length){ index = 0; }

@@ -21,7 +21,7 @@ function test_equations(equations, dim_one = false, forCol = false){
 
 	glo.toHisto = true;
 
-	var u = 1; var v = 1; var n = 1;
+	var u = 1; var v = 1; var n = 1; var w = 1; var g = 0;
 	var uMax = 1; var vMax = 1; var nMax = 1;
 	var uMin = 1; var vMin = 1; var nMin = 1;
 	var stepU = 1; var stepV = 1;

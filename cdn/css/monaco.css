@@ -1,0 +1,184 @@
+/* Style pour les toasts d'erreur avec plus d'espace */
+.toast {
+    max-width: 600px;
+}
+
+.toast small {
+    font-size: 0.9em;
+    opacity: 0.9;
+    display: block;
+    margin-top: 5px;
+}
+
+/* Fenêtre flottante de l'éditeur */
+.shader-editor-window {
+    position: fixed;
+    top: 10%;
+    left: 10%;
+    width: 60%;
+    height: 70%;
+    background: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.shader-editor-window.fullscreen {
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+}
+
+/* Header */
+.editor-header {
+    background: #2d2d2d;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: move;
+    user-select: none;
+    border-bottom: 1px solid #333;
+}
+
+.editor-header:hover {
+    background: #353535;
+}
+
+.editor-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.editor-title i {
+    font-size: 20px;
+}
+
+.editor-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.editor-controls .btn-floating {
+    width: 32px;
+    height: 32px;
+}
+
+.editor-controls .btn-floating i {
+    line-height: 32px;
+    font-size: 18px;
+}
+
+/* Body */
+.editor-body {
+    flex: 1;
+    padding: 16px;
+    overflow: hidden;
+    background: #1e1e1e;
+    min-height: 400px; /* IMPORTANT : hauteur minimum */
+}
+
+#editor-container {
+    width: 100%;
+    height: 100%;
+    min-height: 400px; /* IMPORTANT */
+    border: 1px solid #333;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative; /* IMPORTANT pour Monaco */
+}
+
+/* Footer */
+.editor-footer {
+    background: #2d2d2d;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-top: 1px solid #333;
+}
+
+.editor-status {
+    margin-left: auto;
+    color: #888;
+    font-size: 13px;
+}
+
+/* Poignées de redimensionnement */
+.resize-handle {
+    position: absolute;
+    z-index: 10;
+}
+
+.resize-handle-n { 
+    top: 0; left: 0; right: 0; height: 5px; 
+    cursor: ns-resize; 
+}
+
+.resize-handle-s { 
+    bottom: 0; left: 0; right: 0; height: 5px; 
+    cursor: ns-resize; 
+}
+
+.resize-handle-e { 
+    right: 0; top: 0; bottom: 0; width: 5px; 
+    cursor: ew-resize; 
+}
+
+.resize-handle-w { 
+    left: 0; top: 0; bottom: 0; width: 5px; 
+    cursor: ew-resize; 
+}
+
+.resize-handle-ne { 
+    top: 0; right: 0; width: 12px; height: 12px; 
+    cursor: nesw-resize; 
+    background: transparent;
+}
+
+.resize-handle-nw { 
+    top: 0; left: 0; width: 12px; height: 12px; 
+    cursor: nwse-resize; 
+    background: transparent;
+}
+
+.resize-handle-se { 
+    bottom: 0; right: 0; width: 12px; height: 12px; 
+    cursor: nwse-resize; 
+    background: transparent;
+}
+
+.resize-handle-sw { 
+    bottom: 0; left: 0; width: 12px; height: 12px; 
+    cursor: nesw-resize; 
+    background: transparent;
+}
+
+.shader-editor-window.fullscreen .resize-handle {
+    display: none;
+}
+
+/* Animation d'apparition */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.shader-editor-window {
+    animation: slideIn 0.2s ease-out;
+}

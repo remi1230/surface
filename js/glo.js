@@ -16,9 +16,14 @@ const deepCopy = (inObject) => {
   return outObject
 }
 
+let shaderModalInstance, editor;
+
 let g     = 0;
 let w     = 0;
 let wstep = 0.001;
+
+const editorWindow = document.getElementById('shaderEditor');
+let isFullscreen = false;
 
 var num_mesh = 0;
 var r = 1;

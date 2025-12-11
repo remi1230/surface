@@ -7,10 +7,12 @@
   <title>SURFACE</title>
   <link rel="icon" type="image/png" href="logo.png">
   <link rel="stylesheet" href="cdn/css/materialize.min.css">
+  <link rel="stylesheet" href="cdn/css/monaco.css">
   <link rel="stylesheet" href="css/surface.css">
 
   <script src="cdn/js/jquery.min.js" defer></script>
   <script src="cdn/js/materialize/materialize.min.js" defer></script>
+  <script src="cdn/js/monaco/loader.min.js" defer></script>
   <script src="cdn/js/babylon/babylonLast.js" defer></script>
   <script src="cdn/js/babylon/babylon.gui.min.js" defer></script>
   <script src="cdn/js/babylon/babylonjs.serializers.js" defer></script>
@@ -20,6 +22,7 @@
   <script src="js/glo.js" defer></script>
   <script src="js/prototypes.js" defer></script>
   <script src="js/classes.js" defer></script>
+  <script src="js/shaders.js" defer></script>
   <script src="js/colors.js" defer></script>
   <script src="js/calcul.js" defer></script>
   <script src="js/functions.js" defer></script>
@@ -235,6 +238,47 @@
       <p>theta = ROT X = PITCH</p>
       <p>BABYLON.Matrix.RotationYawPitchRoll(alpha, theta, beta)</p>
     </div>
+  </div>
+
+  <div id="shaderEditor" class="shader-editor-window" style="display: none;">
+      <div class="editor-header">
+          <span class="editor-title">
+              <i class="material-icons">code</i>
+              Éditeur de Shader GLSL
+          </span>
+          <div class="editor-controls">
+              <a href="#!" class="btn-floating btn-small waves-effect waves-light blue" id="toggleFullscreen" title="Plein écran (F11)">
+                  <i class="material-icons">fullscreen</i>
+              </a>
+              <a href="#!" class="btn-floating btn-small waves-effect waves-light red" id="closeEditor" title="Fermer">
+                  <i class="material-icons">close</i>
+              </a>
+          </div>
+      </div>
+      
+      <div class="editor-body">
+          <div id="editor-container"></div>
+      </div>
+      
+      <div class="editor-footer">
+          <a href="#!" class="waves-effect waves-yellow btn-flat" id="resetBtn">
+              <i class="material-icons left">refresh</i>Réinitialiser
+          </a>
+          <a href="#!" class="waves-effect waves-green btn green" id="compileBtn">
+              <i class="material-icons left">build</i>Compiler
+          </a>
+          <span class="editor-status" id="editorStatus"></span>
+      </div>
+      
+      <!-- Poignées de redimensionnement -->
+      <div class="resize-handle resize-handle-n"></div>
+      <div class="resize-handle resize-handle-s"></div>
+      <div class="resize-handle resize-handle-e"></div>
+      <div class="resize-handle resize-handle-w"></div>
+      <div class="resize-handle resize-handle-ne"></div>
+      <div class="resize-handle resize-handle-nw"></div>
+      <div class="resize-handle resize-handle-se"></div>
+      <div class="resize-handle resize-handle-sw"></div>
   </div>
 </body>
 

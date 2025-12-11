@@ -327,3 +327,276 @@ function initDataModal(){
 		}
 	 });
 }
+
+require.config({ 
+    paths: { 
+        vs: './cdn/js/monaco/vs'
+    } 
+});
+function initializeMonacoEditor(){
+    const modalElem = document.getElementById('shaderModal');
+    
+    shaderModalInstance = M.Modal.init(modalElem, {
+        onOpenEnd: function() {
+            // Juste redimensionner et focus
+            if (editor) {
+                editor.layout();
+                editor.focus();
+            }
+        }
+    });
+    
+    // Créer Monaco tout de suite
+    console.log('Creating Monaco editor immediately');
+    initMonacoEditor();
+}
+
+function openShaderWindow(){
+	editorWindow.style.display = 'flex';
+        
+	if (!editor) {
+		initMonacoEditor();
+	} else {
+		editor.layout();
+		editor.focus();
+	}
+}
+
+// Fonction pour déplacer la fenêtre
+function makeDraggable() {
+    const header = editorWindow.querySelector('.editor-header');
+    let isDragging = false;
+    let currentX, currentY, initialX, initialY;
+    
+    header.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+    
+    function dragStart(e) {
+        if (isFullscreen) return;
+        if (e.target.closest('.editor-controls')) return;
+        
+        initialX = e.clientX - editorWindow.offsetLeft;
+        initialY = e.clientY - editorWindow.offsetTop;
+        isDragging = true;
+    }
+    
+    function drag(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        
+        const maxX = window.innerWidth - editorWindow.offsetWidth;
+        const maxY = window.innerHeight - editorWindow.offsetHeight;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        editorWindow.style.left = currentX + 'px';
+        editorWindow.style.top = currentY + 'px';
+    }
+    
+    function dragEnd() {
+        isDragging = false;
+    }
+}
+
+// Fonction pour redimensionner la fenêtre
+function makeResizable() {
+    const handles = editorWindow.querySelectorAll('.resize-handle');
+    
+    handles.forEach(handle => {
+        handle.addEventListener('mousedown', initResize);
+    });
+    
+    let isResizing = false;
+    let currentHandle = null;
+    let startX, startY, startWidth, startHeight, startLeft, startTop;
+    
+    function initResize(e) {
+        if (isFullscreen) return;
+        
+        isResizing = true;
+        currentHandle = e.target;
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        const rect = editorWindow.getBoundingClientRect();
+        startWidth = rect.width;
+        startHeight = rect.height;
+        startLeft = rect.left;
+        startTop = rect.top;
+        
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+        e.preventDefault();
+    }
+    
+    function resize(e) {
+        if (!isResizing) return;
+        
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        
+        const className = currentHandle.className;
+        
+        if (className.includes('resize-handle-e')) {
+            editorWindow.style.width = Math.max(400, startWidth + dx) + 'px';
+        }
+        if (className.includes('resize-handle-w')) {
+            const newWidth = Math.max(400, startWidth - dx);
+            editorWindow.style.width = newWidth + 'px';
+            editorWindow.style.left = (startLeft + startWidth - newWidth) + 'px';
+        }
+        if (className.includes('resize-handle-s')) {
+            editorWindow.style.height = Math.max(300, startHeight + dy) + 'px';
+        }
+        if (className.includes('resize-handle-n')) {
+            const newHeight = Math.max(300, startHeight - dy);
+            editorWindow.style.height = newHeight + 'px';
+            editorWindow.style.top = (startTop + startHeight - newHeight) + 'px';
+        }
+        
+        if (editor) {
+            editor.layout();
+        }
+    }
+    
+    function stopResize() {
+        isResizing = false;
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+    }
+}
+
+// Rendre déplaçable
+makeDraggable();
+
+// Rendre redimensionnable
+makeResizable();
+
+function initMonacoEditor() {
+    const container = document.getElementById('editor-container');
+    
+    require(['vs/editor/editor.main'], function() {
+        monaco.languages.register({ id: 'glsl' });
+        
+        monaco.languages.setMonarchTokensProvider('glsl', {
+            keywords: [
+                'attribute', 'const', 'uniform', 'varying',
+                'break', 'continue', 'do', 'for', 'while',
+                'if', 'else', 'in', 'out', 'inout',
+                'float', 'int', 'void', 'bool', 'true', 'false',
+                'discard', 'return',
+                'mat2', 'mat3', 'mat4', 'vec2', 'vec3', 'vec4',
+                'sampler2D', 'samplerCube',
+                'struct', 'precision', 'highp', 'mediump', 'lowp'
+            ],
+            builtins: [
+                'radians', 'degrees', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
+                'pow', 'exp', 'log', 'sqrt', 'abs', 'floor', 'ceil', 'fract',
+                'mod', 'min', 'max', 'clamp', 'mix', 'step', 'smoothstep',
+                'length', 'distance', 'dot', 'cross', 'normalize',
+                'texture2D', 'gl_Position', 'gl_FragColor', 'gl_FragCoord'
+            ],
+            tokenizer: {
+                root: [
+                    [/[a-zA-Z_]\w*/, {
+                        cases: {
+                            '@keywords': 'keyword',
+                            '@builtins': 'predefined',
+                            '@default': 'identifier'
+                        }
+                    }],
+                    [/[0-9]+\.[0-9]*/, 'number.float'],
+                    [/[0-9]+/, 'number'],
+                    [/".*?"/, 'string'],
+                    [/\/\/.*$/, 'comment']
+                ]
+            }
+        });
+
+        editor = monaco.editor.create(container, {
+            value: fragmentShader,
+            language: 'glsl',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14,
+            lineNumbers: 'on',
+            scrollBeyondLastLine: false,
+            tabSize: 4,
+            insertSpaces: true,
+            wordWrap: 'on'
+        });
+        
+        // Action Ctrl+S pour compiler
+        editor.addAction({
+            id: 'compile-shader',
+            label: 'Compiler le shader',
+            keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+            run: function() {
+                document.getElementById('compileBtn')?.click();
+            }
+        });
+        
+        updateStatus('Prêt');
+    });
+}
+
+function updateStatus(message, isError = false) {
+    const status = document.getElementById('editorStatus');
+    if (status) {
+        status.textContent = message;
+        status.style.color = isError ? '#ef5350' : '#4caf50';
+    }
+}
+
+function initMonacoEditorOld() {
+    const container = document.getElementById('editor-container');
+    console.log('Container:', container);
+    
+    require(['vs/editor/editor.main'], function() {
+        console.log('Monaco loaded');
+        
+        monaco.languages.register({ id: 'glsl' });
+        
+        monaco.languages.setMonarchTokensProvider('glsl', {
+            keywords: [
+                'attribute', 'const', 'uniform', 'varying',
+                'float', 'int', 'void', 'bool', 'vec2', 'vec3', 'vec4',
+                'mat2', 'mat3', 'mat4', 'if', 'else', 'for', 'while'
+            ],
+            builtins: [
+                'sin', 'cos', 'tan', 'abs', 'floor', 'mix',
+                'gl_Position', 'gl_FragColor'
+            ],
+            tokenizer: {
+                root: [
+                    [/[a-zA-Z_]\w*/, {
+                        cases: {
+                            '@keywords': 'keyword',
+                            '@builtins': 'predefined',
+                            '@default': 'identifier'
+                        }
+                    }],
+                    [/[0-9]+\.[0-9]*/, 'number'],
+                    [/\/\/.*$/, 'comment']
+                ]
+            }
+        });
+
+        editor = monaco.editor.create(container, {
+            value: fragmentShader || '// Shader code',
+            language: 'glsl',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false },
+            fontSize: 14
+        });
+        
+        console.log('Editor created successfully');
+    });
+}

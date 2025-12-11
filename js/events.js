@@ -53,7 +53,36 @@ document.getElementById('dataTable').addEventListener("click", function(ev){
    }
 });
 
-window.addEventListener("keydown", function (e) {
+document.getElementById('compileBtn')?.addEventListener('click', () => {
+    fragmentShader = editor.getValue();
+    giveMaterialToMesh();
+});
+
+// Fermer l'éditeur
+document.getElementById('closeEditor')?.addEventListener('click', () => {
+   editorWindow.style.display = 'none';
+});
+
+// Plein écran
+document.getElementById('toggleFullscreen')?.addEventListener('click', function() {
+   const icon = this.querySelector('i');
+   
+   if (!isFullscreen) {
+      editorWindow.classList.add('fullscreen');
+      icon.textContent = 'fullscreen_exit';
+      isFullscreen = true;
+   } else {
+      editorWindow.classList.remove('fullscreen');
+      icon.textContent = 'fullscreen';
+      isFullscreen = false;
+   }
+   
+   if (editor) {
+      setTimeout(() => editor.layout(), 100);
+   }
+});
+
+document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 
    if(glo.modalOpen){ 
@@ -363,11 +392,14 @@ window.addEventListener("keydown", function (e) {
 
                   break;
                case "5":
-                  //FREE
+                  glo.shaderMaterial = !glo.shaderMaterial;
+                  giveMaterialToMesh();
 
                   break;
                case "6":
-                  //FREE
+                  glo.shaderMaterial = true;
+                  openShaderWindow();
+                  giveMaterialToMesh();
 
                   break;
                case "7":

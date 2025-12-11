@@ -1,16 +1,52 @@
 function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
 	disposeAllMaterials();
 
-	let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+	if(!glo.shaderMaterial){
+		let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 
-	material.backFaceCulling = false;
-	mesh.material = material;
-	mesh.material.emissiveColor = emissiveColor;
-	mesh.material.diffuseColor = diffuseColor;
-	mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-	mesh.material.alpha = glo.ribbon_alpha;
-	mesh.alphaIndex = 998;
-	mesh.material.wireframe = glo.wireframe;
+		material.backFaceCulling = false;
+		mesh.material = material;
+		mesh.material.emissiveColor = emissiveColor;
+		mesh.material.diffuseColor = diffuseColor;
+		mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+		mesh.material.alpha = glo.ribbon_alpha;
+		mesh.alphaIndex = 998;
+		mesh.material.wireframe = glo.wireframe;
+	}
+	else{
+		// Créer le ShaderMaterial
+		const shaderMaterial = new BABYLON.ShaderMaterial(
+			"ribbonShader",
+			glo.scene,
+			{
+				vertexSource: vertexShader,
+				fragmentSource: fragmentShader
+			},
+			{
+				attributes: ["position", "normal", "uv"],
+				uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "time", "cameraPosition"],
+				needAlphaBlending: false
+			}
+		);
+
+		// Configuration du backface culling pour voir les deux côtés
+		shaderMaterial.backFaceCulling = false;
+
+		// Définir les uniforms
+		shaderMaterial.setFloat("time", 0);
+		shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+
+		// Appliquer le matériau au mesh
+		mesh.material = shaderMaterial;
+		mesh.alphaIndex = 998;
+		mesh.material.wireframe = glo.wireframe;
+
+		// Animation
+		glo.scene.registerBeforeRender(() => {
+			shaderMaterial.setFloat("time", performance.now() * 0.001);
+			shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+		});
+	}
 }
 
 function disposeAllMaterials(){

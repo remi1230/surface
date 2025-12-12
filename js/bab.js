@@ -65,12 +65,12 @@ Game = function(canvasId) {
   var _arena = new Arena(_this);
   glo.end_loop = false;
   _this.scene.executeWhenReady(function() {
-    engine.runRenderLoop(function() {
+    engine.runRenderLoop(async function() {
       if (glo.rotateType != 'none') { rotate_camera(); }
       if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
       if (glo.withTime) {
         w+=wstep;
-        remakeRibbon(); 
+        await remakeRibbon(); 
       }
       _this.scene.render();
     });

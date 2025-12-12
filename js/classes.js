@@ -60,7 +60,7 @@ equa = {
 
 	// Liste commune de paramètres pour les fonctions créées dynamiquement
 	const paramNames = [
-		"u", "v", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
+		"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
 		"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
 	];
 	
@@ -104,7 +104,7 @@ equa = {
 			if(equa3.evalX){ X = eval(equa3.evalX); }
 			if(equa3.evalY){ Y = eval(equa3.evalY); }
 
-			const args = [u, v, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
+			const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
 			x = evalX(...args);
 			y = evalY(...args);
 			z = evalZ(...args);
@@ -131,9 +131,9 @@ equa = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			alpha = evalAlpha(u, v, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			beta  = evalBeta(u, v, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			theta = evalTheta(u, v, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			alpha = evalAlpha(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			beta  = evalBeta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			theta = evalTheta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
 			
 			if(alpha && beta){
 				let pos = rotateByQuaternion(x, y, z, alpha, beta);

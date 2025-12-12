@@ -54,8 +54,70 @@ document.getElementById('dataTable').addEventListener("click", function(ev){
 });
 
 document.getElementById('compileBtn')?.addEventListener('click', () => {
-    fragmentShader = editor.getValue();
-    giveMaterialToMesh();
+   // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
+    monaco.editor.setModelMarkers(editor.getModel(), 'glsl', []);
+    
+    fragmentShader   = editor.getValue();
+    const validation = validateShader(fragmentShader);
+
+    if(validation.valid){
+      updateStatus(`Prêt`, false);
+      giveMaterialToMesh();
+   }
+    else{
+      console.log('Erreur de compilation:', validation.error);
+        
+        // Extraire le numéro de ligne depuis l'erreur
+        // Format GLSL: "ERROR: 0:5: 'variable' : undeclared identifier"
+        let lineNumber = 1;
+        let columnNumber = 1;
+        
+        // Essayer différents formats d'erreur
+        const lineMatch1 = validation.error.match(/ERROR: \d+:(\d+):/); // Format: ERROR: 0:5:
+        const lineMatch2 = validation.error.match(/(\d+):(\d+)/);       // Format: 5:10
+        const lineMatch3 = validation.error.match(/line (\d+)/i);       // Format: line 5
+        
+        if (lineMatch1) {
+            lineNumber = parseInt(lineMatch1[1]);
+        } else if (lineMatch2) {
+            lineNumber = parseInt(lineMatch2[1]);
+            columnNumber = parseInt(lineMatch2[2]);
+        } else if (lineMatch3) {
+            lineNumber = parseInt(lineMatch3[1]);
+        }
+        
+        console.log('Erreur détectée à la ligne:', lineNumber);
+        
+        // Nettoyer le message d'erreur pour l'affichage
+        let cleanMessage = validation.error
+            .replace(/^ERROR: \d+:\d+:\s*/, '')  // Enlever le préfixe ERROR: 0:5:
+            .trim();
+        
+        // Afficher le marqueur d'erreur dans Monaco
+        monaco.editor.setModelMarkers(editor.getModel(), 'glsl', [{
+            severity: monaco.MarkerSeverity.Error,
+            message: cleanMessage,
+            startLineNumber: lineNumber,
+            startColumn: columnNumber,
+            endLineNumber: lineNumber,
+            endColumn: 1000  // Toute la ligne
+        }]);
+        
+        // Aller à la ligne de l'erreur et la mettre en surbrillance
+        editor.revealLineInCenter(lineNumber);
+        editor.setPosition({ lineNumber: lineNumber, column: columnNumber });
+        editor.focus();
+        
+        // Toast avec le numéro de ligne
+        M.toast({
+            html: `❌ Erreur ligne ${lineNumber}:<br><small>${cleanMessage}</small>`,
+            classes: 'red darken-2',
+            displayLength: 8000
+        });
+        
+        updateStatus(`Erreur ligne ${lineNumber}`, true);
+        return;
+    }
 });
 
 // Fermer l'éditeur

@@ -41,23 +41,18 @@ function addCommonTools(obj){
 	obj.q = function(nu, nv = nu){
 		return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
 	};
-	obj.m = function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
+	obj.m = function(ncx, ncy, ncz, p = glo.currentCurveInfos.vect){
 		const x = p.x, y = p.y, z = p.z;
 
 		if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
 		else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
 
-		if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
 
 		ncz = ncz === undefined ? 1 : ncz;
 		ncy = ncy === undefined ? 1 : ncy;
 		ncx = ncx === undefined ? 1 : ncx;
 
-		cnx = cnx === undefined ? 1 : cnx;
-		cny = cny === undefined ? 1 : cny;
-		cnz = cnz === undefined ? 1 : cnz;
-
-		return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
+		return cos(ncx*x)*cos(ncy*y)*cos(ncz*z);
 	};
 	obj.o = function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
 		const x = p.x, y = p.y, z = p.z;

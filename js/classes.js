@@ -183,7 +183,7 @@ equa = {
 			glo.currentCurveInfos.index_v = index_v;
 			glo.currentCurveInfos.n = n;
 		}
-		this.paths.push(path);
+		this.paths[index_u]=path;
 		index_u++;
 		glo.currentCurveInfos.index_u = index_u;
 	}
@@ -268,9 +268,33 @@ f = {
 
 	const additiveSurface = glo.additiveSurface;
 
-	const evalR = new Function("u", "v", "x", "y", "z", "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T", "return " + f.x);
-	const evalY = new Function("u", "v", "x", "y", "z", "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T", "return " + f.y);
-	const evalZ = new Function("u", "v", "x", "y", "z", "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T", "return " + f.z);
+
+
+	// Liste commune de paramètres pour les fonctions créées dynamiquement
+	const paramNames = [
+		"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
+		"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
+	];
+	
+	// Construction de la chaîne d'affectations pour les variables issues de glo.params
+	const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+	const varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
+	
+	// Fonction factory pour créer les fonctions avec ou sans inclusion de varUI
+	function createEvalFunction(code, includeVarUI = true) {
+		const fullCode = (includeVarUI ? varUI + " " : "") + "return " + code;
+		return new Function(...paramNames, fullCode);
+	}
+	
+	// Création des fonctions dynamiques
+	const evalR      = createEvalFunction(f.r);
+	const evalY      = createEvalFunction(f.alpha);
+	const evalZ      = createEvalFunction(f.beta);
+	const evalAlpha  = createEvalFunction(f.alpha2);
+	const evalBeta   = createEvalFunction(f.beta2);
+	const eval2Alpha = createEvalFunction(f2.alpha);
+	const eval2Beta  = createEvalFunction(f2.beta);
+	const eval2Theta = createEvalFunction(f2.theta);
 
 	let n = 0;
 	let path = [];
@@ -297,9 +321,10 @@ f = {
 			if(f3.evalX){ X = eval(f3.evalX); }
 			if(f3.evalY){ Y = eval(f3.evalY); }
 
-			r     = eval(f.r);
-			alpha = eval(f.alpha);
-			beta  = eval(f.beta);
+			const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
+			r     = evalR(...args);
+			alpha = evalY(...args);
+			beta  = evalZ(...args);
 
 			if(r == Infinity || r == -Infinity || isNaN(r)){ r = 0; }
 

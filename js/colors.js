@@ -14,7 +14,8 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 		mesh.material.wireframe = glo.wireframe;
 	}
 	else{
-		// Créer le ShaderMaterial
+		glo.ribbon.setAngles();
+
 		const shaderMaterial = new BABYLON.ShaderMaterial(
 			"ribbonShader",
 			glo.scene,
@@ -23,11 +24,16 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 				fragmentSource: fragmentShader
 			},
 			{
-				attributes: ["position", "normal", "uv"],
-				uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "time", "cameraPosition"],
+				attributes: ["position", "normal", "uv", 'curvature'],
+				uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "time", "cameraPosition", "iResolution"],
 				needAlphaBlending: false
 			}
 		);
+
+		shaderMaterial.setVector2("iResolution", new BABYLON.Vector2(
+			glo.scene.getEngine().getRenderWidth(), 
+			glo.scene.getEngine().getRenderHeight()
+		));
 
 		// Configuration du backface culling pour voir les deux côtés
 		shaderMaterial.backFaceCulling = false;
@@ -35,6 +41,23 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 		// Définir les uniforms
 		shaderMaterial.setFloat("time", 0);
 		shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+
+		shaderMaterial.setFloat("gridU", glo.params.steps_u);
+		shaderMaterial.setFloat("gridV", glo.params.steps_v);
+		shaderMaterial.setFloat("lineWidth", 1.0);
+
+		const meshinfos = mesh.getBoundingInfo();
+
+		shaderMaterial.setVector3("minpoint",
+			{x: meshinfos.boundingBox.minimumWorld.x, y: meshinfos.boundingBox.minimumWorld.y, z: meshinfos.boundingBox.minimumWorld.z});
+
+		shaderMaterial.setVector3("maxpoint",
+			{x: meshinfos.boundingBox.maximumWorld.x, y: meshinfos.boundingBox.maximumWorld.y, z: meshinfos.boundingBox.maximumWorld.z});
+			
+		shaderMaterial.setVector3("msize",
+			{x: meshinfos.boundingBox.extendSizeWorld.x, y: meshinfos.boundingBox.extendSizeWorld.y, z: meshinfos.boundingBox.extendSizeWorld.z});
+
+		shaderMaterial.setInt("invcol", glo.shaders.params.invcol ? 1 : 0);
 
 		// Appliquer le matériau au mesh
 		mesh.material = shaderMaterial;

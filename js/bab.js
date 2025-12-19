@@ -53,7 +53,8 @@ Arena = function(game) {
 Game = function(canvasId) {
   var canvas = document.getElementById(canvasId);
   var engine = new BABYLON.Engine(canvas, true, {
-    doNotHandleContextLost: true
+    doNotHandleContextLost: true,
+    disableWebGL2Support: false
   });
   engine.enableOfflineSupport = false;
   glo.engine = engine;

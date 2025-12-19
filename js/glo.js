@@ -16,7 +16,9 @@ const deepCopy = (inObject) => {
   return outObject
 }
 
-let shaderModalInstance, editor;
+let shaderModalInstance, editor, fragmentShader, fragmentShaderHeader;
+
+let fragmentShaders = [];
 
 let g     = 0;
 let w     = 0;
@@ -545,6 +547,16 @@ var glo = {
 			}
 		}
 	},
+	numShaderMove: function* (){
+	  var index = 0;
+	  var tab = fragmentShaders;
+	  while(true){
+			index++;
+			if(index == tab.length){ index = 0; }
+			this.shaders.params.numshader = index;
+	    yield index;
+	  }
+	},
 	histo: {
 		init: function(){ this.content[0].params = deepCopy(glo.params); },
 		content: [],
@@ -1024,6 +1036,12 @@ var glo = {
 	tubes: {
 		radius: 0.05,
 		coeffRadiusVariation: Math.pow(2, 1/3),
+	},
+	shaders: {
+		params:{
+			invcol: 0,
+			numshader: 0,
+		}
 	},
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},

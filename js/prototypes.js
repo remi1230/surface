@@ -52,6 +52,59 @@ BABYLON.Mesh.prototype.pathsInfos = function() {
 	return {distMoy, distMax};
 };
 
+BABYLON.Mesh.prototype.rectanglesRatio = function() {
+    const paths = this.getPaths();
+    
+    if (paths.length < 2) {
+        return { ratioMoy: 1, ratioMin: 1, ratioMax: 1 };
+    }
+    
+    let ratios = [];
+    
+    // Parcourir les paths (lignes horizontales du ribbon)
+    for (let i = 0; i < paths.length - 1; i++) {
+        const currentPath = paths[i];
+        const nextPath = paths[i + 1];
+        
+        // S'assurer que les deux paths ont le même nombre de points
+        const minLength = Math.min(currentPath.length, nextPath.length);
+        
+        for (let j = 0; j < minLength - 1; j++) {
+            // Les 4 coins du rectangle :
+            // currentPath[j] -------- currentPath[j+1]
+            //       |                       |
+            //       |                       |
+            // nextPath[j] --------- nextPath[j+1]
+            
+            // Côté horizontal (le long du path)
+            const sideH1 = BABYLON.Vector3.Distance(currentPath[j], currentPath[j + 1]);
+            const sideH2 = BABYLON.Vector3.Distance(nextPath[j], nextPath[j + 1]);
+            const sideH = (sideH1 + sideH2) / 2; // Moyenne des deux côtés horizontaux
+            
+            // Côté vertical (entre les paths)
+            const sideV1 = BABYLON.Vector3.Distance(currentPath[j], nextPath[j]);
+            const sideV2 = BABYLON.Vector3.Distance(currentPath[j + 1], nextPath[j + 1]);
+            const sideV = (sideV1 + sideV2) / 2; // Moyenne des deux côtés verticaux
+            
+            // Ratio : toujours le plus grand / le plus petit pour avoir ratio >= 1
+            if (sideH > 0 && sideV > 0) {
+                const ratio = sideH > sideV ? sideH / sideV : sideV / sideH;
+                ratios.push(ratio);
+            }
+        }
+    }
+    
+    if (ratios.length === 0) {
+        return { ratioMoy: 1, ratioMin: 1, ratioMax: 1 };
+    }
+    
+    const ratioMoy = ratios.reduce((acc, val) => acc + val, 0) / ratios.length;
+    const ratioMin = Math.min(...ratios);
+    const ratioMax = Math.max(...ratios);
+    
+    return { ratioMoy, ratioMin, ratioMax, count: ratios.length };
+};
+
 BABYLON.Mesh.prototype.gridScale = function() {
 	const gridSize = 30;
 	const extremePos = this.extremePos();
@@ -219,6 +272,80 @@ BABYLON.Mesh.prototype.getCurvatures = function(paths = glo.ribbon.getPaths()) {
         radiusDeriveConstant: curvaturesDerive('radius'),
         radiusOrthoDeriveConstant: curvaturesDerive('radiusOrtho'),
     };
+};
+
+BABYLON.Mesh.prototype.getAngles = function(paths = glo.ribbon.getPaths()) {
+    const pathsLength = paths.length;
+    const pathLength = paths[0].length;
+    let curvatures = [];
+
+    for (let i = 0; i < pathsLength; i++) {
+        for (let j = 0; j < pathLength; j++) {
+            // Clamper aux indices intérieurs pour les bords
+            const iCalc = Math.min(Math.max(i, 1), pathsLength - 2);
+            const jCalc = Math.min(Math.max(j, 1), pathLength - 2);
+            
+            const P = paths[iCalc][jCalc];
+            
+            // Dérivées premières
+            const dPdu = paths[iCalc][jCalc+1].subtract(paths[iCalc][jCalc-1]);
+            const dPdv = paths[iCalc+1][jCalc].subtract(paths[iCalc-1][jCalc]);
+            
+            // Dérivées secondes (multipliées par 4 pour compenser)
+            const d2Pdu2 = paths[iCalc][jCalc+1].subtract(P.scale(2)).add(paths[iCalc][jCalc-1]).scale(4);
+            const d2Pdv2 = paths[iCalc+1][jCalc].subtract(P.scale(2)).add(paths[iCalc-1][jCalc]).scale(4);
+            const d2Pdudv = paths[iCalc+1][jCalc+1].subtract(paths[iCalc+1][jCalc-1])
+                           .subtract(paths[iCalc-1][jCalc+1]).add(paths[iCalc-1][jCalc-1]);
+            
+            // Normale
+            const N = BABYLON.Vector3.Cross(dPdu, dPdv).normalize();
+            
+            // Première forme fondamentale
+            const E = BABYLON.Vector3.Dot(dPdu, dPdu);
+            const F = BABYLON.Vector3.Dot(dPdu, dPdv);
+            const G = BABYLON.Vector3.Dot(dPdv, dPdv);
+            
+            // Seconde forme fondamentale
+            const L = BABYLON.Vector3.Dot(d2Pdu2, N);
+            const M = BABYLON.Vector3.Dot(d2Pdudv, N);
+            const NN = BABYLON.Vector3.Dot(d2Pdv2, N);
+            
+            // Courbures
+            const denom = E * G - F * F;
+            const K = (L * NN - M * M) / denom;
+            const H = (E * NN - 2 * F * M + G * L) / (2 * denom);
+            
+            // Rayons principaux
+            const discriminant = Math.max(0, H * H - K);
+            const sqrtDisc = Math.sqrt(discriminant);
+            const k1 = H + sqrtDisc;
+            const k2 = H - sqrtDisc;
+            
+            curvatures.push({
+                gaussianK: round(K, 6),
+                meanH: round(H, 4),
+                radius1: k1 !== 0 ? round(1 / k1, 2) : Infinity,
+                radius2: k2 !== 0 ? round(1 / k2, 2) : Infinity
+            });
+        }
+    }
+
+    return { curvatures };
+};
+
+BABYLON.Mesh.prototype.setAngles = function(paths = glo.ribbon.getPaths()) {
+    const { curvatures } = this.getAngles(paths);
+    
+    const curvatureData = curvatures.map(c => c.meanH);
+
+    const buffer = new BABYLON.VertexBuffer(
+        glo.scene.getEngine(),
+        new Float32Array(curvatureData),
+        "curvature",
+        false, false, 1, false, 0, 1
+    );
+    
+    this.setVerticesBuffer(buffer);
 };
 
 BABYLON.Mesh.prototype.colorByCurvaturesSave = function(curvatures = glo.ribbon.getCurvatures().curvatures, pathsLength = glo.ribbon.getPaths().length) {

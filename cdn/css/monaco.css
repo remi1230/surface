@@ -13,9 +13,9 @@
 /* Fenêtre flottante de l'éditeur */
 .shader-editor-window {
     position: fixed;
-    top: 10%;
-    left: 10%;
-    width: 60%;
+    top: 0%;
+    left: 0%;
+    width: 35%;
     height: 70%;
     background: #1e1e1e;
     border-radius: 8px;

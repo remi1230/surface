@@ -465,11 +465,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "7":
-                  //FREE
+                  glo.shaders.params.invcol = !glo.shaders.params.invcol;
+                  giveMaterialToMesh();
 
                   break;
                case "8":
-                  //FREE
+                  glo.shaders.params.numshader = glo.numShaderMove.next().value;
+                  fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
+
+                  if(editor){ editor.setValue(fragmentShader); }
+
+                  giveMaterialToMesh();
 
                   break;
                case "0":

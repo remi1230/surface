@@ -1,271 +1,104 @@
-async function makeSymmetrize(){
-	const isFirstX    = glo.params.symmetrizeX ? false : true;
-	const isFirstXorY = (glo.params.symmetrizeX || glo.params.symmetrizeY) ? false : true;
-
-	switch(glo.symmetrizeOrder){
-		case 'xyz':
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY, isFirstX); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ, isFirstXorY); }
-		break;
-		case 'xzy':
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", glo.params.symmetrizeX); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ, isFirstX); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY, isFirstXorY); }
-		break;
-		case 'yxz':
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX, isFirstX); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
-	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeZ, isFirstXorY); }
-		break;
-		case 'yzx':
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", glo.params.symmetrizeY); }
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeZ, isFirstX); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
-	                                                                  (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX, isFirstXorY); }
-		break;
-		case 'zxy':
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeX, isFirstX); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
-	                                                                  (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) * glo.params.symmetrizeY, isFirstXorY); }
-		break;
-		case 'zyx':
-			if(glo.params.symmetrizeZ){ await symmetrizeRibbon("symmetrizeZ", glo.params.symmetrizeZ); }
-			if(glo.params.symmetrizeY){ await symmetrizeRibbon("symmetrizeY", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) * glo.params.symmetrizeY, isFirstX); }
-			if(glo.params.symmetrizeX){ await symmetrizeRibbon("symmetrizeX", (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1) *
-	                                                                  (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * glo.params.symmetrizeX, isFirstXorY); }
-		break;
-	}
+async function symmetrizeRibbon(axisVarName, coeff = 1, first = true) {
+    const nbSyms = glo.params[axisVarName];
+    
+    if (nbSyms <= 1) return;
+    
+    const axis = axisVarName.slice(-1).toUpperCase();
+    const stepAngle = glo.params.symmetrizeAngle / nbSyms;
+    
+    const isCenterOffset = (glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z);
+    
+    glo.ribbon.computeWorldMatrix(true);
+    glo.ribbon.refreshBoundingInfo();
+    const centerLocal = glo.params.centerIsLocal 
+        ? glo.ribbon.getBoundingInfo().boundingBox.center 
+        : new BABYLON.Vector3(0, 0, 0);
+    
+    const center = new BABYLON.Vector3(
+        glo.centerSymmetry.x + centerLocal.x,
+        glo.centerSymmetry.y + centerLocal.y,
+        glo.centerSymmetry.z + centerLocal.z
+    );
+    
+    const rotate = isCenterOffset ? rotateOnCenterByBabylonMatrix : rotateByMatrix;
+    
+    let newRibbons = [];
+    
+    // Boucle de 1 à nbSyms (comme l'ancienne version)
+    for (let indk = 1; indk <= nbSyms; indk++) {
+        const angle = indk * stepAngle;
+        
+        // Cloner et appliquer la rotation dans la géométrie
+        const positions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+        const normals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+        const indices = glo.ribbon.getIndices();
+        const uvs = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
+        
+        const newPositions = new Float32Array(positions.length);
+        const newNormals = new Float32Array(normals.length);
+        
+        for (let i = 0; i < positions.length; i += 3) {
+            const pos = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+            const norm = new BABYLON.Vector3(normals[i], normals[i + 1], normals[i + 2]);
+            
+            let newPos, newNorm;
+            
+            switch (axis) {
+                case 'X': 
+                    newPos = rotate(pos, angle, 0, 0, center);
+                    newNorm = rotate(norm, angle, 0, 0, BABYLON.Vector3.Zero());
+                    break;
+                case 'Y': 
+                    newPos = rotate(pos, 0, angle, 0, center);
+                    newNorm = rotate(norm, 0, angle, 0, BABYLON.Vector3.Zero());
+                    break;
+                case 'Z': 
+                    newPos = rotate(pos, 0, 0, angle, center);
+                    newNorm = rotate(norm, 0, 0, angle, BABYLON.Vector3.Zero());
+                    break;
+            }
+            
+            if (!(newPos instanceof BABYLON.Vector3)) {
+                newPos = new BABYLON.Vector3(newPos.x, newPos.y, newPos.z);
+            }
+            if (!(newNorm instanceof BABYLON.Vector3)) {
+                newNorm = new BABYLON.Vector3(newNorm.x, newNorm.y, newNorm.z);
+            }
+            
+            newPositions[i] = newPos.x;
+            newPositions[i + 1] = newPos.y;
+            newPositions[i + 2] = newPos.z;
+            
+            newNormals[i] = newNorm.x;
+            newNormals[i + 1] = newNorm.y;
+            newNormals[i + 2] = newNorm.z;
+        }
+        
+        const newRibbon = new BABYLON.Mesh("ribbon_sym_" + indk, glo.scene);
+        
+        const vertexData = new BABYLON.VertexData();
+        vertexData.positions = newPositions;
+        vertexData.normals = newNormals;
+        vertexData.indices = indices;
+        if (uvs) vertexData.uvs = uvs;
+        
+        vertexData.applyToMesh(newRibbon);
+        
+        newRibbons.push(newRibbon);
+    }
+    
+    // Disposer l'ancien ribbon
+    ribbonDispose(false);
+    
+    // Fusionner tous les ribbons
+    glo.ribbon = newRibbons.length > 1
+        ? BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false)
+        : newRibbons[0];
+    
+    glo.ribbon._wasSymmetrized = true;
+    
+    initRibbon(coeff);
 }
-
-/*async function symmetrizeRibbon(axisVarName, coeff = 1, first = true){
-	let curvesPathsSave = [...glo.curves.pathsSave];
-
-	const nbSyms    = glo.params[axisVarName];
-	const axis      = axisVarName.slice(-1);
-	const stepAngle = glo.params.symmetrizeAngle/nbSyms;
-
-	var A = glo.params.A; var B = glo.params.B; var C = glo.params.C; var D = glo.params.D; var E = glo.params.E; var F = glo.params.F; var G = glo.params.G; var H = glo.params.H;
-	var I = glo.params.I; var J = glo.params.J; var K = glo.params.K; var L = glo.params.L; var M = glo.params.M;
-
-	if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
-
-	const stepU = 2*glo.params.u / glo.params.steps_u;
-	const stepV = 2*glo.params.v / glo.params.steps_v;
-
-	let inputSymREq = {fx: glo.input_sym_r.text};
-
-	let u,v,d,k,n,p,t;
-	let X = 0 ;
-	let Y = 0 ;
-
-	let f3;
-
-	if(glo.input_sym_r.text){
-		reg(inputSymREq, glo.dim_one);
-	}
-	const goodR = glo.input_sym_r.text ? test_equations(inputSymREq, glo.dim_one) : false;
-	if(goodR){
-		f3 = {evalX: false, evalY: false};
-		if(glo.input_eval_x.text && glo.input_eval_y.text){
-			f3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
-			reg(f3);
-		}
-		else if(glo.input_eval_x.text){
-			f3 = {evalX: glo.input_eval_x.text, evalY: false};
-			reg(f3);
-		}
-		else if(glo.input_eval_x.text){
-			f3 = {evalX: false, evalY: glo.input_eval_y.text};
-			reg(f3);
-		}
-	}
-
-	const savedIndices = glo.ribbon.getIndices().slice();
-
-	const isCenterOffset = (glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z) ? true : false;
-
-	glo.ribbon.computeWorldMatrix(true);
-	glo.ribbon.refreshBoundingInfo();
-	glo.ribbon.boundingInfos = glo.ribbon.getBoundingInfo();
-	const centerLocal        = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : {x:0,y:0,z:0};
-	const center             = new BABYLON.Vector3(glo.centerSymmetry.x + centerLocal.x, glo.centerSymmetry.y + centerLocal.y, glo.centerSymmetry.z + centerLocal.z);
-	const rotate             = isCenterOffset? rotateOnCenterByBabylonMatrix : rotateByMatrix;
-
-	let evalR = false;
-
-	let verticesNormals;
-	if(goodR){
-		evalR           = new Function("u", "v", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T", "return " + inputSymREq.fx);
-		verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-	}
-
-	let index_u = 0, index_v = 0;
-	let newRibbons             = [];
-	let newCurves              = [];
-	glo.curves.linesSystems    = [];
-	glo.currentCurveInfos.path = [];
-	for(let indk = 1; indk <= nbSyms; indk++){
-		n = 0;
-		const angle = indk * stepAngle;
-		index_u = 0;
-		newCurves[indk] = [];
-		glo.currentCurveInfos.path = [];
-
-		if((goodR || isCenterOffset) && first){
-			curvesPathsSave.forEach((line, i) => {
-				k = !(i%2) ? -1 : 1;
-				index_v = 0;
-				u = i * stepU;
-				glo.currentCurveInfos.u = u;
-				p = !(i%2) ? -u : u;
-				newCurves[indk][i] = [];
-				glo.currentCurveInfos.path = [];
-				line.forEach((vect, j) => {
-					d = !(j%2) ? -1 : 1;
-					v = j * stepV;
-					t = !(j%2) ? -v : v;
-
-					glo.currentCurveInfos.v = v;
-
-					let newPt = vect;
-
-					if(goodR){
-						let r = 0;
-						
-						var x = newPt.x; var y = newPt.y; var z = newPt.z;
-						const vect3 = new BABYLON.Vector3(x,y,z);
-
-						const xN = verticesNormals[n*3]; const yN = verticesNormals[n*3 + 1]; const zN = verticesNormals[n*3 + 2];
-
-						let normalVector = new BABYLON.Vector3(xN, yN, zN);
-						
-						if(nbSyms > 1){ 
-							switch(axis){
-								case 'X':
-									normalVector = rotate(normalVector, angle, 0, 0, center);
-								break;
-								case 'Y':
-									normalVector = rotate(normalVector, 0, angle, 0, center);
-								break;
-								case 'Z':
-									normalVector = rotate(normalVector, 0, 0, angle, center);
-								break;
-							}
-						}
-
-						const µN = xN*yN*zN;
-						const $N = (xN+yN+zN)/3;
-						const µ$N = µN*$N; var $µN = µN+$N;
-						const µµN = µ$N*$µN;
-
-						const O = Math.acos(y/(h(x,y,z)));
-						const T = Math.atan2(z, x) ;
-
-						const vectT = BABYLON.Vector3.Normalize(vect3);
-						const xT = vectT.x; const yT = vectT.y; const zT = vectT.z;
-						const µT = xT*yT*zT;
-						const $T = (xT+yT+zT)/3;
-						const µ$T = µT*$T; var $µT = µT+$T;
-						const µµT = µ$T*$µT;
-
-						glo.currentCurveInfos.vect = vect3;
-
-						if(f3.evalX){ X = eval(f3.evalX); }
-						if(f3.evalY){ Y = eval(f3.evalY); }
-
-						r = evalR(u, v, x, y, z, D, K, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) * glo.scaleNorm;
-
-						let symmAngle = {equations : {x: glo.input_symmAngleX.text, y: glo.input_symmAngleY.text},
-						                 vals      : {x: glo.params.symmAngle.x, y: glo.params.symmAngle.y} };
-
-						if(symmAngle.equations.x || symmAngle.equations.y){
-							if(test_equations({fx: symmAngle.equations.x})){
-								let f4 = {symmX: symmAngle.equations.x};
-								reg(f4);
-								symmAngle.vals.x = eval(f4.symmX);
-							}
-							if(test_equations({fy: symmAngle.equations.y})){
-								let f4 = {symmY: symmAngle.equations.y};
-								reg(f4);
-								symmAngle.vals.y = eval(f4.symmY);
-							}
-							if(symmAngle.vals.x === undefined){ symmAngle.vals.x = 0; }
-							if(symmAngle.vals.y === undefined){ symmAngle.vals.y = 0; }
-
-							symmAngle.vals.x += glo.params.symmAngle.x;
-							symmAngle.vals.y += glo.params.symmAngle.y;
-						}
-
-						if(symmAngle.vals.x || symmAngle.vals.y){
-							normalVector = rotate(normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, center);
-						}
-
-						const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
-						const dirXY   = directionXY(angleXY, r);
-						
-						newPt = !glo.addSymmetry ? dirXY : {x: newPt.x + dirXY.x, y: newPt.y + dirXY.y, z: newPt.z + dirXY.z };
-					}
-
-
-					newPt = isCenterOffset ? new BABYLON.Vector3(newPt.x, newPt.y, newPt.z) : newPt;
-					
-					if(nbSyms > 1){ 
-						switch(axis){
-							case 'X':
-								newPt = rotate(newPt, angle, 0, 0, center);
-							break;
-							case 'Y':
-								newPt = rotate(newPt, 0, angle, 0, center);
-							break;
-							case 'Z':
-								newPt = rotate(newPt, 0, 0, angle, center);
-							break;
-						}
-					}
-
-					const newVect = new BABYLON.Vector3(newPt.x, newPt.y, newPt.z);
-
-					newCurves[indk][i].push(newVect);
-					glo.currentCurveInfos.path.push(newVect);
-					index_v++;
-					n++;
-				});
-				index_u++;
-			});
-
-			const closedThenOpened = glo.params.lastPathEqualFirstPath && isClosedPaths(newCurves[indk]);
-
-			newCurves[indk].pop();
-			let newRibbon = await BABYLON.MeshBuilder.CreateRibbon(
-				"newRibbon_" + indk, {pathArray: newCurves[indk], sideOrientation:1, updatable: true, closeArray: closedThenOpened}, glo.scene
-			);
-			newRibbons.push(newRibbon);
-		}
-		else{
-			let newRibbon = await glo.ribbon.clone();
-			if(nbSyms > 1){
-				newRibbon.setPivotPoint(centerLocal);
-				newRibbon.rotation[axis.toLowerCase()] = angle;
-			}
-			newRibbons.push(newRibbon);
-		}
-	}
-
-	newRibbons.forEach(async newRibbon => { await newRibbon.updateIndices(newRibbon.getIndices()); await newRibbon.computeWorldMatrix(true); });
-
-	ribbonDispose(false);
-	if(!glo.mergeMeshesByIntersect){ glo.ribbon = newRibbons.length > 1 ? await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false) : newRibbons[0]; }
-	else{
-		glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
-	}
-
-	initRibbon(coeff);
-}*/
 
 function buildUserFunction(exprText, argNames, defaultValue = 0) {
     if (!exprText || !exprText.trim()) return () => defaultValue;
@@ -283,217 +116,171 @@ function buildUserFunction(exprText, argNames, defaultValue = 0) {
     }
 }
 
-async function symmetrizeRibbon(axisVarName, coeff = 1, first = true) {
-    let curvesPathsSave = [...glo.curves.pathsSave];
-
-    const nbSyms    = glo.params[axisVarName];
-    const axis      = axisVarName.slice(-1);
-    const stepAngle = glo.params.symmetrizeAngle / nbSyms;
-
-    if (glo.curves.linesSystems) {
-        glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); });
+function computeNormalsFromPaths(paths, isClosed = false) {
+    const normals = [];
+    const len = paths.length;
+    
+    for (let i = 0; i < len; i++) {
+        const line = paths[i];
+        
+        // Si fermé, boucler les indices
+        const prevLine = isClosed 
+            ? paths[(i - 1 + len) % len]
+            : (paths[i - 1] || paths[i]);
+        const nextLine = isClosed 
+            ? paths[(i + 1) % len]
+            : (paths[i + 1] || paths[i]);
+        
+        for (let j = 0; j < line.length; j++) {
+            const point = line[j];
+            
+            const prevPoint = line[j - 1] || point;
+            const nextPoint = line[j + 1] || point;
+            const tangentU = nextPoint.subtract(prevPoint);
+            
+            const prevLinePoint = prevLine[j] || point;
+            const nextLinePoint = nextLine[j] || point;
+            const tangentV = nextLinePoint.subtract(prevLinePoint);
+            
+            const normal = BABYLON.Vector3.Cross(tangentU, tangentV).normalize();
+            
+            normals.push(normal.x || 0, normal.y || 0, normal.z || 0);
+        }
     }
+    
+    return normals;
+}
 
-    const stepU = 2 * glo.params.u / glo.params.steps_u;
-    const stepV = 2 * glo.params.v / glo.params.steps_v;
+async function makeSymmetrizeRibbon() {
+    const order = glo.symmetrizeOrder || 'xyz';
+    const axes = order.split('');
+    
+    for (const axis of axes) {
+        const axisUpper = axis.toUpperCase();
+        const paramName = `symmetrize${axisUpper}`;
+        const nbSyms = glo.params[paramName];
+        
+        if (nbSyms && nbSyms > 1) {
+            await symmetrizeRibbon(paramName);
+        }
+    }
+}
 
-    // ---- PRÉPARATION HORS BOUCLE DES EXPRESSIONS ET FONCTIONS ----
+async function applyDeformation() {
+    if (!glo.ribbon || !glo.input_sym_r.text) return;
 
+    const text = glo.input_sym_r.text;
+    
     const argNames = [
         "u", "v", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j",
         "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
     ];
 
-    // sym_r (rayon radial de déplacement)
-    const evalR = buildUserFunction(glo.input_sym_r.text, argNames);
-
-    // Entrées optionnelles pour les calculs de coordonnées dynamiques
+    const evalR = buildUserFunction(text, argNames);
     const evalX = buildUserFunction(glo.input_eval_x?.text, argNames, false);
     const evalY = buildUserFunction(glo.input_eval_y?.text, argNames, false);
-
-    // Angles de symétrie éventuels
     const evalSymAngleX = buildUserFunction(glo.input_symmAngleX?.text, argNames, glo.params.symmAngle.x);
     const evalSymAngleY = buildUserFunction(glo.input_symmAngleY?.text, argNames, glo.params.symmAngle.y);
 
-    // ---- PRÉPARATION AUTRES INFOS ----
+    const stepU = 2 * glo.params.u / glo.params.steps_u;
+    const stepV = 2 * glo.params.v / glo.params.steps_v;
 
-    const savedIndices = glo.ribbon.getIndices().slice();
-
+    // Récupérer les paths originaux (depuis curves ou sauvegardés)
+    const paths = glo.curves.savedpaths || glo.curves.paths;
+	if(!glo.curves.savedPaths || glo.curves.savedPaths.length === 0) glo.curves.savedPaths = glo.curves.paths.slice();
+    
+    // Centre
     const isCenterOffset = (glo.centerSymmetry.x || glo.centerSymmetry.y || glo.centerSymmetry.z);
-
-    glo.ribbon.computeWorldMatrix(true);
-    glo.ribbon.refreshBoundingInfo();
-    glo.ribbon.boundingInfos = glo.ribbon.getBoundingInfo();
-    const centerLocal = glo.params.centerIsLocal ? glo.ribbon.boundingInfos.boundingBox.center : { x: 0, y: 0, z: 0 };
+    
+    let centerLocal = { x: 0, y: 0, z: 0 };
+    if (glo.params.centerIsLocal) {
+        glo.ribbon.refreshBoundingInfo();
+        centerLocal = glo.ribbon.getBoundingInfo().boundingBox.center;
+    }
+    
     const center = new BABYLON.Vector3(
         glo.centerSymmetry.x + centerLocal.x,
         glo.centerSymmetry.y + centerLocal.y,
         glo.centerSymmetry.z + centerLocal.z
     );
+
     const rotate = isCenterOffset ? rotateOnCenterByBabylonMatrix : rotateByMatrix;
 
-    let verticesNormals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+    // Récupérer les normales du ribbon
+    const verticesNormals = computeNormalsFromPaths(paths);
 
-    // ---- DÉBUT DE LA BOUCLE PRINCIPALE ----
+    // Transformer les paths
+    let n = 0;
+    const newPaths = paths.map((line, i) => {
+        const k = !(i % 2) ? -1 : 1;
+        const u = i * stepU;
+        const p = !(i % 2) ? -u : u;
 
-    let newRibbons = [];
-    let newCurves = [];
-    glo.curves.linesSystems = [];
-    glo.currentCurveInfos.path = [];
+        return line.map((point, j) => {
+            const d = !(j % 2) ? -1 : 1;
+            const v = j * stepV;
+            const t = !(j % 2) ? -v : v;
 
-    for (let indk = 1; indk <= nbSyms; indk++) {
-        let n = 0;
-        const angle = indk * stepAngle;
-        let index_u = 0;
-        newCurves[indk] = [];
-        glo.currentCurveInfos.path = [];
+            let x = point.x, y = point.y, z = point.z;
+            const vect3 = new BABYLON.Vector3(x, y, z);
 
-        if ((glo.input_sym_r.text || isCenterOffset) && first) {
-            curvesPathsSave.forEach((line, i) => {
-                let k = !(i % 2) ? -1 : 1;
-                let index_v = 0;
-                let u = i * stepU;
-                glo.currentCurveInfos.u = u;
-                let p = !(i % 2) ? -u : u;
-                newCurves[indk][i] = [];
-                glo.currentCurveInfos.path = [];
-                line.forEach((vect, j) => {
-                    let d = !(j % 2) ? -1 : 1;
-                    let v = j * stepV;
-                    let t = !(j % 2) ? -v : v;
+            // Normales
+            const xN = verticesNormals[n * 3] ?? 0;
+            const yN = verticesNormals[n * 3 + 1] ?? 0;
+            const zN = verticesNormals[n * 3 + 2] ?? 0;
 
-                    glo.currentCurveInfos.v = v;
+            let normalVector = new BABYLON.Vector3(xN, yN, zN);
 
-                    let newPt = vect;
+            const $N = (xN + yN + zN) / 3;
 
-                    // ---------------------- CALCUL PRINCIPAL ---------------------------
-                    let x = newPt.x, y = newPt.y, z = newPt.z;
-                    const vect3 = new BABYLON.Vector3(x, y, z);
+            const O = h(x, y, z) ? Math.acos(y / h(x, y, z)) : 0;
+            const T = Math.atan2(z, x);
 
-                    // Normales
-                    const xN = verticesNormals[n * 3]     ?? 0;
-                    const yN = verticesNormals[n * 3 + 1] ?? 0;
-                    const zN = verticesNormals[n * 3 + 2] ?? 0;
+            const vectT = BABYLON.Vector3.Normalize(vect3);
+            const xT = vectT.x, yT = vectT.y, zT = vectT.z;
+            const $T = (xT + yT + zT) / 3;
 
-                    let normalVector = new BABYLON.Vector3(xN, yN, zN);
+            glo.currentCurveInfos.vect = vect3;
 
-                    if (nbSyms > 1) {
-                        switch (axis) {
-                            case 'X': normalVector = rotate(normalVector, angle, 0, 0, center); break;
-                            case 'Y': normalVector = rotate(normalVector, 0, angle, 0, center); break;
-                            case 'Z': normalVector = rotate(normalVector, 0, 0, angle, center); break;
-                        }
-                    }
+            let X = evalX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
+            let Y = evalY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
 
-                    const µN = xN * yN * zN;
-                    const $N = (xN + yN + zN) / 3;
-                    const µ$N = µN * $N;
-                    const $µN = µN + $N;
-                    const µµN = µ$N * $µN;
+            let r = evalR(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) * (glo.scaleNorm || 1);
 
-                    const O = h(x, y, z) ? Math.acos(y / h(x, y, z)) : 0;
-                    const T = Math.atan2(z, x);
+            let symmAngle = {
+                vals: {
+                    x: evalSymAngleX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
+                    y: evalSymAngleY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
+                }
+            };
 
-                    const vectT = BABYLON.Vector3.Normalize(vect3);
-                    const xT = vectT.x, yT = vectT.y, zT = vectT.z;
-                    const µT = xT * yT * zT;
-                    const $T = (xT + yT + zT) / 3;
-                    const µ$T = µT * $T;
-                    const $µT = µT + $T;
-                    const µµT = µ$T * $µT;
+            symmAngle.vals.x += glo.params.symmAngle.x;
+            symmAngle.vals.y += glo.params.symmAngle.y;
 
-                    glo.currentCurveInfos.vect = vect3;
-
-                    // Valeurs dynamiques X et Y (si présentes)
-                    let X = evalX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
-                    let Y = evalY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
-
-                    // Calcul du déplacement radial R (fonction utilisateur)
-                    let r = evalR(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) * (glo.scaleNorm || 1);
-
-                    // Angles de symétrie dynamiques
-                    let symmAngle = {
-                        vals: {
-                            x: evalSymAngleX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
-                            y: evalSymAngleY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
-                        }
-                    };
-
-                    // Décalage d'angle global
-                    symmAngle.vals.x += glo.params.symmAngle.x;
-                    symmAngle.vals.y += glo.params.symmAngle.y;
-
-                    if (symmAngle.vals.x || symmAngle.vals.y) {
-                        normalVector = rotate(normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, center);
-                    }
-
-                    // Application du déplacement sur le plan XY
-                    const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
-                    const dirXY   = directionXY(angleXY, r);
-
-                    newPt = !glo.addSymmetry
-                        ? dirXY
-                        : {
-                            x: newPt.x + dirXY.x,
-                            y: newPt.y + dirXY.y,
-                            z: newPt.z + dirXY.z
-                        };
-
-                    // Recentrage éventuel
-                    newPt = isCenterOffset
-                        ? new BABYLON.Vector3(newPt.x, newPt.y, newPt.z)
-                        : newPt;
-
-                    // Rotation par symétrie sur l’axe choisi
-                    if (nbSyms > 1) {
-                        switch (axis) {
-                            case 'X': newPt = rotate(newPt, angle, 0, 0, center); break;
-                            case 'Y': newPt = rotate(newPt, 0, angle, 0, center); break;
-                            case 'Z': newPt = rotate(newPt, 0, 0, angle, center); break;
-                        }
-                    }
-
-                    const newVect = new BABYLON.Vector3(newPt.x, newPt.y, newPt.z);
-
-                    newCurves[indk][i].push(newVect);
-                    glo.currentCurveInfos.path.push(newVect);
-                    index_v++;
-                    n++;
-                });
-                index_u++;
-            });
-
-            const closedThenOpened = glo.params.lastPathEqualFirstPath && isClosedPaths(newCurves[indk]);
-            newCurves[indk].pop();
-            let newRibbon = await BABYLON.MeshBuilder.CreateRibbon(
-                "newRibbon_" + indk, { pathArray: newCurves[indk], sideOrientation: 1, updatable: true, closeArray: closedThenOpened }, glo.scene
-            );
-            newRibbons.push(newRibbon);
-        } else {
-            let newRibbon = await glo.ribbon.clone();
-            if (nbSyms > 1) {
-                newRibbon.setPivotPoint(centerLocal);
-                newRibbon.rotation[axis.toLowerCase()] = angle;
+            if (symmAngle.vals.x || symmAngle.vals.y) {
+                normalVector = rotate(normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, center);
             }
-            newRibbons.push(newRibbon);
-        }
-    }
 
-    newRibbons.forEach(async newRibbon => {
-        await newRibbon.updateIndices(newRibbon.getIndices());
-        await newRibbon.computeWorldMatrix(true);
+            const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
+            const dirXY = directionXY(angleXY, -r);
+
+            let newPt;
+            if (!glo.addSymmetry) {
+                newPt = new BABYLON.Vector3(dirXY.x, dirXY.y, dirXY.z);
+            } else {
+                newPt = new BABYLON.Vector3(
+                    point.x + dirXY.x,
+                    point.y + dirXY.y,
+                    point.z + dirXY.z
+                );
+            }
+
+            n++;
+            return newPt;
+        });
     });
 
-    ribbonDispose(false);
-    if (!glo.mergeMeshesByIntersect) {
-        glo.ribbon = newRibbons.length > 1
-            ? await BABYLON.Mesh.MergeMeshes(newRibbons, true, true, undefined, false, false)
-            : newRibbons[0];
-    } else {
-        glo.ribbon = await mergeManyMeshesByIntersects(newRibbons);
-    }
-
-    initRibbon(coeff);
+	glo.curves.paths = newPaths;
 }
 
 async function delInRibbon(){
@@ -1306,5 +1093,5 @@ function countSyms(){
 }
 
 function isSym(){
-	return (glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ) ? true : false;
+	return (glo.params.symmetrizeX > 1 || glo.params.symmetrizeY > 1 || glo.params.symmetrizeZ > 1) ? true : false;
 }

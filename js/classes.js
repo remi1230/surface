@@ -195,7 +195,7 @@ equa = {
 	glo.lines = this.paths;
 
 	this.pathsSave = this.paths.slice();
-	this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
+	//this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
 
 	this.closed = this.pathsSave.length !== this.paths.length;
   }

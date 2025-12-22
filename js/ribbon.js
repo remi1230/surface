@@ -32,6 +32,8 @@ async function make_curves(u_params = {
 
 		makeOnlyCurves(undefined, undefined, undefined, undefined, false, fractalize);
 
+		//if(glo.ribbon && glo.ribbon.savedPaths) glo.ribbon.savedPaths = undefined;
+
 		await expendPathsByEachCenter();
 		await rotatePathsByEachCenter();
 
@@ -86,128 +88,241 @@ function makeOnePoint(u, v){
 	return glo.onePoint;
 }
 
-async function make_ribbon(symmetrize = true, histo = true){
-	if(glo.params.NaNToZero){ NaNToZero(); }
-	let paths = glo.curves.paths;
+async function make_ribbon(symmetrize = true, histo = true, transByR = true){
+    if (glo.params.NaNToZero) { NaNToZero(); }
 
-	if(paths.length){
-		glo.emissiveColorSave = {...glo.emissiveColor};
-		glo.diffuseColorSave  = {...glo.diffuseColor};
+	let isClosedArray = isClosedPaths(glo.curves.paths);
 
-		var nameRibbon = "Ribbon";
-		glo.numRibbon++;
+	if(transByR && glo.input_sym_r.text){ await applyDeformation(); }
+    
+    let paths = glo.curves.paths;
 
-		var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-		material.backFaceCulling = false;
+    if (paths.length) {
+        // Si fermé, retirer le dernier path (doublon du premier)
+        if (isClosedArray) {
+            paths = paths.slice(0, -1);
+        }
 
-		if(glo.normalMode && !glo.fromSlider){ paths = glo.curves.pathsSecond; }
-		else{
-			delete glo.verticesNormals;
-			delete glo.verticesPositions;
-			delete glo.verticesUVs;
-		}
+        glo.emissiveColorSave = {...glo.emissiveColor};
+        glo.diffuseColorSave  = {...glo.diffuseColor};
 
-		if(glo.fromSlider){ delete glo.verticesColors; }
+        var nameRibbon = "Ribbon";
+        glo.numRibbon++;
 
-		if(glo.params.expansion){ await expanseRibbon(); }
+        if (glo.normalMode && !glo.fromSlider) { 
+            paths = glo.curves.pathsSecond; 
+        } else {
+            delete glo.verticesNormals;
+            delete glo.verticesPositions;
+            delete glo.verticesUVs;
+        }
 
-		scaleVertexsDist(glo.scaleVertex);
+        if (glo.fromSlider) { delete glo.verticesColors; }
 
-		const isClosedArray = glo.params.lastPathEqualFirstPath;
+        if (glo.params.expansion) { await expanseRibbon(); }
 
-		let colorsVoronoi = false; let colorsRibbon;
-		ribbonDispose();
-		if(!glo.params.playWithColors && glo.colorsType == 'none'){
-			if(!glo.voronoiMode){
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray}, glo.scene, );
+        scaleVertexsDist(glo.scaleVertex);
+
+        // Ajouter le premier path à la fin pour fermer proprement
+        if (isClosedArray) { 
+            paths = [...paths, paths[0].map(pt => pt.clone())];
+        }
+
+        let colorsVoronoi = false;
+        let colorsRibbon;
+
+        if (!glo.params.playWithColors && glo.colorsType == 'none') {
+            if (!glo.voronoiMode) {
+                if (!glo.ribbon) {
+                    glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+                        pathArray: paths,
+                        sideOrientation: 1,
+                        updatable: true,
+                        closeArray: false
+                    }, glo.scene);
+                    glo.ribbon._pathCount = paths.length;
+                    glo.ribbon._pointsPerPath = paths[0].length;
+                } else {
+                    if (paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
+                        ribbonDispose();
+                        glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+                            pathArray: paths,
+                            sideOrientation: 1,
+                            updatable: true,
+                            closeArray: false
+                        }, glo.scene);
+                        glo.ribbon._pathCount = paths.length;
+                        glo.ribbon._pointsPerPath = paths[0].length;
+                    } else {
+                        await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+                            pathArray: paths,
+                            instance: glo.ribbon
+                        });
+                    }
+                }
+            } else {
+                var white = BABYLON.Color3.White();
+                glo.emissiveColor = white;
+                glo.diffuseColor = white;
+                glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+                    pathArray: paths,
+                    sideOrientation: 1,
+                    updatable: true,
+                    closeArray: false
+                }, glo.scene);
+                colorsVoronoi = voronoi();
+            }
+        } else {
+            ribbonDispose();
+            glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+                pathArray: paths,
+                sideOrientation: 1,
+                updatable: true,
+                closeArray: false
+            }, glo.scene);
+            glo.colorsRibbonSave = {};
+            objCols = {colsArr: colorsRibbon};
+            Object.assign(glo.colorsRibbonSave, objCols);
+            var white = BABYLON.Color3.White();
+            glo.emissiveColor = white;
+            glo.diffuseColor = white;
+
+            if (glo.params.meshEquationToColor) { meshEquationToColor(); }
+
+            makeOtherColors(true);
+        }
+
+        if (colorsVoronoi) {
+            glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsVoronoi);
+        }
+
+		glo.ribbon.createNormals(true);
+
+        glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
+
+        const norm = glo.params.functionIt.norm;
+
+        if (isDel()) { await delInRibbon(); }
+
+        if (glo.params.fractalize.actived) {
+            await glo.ribbon.fractalize();
+            if (glo.params.fractalize.refractalize) { await glo.ribbon.fractalize(); }
+        }
+        if (norm.x || norm.y || norm.z) { await drawSliderNormalEquations(); }
+
+        if (glo.params.invPtsPowCoeff) { await invPointsByDistToOrigin(); }
+
+        glo.is_ribbon = true;
+        if (!glo.ribbon_visible) { glo.ribbon.visibility = 0; }
+
+        glo.emissiveColor = {...glo.emissiveColorSave};
+        glo.diffuseColor = {...glo.diffuseColorSave};
+
+        await cutsRibbon();
+
+        glo.ribbon.paths = paths;
+
+		if (isClosedArray) {
+			const normals = Array.from(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind));
+			const pathCount = glo.ribbon._pathCount;
+			const pointsPerPath = glo.ribbon._pointsPerPath;
+			const lastPathStart = (pathCount - 1) * pointsPerPath;
+			
+			for (let j = 0; j < pointsPerPath; j++) {
+				const firstIdx = j * 3;
+				const lastIdx = (lastPathStart + j) * 3;
+				
+				// Moyenne des normales
+				const avgX = (normals[firstIdx] + normals[lastIdx]) / 2;
+				const avgY = (normals[firstIdx + 1] + normals[lastIdx + 1]) / 2;
+				const avgZ = (normals[firstIdx + 2] + normals[lastIdx + 2]) / 2;
+				
+				// Normaliser
+				const len = Math.sqrt(avgX * avgX + avgY * avgY + avgZ * avgZ);
+				
+				normals[firstIdx] = avgX / len;
+				normals[firstIdx + 1] = avgY / len;
+				normals[firstIdx + 2] = avgZ / len;
+				
+				normals[lastIdx] = avgX / len;
+				normals[lastIdx + 1] = avgY / len;
+				normals[lastIdx + 2] = avgZ / len;
 			}
-			else{
-				var white = BABYLON.Color3.White();
-				glo.emissiveColor = white;
-				glo.diffuseColor  = white;
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
-				colorsVoronoi = voronoi();
-			}
-		}
-		else{
-			ribbonDispose();
-			if(1 == 1){
-				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
-				glo.colorsRibbonSave = {};
-				objCols = {colsArr: colorsRibbon};
-				Object.assign(glo.colorsRibbonSave, objCols);
-				var white = BABYLON.Color3.White();
-				glo.emissiveColor = white;
-				glo.diffuseColor  = white;
-
-				if(glo.params.meshEquationToColor){ meshEquationToColor(); }
-
-				makeOtherColors(true);
-			}
-			else{
-				if(typeof(glo.colorsRibbonSave) != "undefined"){
-					glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, colors: glo.colorsRibbonSave.colsArr, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
-				}
-				else{
-					glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {pathArray: paths, sideOrientation:1, updatable: true, closeArray: isClosedArray }, glo.scene, );
-				}
-			}
+			
+			glo.ribbon.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals, true);
 		}
 
-		if(colorsVoronoi){
-			glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsVoronoi);
-		}
+		if (symmetrize && isSym()) {
+            await makeSymmetrizeRibbon();
+        }
 
-		glo.originRibbonNbIndices = glo.ribbon.getIndices().length;
-
-		const norm = glo.params.functionIt.norm;
-
-		if(isDel()){ await delInRibbon(); }
-
-		if(symmetrize){ await makeSymmetrize(); }
-		if(glo.params.fractalize.actived){
-			await glo.ribbon.fractalize();
-			if(glo.params.fractalize.refractalize){ await glo.ribbon.fractalize(); }
-		}
-		if(norm.x || norm.y || norm.z){ await drawSliderNormalEquations(); }
-
-		if(glo.params.invPtsPowCoeff){ await invPointsByDistToOrigin(); }
-		
 		giveMaterialToMesh();
 
-		glo.is_ribbon = true;
-		if(!glo.ribbon_visible){ glo.ribbon.visibility = 0; }
+        makeLineSystem();
 
-		glo.emissiveColor = {...glo.emissiveColorSave};
-		glo.diffuseColor  = {...glo.diffuseColorSave};
+        if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 
-		await cutsRibbon();
+        glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
+        flatRibbon();
 
-		makeLineSystem();
+        if (glo.meshWithTubes) { await meshWithTubes(); }
 
-		if(glo.params.checkerboard){ glo.ribbon.checkerboard(); }
+        make_planes();
 
-		glo.ribbon.savePos = glo.ribbon.getPositionData().slice();
-		flatRibbon();
+        applyTransformations();
+        glo.ribbon.moyPosToOrigin();
 
-		if(glo.meshWithTubes){ await meshWithTubes(); }
+        if (glo.flatMesh) { glo.ribbon.convertToFlatShadedMesh(); }
 
-		make_planes();
+        glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
+        glo.params.lastPathEqualFirstPath = false;
 
-		applyTransformations();
-		glo.ribbon.moyPosToOrigin();
+        glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
 
-		if(glo.flatMesh){ glo.ribbon.convertToFlatShadedMesh(); }
+        glo.ribbon.resetCurveByStep();
 
-		glo.ribbon.showBoundingBox = glo.params.showBoundingBox;
-		glo.params.lastPathEqualFirstPath = false;
+        if (histo) { glo.histo.save(); }
+    }
+}
 
-		glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
-
-		glo.ribbon.resetCurveByStep();
-
-		if(histo){ glo.histo.save(); }
-	}
+function fixClosedRibbonNormals(ribbon, pointsPerPath) {
+    const normals = ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+    
+    if (!normals) {
+        return;
+    }
+    
+    const totalVertices = normals.length / 3;
+    const pathCount = totalVertices / pointsPerPath;
+    const lastPathStart = (pathCount - 1) * pointsPerPath;
+    
+    // Moyenner les normales du premier et dernier path pour une transition douce
+    for (let j = 0; j < pointsPerPath; j++) {
+        const firstIdx = j * 3;
+        const lastIdx = (lastPathStart + j) * 3;
+        
+        // Moyenne des normales
+        const avgX = (normals[firstIdx] + normals[lastIdx]) / 2;
+        const avgY = (normals[firstIdx + 1] + normals[lastIdx + 1]) / 2;
+        const avgZ = (normals[firstIdx + 2] + normals[lastIdx + 2]) / 2;
+        
+        // Normaliser
+        const len = Math.sqrt(avgX * avgX + avgY * avgY + avgZ * avgZ);
+        const nx = avgX / len;
+        const ny = avgY / len;
+        const nz = avgZ / len;
+        
+        // Appliquer aux deux paths
+        normals[firstIdx] = nx;
+        normals[firstIdx + 1] = ny;
+        normals[firstIdx + 2] = nz;
+        
+        normals[lastIdx] = nx;
+        normals[lastIdx + 1] = ny;
+        normals[lastIdx + 2] = nz;
+    }
+    
+    ribbon.updateVerticesData(BABYLON.VertexBuffer.NormalKind, normals);
 }
 
 function ribbonDispose(all = true){
@@ -230,7 +345,7 @@ async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false 
 }
 
 function makeLineSystem(){
-	let paths = !glo.normalMode ? glo.ribbon.paths : glo.curves.pathsSecond;
+	let paths = !glo.normalMode ? glo.ribbon.getPaths() : glo.curves.pathsSecond;
 
 	if(!paths){ paths = glo.curves.paths; }
 
@@ -383,7 +498,6 @@ function cubeRibbonSave(){
 	// Construction du mesh (nuage de points)
 	pcs.buildMeshAsync().then(mesh => {
 		// Vous pouvez ici manipuler le mesh, par exemple le positionner, l'ajouter à la scène, etc.
-		console.log("Mesh créé:", mesh);
 	});
 
 	/*glo.curves.paths = glo.ribbon.getPaths();
@@ -728,9 +842,15 @@ function closedPaths(paths){
 	return paths;
 }
 
-function isClosedPaths(paths){
-	const firstVects = paths[0];
-	const lastVects  = paths[paths.length - 1];
-
-	return firstVects.every((vect, i) => BABYLON.Vector3.Distance(vect, lastVects[i]) < ep);
+function isClosedPaths(paths) {
+    if (paths.length < 2) return false;
+    
+    const firstPath = paths[0];
+    const lastPath = paths[paths.length - 1];
+    
+    if (firstPath.length !== lastPath.length) return false;
+    
+    return firstPath.every((point, index) => 
+        BABYLON.Vector3.Distance(point, lastPath[index]) < ep
+    );
 }

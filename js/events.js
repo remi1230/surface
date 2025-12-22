@@ -232,18 +232,26 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   glo.slider_nb_steps_u.maximum/=2;
                   glo.slider_nb_steps_v.maximum/=2;
 
-                  if(glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ < 2){
+                  if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
+                     glo.fromHisto = true;
                      glo.slider_nb_steps_u.value/=2;
                      glo.slider_nb_steps_v.value/=2;
+                     glo.fromHisto = false;
+
+                     remakeRibbon();
                   }
                   break;
                case "l":
                   glo.slider_nb_steps_u.maximum*=2;
                   glo.slider_nb_steps_v.maximum*=2;
 
-                  if(glo.params.symmetrizeX + glo.params.symmetrizeY + glo.params.symmetrizeZ < 2){
+                  if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
+                     glo.fromHisto = true;
                      glo.slider_nb_steps_u.value*=2;
                      glo.slider_nb_steps_v.value*=2;
+                     glo.fromHisto = false;
+
+                     remakeRibbon();
                   }
 
                   break;

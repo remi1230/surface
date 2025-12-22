@@ -200,10 +200,10 @@ void main(){`;
 
 fragmentShaders = [
 `
-    float coeff = 1.0+Ts(0.25);
+    float coeff = 2.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()-0.5));
     vec3 col1   = fract(coeff*palette(lnpos));
-    vec3 col2   = fract(3.0*rainbow(lnpos));
+    vec3 col2   = floor(coeff*rainbow(lnpos));
 
     vec3 col = 1.0 - mix(col1, col2, vCurvature);
 `,

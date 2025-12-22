@@ -62,6 +62,8 @@ Game = function(canvasId) {
 
   this.scene = this._initScene(engine);
 
+  let n = 0;
+
   var _player = new Player(_this, canvas);
   var _arena = new Arena(_this);
   glo.end_loop = false;
@@ -71,9 +73,10 @@ Game = function(canvasId) {
       if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
       if (glo.withTime) {
         w+=wstep;
-        await remakeRibbon(); 
+        if(n%3==0) { await remakeRibbon(); }
       }
       _this.scene.render();
+      n++;
     });
   });
 

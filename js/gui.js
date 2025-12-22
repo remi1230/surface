@@ -645,7 +645,7 @@ function add_inputs_equations(){
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, event = true){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, withEvent = true){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
     if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY' && parent.name !== 'panelSymmAngle'){ header.paddingLeft = "20%"; }
@@ -700,16 +700,46 @@ function add_inputs_equations(){
       }
     }
 
-    input.onKeyboardEventProcessedObservable.add((event) => {
-      let key  = event.key;
-      let text = input.text;
+    if(withEvent){
+      input.onKeyboardEventProcessedObservable.add((event) => {
+        let key  = event.key;
+        let text = input.text;
 
-      if(key != "Control" && key != "c" && key != "v" && key != "F12"){
-        event.stopPropagation();
-        event.preventDefault();
-      }
+        if(key != "Control" && key != "c" && key != "v" && key != "F12"){
+          event.stopPropagation();
+          event.preventDefault();
+        }
 
-      if (key != "Tab" && !key.match(/Arrow/, g)) {
+        if (key != "Tab" && !key.match(/Arrow/, g)) {
+          if(!colorEquation){
+            if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
+            else{ glo['params']['normale'][gloPropToModify] = text; }
+          }
+          else{
+            glo['params'][gloPropToModify] = text;
+          }
+          if(event){
+            if(!glo.normalOnNormalMode){ inputChangeEvent(); }
+            else if(key == "Enter"){ inputChangeEvent(); }
+          }
+        }
+        else if (key == "Tab") {
+          var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
+          var inputsEquationsLastIndex = inputsEquations.length - 1;
+          var newIndex = 0;
+          if(!event.shiftKey){
+            if(input.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = input.inputsEquationsIndex + 1; }
+            glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+          }
+          else{
+            if(input.inputsEquationsIndex > 0){ newIndex = input.inputsEquationsIndex - 1; }
+            else{ newIndex = inputsEquationsLastIndex; }
+            glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+          }
+        }
+      });
+      input.onTextPasteObservable.add((event) => {
+        var text = input.text;
         if(!colorEquation){
           if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
           else{ glo['params']['normale'][gloPropToModify] = text; }
@@ -717,38 +747,11 @@ function add_inputs_equations(){
         else{
           glo['params'][gloPropToModify] = text;
         }
-        if(event){
-          if(!glo.normalOnNormalMode){ inputChangeEvent(); }
-          else if(key == "Enter"){ inputChangeEvent(); }
-        }
-      }
-      else if (key == "Tab") {
-        var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
-        var inputsEquationsLastIndex = inputsEquations.length - 1;
-        var newIndex = 0;
-        if(!event.shiftKey){
-          if(input.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = input.inputsEquationsIndex + 1; }
-          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-        }
-        else{
-          if(input.inputsEquationsIndex > 0){ newIndex = input.inputsEquationsIndex - 1; }
-          else{ newIndex = inputsEquationsLastIndex; }
-          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-        }
-      }
-    });
-    input.onTextPasteObservable.add((event) => {
-      var text = input.text;
-      if(!colorEquation){
-        if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
-        else{ glo['params']['normale'][gloPropToModify] = text; }
-      }
-      else{
-        glo['params'][gloPropToModify] = text;
-      }
-      if(event){ inputChangeEvent(); }
-      glo.advancedTexture.moveFocusToControl(input);
-    });
+        if(event){ inputChangeEvent(); }
+        glo.advancedTexture.moveFocusToControl(input);
+      });
+    }
+
     parent.addControl(input);
 
     glo[gloPropToAssignInput] = input;
@@ -773,7 +776,7 @@ function add_inputs_equations(){
   add_input(panelSuitsEquations, "Rot Y", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
   add_input(panelSuitsEquations, "Rot Z", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
 
-  add_input(panelSymsEquations, "R Symmetrize", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r");
+  add_input(panelSymsEquations, "R Symmetrize", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, false);
 
   add_input(panelEvalY, "Eval X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
   add_input(panelEvalY, "Eval Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
@@ -783,6 +786,30 @@ function add_inputs_equations(){
   add_input(panelSymmAngle, "Del X", "", "inputDelX", "header right eleventh", "input equation right eleventh", "text_input_delX", "input_delX");
   add_input(panelSymmAngle, "Del Y", "", "inputDelY", "header right eleventh", "input equation right eleventh", "text_input_delY", "input_delY");
   add_input(panelSymmAngle, "Del Z", "", "inputDelZ", "header right eleventh", "input equation right eleventh", "text_input_delZ", "input_delZ");
+
+  // Ajouter un événement personnalisé pour R Symmetrize
+  glo.input_sym_r.onKeyboardEventProcessedObservable.add(async (event) => {
+      let key = event.key;
+      let text = glo.input_sym_r.text;
+
+      if (key !== "Control" && key !== "c" && key !== "v" && key !== "F12") {
+          event.stopPropagation();
+          event.preventDefault();
+      }
+
+      glo.params.text_input_sym_r = text;
+
+      if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
+          glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
+          await make_ribbon();
+      }
+  });
+
+  glo.input_sym_r.onTextPasteObservable.add(async () => {
+      glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
+      glo.params.text_input_sym_r = glo.input_sym_r.text;
+      await make_ribbon();
+  });
 }
 
 function add_radios(suit = false){
@@ -1349,9 +1376,9 @@ function add_symmetrize_sliders(){
   }
 
   addSlider(panel, "blendForce", "blend force", 1, 3, 0, 24, .001, function(value){ glo.params.blender.force = value; });
-  addSlider(panel, "symmetrizeX", "symmetrize X", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeX = value; });
-  addSlider(panel, "symmetrizeY", "symmetrize Y", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeY = value; });
-  addSlider(panel, "symmetrizeZ", "symmetrize Z", 0, 0, 0, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeX", "symmetrize X", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeX = value; });
+  addSlider(panel, "symmetrizeY", "symmetrize Y", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeY = value; });
+  addSlider(panel, "symmetrizeZ", "symmetrize Z", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
   addSlider(panel, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; });
 

@@ -632,3 +632,129 @@ function reg_inv(f, toInv_1, toInv_2){
 
 	return f;
 }
+
+function getFixedExportBounds(mesh, scene, margin = 20) {
+    const engine = scene.getEngine();
+    const camera = scene.activeCamera;
+    
+    const boundingInfo = mesh.getBoundingInfo();
+    const center = boundingInfo.boundingBox.centerWorld;
+    const radius = boundingInfo.boundingSphere.radiusWorld;
+    
+    const viewport = camera.viewport.toGlobal(
+        engine.getRenderWidth(),
+        engine.getRenderHeight()
+    );
+    
+    // Projette le centre
+    const screenCenter = BABYLON.Vector3.Project(
+        center,
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
+        viewport
+    );
+    
+    // Projette un point à distance radius (perpendiculaire à la vue)
+    const right = camera.getDirection(BABYLON.Axis.X).normalize();
+    const pointAtRadius = center.add(right.scale(radius));
+    
+    const screenEdge = BABYLON.Vector3.Project(
+        pointAtRadius,
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
+        viewport
+    );
+    
+    const screenRadius = Math.abs(screenEdge.x - screenCenter.x);
+    
+	const coeff = 1.414; // Pour un peu plus d'espace
+    const size  = screenRadius * coeff + margin * coeff;
+    
+    return {
+        x: Math.max(0, screenCenter.x - size / 2),
+        y: Math.max(0, screenCenter.y - size / 2),
+        width: size,
+        height: size
+    };
+}
+
+function createMeshRecorder(mesh, scene, fps = 60) {
+    const sourceCanvas = glo.engine.getRenderingCanvas();
+    
+    const captureCanvas = document.createElement('canvas');
+    const ctx = captureCanvas.getContext('2d');
+    
+    let mediaRecorder = null;  // Renommé pour clarifier
+    let chunks = [];           // Déclaré ici, pas dans start()
+    let observer = null;
+    let bounds = null;
+    
+    return {
+        start() {
+			glo.engine.setHardwareScalingLevel(1/2);
+            bounds = getFixedExportBounds(mesh, scene);
+            captureCanvas.width = bounds.width;
+            captureCanvas.height = bounds.height;
+            
+            ctx.drawImage(
+                sourceCanvas,
+                bounds.x, bounds.y, bounds.width, bounds.height,
+                0, 0, captureCanvas.width, captureCanvas.height
+            );
+            
+            chunks = [];
+            
+            const stream = captureCanvas.captureStream(fps);
+            
+            mediaRecorder = new MediaRecorder(stream, {
+                mimeType: 'video/webm;codecs=vp9',
+                videoBitsPerSecond: 8000000
+            });
+            
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) {
+                    chunks.push(e.data);
+                }
+            };
+            
+            mediaRecorder.onstop = () => {
+                if (chunks.length === 0) {
+                    return;
+                }
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `mesh-${Date.now()}.webm`;
+                a.click();
+                URL.revokeObjectURL(url);
+            };
+            
+            mediaRecorder.onerror = e => console.error('Recorder error:', e);
+            
+            observer = scene.onAfterRenderObservable.add(() => {
+                ctx.drawImage(
+                    sourceCanvas,
+                    bounds.x, bounds.y, bounds.width, bounds.height,
+                    0, 0, captureCanvas.width, captureCanvas.height
+                );
+            });
+            
+            mediaRecorder.start(1000);
+        },
+        
+        stop() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                scene.onAfterRenderObservable.remove(observer);
+                observer = null;
+
+				glo.engine.setHardwareScalingLevel(1);
+            }
+        },
+        
+        get isRecording() {
+            return mediaRecorder?.state === 'recording';
+        }
+    };
+}

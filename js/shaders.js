@@ -5,7 +5,8 @@ const vertexShader = `
     attribute vec3 position;
     attribute vec3 normal;
     attribute vec2 uv;
-    attribute float curvature;
+    attribute vec2 uv_params;
+    attribute vec2 curvatures;
     
     // Uniforms
     uniform mat4 worldViewProjection;
@@ -16,7 +17,8 @@ const vertexShader = `
     varying vec3 vWorldPosition;
     varying vec3 vNormal;
     varying vec2 vUV;
-    varying float vCurvature;
+    varying vec2 vUVParams;
+    varying vec2 vCurvatures;
     
     void main() {
         gl_Position = worldViewProjection * vec4(position, 1.0);
@@ -24,7 +26,8 @@ const vertexShader = `
         vPosition = position;
         vNormal = normalize((world * vec4(normal, 0.0)).xyz);
         vUV = uv;
-        vCurvature = curvature;
+        vCurvatures = curvatures;
+        vUVParams = uv_params;
     }
 `;
 
@@ -36,7 +39,8 @@ in vec3 vPosition;
 in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUV;
-in float vCurvature;
+in vec2 vCurvatures;
+in vec2 vUVParams;
 
 // Sortie du fragment shader
 out vec4 fragColor;
@@ -57,6 +61,40 @@ vec3 npos(){ return (vPosition-minpoint)/(maxpoint-minpoint); }
 
 float Ts(float c){ return 0.4999999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.4999999*cos(c*time)+0.5; }
+
+float cpow(float val, float p) {
+    return sign(val) * pow(abs(val), p);
+}
+
+// Version vec2 avec exposants vec2
+vec2 cpow(vec2 val, vec2 p) {
+    return sign(val) * pow(abs(val), p);
+}
+
+// Version vec2 avec exposant scalaire (bonus)
+vec2 cpow(vec2 val, float p) {
+    return sign(val) * pow(abs(val), vec2(p));
+}
+
+// Version vec3 avec exposants vec3
+vec3 cpow(vec3 val, vec3 p) {
+    return sign(val) * pow(abs(val), p);
+}
+
+// Version vec3 avec exposant scalaire (bonus)
+vec3 cpow(vec3 val, float p) {
+    return sign(val) * pow(abs(val), vec3(p));
+}
+
+// Version vec4 avec exposants vec4
+vec4 cpow(vec4 val, vec4 p) {
+    return sign(val) * pow(abs(val), p);
+}
+
+// Version vec4 avec exposant scalaire (bonus)
+vec4 cpow(vec4 val, float p) {
+    return sign(val) * pow(abs(val), vec4(p));
+}
 
 vec3 rainbow(float t) {
     float r = abs(sin(t * 6.28 + 0.0));
@@ -200,14 +238,6 @@ void main(){`;
 
 fragmentShaders = [
 `
-    float coeff = 2.0+Ts(0.25);
-    float lnpos = coeff*length(vNormal*(npos()-0.5));
-    vec3 col1   = fract(coeff*palette(lnpos));
-    vec3 col2   = floor(coeff*rainbow(lnpos));
-
-    vec3 col = 1.0 - mix(col1, col2, vCurvature);
-`,
-`
     float coeff = 1.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()-0.5));
     vec3 col1   = fract(coeff*palette(lnpos));
@@ -216,10 +246,13 @@ fragmentShaders = [
     vec3 col = 1.0 - mix(col1, col2, dot(col1,col2));
 `,
 `
+    vec3 col = palette(2.0*(length(npos()-0.5)));
+`,
+`
     vec3 col = vNormal;
 `,
 `
-    vec3 col = rainbow(vCurvature*(1.0));
+    vec3 col = rainbow(vCurvatures.x*(1.0));
 `,
 ];
 

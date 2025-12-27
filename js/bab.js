@@ -62,7 +62,12 @@ Game = function(canvasId) {
 
   this.scene = this._initScene(engine);
 
-  let n = 0;
+  glo.video.canvas   = engine.getRenderingCanvas();
+  glo.video.stream   = glo.video.canvas.captureStream(60); // 60 fps
+  glo.video.recorder = new MediaRecorder(glo.video.stream, {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 8000000
+  });
 
   var _player = new Player(_this, canvas);
   var _arena = new Arena(_this);
@@ -73,18 +78,22 @@ Game = function(canvasId) {
       if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
       if (glo.withTime) {
         w+=wstep;
-        if(n%3==0) { await remakeRibbon(); }
+        !glo.params.isTimeVariable ? await applyDeformation(true)  : await remakeRibbon();
       }
       _this.scene.render();
-      n++;
     });
   });
 
   window.addEventListener("resize", function() {
-    if (engine) {
-      engine.resize();
-      gui_resize();
-    }
+    setTimeout(() => {
+          glo.engine.resize();
+          
+          // Resync le GUI
+          /*glo.advancedTexture.scaleTo(
+              glo.engine.getRenderWidth(), 
+              glo.engine.getRenderHeight()
+          );*/
+      }, 100);
   }, false);
 };
 

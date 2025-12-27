@@ -102,14 +102,16 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true) {
 
 function buildUserFunction(exprText, argNames, defaultValue = 0) {
     if (!exprText || !exprText.trim()) return () => defaultValue;
-    let exprObj = { fx: exprText };
-    reg(exprObj);
+    let exprObj   = { fx: exprText };
+    let expObjReg = { fx: exprText };
+
+	reg(expObjReg);
     if (!test_equations(exprObj)) {
         // console.warn("Expression invalide :", exprText);
         return () => defaultValue;
     }
     try {
-        return new Function(...argNames, `return ${exprObj.fx}`);
+        return new Function(...argNames, `return ${expObjReg.fx}`);
     } catch (e) {
         // console.warn("Erreur compilation JS dans l'expression :", exprObj.fx);
         return () => defaultValue;
@@ -162,17 +164,26 @@ async function makeSymmetrizeRibbon() {
         
         if (nbSyms && nbSyms > 1) {
             await symmetrizeRibbon(paramName);
+			const paths               = glo.ribbon.getPaths();
+			glo.ribbon._pathCount     = paths.length;
+			glo.ribbon._pointsPerPath = paths[0].length;
+			glo.curves.savedPaths     = paths.slice();
         }
     }
 }
 
-async function applyDeformation() {
+async function applyDeformation(upd = false) {
     if (!glo.ribbon || !glo.input_sym_r.text) return;
 
     const text = glo.input_sym_r.text;
+
+	let equa3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
+	reg(equa3);
+
+	let X, Y;
     
     const argNames = [
-        "u", "v", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j",
+        "u", "v", "x", "y", "z", "X", "Y", "d", "k", "p", "t", "n", "i", "j",
         "O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
     ];
 
@@ -186,7 +197,7 @@ async function applyDeformation() {
     const stepV = 2 * glo.params.v / glo.params.steps_v;
 
     // Récupérer les paths originaux (depuis curves ou sauvegardés)
-    const paths = glo.curves.savedpaths || glo.curves.paths;
+    const paths = glo.curves.savedPaths || glo.curves.paths;
 	if(!glo.curves.savedPaths || glo.curves.savedPaths.length === 0) glo.curves.savedPaths = glo.curves.paths.slice();
     
     // Centre
@@ -211,15 +222,19 @@ async function applyDeformation() {
 
     // Transformer les paths
     let n = 0;
-    const newPaths = paths.map((line, i) => {
+    let newPaths = paths.map((line, i) => {
         const k = !(i % 2) ? -1 : 1;
         const u = i * stepU;
         const p = !(i % 2) ? -u : u;
+
+		glo.currentCurveInfos.u = u;
 
         return line.map((point, j) => {
             const d = !(j % 2) ? -1 : 1;
             const v = j * stepV;
             const t = !(j % 2) ? -v : v;
+
+			glo.currentCurveInfos.v = v;
 
             let x = point.x, y = point.y, z = point.z;
             const vect3 = new BABYLON.Vector3(x, y, z);
@@ -242,17 +257,26 @@ async function applyDeformation() {
 
             glo.currentCurveInfos.vect = vect3;
 
-            let X = evalX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
-            let Y = evalY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0;
+            if(glo.input_eval_x.text){ X = evalX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0; }
+            if(glo.input_eval_y.text){ Y = evalY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0; }
 
-            let r = evalR(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) * (glo.scaleNorm || 1);
+            let r = evalR(u, v, x, y, z, X, Y, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) * (glo.scaleNorm || 1);
 
             let symmAngle = {
                 vals: {
-                    x: evalSymAngleX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
-                    y: evalSymAngleY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
+                    x: 0,
+                    y: 0,
                 }
             };
+
+			if(glo.input_symmAngleX || glo.input_symmAngleY){
+				symmAngle = {
+					vals: {
+						x: evalSymAngleX(u, v, x, y, z, X, Y, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
+						y: evalSymAngleY(u, v, x, y, z, X, Y, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0,
+					}
+				};
+			}
 
             symmAngle.vals.x += glo.params.symmAngle.x;
             symmAngle.vals.y += glo.params.symmAngle.y;
@@ -280,7 +304,19 @@ async function applyDeformation() {
         });
     });
 
-	glo.curves.paths = newPaths;
+	if(upd){
+		if (glo.isClosedArray) {
+            newPaths = newPaths.slice(0, -1);
+			newPaths = [...newPaths, newPaths[0].map(pt => pt.clone())];
+        }
+		await BABYLON.MeshBuilder.CreateRibbon("updRibbonByNorm", {
+			pathArray: newPaths,
+			instance: glo.ribbon
+		});
+		glo.ribbon.averageClosedNormals();
+		if(glo.deformWithMat){ giveMaterialToMesh(); }
+	}
+	else glo.curves.paths = newPaths;
 }
 
 async function delInRibbon(){

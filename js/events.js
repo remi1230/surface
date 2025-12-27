@@ -53,6 +53,10 @@ document.getElementById('dataTable').addEventListener("click", function(ev){
    }
 });
 
+document.getElementById('resetBtn')?.addEventListener('click', () => {
+   w = 0;
+});
+
 document.getElementById('compileBtn')?.addEventListener('click', () => {
    // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
     monaco.editor.setModelMarkers(editor.getModel(), 'glsl', []);
@@ -300,6 +304,18 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   glo.ribbon.switchPaths();
 
                   break;
+               case "a":
+                  glo.video.recording = !glo.video.recording;
+
+                  if(glo.video.recording){
+                     glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
+                     glo.video.recorder.start();
+                  }
+                  else{
+                     glo.video.recorder.stop();
+                  }
+
+               break;
                case "ù":
                   hdMax();
                   
@@ -310,7 +326,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "(":
-                  //FREE
+                  glo.deformWithMat = !glo.deformWithMat;
 
                   break;
                case ")":
@@ -432,6 +448,46 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                case "Home":
                   showRibonFacets();
 
+               break;
+               case "F8":
+                  /*glo.allControls.forEach(ctrl => { ctrl.dispose(); });
+                  glo.advancedTexture.dispose();
+
+                  add_gui_controls();*/
+
+                  glo.engine.resize();
+                  glo.advancedTexture.scaleTo(
+                     glo.engine.getRenderWidth(), 
+                     glo.engine.getRenderHeight()
+                  );
+
+                  glo.allControls.haveTheseClasses('header radio').forEach(label => {
+                           label.children[1].fontSize = '17px';
+                        });
+
+               break;
+               case "F12":
+                  setTimeout(() => {
+                     glo.engine.resize();
+                     
+                     // Resync le GUI
+                     /*glo.advancedTexture.scaleTo(
+                        glo.engine.getRenderWidth(), 
+                        glo.engine.getRenderHeight()
+                     );*/
+
+                     glo.devTollsOpened = !glo.devTollsOpened;
+                     if(glo.devTollsOpened){
+                        
+                     }
+                     else{
+                        glo.allControls.haveTheseClasses('header radio').forEach(label => {
+                           label.children[1].fontSize = '17px';
+                        });
+                     }
+
+                  }, 100);
+                  glo.engine.resize();
                break;
             }
          }

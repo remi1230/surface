@@ -14,7 +14,7 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 		mesh.material.wireframe = glo.wireframe;
 	}
 	else{
-		glo.ribbon.setAngles();
+		glo.ribbon.setDataShader();
 
 		const shaderMaterial = new BABYLON.ShaderMaterial(
 			"ribbonShader",
@@ -24,7 +24,7 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 				fragmentSource: fragmentShader
 			},
 			{
-				attributes: ["position", "normal", "uv", 'curvature'],
+				attributes: ["position", "normal", "uv", 'uv_params', 'curvatures'],
 				uniforms: ["world", "worldView", "worldViewProjection", "view", "projection", "time", "cameraPosition", "iResolution"],
 				needAlphaBlending: false
 			}

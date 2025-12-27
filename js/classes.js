@@ -75,12 +75,19 @@ equa = {
 	}
 	
 	// Création des fonctions dynamiques
-	const evalX     = createEvalFunction(equa.x);
-	const evalY     = createEvalFunction(equa.y);
-	const evalZ     = createEvalFunction(equa.z);
-	const evalAlpha = createEvalFunction(equa.alpha);
-	const evalBeta  = createEvalFunction(equa.beta);
-	const evalTheta = createEvalFunction(equa2.theta);
+	const evalX      = createEvalFunction(equa.x);
+	const evalY      = createEvalFunction(equa.y);
+	const evalZ      = createEvalFunction(equa.z);
+	const evalX2     = createEvalFunction(equa2.x);
+	const evalY2     = createEvalFunction(equa2.y);
+	const evalZ2     = createEvalFunction(equa2.z);
+	const evalAlpha  = createEvalFunction(equa.alpha);
+	const evalBeta   = createEvalFunction(equa.beta);
+	const evalAlpha2 = createEvalFunction(equa2.alpha);
+	const evalBeta2  = createEvalFunction(equa2.beta);
+	const evalTheta  = createEvalFunction(equa2.theta);
+	const evalXExp   = createEvalFunction(equa3.evalX);
+	const evalYExp   = createEvalFunction(equa3.evalY);
 
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
@@ -101,8 +108,8 @@ equa = {
 			d = !(j%2) ? -1 : 1;
 			t = !(j%2) ? -v : v;
 
-			if(equa3.evalX){ X = eval(equa3.evalX); }
-			if(equa3.evalY){ Y = eval(equa3.evalY); }
+			if(equa3.evalX){ X = evalXExp(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
+			if(equa3.evalY){ Y = evalYExp(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
 
 			const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
 			x = evalX(...args);
@@ -131,23 +138,26 @@ equa = {
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			alpha = evalAlpha(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			beta  = evalBeta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			theta = evalTheta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			
+			if(equa.alpha) alpha  = evalAlpha(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			if(equa.beta)  beta   = evalBeta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			if(equa2.theta) theta = evalTheta(u,v,x,w,y,z,O,T,xN,yN,zN,$N,xT,yT,zT,$T);
+
 			if(alpha && beta){
 				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
-			if(isX){ const x2 = eval(equa2.x); !glo.secondCurveOperation ? x += x2 : x = x2; }
-			if(isY){ const y2 = eval(equa2.y); !glo.secondCurveOperation ? y += y2 : y = y2; }
-			if(isZ){ const z2 = eval(equa2.z); !glo.secondCurveOperation ? z += z2 : z = z2; }
+			if(isX){ const x2 = evalX2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = evalY2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = evalZ2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
-			alpha2 = eval(equa2.alpha);
-			beta2  = eval(equa2.beta);
-			let pos = rotateOnCenterByBabylonMatrix({x, y, z}, alpha2, beta2, theta);
-			x = pos.x; y = pos.y; z = pos.z;
+			if(equa2.alpha) alpha2 = evalAlpha2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			if(equa2.beta)  beta2  = evalBeta2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+
+			if(alpha2 || beta2 || theta){
+				let pos = rotateOnCenterByBabylonMatrix({x, y, z}, alpha2, beta2, theta);
+				x = pos.x; y = pos.y; z = pos.z;
+			}
 
 			var {x, y, z} = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
 			var {x, y, z} = functionIt(x, y, z);

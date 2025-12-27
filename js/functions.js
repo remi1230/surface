@@ -54,6 +54,19 @@ function addCommonTools(obj){
 
 		return cos(ncx*x)*cos(ncy*y)*cos(ncz*z);
 	};
+	obj.cc = function(ncx, ncy, ncz, p = glo.currentCurveInfos.vect){
+		const x = p.x, y = p.y, z = p.z;
+
+		if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
+		else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
+
+
+		ncz = ncz === undefined ? 1 : ncz;
+		ncy = ncy === undefined ? 1 : ncy;
+		ncx = ncx === undefined ? 1 : ncx;
+
+		return cos(ncx*x)*sin(ncy*y) + cos(ncy*y)*sin(ncz*z) + cos(ncz*z)*sin(ncx*x);
+	};
 	obj.o = function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
 		const x = p.x, y = p.y, z = p.z;
 

@@ -333,19 +333,95 @@ BABYLON.Mesh.prototype.getAngles = function(paths = glo.ribbon.getPaths()) {
     return { curvatures };
 };
 
-BABYLON.Mesh.prototype.setAngles = function(paths = glo.ribbon.getPaths()) {
+BABYLON.Mesh.prototype.setDataShader = function(paths = glo.ribbon.getPaths()) {
     const { curvatures } = this.getAngles(paths);
-    
-    const curvatureData = curvatures.map(c => c.meanH);
 
-    const buffer = new BABYLON.VertexBuffer(
-        glo.scene.getEngine(),
-        new Float32Array(curvatureData),
-        "curvature",
-        false, false, 1, false, 0, 1
-    );
+    const nbStepsU = glo.params.steps_u;
+    const nbStepsV = glo.params.steps_v;
+    const minU = !glo.slidersUVOnOneSign.u ? -glo.params.u : 0;
+    const minV = !glo.slidersUVOnOneSign.v ? -glo.params.v : 0;
+    const maxU = glo.params.u;
+    const maxV = glo.params.v;
+
+    const stepU = (maxU - minU) / nbStepsU;
+    const stepV = (maxV - minV) / nbStepsV;
+
+    // Buffer unique pour UV (vec2)
+    const uvData = new Float32Array((nbStepsU + 1) * (nbStepsV + 1) * 2);
+    let idx = 0;
     
-    this.setVerticesBuffer(buffer);
+    for (let i = 0; i <= nbStepsU; i++) {
+        const u = minU + i * stepU;
+        for (let j = 0; j <= nbStepsV; j++) {
+            const v = minV + j * stepV;
+            uvData[idx++] = u;
+            uvData[idx++] = v;
+        }
+    }
+
+    // Buffer UV avec stride = 2
+    const uvBuffer = new BABYLON.VertexBuffer(
+        glo.scene.getEngine(),
+        uvData,
+        "uv_params",  // nom distinct des UV de texture
+        false, false, 2,  // stride = 2 pour vec2
+        false, 0, 2
+    );
+
+    // Buffer unique pour les courbures (vec2: meanH, gaussianK)
+	const curvatureData = new Float32Array(curvatures.length * 2);
+	for (let i = 0; i < curvatures.length; i++) {
+		curvatureData[i * 2]     = curvatures[i].meanH;
+		curvatureData[i * 2 + 1] = curvatures[i].gaussianK;
+	}
+
+	const curvatureBuffer = new BABYLON.VertexBuffer(
+		glo.scene.getEngine(),
+		curvatureData,
+		"curvatures",  // vec2(mean, gaussian)
+		false, false, 2,
+		false, 0, 2
+	);
+
+    this.setVerticesBuffer(uvBuffer);
+    this.setVerticesBuffer(curvatureBuffer);
+};
+
+BABYLON.Mesh.prototype.averageClosedNormals = function() {
+    if (!this._pathCount || !this._pointsPerPath) {
+        const paths         = glo.ribbon.getPaths();
+		this._pathCount     = paths.length;
+		this._pointsPerPath = paths[0].length;
+    }
+
+	const pathCount     = this._pathCount;
+    const pointsPerPath = this._pointsPerPath;
+    
+    const normals = Array.from(this.getVerticesData(BABYLON.VertexBuffer.NormalKind));
+    const lastPathStart = (pathCount - 1) * pointsPerPath;
+    
+    for (let j = 0; j < pointsPerPath; j++) {
+        const firstIdx = j * 3;
+        const lastIdx = (lastPathStart + j) * 3;
+        
+        const avgX = (normals[firstIdx] + normals[lastIdx]) / 2;
+        const avgY = (normals[firstIdx + 1] + normals[lastIdx + 1]) / 2;
+        const avgZ = (normals[firstIdx + 2] + normals[lastIdx + 2]) / 2;
+        
+        const len = Math.sqrt(avgX * avgX + avgY * avgY + avgZ * avgZ);
+        
+        normals[firstIdx] = avgX / len;
+        normals[firstIdx + 1] = avgY / len;
+        normals[firstIdx + 2] = avgZ / len;
+        
+        normals[lastIdx] = avgX / len;
+        normals[lastIdx + 1] = avgY / len;
+        normals[lastIdx + 2] = avgZ / len;
+    }
+    
+    this.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals, true);
+    
+    return this; // Pour chaîner
 };
 
 BABYLON.Mesh.prototype.colorByCurvaturesSave = function(curvatures = glo.ribbon.getCurvatures().curvatures, pathsLength = glo.ribbon.getPaths().length) {
@@ -541,7 +617,7 @@ BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices
 };
 
 BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, stepCoeff = glo.params.checkerboardNbSteps){
-	let indices = this.getIndices();
+	let indices = this.savedIndices || this.getIndices();
 
 	nb *= 3;
 	const start = nb - 1;

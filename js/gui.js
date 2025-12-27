@@ -259,7 +259,7 @@ function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_
 
 function add_switch_and_help_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = { isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 3, t: -1, };
+  var options = { isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 3, t: -2, };
   parmamControl(panel, 'hideSwitchHelp', 'panel left first noAutoParam', options);
   panel.height = "80px";
   glo.advancedTexture.addControl(panel);
@@ -343,26 +343,32 @@ function add_axis_and_rot_buttons(){
   var button1 = BABYLON.GUI.Button.CreateSimpleButton("but_screen", "↗ S");
   parmamControl(button1, 'fullScreenButton', 'button right first', {h: 35, pL: 10}, true);
   button1.width = 0.2;
-  button1.onPointerUpObservable.add(function() {
-    glo.engine.switchFullscreen();
-    glo.fullScreen = !glo.fullScreen;
-    if(glo.fullScreen){
-      glo.allControls.haveTheseClasses('input', 'right', 'third').map(inp => { inp.width = '325px'; });
-      glo.canvasHeight = $("#renderCanvas").attr("height");
-      glo.canvasWidth = $("#renderCanvas").attr("width");
-      button1.textBlock.text = "↘ S";
-    }
-    else{
-      glo.allControls.haveTheseClasses('input', 'right', 'third').map(inp => { inp.width = '350px'; });
-      //window.resizeTo(500, 500);
-      //window.resizeTo(screen.width, screen.height);
-      //$("#renderCanvas").attr("height", glo.canvasHeight);
-      //$("#renderCanvas").attr("width", glo.canvasWidth);
-      //glo.engine.resize();
-      //gui_resize();
-      button1.textBlock.text = "↗ S";
-    }
+  button1.onPointerUpObservable.add(async function() {
+      glo.fullScreen = !glo.fullScreen;
+      if (!document.fullscreenElement) {
+          await glo.canvas.requestFullscreen();
+          button1.textBlock.text = "↘ S";
+      } else {
+          await document.exitFullscreen();
+          button1.textBlock.text = "↗ S";
+      }
   });
+
+  // Écouter le changement de fullscreen pour resync le GUI
+  document.addEventListener('fullscreenchange', () => {
+      glo.fullScreen = !!document.fullscreenElement;
+      
+      setTimeout(() => {
+          glo.engine.resize();
+          
+          // Resync le GUI
+          glo.advancedTexture.scaleTo(
+              glo.engine.getRenderWidth(), 
+              glo.engine.getRenderHeight()
+          );
+      }, 100);
+  });
+
   panel.addControl(button1);
   glo.fullScreenButton = button1;
 
@@ -417,7 +423,7 @@ function add_lines_and_dim_buttons(){
 }
 function add_histo_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 20, l: 5.66, t: -1, };
+  var options = {isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 20, l: 5.66, t: -2, };
   parmamControl(panel, 'panelHistoButton', 'panel right first noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
@@ -658,6 +664,7 @@ function add_inputs_equations(){
     indexInInputsEquations++;
 
     async function inputChangeEvent(){
+      glo.params.isTimeVar();
       if(colorEquation){ glo.params.playWithColors = true; }
       if(glo.normalMode){
         if(!colorEquation && !glo.params.playWithColors){ /*await drawNormalEquations(isSym());*/ await remakeRibbon(); }
@@ -776,7 +783,7 @@ function add_inputs_equations(){
   add_input(panelSuitsEquations, "Rot Y", "", "inputSuitBeta", "header right fourth", "input equation right fourth", "text_input_suit_beta", "input_suit_beta");
   add_input(panelSuitsEquations, "Rot Z", "", "inputSuitTheta", "header right fourth", "input equation right fourth", "text_input_suit_theta", "input_suit_theta");
 
-  add_input(panelSymsEquations, "R Symmetrize", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, false);
+  add_input(panelSymsEquations, "Normal Deformation", "", "inputRSymmetrize", "header right fourth", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, false);
 
   add_input(panelEvalY, "Eval X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
   add_input(panelEvalY, "Eval Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
@@ -800,15 +807,14 @@ function add_inputs_equations(){
       glo.params.text_input_sym_r = text;
 
       if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
-          glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
-          await make_ribbon();
+          await remakeRibbon();
       }
   });
 
   glo.input_sym_r.onTextPasteObservable.add(async () => {
-      glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
+      //glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
       glo.params.text_input_sym_r = glo.input_sym_r.text;
-      await make_ribbon();
+      glo.input_sym_r.text ? await make_ribbon() : await remakeRibbon();
   });
 }
 
@@ -891,7 +897,7 @@ function add_radios(suit = false){
     header.paddingLeft = "16%";
     for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
 
-    var textBlock = header.children[1]
+    var textBlock = header.children[1];
     textBlock.fontSize = "17px";
 
     glo.radios_formes.push({button: button, header: header});
@@ -1380,7 +1386,7 @@ function add_symmetrize_sliders(){
   addSlider(panel, "symmetrizeY", "symmetrize Y", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeY = value; });
   addSlider(panel, "symmetrizeZ", "symmetrize Z", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "symmetrize Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
-  addSlider(panel, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; });
+  addSlider(panel, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; });
 
   add_button("centerLocal", "⊕ on origin", 100, 30, 0, 0, 0, function(){
     glo.params.centerIsLocal = !glo.params.centerIsLocal;

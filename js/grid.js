@@ -205,7 +205,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 				var clickedAxis  = clickedPlane.metadata.axis;
 
 				// Vérifions que les valeurs sont correctes
-				console.log("Clicked:", clickedInd, clickedAxis);
+				//console.log("Clicked:", clickedInd, clickedAxis);
 
 				// Appelons la fonction pour changer la couleur de la ligne
 				changeLineColor(clickedInd, clickedAxis, isOrtho);
@@ -219,7 +219,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 	}
 
 	function changeLineColor(ind, axis, isOrtho) {
-		console.log("Changing line color for:", ind, axis, isOrtho);
+		//console.log("Changing line color for:", ind, axis, isOrtho);
 		if(isOrtho){
 			switch(axis){
 				case 'Z': axis = 'Y'; break;
@@ -227,7 +227,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 			}
 		}
 
-		console.log("Changing line color for:", ind, axis, isOrtho);
+		//console.log("Changing line color for:", ind, axis, isOrtho);
 		const name = `grid${axis}`;
 		const lines = glo[name].filter(line => {
 			return line.points[0][axis.toLowerCase()] === ind;

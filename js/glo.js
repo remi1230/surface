@@ -16,15 +16,17 @@ const deepCopy = (inObject) => {
   return outObject
 }
 
+const getById = function (id) { return document.getElementById(id); };
+
 let shaderModalInstance, editor, fragmentShader, fragmentShaderHeader;
 
 let fragmentShaders = [];
 
 let g     = 0;
 let w     = 0;
-let wstep = 0.001;
+let wstep = 0.008;
 
-const editorWindow = document.getElementById('shaderEditor');
+const editorWindow = getById('shaderEditor');
 let isFullscreen = false;
 
 var num_mesh = 0;
@@ -34,6 +36,7 @@ const e  = Math.E;
 const Z = (1+Math.sqrt(5))*0.5;
 const Q = Math.SQRT2;
 var glo = {
+	canvas: getById('renderCanvas'),
 	formes:{
 		selected:['Torus', 'cartesian'],
 		select:[
@@ -293,6 +296,7 @@ var glo = {
 		{ exp: /R/g, upd: "h(x,y,z)" },
 		{ exp: /q(?![\(])/g, upd: "h(u,v)" },
 		{ exp: /m(?![\(xyz])/g, upd: "m()" },
+		{ exp: /cc(?![\(])/g, upd: "cc()" },
 		{ exp: /ù(?![\(])/g, upd: "ù()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
@@ -901,6 +905,7 @@ var glo = {
 		colorsByRotate: false,
 		invCol: false,
 		transCol: false,
+		isTimeVariable: false,
 		normale:{
 			text_input_x: "",
 			text_input_y: "",
@@ -1042,6 +1047,14 @@ var glo = {
 			invcol: 0,
 			numshader: 0,
 		}
+	},
+	video:{
+		canvas: null,
+		stream: null,
+		recorder: null,
+		meshRecorder: null,
+		chunks: [],
+		recording: false,
 	},
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
@@ -1197,6 +1210,14 @@ glo.radios_formes.changeColor = function (newColor){
 		elem.header.color = newColor;
 	});
 };
+
+glo.params.isTimeVar = function(varName = 'w'){
+	const timeVars = [this.text_input_x, this.text_input_y,
+		              this.text_input_z, this.text_input_alpha, this.text_input_beta, this.text_input_suit_x,
+		              this.text_input_suit_y, this.text_input_suit_z, this.text_input_suit_alpha,
+		              this.text_input_suit_beta, this.text_input_suit_theta];
+	this.isTimeVariable = timeVars.some(timeVar => timeVar.includes(varName));
+}
 
 glo.switchGuiSelect 	= glo.switchGuiSelect();
 glo.colorType 			= glo.colorType();

@@ -88,12 +88,14 @@ function makeOnePoint(u, v){
 	return glo.onePoint;
 }
 
-async function make_ribbon(symmetrize = true, histo = true, transByR = true){
+async function make_ribbon(symmetrize = true, histo = true){
     if (glo.params.NaNToZero) { NaNToZero(); }
 
 	let isClosedArray = isClosedPaths(glo.curves.paths);
 
-	if(transByR && glo.input_sym_r.text){ await applyDeformation(); }
+	glo.isClosedArray = isClosedArray;
+
+	if(glo.input_sym_r.text){ await applyDeformation(); }
     
     let paths = glo.curves.paths;
 
@@ -101,6 +103,7 @@ async function make_ribbon(symmetrize = true, histo = true, transByR = true){
         // Si fermé, retirer le dernier path (doublon du premier)
         if (isClosedArray) {
             paths = paths.slice(0, -1);
+			paths = [...paths, paths[0].map(pt => pt.clone())];
         }
 
         glo.emissiveColorSave = {...glo.emissiveColor};
@@ -123,11 +126,6 @@ async function make_ribbon(symmetrize = true, histo = true, transByR = true){
 
         scaleVertexsDist(glo.scaleVertex);
 
-        // Ajouter le premier path à la fin pour fermer proprement
-        if (isClosedArray) { 
-            paths = [...paths, paths[0].map(pt => pt.clone())];
-        }
-
         let colorsVoronoi = false;
         let colorsRibbon;
 
@@ -143,7 +141,8 @@ async function make_ribbon(symmetrize = true, histo = true, transByR = true){
                     glo.ribbon._pathCount = paths.length;
                     glo.ribbon._pointsPerPath = paths[0].length;
                 } else {
-                    if (paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
+                    if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
+						glo.exceptionCreate = false;
                         ribbonDispose();
                         glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
                             pathArray: paths,
@@ -154,6 +153,7 @@ async function make_ribbon(symmetrize = true, histo = true, transByR = true){
                         glo.ribbon._pathCount = paths.length;
                         glo.ribbon._pointsPerPath = paths[0].length;
                     } else {
+						if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
                         await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
                             pathArray: paths,
                             instance: glo.ribbon
@@ -222,35 +222,7 @@ async function make_ribbon(symmetrize = true, histo = true, transByR = true){
 
         glo.ribbon.paths = paths;
 
-		if (isClosedArray) {
-			const normals = Array.from(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind));
-			const pathCount = glo.ribbon._pathCount;
-			const pointsPerPath = glo.ribbon._pointsPerPath;
-			const lastPathStart = (pathCount - 1) * pointsPerPath;
-			
-			for (let j = 0; j < pointsPerPath; j++) {
-				const firstIdx = j * 3;
-				const lastIdx = (lastPathStart + j) * 3;
-				
-				// Moyenne des normales
-				const avgX = (normals[firstIdx] + normals[lastIdx]) / 2;
-				const avgY = (normals[firstIdx + 1] + normals[lastIdx + 1]) / 2;
-				const avgZ = (normals[firstIdx + 2] + normals[lastIdx + 2]) / 2;
-				
-				// Normaliser
-				const len = Math.sqrt(avgX * avgX + avgY * avgY + avgZ * avgZ);
-				
-				normals[firstIdx] = avgX / len;
-				normals[firstIdx + 1] = avgY / len;
-				normals[firstIdx + 2] = avgZ / len;
-				
-				normals[lastIdx] = avgX / len;
-				normals[lastIdx + 1] = avgY / len;
-				normals[lastIdx + 2] = avgZ / len;
-			}
-			
-			glo.ribbon.setVerticesData(BABYLON.VertexBuffer.NormalKind, normals, true);
-		}
+		if (glo.isClosedArray) { glo.ribbon.averageClosedNormals(); }
 
 		if (symmetrize && isSym()) {
             await makeSymmetrizeRibbon();

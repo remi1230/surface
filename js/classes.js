@@ -89,6 +89,8 @@ equa = {
 	const evalXExp   = createEvalFunction(equa3.evalX);
 	const evalYExp   = createEvalFunction(equa3.evalY);
 
+	const vect3 = new BABYLON.Vector3();
+
 	const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
 	const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
 	let u = this.min_u - this.step_u, v = this.min_v - this.step_v, ind_v = 0;
@@ -116,7 +118,7 @@ equa = {
 			y = evalY(...args);
 			z = evalZ(...args);
 
-			const vect3 = new BABYLON.Vector3(x,y,z);
+			vect3.set(x,y,z);
 			const vectN = getNormalVector(vect3);
 			xN  = vectN.x; yN = vectN.y; zN = vectN.z;
 			µN  = xN*yN*zN;

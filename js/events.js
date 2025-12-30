@@ -126,6 +126,7 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
 
 // Fermer l'éditeur
 document.getElementById('closeEditor')?.addEventListener('click', () => {
+   glo.editorIsOpened = false;
    editorWindow.style.display = 'none';
 });
 
@@ -342,7 +343,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case '*':
-                  //resetEquationsParamSliders();
+                  intiColorUI();
 
                   break;
                case '<':
@@ -352,11 +353,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case 'a':
-                  if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-                  glo.playWithColMode.next();
-                  if(glo.params.playWithColors){
-                     makeColors();
-                  }
+                  //FREE
 
                   break;
                case 'b':
@@ -369,18 +366,15 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case 'u':
-                  glo.params.colors2 = !glo.params.colors2;
-                  makeColors();
+                  //FREE
 
                   break;
                case 'j':
-                  glo.params.colorsByRotate = !glo.params.colorsByRotate;
-                  makeColors();
+                  //FREE
 
                   break;
                case 'm':
-                  glo.params.colorsAbs = !glo.params.colorsAbs;
-                  makeColors();
+                  //FREE
 
                   break;
                case "n":
@@ -397,8 +391,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case '2':
-                  glo.params.colorMove = !glo.params.colorMove;
-                  makeColors();
+                  //FREE
 
                   break;
                case "3":
@@ -415,16 +408,10 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case ":":
-                  if(glo.params.playWithColors){
-                     glo.params.meshEquationToColor = !glo.params.meshEquationToColor;
-                     remakeRibbon();
-                  }
+                  //FREE
                break;
                case "!":
-                  if(glo.params.playWithColors){
-                     glo.params.colorByCurvatures = glo.colorByCurves.next().value ? true : false;
-                     remakeRibbon();
-                  }
+                  //FREE
 
                break;
                case "PageUp":
@@ -467,14 +454,8 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                break;
                case "F12":
-                  setTimeout(() => {
+                  /*setTimeout(() => {
                      glo.engine.resize();
-                     
-                     // Resync le GUI
-                     /*glo.advancedTexture.scaleTo(
-                        glo.engine.getRenderWidth(), 
-                        glo.engine.getRenderHeight()
-                     );*/
 
                      glo.devTollsOpened = !glo.devTollsOpened;
                      if(glo.devTollsOpened){
@@ -487,7 +468,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                      }
 
                   }, 100);
-                  glo.engine.resize();
+                  glo.engine.resize();*/
                break;
             }
          }
@@ -514,17 +495,23 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "4":
-                  //FREE
+                  glo.shaders.params.islight = !glo.shaders.params.islight;
+                  glo.light.direction.z = glo.shaders.params.islight ? 0.5 : 0;
+                  glo.allControls.getByName("lightDirectionZ").value = glo.light.direction.z;
+                  giveMaterialToMesh();
 
                   break;
                case "5":
+                  e.preventDefault();
+                  e.stopPropagation();
                   glo.shaderMaterial = !glo.shaderMaterial;
                   giveMaterialToMesh();
 
                   break;
                case "6":
-                  glo.shaderMaterial = true;
-                  openShaderWindow();
+                  glo.shaderMaterial = !glo.shaderMaterial;
+                  if(glo.shaderMaterial){ openShaderWindow(); }
+                  else{ editorWindow.style.display = 'none'; }
                   giveMaterialToMesh();
 
                   break;
@@ -706,13 +693,12 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                break;
             case "F":
             case "f":
-               testCol();
+               //FREE
 
                break;
             case "I":
             case "i":
-               glo.params.invCol = !glo.params.invCol;
-               invCol();
+               //FREE
 
                break;
             case "R":
@@ -722,10 +708,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                break;
             case "U":
             case "u":
-            glo.transCol = !glo.transCol;
-            if(glo.params.playWithColors){
-               makeColors();
-            }
+            //FREE
             break;
             case "B":
             case "b":
@@ -747,8 +730,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
             break;
             case "O":
             case "o":
-               glo.params.modCos = !glo.params.modCos;
-               makeColors();
+               //FREE
 
             break;
             case "V":

@@ -31,6 +31,12 @@ const vertexShader = `
     }
 `;
 
+const lamp = `
+        col*=light(vec3(lampPosition.x*20.0, lampPosition.y*20.0, lampPosition.z*30.0));
+        col = col / (col + vec3(1.0));
+        col = pow(col, vec3(1.0 / 2.2));
+`;
+
 fragmentShaderHeader = `#version 300 es  
 precision highp float;
 
@@ -56,11 +62,84 @@ uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
 uniform int invcol;
+uniform int islight;
+uniform vec3 lampPosition;
+uniform float lampIntensity;
+uniform float lampRadius;
+uniform float lampSpecularPower;
+uniform float lampSpecularIntensity;
 
-vec3 npos(){ return (vPosition-minpoint)/(maxpoint-minpoint); }
+vec3 npos(){ return ((vPosition-minpoint)/(maxpoint-minpoint)) - 0.5; }
 
 float Ts(float c){ return 0.4999999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.4999999*cos(c*time)+0.5; }
+
+// Couleurs
+const vec3 LAMP_COLOR = vec3(1.0, 0.9, 0.7);      // Blanc chaud
+const vec3 AMBIENT_COLOR = vec3(0.05, 0.05, 0.08); // Ambient bleuté froid
+const vec3 BASE_COLOR = vec3(0.8, 0.75, 0.7);      // Couleur de base du matériau
+
+// Paramètres d'éclairage
+const float LAMP_RADIUS = 100.0;        // Distance max d'influence
+const float SPECULAR_POWER = 32.0;     // Dureté du spéculaire
+const float SPECULAR_INTENSITY = 0.5;
+
+// Atténuation réaliste (loi inverse du carré avec falloff doux)
+float calcAttenuation(float dist, float radius, float intensity) {
+    float d = max(dist, 0.001);
+    // Atténuation physique + falloff doux aux bords
+    float att = intensity / (d * d);
+    float falloff = 1.0 - smoothstep(0.0, radius, dist);
+    return att * falloff;
+}
+
+// Calcul Blinn-Phong
+vec3 blinnPhong(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 lightColor, float attenuation) {
+    // Diffuse (Lambert)
+    float NdotL = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = BASE_COLOR * lightColor * NdotL * attenuation;
+    
+    // Specular (Blinn-Phong)
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float NdotH = max(dot(normal, halfDir), 0.0);
+    float spec = pow(NdotH, SPECULAR_POWER) * SPECULAR_INTENSITY;
+    vec3 specular = lightColor * spec * attenuation;
+    
+    return diffuse + specular;
+}
+
+// Optionnel : effet de scintillement subtil (lampe qui "vit")
+float flicker(float t) {
+    return 1.0 + 0.02 * sin(t * 15.0) * sin(t * 23.0 + 1.5);
+}
+
+vec3 light(vec3 lampPos) {
+    vec3 N = normalize(vNormal);
+    vec3 V = normalize(cameraPosition - vWorldPosition);
+    
+    // === FIX : Flip la normale si elle pointe à l'opposé de la caméra ===
+    if (dot(N, V) < 0.0) {
+        N = -N;
+    }
+    
+    vec3 toLight = lampPos - vWorldPosition;
+    float dist = length(toLight);
+    vec3 L = normalize(toLight);
+    
+    float att = calcAttenuation(dist, lampRadius, lampIntensity*200.0);
+    
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 diffuse = LAMP_COLOR * NdotL * att;
+    
+    vec3 halfDir = normalize(L + V);
+    float NdotH = max(dot(N, halfDir), 0.0);
+    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    vec3 specular = LAMP_COLOR * spec * att;
+    
+    vec3 ambient = vec3(0.05);
+    
+    return ambient + diffuse + specular;
+}
 
 float cpow(float val, float p) {
     return sign(val) * pow(abs(val), p);
@@ -239,25 +318,52 @@ void main(){`;
 fragmentShaders = [
 `
     float coeff = 1.0+Ts(0.25);
-    float lnpos = coeff*length(vNormal*(npos()-0.5));
+    float lnpos = coeff*length(vNormal*(npos()));
     vec3 col1   = fract(coeff*palette(lnpos));
     vec3 col2   = fract(3.0*rainbow(lnpos));
 
     vec3 col = 1.0 - mix(col1, col2, dot(col1,col2));
 `,
 `
-    vec3 col = palette(2.0*(length(npos()-0.5)));
+    vec3 col = palette(2.0*length(npos()));
 `,
 `
     vec3 col = vNormal;
 `,
 `
-    vec3 col = rainbow(vCurvatures.x*(1.0));
+    float val = mix(vCurvatures.x, vCurvatures.y, length(npos()));
+    vec3 col  = 1.0 - rainbow(val);
+`,
+`   
+    vec3 col  = vec3(0.0); 
+    vec3 col1 = col;
+    vec3 col2 = col;
+
+    vec3 pattern = rotateTilePattern(vUV, 8.0);
+    vec2 st = pattern.xy;
+    
+    col = vec3(step(st.x,st.y));
+`,
+`   
+    vec2 hexUV = vec2(vUV.x*0.5, vUV.y) * 24.0;
+    float row = floor(hexUV.y);
+
+    vec2 cell = fract(hexUV) - 0.5;
+    vec3 col = vec3(0.0);
+
+    float d = sdHexagon(cell, 5.0/12.0);
+    col = vec3(smoothstep(0.042, 0.0, abs(d))); // contour
+    
+    if(col == vec3(0.0)){
+        col = palette(d);
+    }
 `,
 ];
 
 fragmentShaderFooter = `
     if(invcol == 1){ col = vec3(1.0)-col; }
+
+    if(islight == 1){ ` + lamp + `    }
     
     fragColor = vec4(col, 1.0);
 }

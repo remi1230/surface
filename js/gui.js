@@ -83,6 +83,7 @@ function add_gui_controls(){
   add_views_buttons();
 
   add_color_pickers();
+  add_shaders_ctrl();
 
   add_step_ABCD_sliders();
   add_symmetrize_sliders();
@@ -200,6 +201,8 @@ function guiControls_AddIdentificationFunctions(){
   glo.allControls.getByName = getByName;
   glo.allControls.haveThisClass = haveThisClass;
   glo.allControls.haveTheseClasses = haveTheseClasses;
+  glo.allControls.haveNotThisClass = haveNotThisClass;
+  glo.allControls.haveNotTheseClass = haveNotTheseClass;
   glo.allControls.map(control => { control.hasThisClass =  hasThisClass; });
 }
 
@@ -621,14 +624,12 @@ function add_alpha_slider(){
 }
 function add_inputs_equations(){
   var panel                = new BABYLON.GUI.StackPanel();
-  var panelColorsEquations = new BABYLON.GUI.StackPanel();
   var panelSuitsEquations  = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
   let panelSymmAngle       = new BABYLON.GUI.StackPanel();
 
   parmamControl(panel, "inputsEquations", 'panel left first');
-  parmamControl(panelColorsEquations, "inputsColorsEquations", 'panel right third noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 24});
   parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 26});
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 60, pR: 1, t: 535, h: 100, pL: -330}, true);
   parmamControl(panelSymmAngle, "panelSymmAngle", 'panel right eleventh noAutoParam', {hAlign: 'right', vAlign: 'top', w: 18.5, pR: 0, t: 64, h: 100, pR: 1.33});
@@ -637,10 +638,8 @@ function add_inputs_equations(){
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   panel.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histo.goTo() : glo.histo.goBack(); });
-  panelColorsEquations.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histoColo.goTo() : glo.histoColo.goBack(); });
 
   glo.advancedTexture.addControl(panel);
-  glo.advancedTexture.addControl(panelColorsEquations);
   glo.advancedTexture.addControl(panelSuitsEquations);
   glo.advancedTexture.addControl(panelSymsEquations);
   glo.advancedTexture.addControl(panelEvalY);
@@ -685,25 +684,9 @@ function add_inputs_equations(){
         }
       }
       else{
-        if(!colorEquation){
-          await remakeRibbon();
+        await remakeRibbon();
 
-          //glo.histo.save();
-          glo.advancedTexture.moveFocusToControl(input);
-        }
-        else{
-          var equations = {
-            fx: glo.params.text_input_color_x,
-            fy: glo.params.text_input_color_y,
-            fz: glo.params.text_input_color_z,
-            falpha: glo.params.text_input_color_alpha,
-            fbeta: glo.params.text_input_color_beta,
-            alpha: glo.input_eval_y.text,
-          };
-          glo.params.playWithColors = true;
-          glo.histoColo.save();
-          if(test_equations(equations, false)){ makeColors(); }
-        }
+        glo.advancedTexture.moveFocusToControl(input);
       }
     }
 
@@ -769,12 +752,6 @@ function add_inputs_equations(){
   add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
   add_input(panel, "R", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
   add_input(panel, "W", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
-
-  add_input(panelColorsEquations, "R", "cu", "inputColorX", "header right third", "input equation right third", "text_input_color_x", "input_color_x", true);
-  add_input(panelColorsEquations, "G", "cv", "inputColorY", "header right third", "input equation right third", "text_input_color_y", "input_color_y", true);
-  add_input(panelColorsEquations, "B", "", "inputColorZ", "header right third", "input equation right third", "text_input_color_z", "input_color_z", true);
-  add_input(panelColorsEquations, "Alpha", "", "inputColorAlpha", "header right third", "input equation right third", "text_input_color_alpha", "input_color_alpha", true);
-  add_input(panelColorsEquations, "Bêta", "", "inputColorBeta", "header right third", "input equation right third", "text_input_color_beta", "input_color_beta", true);
 
   add_input(panelSuitsEquations, "X", "", "inputSuitX", "header right fourth", "input equation right fourth", "text_input_suit_x", "input_suit_x");
   add_input(panelSuitsEquations, "Y", "", "inputSuitY", "header right fourth", "input equation right fourth", "text_input_suit_y", "input_suit_y");
@@ -978,157 +955,118 @@ function add_step_uv_slider(){
   add_slider("stepV", "Steps V", "steps_v", "slider_nb_steps_v");
 }
 
-function add_color_pickersSave(){
-  var panelLight   = new BABYLON.GUI.StackPanel();
-  var panel        = new BABYLON.GUI.StackPanel();
-  var optionsLight = {hAlign: 'right', vAlign: 'top', w: 20, t: 26, };
-  var options      = {hAlign: 'right', vAlign: 'top', w: 20, t: 43.5, };
-  parmamControl(panelLight, 'lightPanel', 'panel right first noAutoParam onlyMainGui', optionsLight);
-  parmamControl(panel, 'pickerColorPanel', 'panel right first noAutoParam onlyMainGui', options);
-  glo.advancedTexture.addControl(panelLight);
-  glo.advancedTexture.addControl(panel);
-
-  var header = new BABYLON.GUI.TextBlock();
-  parmamControl(header, "pickersColorHeader", 'header right first onlyMainGui', {text: "Back, emissive, diffuse & lines :"});
-  panel.addControl(header);
-
-  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, 'header right first noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
-    parent.addControl(header);
-
-    var slider = new BABYLON.GUI.Slider();
-    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
-    parmamControl(slider, name, 'slider right first', options, true);
-    slider.startValue = val;
-
-    slider.onValueChangedObservable.add(function(value) {
-      if(!glo.rightButton){
-        header.text = text + ": " + value.toFixed(decimalPrecision);
-        event(value);
-      }
-      glo.rightButton = false;
-    });
-    slider.onPointerClickObservable.add(function (e) {
-      if(e.buttonIndex == 2){
-        glo.rightButton = true;
-        header.text = text + ": " + slider.startValue;
-        slider.value = slider.startValue;
-
-        event(slider.value);
-      }
-    });
-
-    slider.onPointerUpObservable.add(function (e) {
-      
-    });
-    parent.addControl(slider);
-  }
-
-  addSlider(panelLight, "lightIntensity", "Light Intensity", 0.7, 2, 0, 1, 0.01, async function(value){
-    glo.light.intensity = value;
-  });
-  addSlider(panelLight, "lightDirectionX", "Light Direction X", 0.3, 2, 0, 1, 0.01, async function(value){
-    glo.light.direction = new BABYLON.Vector3(value, glo.light.direction.y, glo.light.direction.z);
-  });
-  addSlider(panelLight, "lightDirectionY", "Light Direction Y", 0.6, 2, 0, 1, 0.01, async function(value){
-    glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, value, glo.light.direction.z);
-  });
-  addSlider(panelLight, "lightDirectionZ", "Light Direction Z", 0, 2, 0, 1, 0.01, async function(value){
-    glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, glo.light.direction.y, value);
-  });
-
-  var picker = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: glo.backgroundColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
-  picker.onValueChangedObservable.add(function(value) { // value is a color3
-    glo.scene.clearColor = value;
-    glo.backgroundColor = value;
-    glo.new_color = "rgb(0,0,0)";
-    glo.color_line_grid = new BABYLON.Color3(0, 0, 0);
-    if(value.r < 77/255 && value.g < 77/255 && value.b < 77/255){
-      glo.new_color = "white";
-      glo.color_line_grid = new BABYLON.Color3(1, 1, 1);
-    }
-    glo.labelGridColor = glo.new_color;
-
-    glo.allControls.haveThisClass('header').map(header => { header.color = glo.new_color; });
-    glo.radios_formes.changeColor(glo.new_color);
-
-    if(typeof(glo.labels_axis) != "undefined"){ glo.labels_axis.map(label_axis => { label_axis.color = glo.new_color; }); }
-    if(typeof(glo.labels_grid) != "undefined"){ glo.labels_grid.map(label_grid => { label_grid.color = glo.new_color; }); }
-
-    var new_color_line_grid = glo.color_line_grid;
-    if(typeof(glo.gridX) != "undefined"){ glo.gridX.map(line => { line.color = new_color_line_grid; }); }
-    if(typeof(glo.gridY) != "undefined"){ glo.gridY.map(line => { line.color = new_color_line_grid; }); }
-    if(typeof(glo.gridZ) != "undefined"){ glo.gridZ.map(line => { line.color = new_color_line_grid; }); }
-  });
-
-  var picker2 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker2, 'pickerColorDiffuse', "picker right first onlyMainGui", { value: glo.diffuseColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
-  picker2.onValueChangedObservable.add(function(value) {
-    var ribbonToColorize = glo.ribbon;
-    
-    if(!ribbonToColorize.material){
-      var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-	    material.backFaceCulling  = false;
-      ribbonToColorize.material = material;
-    }
-    ribbonToColorize.material.diffuseColor = value;
-    glo.diffuseColor = value;
-  });
-
-  var picker3 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker3, 'pickerColorEmissive', "picker right first onlyMainGui", { value: glo.emissiveColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
-  picker3.onValueChangedObservable.add(function(value) {
-    var ribbonToColorize = glo.ribbon;
-    
-    if(!ribbonToColorize.material){
-      var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-	    material.backFaceCulling  = false;
-      ribbonToColorize.material = material;
-    }
-    ribbonToColorize.material.emissiveColor = value;
-    glo.emissiveColor = value;
-  });
-
-  var picker4 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
-  picker4.onValueChangedObservable.add(function(value) {
-      changeLineColor(value.r, value.g, value.b);
-  });
-
-  panel.addControl(picker);
-  panel.addControl(picker3);
-  panel.addControl(picker2);
-  panel.addControl(picker4);
-}
-
 function add_color_pickers(){
-  var panelHeader   = new BABYLON.GUI.StackPanel();
-  var panelLight    = new BABYLON.GUI.StackPanel();
-  var panel1        = new BABYLON.GUI.StackPanel();
-  var panel2        = new BABYLON.GUI.StackPanel();
-  var panel3        = new BABYLON.GUI.StackPanel();
-  var optionsLight = {hAlign: 'right', vAlign: 'top', w: 20, t: 26, };
-  var top          = {panel1: 43.5, panel2: 70, panel3: 83.5};
-  var options      = {hAlign: 'right', vAlign: 'top', w: 20, h:10, t: top.panel1, isVertical: false};
-  parmamControl(panelHeader, 'colorHeaderPanel', 'panel right first noAutoParam onlyMainGui', optionsLight);
-  parmamControl(panelLight, 'lightPanel', 'panel right first noAutoParam onlyMainGui', optionsLight);
-  parmamControl(panel1, 'pickerColorPanel1', 'panel right first noAutoParam onlyMainGui', options);
-  parmamControl(panel2, 'pickerColorPanel2', 'panel right first noAutoParam onlyMainGui', options.t = top.panel2);
-  parmamControl(panel3, 'pickerColorPanel3', 'panel right first noAutoParam onlyMainGui', options.t = top.panel3);
+  var panelLight     = new BABYLON.GUI.StackPanel();
+  var panelHeader    = new BABYLON.GUI.StackPanel();
+  var panelTitleUI   = new BABYLON.GUI.StackPanel();
+  var panelTitleMesh = new BABYLON.GUI.StackPanel();
+  var panel1         = new BABYLON.GUI.StackPanel();
+  var panel2         = new BABYLON.GUI.StackPanel();
+  var panelButtons   = new BABYLON.GUI.StackPanel();
+
+  var panelTitleUIBg        = new BABYLON.GUI.StackPanel();
+  var panelTitleUIButton    = new BABYLON.GUI.StackPanel();
+  var panelTitleMeshBg      = new BABYLON.GUI.StackPanel();
+  var panelTitleMeshDiffuse = new BABYLON.GUI.StackPanel();
+  var panelTitleMeshLine    = new BABYLON.GUI.StackPanel();
+  var panelTitleRandom      = new BABYLON.GUI.StackPanel();
+
+  var optionsLight = {hAlign: 'right', vAlign: 'top', w: 20, t: 52, pL: 0.375};
+  var top          = {panel1: 35, panel2: 55, panel3: 60, panelButtons: 73};
+  var options      = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
+  
+  parmamControl(panelLight, 'lightPanel', 'panel right third noAutoParam', optionsLight);
+  parmamControl(panelHeader, 'colorHeaderPan', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 21, pL: 8, isVertical: false});
+  parmamControl(panelTitleUI, 'colorHeaderTitleUI', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 26, pL: 9.5, isVertical: false});
+  parmamControl(panelTitleMesh, 'colorHeaderTitleMesh', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 45, pL: 8.5, isVertical: false});
+  
+  const hTest = 2;
+  parmamControl(panelTitleUIBg, 'colorTitleUIBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 35.5, pL: 4.875, isVertical: false});
+  parmamControl(panelTitleUIButton, 'colorTitleUIButton', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 35.5, pL: 11.4166, isVertical: false});
+  parmamControl(panelTitleMeshBg, 'colorTitleMeshBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 2.4166, isVertical: false});
+  parmamControl(panelTitleMeshDiffuse, 'colorTitleMeshDiffuse', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 8.875, isVertical: false});
+  parmamControl(panelTitleMeshLine, 'colorTitleMeshLine', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 14.66, isVertical: false});
+  parmamControl(panelTitleRandom, 'colorTitleRandom', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 72, pL: 8.25, isVertical: false});
+
+  /*panelTitleUIBg.background        = "rgba(255, 255, 0, 0.2)";
+  panelTitleUIButton.background    = "rgba(0, 255, 255, 0.2)";
+  panelTitleMeshBg.background      = "rgba(255, 0, 255, 0.2)";
+  panelTitleMeshDiffuse.background = "rgba(0, 255, 0, 0.2)";
+  panelTitleMeshLine.background    = "rgba(255, 165, 0, 0.2)";*/
+
+  options.pL = 4.5;
+  parmamControl(panel1, 'pickerColorPan1', 'panel right first noAutoParam onlyMainGui', options);
+  options.t = top.panel2; options.pL = 2;
+  parmamControl(panel2, 'pickerColorPan2', 'panel right first noAutoParam onlyMainGui', options);
+  options.t = top.panel3;
+  //parmamControl(panel3, 'pickerColorPan3', 'panel right first noAutoParam onlyMainGui', options);
+  options.t = top.panelButtons; options.pL = 4;
+  parmamControl(panelButtons, 'uiColorButtons', 'panel right first noAutoParam onlyMainGui', options);
+
+  /*panel1.background = "rgba(255,0,0,0.3)";
+  panel2.background = "rgba(0,255,0,0.3)";
+  panel3.background = "rgba(0,0,255,0.3)";
+  panelButtons.background = "rgba(0, 255, 251, 0.8)";*/
+  
   glo.advancedTexture.addControl(panelLight);
-  glo.advancedTexture.addControl(panel1);
-  glo.advancedTexture.addControl(panel2);
-  glo.advancedTexture.addControl(panel3);
+
+  //glo.allControls.haveNotThisClass('input').forEach(ctrl => {ctrl.color = 'red'})
+  //"Back, emissive, diffuse & lines :"
+
+  function paramHeader(panel, header, text, options){
+    header.text = text;
+    header.color = "white";
+    header.height = "30px";
+    header.width = "100%";
+    header.fontSize = options.fontSize;
+    header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    parmamControl(header, options.name, 'header right first noAutoParam onlyMainGui');
+    panel.addControl(header);
+  }
+
+  let optionsHeader = {
+    color: "white",
+    height: "30px",
+    width: "100%",
+    fontSize: 18,
+    textHorizontalAlignment: BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT,
+  };
 
   var header = new BABYLON.GUI.TextBlock();
-  parmamControl(header, "pickersColorHeader", 'header right first onlyMainGui', {text: "Back, emissive, diffuse & lines :"});
-  panelHeader.addControl(header);
+  optionsHeader.fontSize = 24;
+  paramHeader(panelHeader, header, "Colors", optionsHeader);
+  optionsHeader.fontSize = 20;
 
-  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+  var headerUI = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleUI, headerUI, "UI", optionsHeader);
+
+  var headerMesh = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleMesh, headerMesh, "Mesh", optionsHeader);
+
+  optionsHeader.fontSize = 16;
+  var headerUIBg = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleUIBg, headerUIBg, "Background", optionsHeader);
+
+  var headerUIButton = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleUIButton, headerUIButton, "Button", optionsHeader);
+
+  var headerMeshBg = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleMeshBg, headerMeshBg, "Background", optionsHeader);
+
+  var headerMeshDiffuse = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleMeshDiffuse, headerMeshDiffuse, "Diffuse", optionsHeader);
+
+  var headerMeshLine = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitleMeshLine, headerMeshLine, "Lines", optionsHeader);
+
+  var headerRandomColor = new BABYLON.GUI.TextBlock();
+   optionsHeader.fontSize = 20;
+  paramHeader(panelTitleRandom, headerRandomColor, "Random", optionsHeader);
+  optionsHeader.fontSize = 16;
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, classes = 'header right first'){
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, 'header right first noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
+    parmamControl(header, "header_" + name, classes + ' noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
     parent.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
@@ -1140,6 +1078,7 @@ function add_color_pickers(){
       if(!glo.rightButton){
         header.text = text + ": " + value.toFixed(decimalPrecision);
         event(value);
+        giveMaterialToMesh();
       }
       glo.rightButton = false;
     });
@@ -1150,6 +1089,7 @@ function add_color_pickers(){
         slider.value = slider.startValue;
 
         event(slider.value);
+        giveMaterialToMesh();
       }
     });
 
@@ -1159,17 +1099,28 @@ function add_color_pickers(){
     parent.addControl(slider);
   }
 
-  addSlider(panelLight, "lightIntensity", "Light Intensity", 0.7, 2, 0, 1, 0.01, async function(value){
+  const lightInfos = glo.shaders.light;
+
+  addSlider(panelLight, "lightIntensity", "Intensity", 0.7, 2, 0, 1, 0.01, async function(value){
     glo.light.intensity = value;
-  });
-  addSlider(panelLight, "lightDirectionX", "Light Direction X", 0.3, 2, 0, 1, 0.01, async function(value){
+  }, 'header right third');
+  addSlider(panelLight, "lightDirectionX", "Direction X", 0.3, 2, 0, 1, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(value, glo.light.direction.y, glo.light.direction.z);
-  });
-  addSlider(panelLight, "lightDirectionY", "Light Direction Y", 0.6, 2, 0, 1, 0.01, async function(value){
+  }, 'header right third');
+  addSlider(panelLight, "lightDirectionY", "Direction Y", 0.6, 2, 0, 1, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, value, glo.light.direction.z);
-  });
-  addSlider(panelLight, "lightDirectionZ", "Light Direction Z", 0, 2, 0, 1, 0.01, async function(value){
+  }, 'header right third');
+  addSlider(panelLight, "lightDirectionZ", "Direction Z", 0.5, 2, -1, 1, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, glo.light.direction.y, value);
+  });
+  addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){
+    glo.shaders.light.radius = value;
+  });
+  addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 10, 0.01, async function(value){
+    glo.shaders.light.specular.intensity = value;
+  });
+  addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 100, 0.01, async function(value){
+    glo.shaders.light.specular.power = value;
   });
 
   var picker = new BABYLON.GUI.ColorPicker();
@@ -1179,7 +1130,7 @@ function add_color_pickers(){
     glo.backgroundColor = value;
     glo.new_color = "rgb(0,0,0)";
     glo.color_line_grid = new BABYLON.Color3(0, 0, 0);
-    if(value.r < 77/255 && value.g < 77/255 && value.b < 77/255){
+    if(value.r + value.g + value.b < 1.5){
       glo.new_color = "white";
       glo.color_line_grid = new BABYLON.Color3(1, 1, 1);
     }
@@ -1234,23 +1185,193 @@ function add_color_pickers(){
   var picker5 = new BABYLON.GUI.ColorPicker();
   parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker5.onValueChangedObservable.add(function(value) {
-    glo.allControls.haveThisClass('button').forEach(button => { button.background = rgbNormalizedToHex(value); });
+    glo.allControls.haveThisClass('button').forEach(button => {
+      button.background = rgbNormalizedToHex(value);
+      if(value.r + value.g + value.b < 1.5){
+        button.color = "white";
+      }
+      else{
+        button.color = "black";
+      }
+    });
   });
 
+  function add_button(panel, name, text, width, height, paddingTop, paddingLeft, paddingRight, eventLeft, eventRight){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button right first onlyMainGui noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight, pT: paddingTop}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
+    });
+    panel.addControl(button);
+  }
+
+  add_button(panelButtons, "randomUIAllColorButton", "All", "25%", 30, 0, 0, 0, async function(){
+      randomize_colors_app();
+  }, function(){});
+
+  add_button(panelButtons, "randomUILightColorButton", "Light", "25%", 30, 0, 10, 0, async function(){
+      special_randomize_colors_app();
+  }, function(){});
+
+  add_button(panelButtons, "resetColorButton", "Reset", "25%", 30, 0, 10, 0, async function(){
+      intiColorUI();
+  }, function(){});
+
   panel1.addControl(picker);
-  panel1.addControl(picker3);
+  panel1.addControl(picker5);
+  panel2.addControl(picker3);
   panel2.addControl(picker2);
   panel2.addControl(picker4);
-  panel3.addControl(picker5);
+
+  panelButtons.height = '70px';
+
+  glo.advancedTexture.addControl(panelHeader);
+  glo.advancedTexture.addControl(panelTitleUI);
+  glo.advancedTexture.addControl(panelTitleMesh);
+  glo.advancedTexture.addControl(panel1);
+  glo.advancedTexture.addControl(panel2);
+  glo.advancedTexture.addControl(panelButtons);
+  glo.advancedTexture.addControl(panelTitleUIBg);
+  glo.advancedTexture.addControl(panelTitleUIButton);
+  glo.advancedTexture.addControl(panelTitleMeshBg);
+  glo.advancedTexture.addControl(panelTitleMeshDiffuse);
+  glo.advancedTexture.addControl(panelTitleMeshLine);
+  glo.advancedTexture.addControl(panelTitleRandom);
+}
+
+function add_shaders_ctrl(){
+  var panelTitle = new BABYLON.GUI.StackPanel();
+  parmamControl(panelTitle, 'panelShadersTitle', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 25.25, pL: 8.2});
+  panelTitle.isVertical = false;
+  glo.advancedTexture.addControl(panelTitle);
+
+  var header = new BABYLON.GUI.TextBlock();
+  header.text = "Shaders";
+  header.color = "white";
+  header.fontSize = 18;
+  header.height = "20px";
+  header.width = "100%";
+  header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+  parmamControl(header, "headerShadersTitle", 'header right third noAutoParam');
+  panelTitle.addControl(header);
+
+  var panelTimeTitle = new BABYLON.GUI.StackPanel();
+  parmamControl(panelTimeTitle, 'panelShadersTimeTitle', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 34, pL: 6.5});
+  panelTimeTitle.isVertical = false;
+  glo.advancedTexture.addControl(panelTimeTitle);
+
+  var headerTimeTitle = new BABYLON.GUI.TextBlock();
+  headerTimeTitle.text = "Time variable - w";
+  headerTimeTitle.color = "white";
+  headerTimeTitle.fontSize = 18;
+  headerTimeTitle.height = "20px";
+  headerTimeTitle.width = "100%";
+  headerTimeTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+  parmamControl(headerTimeTitle, "headerTimeTitle", 'header right third noAutoParam');
+  panelTimeTitle.addControl(headerTimeTitle);
+
+  var panelLightTitle = new BABYLON.GUI.StackPanel();
+  parmamControl(panelLightTitle, 'panelShadersLightTitle', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 43.25, pL: 8.5});
+  panelLightTitle.isVertical = false;
+  glo.advancedTexture.addControl(panelLightTitle);
+
+  var headerLightTitle = new BABYLON.GUI.TextBlock();
+  headerLightTitle.text = "Lighting";
+  headerLightTitle.color = "white";
+  headerLightTitle.fontSize = 18;
+  headerLightTitle.height = "30px";
+  headerLightTitle.width = "100%";
+  headerLightTitle.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+  parmamControl(headerLightTitle, "headerLightTitle", 'header right third noAutoParam');
+  panelLightTitle.addControl(headerLightTitle);
+
+  var panelButtons = new BABYLON.GUI.StackPanel();
+  parmamControl(panelButtons, 'panelShadersButtons', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 29, pL: 3.25});
+  //panelButtons.background = "#dd5c5cff";
+  panelButtons.isVertical = false;
+  glo.advancedTexture.addControl(panelButtons);
+
+  var panel2Buttons = new BABYLON.GUI.StackPanel();
+  parmamControl(panel2Buttons, 'panelShaders2Buttons', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 38, pL: 3.25});
+  //panel2Buttons.background = "#dd5c5cff";
+  panel2Buttons.isVertical = false;
+  glo.advancedTexture.addControl(panel2Buttons);
+
+  var panel3Buttons = new BABYLON.GUI.StackPanel();
+  parmamControl(panel3Buttons, 'panelShaders3Buttons', 'panel right third', {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 47, pL: 9.25});
+  //panel2Buttons.background = "#dd5c5cff";
+  panel3Buttons.isVertical = false;
+  glo.advancedTexture.addControl(panel3Buttons);
+
+  function add_button(panel, name, text, width, height, paddingTop, paddingLeft, paddingRight, eventLeft, eventRight){
+    var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
+    parmamControl(button, name, 'button right third noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight, pT: paddingTop}, true);
+    designButton(button);
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
+    });
+    panel.addControl(button);
+  }
+
+  add_button(panelButtons, "openShaderEditorButton", "Editor", "20%", 30, 0, 10, 0, async function(){
+      glo.editorIsOpened = !glo.editorIsOpened;
+      
+      if (glo.editorIsOpened) {
+          openShaderWindow();
+          glo.shaderMaterial = true;
+          giveMaterialToMesh();
+      } else {
+          editorWindow.style.display = 'none';
+      }
+  });
+  add_button(panelButtons, "colorizeShaderEditorButton", "Color", "20%", 30, 0, 10, 0, async function(){
+      glo.shaderMaterial = !glo.shaderMaterial;
+      giveMaterialToMesh();
+  });
+  add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, async function(){
+      glo.shaders.params.numshader = glo.numShaderMove.next().value;
+      fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
+
+      if(editor){ editor.setValue(fragmentShader); }
+
+      giveMaterialToMesh();
+  });
+  add_button(panelButtons, "invcolShaderEditorButton", "Inv", "20%", 30, 0, 10, 0, async function(){
+      glo.shaders.params.invcol = !glo.shaders.params.invcol;
+      giveMaterialToMesh();
+  });
+  add_button(panel2Buttons, "timeButton", "Time", "20%", 30, 0, 10, 0, async function(){
+      glo.withTime = !glo.withTime;
+      w = 0;
+  });
+  add_button(panel2Buttons, "timeSlowerButton", "Slow", "20%", 30, 0, 10, 0, async function(){
+      wstep/=2;
+  });
+  add_button(panel2Buttons, "deformWithMatButton", "S Off", "20%", 30, 0, 10, 0, async function(){
+      glo.deformWithMat = !glo.deformWithMat;
+      glo.allControls.getByName("deformWithMatButton").textBlock.text = glo.deformWithMat ? "S On" : "S Off";
+  });
+  add_button(panel2Buttons, "shaderTimeFasterButton", "Fast", "20%", 30, 0, 10, 0, async function(){
+      wstep*=2;
+  });
+  add_button(panel3Buttons, "shaderLightButton", "💡", "20%", 30, 0, 0, 0, async function(){
+      glo.shaders.params.islight = !glo.shaders.params.islight;
+      glo.light.direction.z = glo.shaders.params.islight ? 0.5 : 0;
+      glo.allControls.getByName("lightDirectionZ").value = glo.light.direction.z;
+      giveMaterialToMesh();
+  });
+
+
+
 }
 
 function add_step_ABCD_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  var panelColors = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramEquationsSlidersPanel', 'panel right second', {hAlign: 'right', vAlign: 'top', w: 20, t: 26, pR: 0.5});
-  parmamControl(panelColors, 'paramColorsSlidersPanel', 'panel right third noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 51, pR: 0.5 });
   glo.advancedTexture.addControl(panel);
-  glo.advancedTexture.addControl(panelColors);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, second = 'true', action = null){
     var header = new BABYLON.GUI.TextBlock();
@@ -1290,18 +1411,7 @@ function add_step_ABCD_sliders(){
       if(e.buttonIndex == 2){ slider.value = slider.startValue; }
     });
    
-    slider.onPointerUpObservable.add(function (e) {
-      glo.histoColo.save();
-    });
     parent.addControl(slider);
-  }
-
-  function updateWithGain(param){
-    var p = glo.params[param]; var gain = glo.sliderGain;
-    gain = abs(gain) + 1;
-    gain = !glo.is_sliderGainPos ? 1/gain : gain;
-    p = p != 0 ? p*=gain : p = gain;
-    glo.params[param] = p;
   }
 
   addSlider(panel, "A", "A", 0, 1, -2*PI, 2*PI, 0.1, function(value){ glo.params.A = value; });
@@ -1317,16 +1427,6 @@ function add_step_ABCD_sliders(){
   addSlider(panel, "K", "K", 1, 1, -12, 12, 0.1, function(value){ glo.params.K = value; });
   addSlider(panel, "L", "L", 1, 0, -36, 36, 1, function(value){ glo.params.L = value; });
   addSlider(panel, "M", "M", 1, 0, -360, 360, 1, function(value){ glo.params.M = value; });
-
-  addSlider(panelColors, "saturationSlider", "Saturation", 0, 1, -12, 12, 0.1, function(value){ updateWithGain('saturation'); }, false, saturation);
-  addSlider(panelColors, "tintSlider", "Tint", 0, 2, -1, 1, 0.01, function(value){ glo.params.tint = value; }, false, tint);
-  addSlider(panelColors, "rotAlphaSlider", "Alpha", 0, 2, 0, PI, 0.01, function(value){ glo.params.rotAlpha = value; }, false, alphaColor);
-  addSlider(panelColors, "rotBetaSlider", "Bêta", 0, 2, 0, PI, 0.01, function(value){ glo.params.rotBeta = value; }, false, betaColor);
-  addSlider(panelColors, "toColRSlider", "Grey or Not", 0, 1, -3, 3, 0.1, function(value){ glo.params.toColR = value; }, false, colByMidSLid);
-  addSlider(panelColors, "gColorSlider", "Shell", 0, 2, -1, 1, 0.01, function(value){ glo.params.gColor = value; }, false, mColorShell);
-  addSlider(panelColors, "bColorSlider", "B", 0, 2, -1, 1, 0.01, function(value){ glo.params.bColor = value; }, false, mColorB);
-  addSlider(panelColors, "itColorsSlider", "IT", 1, 0, 1, 256, 1, function(value){ glo.params.itColors = value; }, false);
-  addSlider(panelColors, "coeffColorByCurvature", "Coeff ϕ", 10, 0, 1, 256, 1, function(value){ glo.params.coeffPhi = value; }, false);
 }
 
 function add_symmetrize_sliders(){
@@ -2203,13 +2303,13 @@ function param_controls(){
     parmamControl(inp, '', '', { hAlign: 'left', vAlign: 'top', h: 22.5, background: 'grey', }, true, false);
     inp.paddingLeft = '1%';
   });
-  glo.allControls.haveTheseClasses('panel', 'right', 'third').haveNotThisClass('noAutoParam').map(pr => {
+  /*glo.allControls.haveTheseClasses('panel', 'right', 'third').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', t: 33, }, false, false);
     if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }
   });
   glo.allControls.haveTheseClasses('input', 'right', 'third').map(inp => {
     parmamControl(inp, '', '', { hAlign: 'right', vAlign: 'top', h: 22.5, background: 'grey', }, true, false);
-  });
+  });*/
   glo.allControls.haveTheseClasses('panel', 'right', 'fourth').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', t: 33, }, false, false);
     if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }

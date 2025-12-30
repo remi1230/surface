@@ -86,7 +86,6 @@ function download_JSON_mesh(event){
 				if(!sameAsRadioCheck){
 					make_curves();
 					glo.histo.save();
-					glo.histoColo.save();
 				}
 			break;
 			case 'obj':

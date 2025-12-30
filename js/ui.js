@@ -488,7 +488,7 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
-	glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
+	//glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
 }
 
@@ -547,7 +547,7 @@ function uvToXy(remake = true){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 
 	["x", "y", "z", "suit_x", "suit_y", "suit_z", "alpha", "beta", "suit_alpha", "suit_beta",
-	 "suit_theta", "color_x", "color_y", "color_z", "color_alpha", "color_beta", "sym_r"].forEach(nameInput =>  {
+	 "suit_theta", "sym_r"].forEach(nameInput =>  {
 		regs.forEach(reg => {
 			glo[`input_${nameInput}`].text = glo[`input_${nameInput}`].text.replace(reg.exp, reg.upd);
 		});
@@ -605,6 +605,37 @@ function regOneSave(expReg) {
 		console.log("");
 	}
     return expReg;
+}
+
+function regOneTest(expReg) {
+	console.log("=== regOne START ===");
+	console.log("Input:", expReg, "| Type:", typeof expReg);
+	
+	if (expReg == "'") {
+		console.log("Cas spécial: apostrophe détectée, remplacement par '0'");
+		expReg = "0";
+	}
+	else if(expReg) {
+		expReg = expReg.toString();
+		console.log("Après toString():", expReg);
+		
+		for (let i = 0; i < glo.regs.length; i++) {
+			const avant = expReg;
+			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
+			if (avant !== expReg) {
+				console.log(`Regex #${i} a matché:`, glo.regs[i].exp);
+				console.log(`  Avant: "${avant}"`);
+				console.log(`  Après: "${expReg}"`);
+			}
+		}
+	}
+	else {
+		console.log("expReg est falsy, aucune transformation");
+	}
+	
+	console.log("Output final:", expReg);
+	console.log("=== regOne END ===");
+	return expReg;
 }
 
 function regOne(expReg) {

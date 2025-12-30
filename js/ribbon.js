@@ -126,76 +126,36 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         scaleVertexsDist(glo.scaleVertex);
 
-        let colorsVoronoi = false;
-        let colorsRibbon;
-
-        if (!glo.params.playWithColors && glo.colorsType == 'none') {
-            if (!glo.voronoiMode) {
-                if (!glo.ribbon) {
-                    glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-                        pathArray: paths,
-                        sideOrientation: 1,
-                        updatable: true,
-                        closeArray: false
-                    }, glo.scene);
-                    glo.ribbon._pathCount = paths.length;
-                    glo.ribbon._pointsPerPath = paths[0].length;
-                } else {
-                    if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
-						glo.exceptionCreate = false;
-                        ribbonDispose();
-                        glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-                            pathArray: paths,
-                            sideOrientation: 1,
-                            updatable: true,
-                            closeArray: false
-                        }, glo.scene);
-                        glo.ribbon._pathCount = paths.length;
-                        glo.ribbon._pointsPerPath = paths[0].length;
-                    } else {
-						if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
-                        await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-                            pathArray: paths,
-                            instance: glo.ribbon
-                        });
-                    }
-                }
-            } else {
-                var white = BABYLON.Color3.White();
-                glo.emissiveColor = white;
-                glo.diffuseColor = white;
-                glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-                    pathArray: paths,
-                    sideOrientation: 1,
-                    updatable: true,
-                    closeArray: false
-                }, glo.scene);
-                colorsVoronoi = voronoi();
-            }
-        } else {
-            ribbonDispose();
-            glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-                pathArray: paths,
-                sideOrientation: 1,
-                updatable: true,
-                closeArray: false
-            }, glo.scene);
-            glo.colorsRibbonSave = {};
-            objCols = {colsArr: colorsRibbon};
-            Object.assign(glo.colorsRibbonSave, objCols);
-            var white = BABYLON.Color3.White();
-            glo.emissiveColor = white;
-            glo.diffuseColor = white;
-
-            if (glo.params.meshEquationToColor) { meshEquationToColor(); }
-
-            makeOtherColors(true);
-        }
-
-        if (colorsVoronoi) {
-            glo.ribbon.setVerticesData(BABYLON.VertexBuffer.ColorKind, colorsVoronoi);
-        }
-
+		if (!glo.ribbon) {
+			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+				pathArray: paths,
+				sideOrientation: 1,
+				updatable: true,
+				closeArray: false
+			}, glo.scene);
+			glo.ribbon._pathCount = paths.length;
+			glo.ribbon._pointsPerPath = paths[0].length;
+		} else {
+			if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
+				glo.exceptionCreate = false;
+				ribbonDispose();
+				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+					pathArray: paths,
+					sideOrientation: 1,
+					updatable: true,
+					closeArray: false
+				}, glo.scene);
+				glo.ribbon._pathCount = paths.length;
+				glo.ribbon._pointsPerPath = paths[0].length;
+			} else {
+				if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
+				await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+					pathArray: paths,
+					instance: glo.ribbon
+				});
+			}
+		}
+		
 		glo.ribbon.createNormals(true);
 
         glo.originRibbonNbIndices = glo.ribbon.getIndices().length;

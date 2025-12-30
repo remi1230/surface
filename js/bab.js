@@ -42,7 +42,7 @@ Arena = function(game) {
   var scene = game.scene;
   var light = new BABYLON.HemisphericLight(
     "light1",
-    new BABYLON.Vector3(0.3, 0.6, 0),
+    new BABYLON.Vector3(0.3, 0.6, 0.0),
     scene
   );
   light.intensity = 0.7;
@@ -71,9 +71,11 @@ Game = function(canvasId) {
 
   var _player = new Player(_this, canvas);
   var _arena = new Arena(_this);
+  let lastDeformTime = 0;
+  const DEFORM_INTERVAL = 16; 
   glo.end_loop = false;
   _this.scene.executeWhenReady(function() {
-    engine.runRenderLoop(async function() {
+    /*engine.runRenderLoop(async function() {
       if (glo.rotateType != 'none') { rotate_camera(); }
       if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
       if (glo.withTime) {
@@ -81,6 +83,22 @@ Game = function(canvasId) {
         !glo.params.isTimeVariable ? await applyDeformation(true)  : await remakeRibbon();
       }
       _this.scene.render();
+    });*/
+    engine.runRenderLoop(function() {
+        const now = performance.now();
+
+        if (glo.rotateType != 'none') { rotate_camera(); }
+        if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
+        
+        if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
+            lastDeformTime = now;
+            w+=wstep;
+            // Lancer la déformation de manière non-bloquante
+            requestAnimationFrame(() => {
+                !glo.params.isTimeVariable ? applyDeformation(true) : remakeRibbon();
+            });
+        }
+        _this.scene.render();
     });
   });
 

@@ -308,10 +308,12 @@ var glo = {
 		{ exp: /supv|svpu/g, upd: "sin(u+v)" },
 		{ exp: /sumv/g, upd: "sin(u-v)" },
 		{ exp: /svmu/g, upd: "sin(v-u)" },
-		{ exp: /c([^u\(v]*)u/g, upd: "cos($1u)" },
-		{ exp: /c([^v\(u]*)v/g, upd: "cos($1v)" },
-		{ exp: /s([^u\(v]*)u/g, upd: "sin($1u)" },
-		{ exp: /s([^v\(u]*)v/g, upd: "sin($1v)" },
+		{ exp: /c([^u\(vw]*)u/g, upd: "cos($1u)" },
+		{ exp: /c([^v\(uw]*)v/g, upd: "cos($1v)" },
+		{ exp: /c([^w\(uvp]*)w/g, upd: "cos($1w)" },
+		{ exp: /s([^u\(vw]*)u/g, upd: "sin($1u)" },
+		{ exp: /s([^v\(uw]*)v/g, upd: "sin($1v)" },
+		{ exp: /s([^w\(uv]*)w/g, upd: "sin($1w)" },
 		{ exp: /c([^*\(v]*)O/g, upd: "cos($1O)" },
 		{ exp: /s([^*\(v]*)O/g, upd: "sin($1O)" },
 		{ exp: /c([^x\(]*)x/g, upd: "cos($1x)" },
@@ -328,7 +330,7 @@ var glo = {
 		{ exp: /vv([^,%*+-/)])/g, upd: "vv*$1" },
 		{ exp: /u([^,%*+-/)])/g, upd: "u*$1" },
 		{ exp: /v([^,%*+-/)])/g, upd: "v*$1" },
-		{ exp: /w([^\(),%*+-/)])/g, upd: "w*$1" },
+		{ exp: /(?<!cpo)w([^\(),%*+\-\/)])/g, upd: "w*$1" },
 		{ exp: /µP([^,%*+-/)])/g, upd: "µP*$1" },
 		{ exp: /µN([^,%*+-/)])/g, upd: "µN*$1" },
 		{ exp: /\$N([^,%*+-/)])/g, upd: "$N*$1" },
@@ -718,110 +720,6 @@ var glo = {
       add_radios();
 		},
 	},
-	histoColo: {
-		content: [],
-		index_go: 0,
-		save: function(){
-			if(glo.toHisto && !glo.fromHisto){
-				var toHisto = true;
-				var content = this.content;
-				var contentLength = content.length;
-				if(contentLength > 0){
-					toHisto = false;
-					var lastContent = content[contentLength - 1];
-					for(var prop in lastContent){
-						if(lastContent[prop] != glo.params[prop]){ toHisto = true; }
-					}
-				}
-				if(toHisto){
-					var toInsert = {};
-					var toInsert = deepCopy(glo.params);
-					content.splice(contentLength - this.index_go, 0, toInsert);
-				}
-			}
-		},
-		go: function(direction){
-			var contentLength = this.content.length;
-			var good = true;
-			if(direction == -1){
-				this.index_go++;
-				if(this.index_go > contentLength - 1){ this.index_go = contentLength - 1; good = false; }
-			}
-			else{
-				this.index_go--;
-				if(this.index_go < 0){ this.index_go = 0; good = false; }
-			}
-			if(good){
-				var fromHistoSave = glo.fromHisto;
-				var toHistoSave = glo.toHisto;
-				glo.fromHisto = true;
-				glo.toHisto = false;
-				var content = this.content[contentLength - 1 - this.index_go];
-
-				var cts = glo.allControls;
-				var prs = glo.params;
-
-				prs.saturation = content.saturation;
-				prs.tint = content.tint;
-				prs.rotAlpha = content.rotAlpha;
-				prs.rotBeta = content.rotBeta;
-				prs.rColor = content.rColor;
-				prs.gColor = content.gColor;
-				prs.bColor = content.bColor;
-				prs.itColors = content.itColors;
-				prs.text_input_color_x = content.text_input_color_x;
-				prs.text_input_color_y = content.text_input_color_y;
-				prs.text_input_color_z = content.text_input_color_z;
-				prs.text_input_color_alpha = content.text_input_color_alpha;
-				prs.text_input_color_beta = content.text_input_color_beta;
-				if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-				var playWithColorMode = content.playWithColorMode;
-				while(playWithColorMode != glo.playWithColMode.next().value){}
-				prs.playWithColors = content.playWithColors;
-				prs.playWithColorsAll = content.playWithColorsAll;
-				prs.colors2 = content.colors2;
-				prs.colorsByRotate = content.colorsByRotate;
-
-				cts.getByName("saturationSlider").value = prs.saturation;
-				cts.getByName("tintSlider").value = prs.tint;
-				cts.getByName("rotAlphaSlider").value = prs.rotAlpha;
-				cts.getByName("rotBetaSlider").value = prs.rotBeta;
-				cts.getByName("rColorSlider").value = prs.rColor;
-				cts.getByName("gColorSlider").value = prs.gColor;
-				cts.getByName("bColorSlider").value = prs.bColor;
-				cts.getByName("itColorsSlider").value = prs.itColors;
-				cts.getByName("inputColorX").text = prs.text_input_color_x;
-				cts.getByName("inputColorY").text = prs.text_input_color_y;
-				cts.getByName("inputColorZ").text = prs.text_input_color_z;
-				cts.getByName("inputColorAlpha").text = prs.text_input_color_alpha;
-				cts.getByName("inputColorBeta").text = prs.text_input_color_beta;
-
-				for(let prop in content){
-					const val = content[prop];
-					let ctrl  = glo.allControls.getByName(prop);
-					if(typeof val !== 'object' && typeof val !== 'function' && typeof val !== 'boolean' && ctrl){
-						ctrl.value = val;
-						prs[prop]  = val;
-					}	
-				}
-
-				make_ribbon();
-
-				glo.fromHisto = fromHistoSave;
-				glo.toHisto = toHistoSave;
-			}
-		},
-		goBack: function(){
-			if(this.content.length > 0){
-				this.go(-1);
-			}
-		},
-		goTo: function(){
-			if(this.content.length > 0){
-				this.go(1);
-			}
-		},
-	},
 	coeff_gui_resize: {
 		width_1920: 1.125,
 		width_1600: 1,
@@ -1045,7 +943,14 @@ var glo = {
 	shaders: {
 		params:{
 			invcol: 0,
+			islight: 0,
 			numshader: 0,
+		},
+		light:{
+			direction: {x: 0.3, y: 0.6, z: 0.5},
+			intensity: 0.7,
+			radius: 66.66,
+			specular: {power: 1.57, intensity: 2.72},
 		}
 	},
 	video:{
@@ -1079,13 +984,19 @@ var glo = {
 	color_text_input: "rgb(255,255,245)",
 	buttons_background: "#199191",
 	buttons_color: "rgb(255,255,225)",
-	labelGridColor: "black",
+	labelGridColor: "white",
 	buttons_radius: 10,
 	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
-	backgroundColor: new BABYLON.Color3(0, 77/2048, 77/4096),
+	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
 	lineColor: new BABYLON.Color3(1, 1, 1),
+	initialColor:{
+		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
+		emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
+		backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
+		lineColor: new BABYLON.Color3(1, 1, 1),
+	},
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
 	angleToUpdateRibbon: {x: 0, y: 0},

@@ -23,23 +23,26 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true) {
     const rotate = isCenterOffset ? rotateOnCenterByBabylonMatrix : rotateByMatrix;
     
     let newRibbons = [];
+
+	// Cloner et appliquer la rotation dans la géométrie
+	const positions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+	const normals   = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+	const indices   = glo.ribbon.getIndices();
+	const uvs       = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
     
     // Boucle de 1 à nbSyms (comme l'ancienne version)
     for (let indk = 1; indk <= nbSyms; indk++) {
         const angle = indk * stepAngle;
         
-        // Cloner et appliquer la rotation dans la géométrie
-        const positions = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-        const normals = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
-        const indices = glo.ribbon.getIndices();
-        const uvs = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
-        
         const newPositions = new Float32Array(positions.length);
         const newNormals = new Float32Array(normals.length);
+
+		const pos  = new BABYLON.Vector3();
+        const norm = new BABYLON.Vector3();
         
         for (let i = 0; i < positions.length; i += 3) {
-            const pos = new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]);
-            const norm = new BABYLON.Vector3(normals[i], normals[i + 1], normals[i + 2]);
+            pos.set(positions[i], positions[i + 1], positions[i + 2]);
+            norm.set(normals[i], normals[i + 1], normals[i + 2]);
             
             let newPos, newNorm;
             

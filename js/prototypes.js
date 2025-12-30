@@ -141,7 +141,55 @@ BABYLON.Mesh.prototype.axisToOrigin = function(axis) {
 
 };
 
-BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff) {
+BABYLON.Mesh.prototype.getPaths = function(verticesDatas, coeff) {
+    verticesDatas = verticesDatas || this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    if (!verticesDatas) return [];
+    
+    const nbU = !glo.params.fractalize.actived ? glo.params.steps_u : glo.params.fractalize.steps.u;
+    const stepsU = coeff ? ((nbU + 1) * coeff) : (!glo.params.fractalize.actived ? glo.pathsInfos.u : nbU);
+    const stepsV = !glo.params.fractalize.actived ? glo.params.steps_v : glo.params.fractalize.steps.v;
+    
+    // Réutiliser le tableau existant si possible
+    const paths = this._reusablePaths || [];
+    let n = 0;
+    
+    for (let i = 0; i <= stepsU - 1; i++) {
+        // Réutiliser le sous-tableau ou en créer un nouveau
+        if (!paths[i]) paths[i] = [];
+        const path = paths[i];
+        
+        for (let j = 0; j <= stepsV; j++) {
+            const idx = n * 3;
+            
+            if (path[j]) {
+                // ✅ Réutiliser le Vector3 existant
+                path[j].set(
+                    verticesDatas[idx],
+                    verticesDatas[idx + 1],
+                    verticesDatas[idx + 2]
+                );
+            } else {
+                // Créer seulement si nécessaire
+                path[j] = new BABYLON.Vector3(
+                    verticesDatas[idx],
+                    verticesDatas[idx + 1],
+                    verticesDatas[idx + 2]
+                );
+            }
+            n++;
+        }
+        // Tronquer si le nouveau path est plus court
+        path.length = stepsV + 1;
+    }
+    // Tronquer si moins de paths
+    paths.length = stepsU;
+    
+    this._reusablePaths = paths;
+    return paths;
+};
+
+
+/*BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff) {
 	let paths = [];
 	if(verticesDatas){
 		let n = 0;
@@ -160,7 +208,7 @@ BABYLON.Mesh.prototype.getPaths = function(verticesDatas = this.getVerticesData(
 		}
 	}
 	return paths;
-};
+};*/
 
 BABYLON.Mesh.prototype.markAsDirtyAll = function() {
 	this.markAsDirty(BABYLON.Mesh.POSITION_KIND);

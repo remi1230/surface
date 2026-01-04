@@ -48,7 +48,7 @@ async function make_curves(u_params = {
 function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = false, onePoint = false) {
 	glo.formule = [];
 	
-    if (glo.coordsType !== 'cartesian') {
+    /*if (glo.coordsType !== 'cartesian') {
         if (f) {
             f.alpha2 = f.alpha;
             f.beta2  = f.beta;
@@ -58,10 +58,10 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
 
             delete f.x; delete f.y; delete f.z;
         }
-    }
+    }*/
 
     let objToSet = !onePoint ? 'curves' : 'onePoint';
-    switch (coordTypes || glo.coordsType) {
+    /*switch (coordTypes || glo.coordsType) {
         case 'cartesian':
             glo[objToSet] = new Curves(parameters, f, f2, d, fractalize, onePoint);
             break;
@@ -72,9 +72,23 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
         case 'curvature':
             glo[objToSet] = new CurvesByCurvature(parameters, f, f2, d, fractalize, onePoint);
             break;
+    }*/
+	switch (coordTypes || glo.coordsType) {
+        case 'cartesian':
+            glo[objToSet] = new CurvesCartesian(parameters, f, f2, d, fractalize, onePoint);
+            break;
+        case 'spheric':
+			glo[objToSet] = new CurvesSpherical(parameters, f, f2, d, fractalize, onePoint);
+			break;
+        case 'cylindrical':
+            glo[objToSet] = new CurvesCylindrical(parameters, f, f2, d, fractalize, onePoint);
+            break;
+        case 'curvature':
+            glo[objToSet] = new CurvesByCurvature(parameters, f, f2, d, fractalize, onePoint);
+            break;
     }
 
-	//glo[objToSet].generatePaths();
+	
 }
 
 function makeOnePoint(u, v){

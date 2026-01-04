@@ -32,8 +32,6 @@ async function make_curves(u_params = {
 
 		makeOnlyCurves(undefined, undefined, undefined, undefined, false, fractalize);
 
-		//if(glo.ribbon && glo.ribbon.savedPaths) glo.ribbon.savedPaths = undefined;
-
 		await expendPathsByEachCenter();
 		await rotatePathsByEachCenter();
 
@@ -94,7 +92,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 	let isClosedArray = isClosedPaths(glo.curves.paths);
 
 	glo.isClosedArray = isClosedArray;
-
+	
 	if(glo.input_sym_r.text){ await applyDeformation(); }
     
     let paths = glo.curves.paths;
@@ -126,6 +124,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         scaleVertexsDist(glo.scaleVertex);
 
+		let updateRibbon = false;
 		if (!glo.ribbon) {
 			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
 				pathArray: paths,
@@ -148,6 +147,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 				glo.ribbon._pathCount = paths.length;
 				glo.ribbon._pointsPerPath = paths[0].length;
 			} else {
+				updateRibbon = true;
 				if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
 				await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
 					pathArray: paths,
@@ -190,7 +190,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 		giveMaterialToMesh();
 
-        makeLineSystem();
+        if (glo.lines_visible) { makeLineSystem(updateRibbon); }
 
         if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 
@@ -270,36 +270,68 @@ function ribbonDispose(all = true){
 }
 
 async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize', histo = true){
+	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
+
 	if(!glo.normalMode){  await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); }
 	else{
 		glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); glo.fromSlider = false; drawNormalEquations();
 	}
 }
 
-function makeLineSystem(){
-	let paths = !glo.normalMode ? glo.ribbon.getPaths() : glo.curves.pathsSecond;
+function makeLineSystem(upd = false, newPaths = false){
+	let paths;
 
-	if(!paths){ paths = glo.curves.paths; }
+	if(!newPaths){
+		paths = !glo.normalMode ? glo.ribbon.getPaths() : glo.curves.pathsSecond;
+		if(!paths){ paths = glo.curves.paths; }
+	}
+	else{ paths = newPaths; }
 
-	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
-	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
-
-	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, }, glo.scene);
+	if(!upd){
+		if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+		if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
+		glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, updatable: true }, glo.scene);
+	}
+	else{
+		glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, instance: glo.curves.lineSystem }, glo.scene);
+		glo.curves.lineSystem.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.PositionKind, true);
+    	glo.curves.lineSystem._markSubMeshesAsAttributesDirty();
+	}
 	glo.curves.lineSystem.color = glo.lineColor;
 	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
 	glo.curves.lineSystem.alphaIndex = 999;
 	glo.curves.lineSystem.visibility = glo.lines_visible;
 
 	if(glo.params.doubleLineSystem){
-		let paths    = !glo.normalMode ? reformatPaths(glo.ribbon.getPaths(glo.ribbon.savePos)) : reformatPaths(glo.curves.pathsSecond);
-		glo.dblLines = paths;
-		
-		glo.curves.lineSystemDouble = BABYLON.MeshBuilder.CreateLineSystem("lineSystemDouble", { lines: paths, }, glo.scene);
+		let pathsDbl = !glo.normalMode ? reformatPaths(paths) : reformatPaths(glo.curves.pathsSecond);
+		glo.dblLines = pathsDbl;
+
+		if(!upd){
+			glo.curves.lineSystemDouble = BABYLON.MeshBuilder.CreateLineSystem("lineSystemDouble", { lines: pathsDbl, updatable: true }, glo.scene);
+		}
+		else{
+			glo.curves.lineSystemDouble = BABYLON.MeshBuilder.CreateLineSystem("lineSystemDouble", { lines: pathsDbl, instance: glo.curves.lineSystemDouble}, glo.scene); 
+			glo.curves.lineSystemDouble.markVerticesDataAsUpdatable(BABYLON.VertexBuffer.PositionKind, true);
+    		glo.curves.lineSystemDouble._markSubMeshesAsAttributesDirty();
+		}
 		glo.curves.lineSystemDouble.color = glo.lineColor;
 		glo.curves.lineSystemDouble.alpha = glo.ribbon_alpha;
 		glo.curves.lineSystemDouble.alphaIndex = 999;
 		glo.curves.lineSystemDouble.visibility = glo.lines_visible;
 	}
+}
+
+function updLineSystem(){
+	let paths = !glo.normalMode ? glo.ribbon.getPaths() : glo.curves.pathsSecond;
+
+	if(!paths){ paths = glo.curves.paths; }
+
+	glo.curves.lineSystem = BABYLON.MeshBuilder.CreateLineSystem("lineSystem", { lines: paths, instance: glo.curves.lineSystem });
+	glo.curves.lineSystem.color = glo.lineColor;
+	glo.curves.lineSystem.alpha = glo.ribbon_alpha;
+	glo.curves.lineSystem.alphaIndex = 999;
+	glo.curves.lineSystem.visibility = glo.lines_visible;
 }
 
 function makeSimpleLineSystem(lines){
@@ -635,7 +667,7 @@ function raz_meshes(){
 }
 
 var switch_lines = function(visibility = glo.lines_visible){
-	glo.curves.lineSystem.visibility = visibility;
+	if(glo.curves.lineSystem){ glo.curves.lineSystem.visibility = visibility; }
 	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.visibility = visibility; }
 }
 

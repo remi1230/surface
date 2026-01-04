@@ -13,7 +13,8 @@ BABYLON.Mesh.prototype.moyPos = function() {
 };
 
 BABYLON.Mesh.prototype.extremePos = function() {
-	const positions = glo.ribbon.savePos ? glo.ribbon.savePos.slice() : glo.ribbon.getPositionData();
+	//const positions = glo.ribbon.savePos ? glo.ribbon.savePos.slice() : glo.ribbon.getPositionData();
+	const positions = glo.ribbon.getPositionData();
 	const posLength = positions.length;
 
 	let x = 0, y = 0, xUp = positions[0], xBottom = positions[0], yUp = positions[1], yBottom = positions[1], zUp = positions[2], zBottom = positions[2];

@@ -165,6 +165,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
             case "q": 
                glo.withTime = !glo.withTime;
                w = 0;
+               makeLineSystem(true);
             break;
             case "x": case "y": case "z":
                negativeMeshGeometry(key);

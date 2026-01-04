@@ -49,6 +49,9 @@ equa = {
 	const isY = glo.params.text_input_suit_y != "" ? true : false;
 	const isZ = glo.params.text_input_suit_z != "" ? true : false;
 
+	const isN = glo.allControls.haveThisClass('input').some(input => input.text.includes('N'));
+	const isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
+
 	let d,k,p,t;
 
 	let X, Y;
@@ -114,47 +117,52 @@ equa = {
 			if(equa3.evalY){ Y = evalYExp(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
 
 			const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
+
 			x = evalX(...args);
 			y = evalY(...args);
 			z = evalZ(...args);
 
-			vect3.set(x,y,z);
-			const vectN = getNormalVector(vect3);
-			xN  = vectN.x; yN = vectN.y; zN = vectN.z;
-			µN  = xN*yN*zN;
-			$N  = (xN+yN+zN)/3;
-			µ$N = µN*$N; var $µN = µN+$N;
-			µµN = µ$N*$µN;
-
-			O = Math.asin(y / h(x,y,z));
+			O = Math.asin(y / Math.hypot(x,y,z));
 			T = Math.atan2(z, x) ;
 
-			const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x,y,z));
-			xT  = vectT.x; yT = vectT.y; zT = vectT.z;
-			µT  = xT*yT*zT;
-			$T  = (xT+yT+zT)/3;
-			µ$T = µT*$T; var $µT = µT+$T;
-			µµT = µ$T*$µT;
+			if(isN){
+				vect3.set(x,y,z);
+				const vectN = getNormalVector(vect3);
+				xN  = vectN.x; yN = vectN.y; zN = vectN.z;
+				µN  = xN*yN*zN;
+				$N  = (xN+yN+zN)/3;
+				µ$N = µN*$N; var $µN = µN+$N;
+				µµN = µ$N*$µN;
+			}
+
+			if(isT){
+				const hyp = Math.hypot(x,y,z);
+				xT  = x/hyp; yT = y/hyp; zT = z/hyp;
+				µT  = xT*yT*zT;
+				$T  = (xT+yT+zT)/3;
+				µ$T = µT*$T; var $µT = µT+$T;
+				µµT = µ$T*$µT;
+			}
 
 			if(x == Infinity || x == -Infinity || isNaN(x)){ x = 0; }
 			if(y == Infinity || y == -Infinity || isNaN(y)){ y = 0; }
 			if(z == Infinity || z == -Infinity || isNaN(z)){ z = 0; }
 
-			if(equa.alpha) alpha  = evalAlpha(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			if(equa.beta)  beta   = evalBeta(u, v, x, w, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			if(equa2.theta) theta = evalTheta(u,v,x,w,y,z,O,T,xN,yN,zN,$N,xT,yT,zT,$T);
+			if(equa.alpha) alpha  = evalAlpha(...args);
+			if(equa.beta)  beta   = evalBeta(...args);
+			if(equa2.theta) theta = evalTheta(...args);
 
 			if(alpha && beta){
 				let pos = rotateByQuaternion(x, y, z, alpha, beta);
 				x = pos.x; y = pos.y; z = pos.z;
 			}
 
-			if(isX){ const x2 = evalX2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? x += x2 : x = x2; }
-			if(isY){ const y2 = evalY2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? y += y2 : y = y2; }
-			if(isZ){ const z2 = evalZ2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T); !glo.secondCurveOperation ? z += z2 : z = z2; }
+			if(isX){ const x2 = evalX2(...args); !glo.secondCurveOperation ? x += x2 : x = x2; }
+			if(isY){ const y2 = evalY2(...args); !glo.secondCurveOperation ? y += y2 : y = y2; }
+			if(isZ){ const z2 = evalZ2(...args); !glo.secondCurveOperation ? z += z2 : z = z2; }
 
-			if(equa2.alpha) alpha2 = evalAlpha2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
-			if(equa2.beta)  beta2  = evalBeta2(u, v, w, x, y, z, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+			if(equa2.alpha) alpha2 = evalAlpha2(...args);
+			if(equa2.beta)  beta2  = evalBeta2(...args);
 
 			if(alpha2 || beta2 || theta){
 				let pos = rotateOnCenterByBabylonMatrix({x, y, z}, alpha2, beta2, theta);
@@ -168,14 +176,15 @@ equa = {
 			var {x, y, z} = permutSign(x, y, z);
 
 			let posByR = {x, y, z};
-			const rInfos = glo.params.functionIt.r;
-			for(let variable in rInfos){
-				for(let prop in rInfos[variable]){
-					const val = rInfos[variable][prop].val;
-					if(val){
-						const nb = rInfos[variable][prop].nb;
-						const eq = prop + `(${nb}*${variable})`;
-						posByR = updateRibbonByR(posByR, val * eval(eq));
+			if(glo.params.functionIt.r.$T.cos.val || glo.params.functionIt.r.u.sin.val){
+				const rInfos = glo.params.functionIt.r;
+				for(let variable in rInfos){
+					for(let prop in rInfos[variable]){
+						const val = rInfos[variable][prop].val;
+						if(val){
+							const nb = rInfos[variable][prop].nb;
+							posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
+						}
 					}
 				}
 			}
@@ -186,10 +195,9 @@ equa = {
 				glo.savePos.x = x; glo.savePos.y = y; glo.savePos.z = z;
 			}
 
-			const newVect = new BABYLON.Vector3(x, y, z);
-			glo.currentCurveInfos.vect = newVect;
+			glo.currentCurveInfos.vect = new BABYLON.Vector3(x, y, z);
 
-			path.push(newVect);
+			path.push(glo.currentCurveInfos.vect);
 			glo.currentCurveInfos.currentPath = path;
 			index_v++; n++;
 			glo.currentCurveInfos.index_v = index_v;
@@ -207,7 +215,6 @@ equa = {
 	glo.lines = this.paths;
 
 	this.pathsSave = this.paths.slice();
-	//this.paths     = uvInfos.isV ? closedPaths(this.paths) : this.paths;
 
 	this.closed = this.pathsSave.length !== this.paths.length;
   }
@@ -633,69 +640,6 @@ f = {
 	}
 	else{
 		return this.paths[0][1];
-	}
-}
-
-function makeCommonCurveFunctions(){
-	return {
-		q: function(nu, nv = nu){
-			return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
-		},
-		m: function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
-			const x = p.x, y = p.y, z = p.z;
-	
-			if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
-			else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
-	
-			if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
-	
-			ncz = ncz === undefined ? 1 : ncz;
-			ncy = ncy === undefined ? 1 : ncy;
-			ncx = ncx === undefined ? 1 : ncx;
-	
-			cnx = cnx === undefined ? 1 : cnx;
-			cny = cny === undefined ? 1 : cny;
-			cnz = cnz === undefined ? 1 : cnz;
-	
-			return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
-		},
-		mx: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-			if(p.length == 0){ return val_to_return; }
-			if(p.length < index){ return val_to_return; }
-
-			return p[p.length - index].x;
-		},
-		my: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-			if(p.length == 0){ return val_to_return; }
-			if(p.length < index){ return val_to_return; }
-
-			return p[p.length - index].y;
-		},
-		mz: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
-			index = parseInt(index);
-			if(index <= 0){ index = 1; }
-			if(p.length == 0){ return val_to_return; }
-			if(p.length < index){ return val_to_return; }
-
-			return p[p.length - index].z;
-		},
-		P: function(modulo = 2, val_to_return = 0, varToUse, ind){
-			if(ind%modulo == 0){ return varToUse; }
-	
-			return val_to_return;
-		},
-		v_mod: function(modulo = 2, val_to_return = 0, variable = glo.currentCurveInfos.v, index = glo.currentCurveInfos.index_v){
-			if(index%modulo == 0){ return variable; }
-	
-			return val_to_return;
-		},
-		N: function(index, ...args){ 
-			return args[index%args.length]; 
-		}
 	}
 }
 

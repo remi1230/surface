@@ -262,18 +262,18 @@ function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_
 
 function add_switch_and_help_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = { isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 3, t: -2, };
-  parmamControl(panel, 'hideSwitchHelp', 'panel left first noAutoParam', options);
+  var options = { isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 20, l: 3, t: -2, };
+  parmamControl(panel, 'hideSwitchHelp', 'panel right first noAutoParam', options);
   panel.height = "80px";
   glo.advancedTexture.addControl(panel);
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
-    parmamControl(button, name, 'button left first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    parmamControl(button, name, 'button right first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     designButton(button);
     button.onPointerUpObservable.add(function(event) {
       if (event.buttonIndex !== 2){ eventLeft(); }
-      else{ eventRight(); }
+      else if(typeof eventRight === 'function'){ eventRight(); }
     });
     panel.addControl(button);
   }
@@ -426,15 +426,15 @@ function add_lines_and_dim_buttons(){
 }
 function add_histo_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 20, l: 5.66, t: -2, };
-  parmamControl(panel, 'panelHistoButton', 'panel right first noAutoParam', options);
+  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 5.66, t: -2, };
+  parmamControl(panel, 'panelHistoButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     designButton(button);
-    parmamControl(button, name, 'button right first noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    parmamControl(button, name, 'button right left noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     button.fontSize = "20px";
     button.onPointerDownObservable.add(function(event) {
       if (event.buttonIndex !== 2){ eventLeft(); }
@@ -616,7 +616,8 @@ function add_alpha_slider(){
     if(typeof(glo.ribbon) != "undefined" && glo.ribbon != null){
       glo.ribbon.material.alpha = value;
       glo.ribbon_alpha = value;
-      glo.curves.lineSystem.alpha = value;
+      if(glo.curves.lineSystem){ glo.curves.lineSystem.alpha = value; }
+      if(glo.curves.doubleLineSystem){ glo.curves.doubleLineSystem.alpha = value; }
     }
   });
 
@@ -632,8 +633,8 @@ function add_inputs_equations(){
   parmamControl(panel, "inputsEquations", 'panel left first');
   parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 26});
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 60, pR: 1, t: 535, h: 100, pL: -330}, true);
-  parmamControl(panelSymmAngle, "panelSymmAngle", 'panel right eleventh noAutoParam', {hAlign: 'right', vAlign: 'top', w: 18.5, pR: 0, t: 64, h: 100, pR: 1.33});
-
+  parmamControl(panelSymmAngle, "panelSymmAngle", 'panel right eleventh noAutoParam', {hAlign: 'right', vAlign: 'top', w: 18.5, pR: 0, t: 64, h: 24, pR: 1.33});
+  //panelSymmAngle.background = 'red';
   var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 86, pR: 1};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
@@ -1000,7 +1001,7 @@ function add_color_pickers(){
   parmamControl(panel2, 'pickerColorPan2', 'panel right first noAutoParam onlyMainGui', options);
   options.t = top.panel3;
   //parmamControl(panel3, 'pickerColorPan3', 'panel right first noAutoParam onlyMainGui', options);
-  options.t = top.panelButtons; options.pL = 4;
+  options.t = top.panelButtons; options.pL = 4.166;
   parmamControl(panelButtons, 'uiColorButtons', 'panel right first noAutoParam onlyMainGui', options);
 
   /*panel1.background = "rgba(255,0,0,0.3)";
@@ -1437,7 +1438,7 @@ function add_symmetrize_sliders(){
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelButton);
 
-  panelButton.backgroundColor = 'red';
+  //panelButton.backgroundColor = 'red';
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1814,7 +1815,7 @@ function add_eleventh_panel_sliders(){
   addPanel(panelButton5, 'panelButtonEleventh5', 46, false);
   addPanel(panelButton6, 'panelButtonEleventh6', 51, false);
   addPanel(panelSliders, 'panelSliderEleventh', 56, true, 20, 9);
-  addPanel(panelButton7, 'panelButtonEleventh7', 88, false);
+  //addPanel(panelButton7, 'panelButtonEleventh7', 88, false);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -2142,14 +2143,42 @@ function add_ninethPanel_controls(){
 
 function add_fractalize_controls(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'tenthPanelPanel', 'panel right tenth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 26, pR: 1});
+  parmamControl(panel, 'tenthPanelPanel', 'panel right tenth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 32, pR: 1});
   glo.advancedTexture.addControl(panel);
   var panelButton = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButton, 'tenthPanelButton', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 80, pL: 7});
+  parmamControl(panelButton, 'tenthPanelButton', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 77, pL: 7});
   glo.advancedTexture.addControl(panelButton);
   var panelButton2 = new BABYLON.GUI.StackPanel();
-  parmamControl(panelButton2, 'tenthPanelButton2', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 84.5, pL: 0});
+  parmamControl(panelButton2, 'tenthPanelButton2', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 81.5, pL: 0});
   glo.advancedTexture.addControl(panelButton2);
+
+  var panelTitle = new BABYLON.GUI.StackPanel();
+  parmamControl(panelTitle, 'tenthPanelTitle', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 13.25, h: 4, t: 26});
+  //panelTitle.background = 'rgba(100, 100, 100, 0.25)';
+  glo.advancedTexture.addControl(panelTitle);
+
+  function paramHeader(panel, header, text, options){
+    header.text = text;
+    header.color = "white";
+    header.height = "30px";
+    header.width = "100%";
+    header.fontSize = options.fontSize;
+    header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    parmamControl(header, options.name, 'header right tenth noAutoParam');
+    panel.addControl(header);
+  }
+
+  let optionsHeader = {
+    color: "white",
+    height: "30px",
+    width: "100%",
+    fontSize: 20,
+    textHorizontalAlignment: BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT,
+  };
+
+  var headerTitle = new BABYLON.GUI.TextBlock();
+  paramHeader(panelTitle, headerTitle, "Pseudo fractal", optionsHeader);
+
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton, background = glo.controlConfig.background){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);

@@ -1,23 +1,21 @@
-// Fonction pour obtenir un vecteur normal (perpendiculaire) à un vecteur donné
+const _arbitraryVector1 = new BABYLON.Vector3(1, 0, 0);
+const _arbitraryVector2 = new BABYLON.Vector3(0, 1, 0);
+const _tempNormal = new BABYLON.Vector3(0, 0, 0);
+
 function getNormalVector(originalVector) {
-	if(originalVector.x === 0 && originalVector.y === 0 && originalVector.z === 0){ return  originalVector; }
-    // Choisissez un vecteur arbitraire
-    var arbitraryVector = new BABYLON.Vector3(1, 0, 0);
-
-    // Calcul du produit croisé entre les deux vecteurs
-    var normalVector = BABYLON.Vector3.Cross(originalVector, arbitraryVector);
-
-    // Vérification de la colinéarité
-    while (normalVector.length() === 0) {
-        // Si les vecteurs sont colinéaires, ajustez arbitraryVector
-        arbitraryVector = new BABYLON.Vector3(Math.random(), Math.random(), Math.random());
-        normalVector = BABYLON.Vector3.Cross(originalVector, arbitraryVector);
+    if (originalVector.x === 0 && originalVector.y === 0 && originalVector.z === 0) {
+        return originalVector.clone();
     }
 
-    // Normalisation du vecteur résultant
-    normalVector.normalize();
+    BABYLON.Vector3.CrossToRef(originalVector, _arbitraryVector1, _tempNormal);
+    
+    if (_tempNormal.lengthSquared() < 0.0001) {
+        BABYLON.Vector3.CrossToRef(originalVector, _arbitraryVector2, _tempNormal);
+    }
 
-    return normalVector;
+    _tempNormal.normalize();
+    
+    return _tempNormal.clone();
 }
 
 async function drawNormalEquations(symmetrize = false){
@@ -277,4 +275,67 @@ async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm 
 	ribbonDispose(false);
 	glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon("NormRibbonBySlider", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
 	makeLineSystem();
+}
+
+function makeCommonCurveFunctions(){
+	return {
+		q: function(nu, nv = nu){
+			return h(nu * glo.currentCurveInfos.u, nv * glo.currentCurveInfos.v);
+		},
+		m: function(ncx, ncy, ncz, cnx, cny, cnz, p = glo.currentCurveInfos.vect){
+			const x = p.x, y = p.y, z = p.z;
+	
+			if(ncx === undefined || (ncx === 1 && ncy === undefined)){ ncx = 1; ncy = ncx; ncz = ncx; }
+			else if(ncy === undefined){ ncy = ncx; ncz = ncx; }
+	
+			if(cnx > 1 && cny === undefined){ cny = cnx; cnz = cnx; }
+	
+			ncz = ncz === undefined ? 1 : ncz;
+			ncy = ncy === undefined ? 1 : ncy;
+			ncx = ncx === undefined ? 1 : ncx;
+	
+			cnx = cnx === undefined ? 1 : cnx;
+			cny = cny === undefined ? 1 : cny;
+			cnz = cnz === undefined ? 1 : cnz;
+	
+			return cnx*cos(ncx*x)*cny*cos(ncy*y)*cnz*cos(ncz*z);
+		},
+		mx: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].x;
+		},
+		my: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].y;
+		},
+		mz: function(index = 1, val_to_return = 0, p = glo.currentCurveInfos.currentPath){
+			index = parseInt(index);
+			if(index <= 0){ index = 1; }
+			if(p.length == 0){ return val_to_return; }
+			if(p.length < index){ return val_to_return; }
+
+			return p[p.length - index].z;
+		},
+		P: function(modulo = 2, val_to_return = 0, varToUse, ind){
+			if(ind%modulo == 0){ return varToUse; }
+	
+			return val_to_return;
+		},
+		v_mod: function(modulo = 2, val_to_return = 0, variable = glo.currentCurveInfos.v, index = glo.currentCurveInfos.index_v){
+			if(index%modulo == 0){ return variable; }
+	
+			return val_to_return;
+		},
+		N: function(index, ...args){ 
+			return args[index%args.length]; 
+		}
+	}
 }

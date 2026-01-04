@@ -61,13 +61,6 @@ async function symmetrizeRibbon(axisVarName, coeff = 1, first = true) {
                     break;
             }
             
-            if (!(newPos instanceof BABYLON.Vector3)) {
-                newPos = new BABYLON.Vector3(newPos.x, newPos.y, newPos.z);
-            }
-            if (!(newNorm instanceof BABYLON.Vector3)) {
-                newNorm = new BABYLON.Vector3(newNorm.x, newNorm.y, newNorm.z);
-            }
-            
             newPositions[i] = newPos.x;
             newPositions[i + 1] = newPos.y;
             newPositions[i + 2] = newPos.z;
@@ -175,6 +168,10 @@ async function makeSymmetrizeRibbon() {
     }
 }
 
+let _normalVector = new BABYLON.Vector3();
+let _vectT        = new BABYLON.Vector3();
+let _vect3        = new BABYLON.Vector3();
+let _center       = new BABYLON.Vector3();
 async function applyDeformation(upd = false) {
     if (!glo.ribbon || !glo.input_sym_r.text) return;
 
@@ -182,6 +179,8 @@ async function applyDeformation(upd = false) {
 
 	let equa3 = {evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text};
 	reg(equa3);
+
+	const isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
 
 	let X, Y;
     
@@ -212,7 +211,7 @@ async function applyDeformation(upd = false) {
         centerLocal = glo.ribbon.getBoundingInfo().boundingBox.center;
     }
     
-    const center = new BABYLON.Vector3(
+    _center.set(
         glo.centerSymmetry.x + centerLocal.x,
         glo.centerSymmetry.y + centerLocal.y,
         glo.centerSymmetry.z + centerLocal.z
@@ -240,25 +239,26 @@ async function applyDeformation(upd = false) {
 			glo.currentCurveInfos.v = v;
 
             let x = point.x, y = point.y, z = point.z;
-            const vect3 = new BABYLON.Vector3(x, y, z);
+            _vect3.set(x, y, z);
 
-            // Normales
-            const xN = verticesNormals[n * 3] ?? 0;
-            const yN = verticesNormals[n * 3 + 1] ?? 0;
-            const zN = verticesNormals[n * 3 + 2] ?? 0;
+			const O = Math.asin(y / Math.hypot(x,y,z));
+			const T = Math.atan2(z, x);
 
-            let normalVector = new BABYLON.Vector3(xN, yN, zN);
+			_normalVector.set(verticesNormals[n * 3] ?? 0, verticesNormals[n * 3 + 1] ?? 0, verticesNormals[n * 3 + 2] ?? 0);
 
-            const $N = (xN + yN + zN) / 3;
+			const xN = _normalVector.x;
+			const yN = _normalVector.y;
+			const zN = _normalVector.z;
+			const $N = (xN + yN + zN) / 3;
 
-            const O = h(x, y, z) ? Math.acos(y / h(x, y, z)) : 0;
-            const T = Math.atan2(z, x);
+			let xT = 0, yT = 0, zT = 0, $T = 0;
+			if(isT){
+				_vectT = BABYLON.Vector3.Normalize(_vect3);
+				xT = _vectT.x, yT = _vectT.y, zT = _vectT.z;
+				$T = (xT + yT + zT) / 3;
+			}
 
-            const vectT = BABYLON.Vector3.Normalize(vect3);
-            const xT = vectT.x, yT = vectT.y, zT = vectT.z;
-            const $T = (xT + yT + zT) / 3;
-
-            glo.currentCurveInfos.vect = vect3;
+            glo.currentCurveInfos.vect = _vect3;
 
             if(glo.input_eval_x.text){ X = evalX(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0; }
             if(glo.input_eval_y.text){ Y = evalY(u, v, x, y, z, d, k, p, t, n, i, j, O, T, xN, yN, zN, $N, xT, yT, zT, $T) || 0; }
@@ -285,10 +285,10 @@ async function applyDeformation(upd = false) {
             symmAngle.vals.y += glo.params.symmAngle.y;
 
             if (symmAngle.vals.x || symmAngle.vals.y) {
-                normalVector = rotate(normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, center);
+                _normalVector = rotate(_normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, _center);
             }
 
-            const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? normalVector : vectT, center);
+            const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? _normalVector : vectT, _center);
             const dirXY = directionXY(angleXY, -r);
 
             let newPt;
@@ -308,7 +308,7 @@ async function applyDeformation(upd = false) {
     });
 
 	if(upd){
-		if (glo.isClosedArray) {
+		if (glo.isClosedArray && !isSym()) {
             newPaths = newPaths.slice(0, -1);
 			newPaths = [...newPaths, newPaths[0].map(pt => pt.clone())];
         }
@@ -318,6 +318,8 @@ async function applyDeformation(upd = false) {
 		});
 		glo.ribbon.averageClosedNormals();
 		if(glo.deformWithMat){ giveMaterialToMesh(); }
+		if (glo.lines_visible) { makeLineSystem(true, newPaths); }
+		applyTransformations();
 	}
 	else glo.curves.paths = newPaths;
 }
@@ -599,8 +601,8 @@ function flatRibbon(){
 }
 
 function blendPos(x, y, z, variable, val, coeff = 0.01){
-	val*=coeff*glo.params.blender.force;
 	if(glo.params.blender[variable].x || glo.params.blender[variable].y || glo.params.blender[variable].z){
+		val*=coeff*glo.params.blender.force;
 		var {x, y, z} = rotateByBabylonMatrix({x, y, z}, val * glo.params.blender[variable].x, val * glo.params.blender[variable].y, val * glo.params.blender[variable].z);
 	}
 

@@ -312,6 +312,10 @@ float sdHexagon(vec2 p, float r) {
     return length(p) * sign(p.y);
 }
 
+float sdCircle(vec2 p, vec2 center, float r) {
+    return length(p-center) - r;
+}
+
 
 void main(){`;
 
@@ -356,6 +360,40 @@ fragmentShaders = [
     
     if(col == vec3(0.0)){
         col = palette(d);
+    }
+`,
+`   
+    float scale = 32.0;
+    vec2 cell   = floor(vUV * scale);
+    vec2 uv     = fract(vUV*scale)-0.5;
+    float d     = length(uv);
+    float index = hash21(cell);
+
+    vec2 center1, center2;
+    if (index < 0.5) {
+        center1 = vec2(-0.5, -0.5);
+        center2 = vec2( 0.5,  0.5);
+    } else {
+        center1 = vec2( 0.5, -0.5);
+        center2 = vec2(-0.5,  0.5);
+    }
+
+    float rad = 0.5;
+    float dist1 = sdCircle(uv, center1, rad);
+    float dist2 = sdCircle(uv, center2, rad);
+    
+    float thickness = 0.05;
+    float arc1 = 1.0 - smoothstep(0.0, 0.02, abs(dist1) - thickness);
+    float arc2 = 1.0 - smoothstep(0.0, 0.02, abs(dist2) - thickness);
+    float pattern = max(arc1, arc2);
+
+    vec3 col = vec3(pattern);
+
+    vec3 valCol = palette(time);
+    float lCol  = length(col);
+
+    if(d > 0.5*Ts(1.0)){
+        col = 0.66*palette(d+0.125*time);
     }
 `,
 ];

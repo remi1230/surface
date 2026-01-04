@@ -410,6 +410,12 @@ class CurvesSpherical extends CurveBase {
 
 		if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
 
+		// DEBUG: afficher les valeurs une seule fois
+		if (!this._debugShown) {
+			console.log('CurvesSpherical DEBUG:', { r, alpha, beta, f_beta: this.f.beta, p2_first: this.p2_first });
+			this._debugShown = true;
+		}
+
 		// Coordonnées sphériques : rotation autour du point de référence
 		let pos = rotateOnCenterByBabylonMatrix(
 			{ x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r },

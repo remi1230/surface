@@ -1,239 +1,387 @@
 /**
  * Classes pour le calcul des paths du ribbon selon différents systèmes de coordonnées
- * 4 classes indépendantes : CurvesCartesian, CurvesSpherical, CurvesCylindrical, CurvesByCurvature
+ * Architecture : une classe mère CurveBase et 4 classes filles
  */
 
-// ==================== SYSTÈME CARTÉSIEN ====================
+// ==================== CLASSE MÈRE ====================
 
-class CurvesCartesian {
+class CurveBase {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
 		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
-	}, equa = {
+	}, f, f2 = {
+		x: glo.params.text_input_suit_x,
+		y: glo.params.text_input_suit_y,
+		z: glo.params.text_input_suit_z,
+		alpha: glo.params.text_input_suit_alpha,
+		beta: glo.params.text_input_suit_beta,
+		theta: glo.params.text_input_suit_theta,
+	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
+
+		reg(f); reg(f2);
+
+		this.f = f;
+		this.f2 = f2;
+		this.f3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
+		reg(this.f3);
+
+		// Initialisation des paramètres u
+		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
+		this.max_u = parametres.u.max;
+		this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
+		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+
+		// Initialisation des paramètres v
+		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
+		this.max_v = parametres.v.max;
+		this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
+		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+
+		this.paths = [];
+		this.lines = [];
+
+		this.uvInfos = isUV();
+		this.additiveSurface = glo.additiveSurface;
+
+		// Variables communes
+		this.vars = makeCommonCurveVariables();
+
+		// Initialisation des objets f
+		initVarsInObj(f, "", 0);
+		initVarsInObj(f2, "", 0);
+
+		// Flags pour les entrées secondaires
+		this.isX = glo.params.text_input_suit_x != "" ? true : false;
+		this.isY = glo.params.text_input_suit_y != "" ? true : false;
+		this.isZ = glo.params.text_input_suit_z != "" ? true : false;
+
+		// Points de référence
+		this.p1_first = new BABYLON.Vector3.Zero;
+		this.p2_first = glo.firstPoint;
+
+		// Paramètres pour les fonctions dynamiques
+		this.paramNames = [
+			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
+			"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
+		];
+
+		// Construction de la chaîne d'affectations pour les variables UI
+		const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
+		this.varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
+
+		// Création des fonctions d'évaluation communes
+		this.evalXExp = this.createEvalFunction(this.f3.evalX);
+		this.evalYExp = this.createEvalFunction(this.f3.evalY);
+		this.evalX2 = this.createEvalFunction(f2.x);
+		this.evalY2 = this.createEvalFunction(f2.y);
+		this.evalZ2 = this.createEvalFunction(f2.z);
+		this.eval2Alpha = this.createEvalFunction(f2.alpha);
+		this.eval2Beta = this.createEvalFunction(f2.beta);
+		this.eval2Theta = this.createEvalFunction(f2.theta);
+
+		// Création des fonctions d'évaluation spécifiques (à surcharger)
+		this.createSpecificEvalFunctions();
+
+		// Exécution du calcul
+		if (onePoint) {
+			return this.computeOnePoint();
+		} else {
+			this.compute();
+			this.finalize();
+		}
+	}
+
+	createEvalFunction(code, includeVarUI = true) {
+		const fullCode = (includeVarUI ? this.varUI + " " : "") + "return " + code;
+		return new Function(...this.paramNames, fullCode);
+	}
+
+	// Méthode à surcharger par les classes filles
+	createSpecificEvalFunctions() {
+		// À implémenter dans les classes filles
+	}
+
+	// Calcul principal - boucle sur u et v
+	compute() {
+		let { x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
+			$µT, µµT, alpha, beta, theta, alpha2, beta2, alpha3, beta3 } = this.vars;
+
+		let d, k, p, t;
+		let X, Y;
+		let n = 0;
+		let path = [];
+		let index_u = 0, ind_u = 0, ind_v = 0;
+
+		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
+		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+
+		let u = this.min_u - this.step_u;
+		let v = this.min_v - this.step_v;
+
+		// État spécifique à la classe
+		this.initComputeState();
+
+		for (let i = 0; i <= stepsU; i++) {
+			if (this.additiveSurface) {
+				glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0;
+			}
+
+			// Hook pour début de boucle U
+			({ path, x, y, z } = this.onStartLoopU(path, { x, y, z }));
+
+			k = !(i % 2) ? -1 : 1;
+			u += this.step_u;
+			glo.currentCurveInfos.u = u;
+			p = !(i % 2) ? -u : u;
+			let index_v = 0;
+			ind_u = u;
+			v = this.min_v - this.step_v;
+
+			for (let j = 0; j <= stepsV; j++) {
+				v += this.step_v;
+				ind_v = v;
+				glo.currentCurveInfos.v = v;
+
+				d = !(j % 2) ? -1 : 1;
+				t = !(j % 2) ? -v : v;
+
+				// Évaluation des expressions X et Y
+				if (this.f3.evalX) {
+					X = this.evalXExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+				}
+				if (this.f3.evalY) {
+					Y = this.evalYExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T);
+				}
+
+				const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
+
+				// Calcul spécifique de la position selon le système de coordonnées
+				let pos = this.computePosition(args);
+				x = pos.x; y = pos.y; z = pos.z;
+
+				// Calcul du vecteur normal
+				const vect3 = new BABYLON.Vector3(x, y, z);
+				const vectN = getNormalVector(vect3);
+				xN = vectN.x; yN = vectN.y; zN = vectN.z;
+				µN = xN * yN * zN;
+				$N = (xN + yN + zN) / 3;
+				µ$N = µN * $N; $µN = µN + $N;
+				µµN = µ$N * $µN;
+
+				// Calcul de O et T
+				O = Math.asin(y / h(x, y, z));
+				T = Math.atan2(z, x);
+
+				// Calcul du vecteur tangent
+				const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x, y, z));
+				xT = vectT.x; yT = vectT.y; zT = vectT.z;
+				µT = xT * yT * zT;
+				$T = (xT + yT + zT) / 3;
+				µ$T = µT * $T; $µT = µT + $T;
+				µµT = µ$T * $µT;
+
+				// Mise à jour des arguments avec les nouvelles valeurs
+				const updatedArgs = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
+
+				// Rotation primaire (si applicable) - à surcharger
+				({ pos, alpha2, beta2, alpha3, beta3, theta } = this.applyPrimaryRotation(updatedArgs, { x, y, z, pos, alpha2, beta2, alpha3, beta3, theta }));
+
+				// Application des expressions secondaires
+				if (this.isX) { const x2 = this.evalX2(...updatedArgs); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
+				if (this.isY) { const y2 = this.evalY2(...updatedArgs); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
+				if (this.isZ) { const z2 = this.evalZ2(...updatedArgs); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
+
+				// Rotation finale avec alpha3, beta3, theta
+				pos = rotateOnCenterByBabylonMatrix({ x: pos.x, y: pos.y, z: pos.z }, alpha3, beta3, theta);
+
+				// Post-traitements communs
+				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
+				pos = functionIt(pos.x, pos.y, pos.z);
+				pos = invPos(pos.x, pos.y, pos.z);
+				pos = invPosIf(pos.x, pos.y, pos.z);
+				pos = permutSign(pos.x, pos.y, pos.z);
+
+				// Traitement R
+				let posByR = { x: pos.x, y: pos.y, z: pos.z };
+				const rInfos = glo.params.functionIt.r;
+				for (let variable in rInfos) {
+					for (let prop in rInfos[variable]) {
+						const val = rInfos[variable][prop].val;
+						if (val) {
+							const nb = rInfos[variable][prop].nb;
+							posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
+						}
+					}
+				}
+				pos = posByR;
+
+				// Surface additive
+				if (glo.additiveSurface) {
+					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
+					glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
+				}
+
+				// Hook post-traitement
+				this.onPointComputed(pos);
+
+				const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
+				glo.currentCurveInfos.vect = newVect;
+
+				this.new_p2 = newVect;
+
+				path.push(newVect);
+				glo.currentCurveInfos.currentPath = path;
+				glo.currentCurveInfos.path = path;
+				index_v++; n++;
+				glo.currentCurveInfos.index_v = index_v;
+				glo.currentCurveInfos.n = n;
+			}
+
+			this.paths.push(path);
+			path = [];
+			index_u++;
+			glo.currentCurveInfos.index_u = index_u;
+		}
+
+		if (!this.uvInfos.isV) {
+			this.paths[0] = this.paths.flat();
+		}
+	}
+
+	// Méthodes à surcharger par les classes filles
+	initComputeState() {
+		// État initial spécifique à la classe
+	}
+
+	onStartLoopU(path, state) {
+		// Hook appelé au début de chaque boucle U
+		return { path: [], x: state.x, y: state.y, z: state.z };
+	}
+
+	computePosition(args) {
+		// À implémenter dans les classes filles
+		return { x: 0, y: 0, z: 0 };
+	}
+
+	applyPrimaryRotation(args, state) {
+		// Par défaut, pas de rotation primaire, retourner l'état tel quel
+		return {
+			pos: state.pos,
+			alpha2: state.alpha2,
+			beta2: state.beta2,
+			alpha3: state.alpha3,
+			beta3: state.beta3,
+			theta: state.theta
+		};
+	}
+
+	onPointComputed(pos) {
+		// Hook appelé après le calcul de chaque point
+	}
+
+	computeOnePoint() {
+		// Calcul d'un seul point
+		this.compute();
+		return this.paths[0][1];
+	}
+
+	finalize() {
+		if (glo.closeFirstWithLastPath) {
+			this.paths.push(this.paths[0]);
+		}
+
+		glo.lines = this.paths;
+		this.pathsSave = this.paths.slice();
+
+		// Hook de finalisation (pour les classes qui ont besoin de traitement supplémentaire)
+		this.onFinalize();
+	}
+
+	onFinalize() {
+		// Hook de finalisation
+	}
+}
+
+// ==================== SYSTÈME CARTÉSIEN ====================
+
+class CurvesCartesian extends CurveBase {
+	constructor(parametres = {
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+	}, f = {
 		x: glo.params.text_input_x,
 		y: glo.params.text_input_y,
 		z: glo.params.text_input_z,
 		alpha: glo.params.text_input_alpha,
 		beta: glo.params.text_input_beta,
-	}, equa2 = {
-		x: glo.params.text_input_suit_x,
-		y: glo.params.text_input_suit_y,
-		z: glo.params.text_input_suit_z,
-		alpha: glo.params.text_input_suit_alpha,
-		beta: glo.params.text_input_suit_beta,
-		theta: glo.params.text_input_suit_theta,
-	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
+	}, f2, dim_one, fractalize, onePoint) {
+		super(parametres, f, f2, dim_one, fractalize, onePoint);
+	}
 
-		reg(equa); reg(equa2);
+	createSpecificEvalFunctions() {
+		this.evalX = this.createEvalFunction(this.f.x);
+		this.evalY = this.createEvalFunction(this.f.y);
+		this.evalZ = this.createEvalFunction(this.f.z);
+		this.evalAlpha = this.createEvalFunction(this.f.alpha);
+		this.evalBeta = this.createEvalFunction(this.f.beta);
 
-		let equa3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
-		reg(equa3);
+		// Vérifier si N ou T sont utilisés dans les expressions
+		this.isN = glo.allControls.haveThisClass('input').some(input => input.text.includes('N'));
+		this.isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
+	}
 
-		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
-		this.max_u = parametres.u.max;
-		this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
-		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+	computePosition(args) {
+		let x = this.evalX(...args);
+		let y = this.evalY(...args);
+		let z = this.evalZ(...args);
 
-		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
-		this.max_v = parametres.v.max;
-		this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
-		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+		// Gestion des valeurs infinies ou NaN
+		if (x == Infinity || x == -Infinity || isNaN(x)) { x = 0; }
+		if (y == Infinity || y == -Infinity || isNaN(y)) { y = 0; }
+		if (z == Infinity || z == -Infinity || isNaN(z)) { z = 0; }
 
-		this.paths = []; let path = []; this.lines = [];
+		return { x, y, z };
+	}
 
-		var {
-			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
-			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
-			beta, theta, alpha2, beta2, alpha3, beta3
-		} = makeCommonCurveVariables();
+	applyPrimaryRotation(args, state) {
+		let { x, y, z, pos, alpha2, beta2, alpha3, beta3, theta } = state;
+		let alpha, beta;
 
-		const uvInfos = isUV();
+		if (this.f.alpha) alpha = this.evalAlpha(...args);
+		if (this.f.beta) beta = this.evalBeta(...args);
 
-		initVarsInObj(equa, "", 0); initVarsInObj(equa2, "", 0);
-
-		const isX = glo.params.text_input_suit_x != "" ? true : false;
-		const isY = glo.params.text_input_suit_y != "" ? true : false;
-		const isZ = glo.params.text_input_suit_z != "" ? true : false;
-
-		const isN = glo.allControls.haveThisClass('input').some(input => input.text.includes('N'));
-		const isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
-
-		let d, k, p, t;
-		let X, Y;
-
-		let n = 0;
-		let index_u = 0, ind_u = 0;
-
-		const additiveSurface = glo.additiveSurface;
-
-		// Liste commune de paramètres pour les fonctions créées dynamiquement
-		const paramNames = [
-			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
-			"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
-		];
-
-		// Construction de la chaîne d'affectations pour les variables issues de glo.params
-		const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
-
-		// Fonction factory pour créer les fonctions avec ou sans inclusion de varUI
-		function createEvalFunction(code, includeVarUI = true) {
-			const fullCode = (includeVarUI ? varUI + " " : "") + "return " + code;
-			return new Function(...paramNames, fullCode);
+		if (alpha && beta) {
+			pos = rotateByQuaternion(x, y, z, alpha, beta);
+		} else {
+			pos = { x, y, z };
 		}
 
-		// Création des fonctions dynamiques
-		const evalX = createEvalFunction(equa.x);
-		const evalY = createEvalFunction(equa.y);
-		const evalZ = createEvalFunction(equa.z);
-		const evalX2 = createEvalFunction(equa2.x);
-		const evalY2 = createEvalFunction(equa2.y);
-		const evalZ2 = createEvalFunction(equa2.z);
-		const evalAlpha = createEvalFunction(equa.alpha);
-		const evalBeta = createEvalFunction(equa.beta);
-		const evalAlpha2 = createEvalFunction(equa2.alpha);
-		const evalBeta2 = createEvalFunction(equa2.beta);
-		const evalTheta = createEvalFunction(equa2.theta);
-		const evalXExp = createEvalFunction(equa3.evalX);
-		const evalYExp = createEvalFunction(equa3.evalY);
+		// Calcul des rotations secondaires
+		alpha2 = this.eval2Alpha(...args);
+		beta2 = this.eval2Beta(...args);
+		theta = this.eval2Theta(...args);
 
-		const vect3 = new BABYLON.Vector3();
+		// Pour le système cartésien, alpha3 et beta3 viennent de alpha2 et beta2
+		alpha3 = alpha2;
+		beta3 = beta2;
 
-		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
-		let u = this.min_u - this.step_u, v = this.min_v - this.step_v, ind_v = 0;
+		return { pos, alpha2, beta2, alpha3, beta3, theta };
+	}
 
-		for (let i = 0; i <= stepsU; i++) {
-			if (additiveSurface) { glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
-			k = !(i % 2) ? -1 : 1;
-			u += this.step_u;
-			p = !(i % 2) ? -u : u;
-			glo.currentCurveInfos.u = u;
-			path = [];
-			let index_v = 0; ind_u = u; v = this.min_v - this.step_v;
-
-			for (let j = 0; j <= stepsV; j++) {
-				v += this.step_v;
-				ind_v = v;
-				glo.currentCurveInfos.v = v;
-
-				d = !(j % 2) ? -1 : 1;
-				t = !(j % 2) ? -v : v;
-
-				if (equa3.evalX) { X = evalXExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-				if (equa3.evalY) { Y = evalYExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-
-				const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				x = evalX(...args);
-				y = evalY(...args);
-				z = evalZ(...args);
-
-				O = Math.asin(y / Math.hypot(x, y, z));
-				T = Math.atan2(z, x);
-
-				if (isN) {
-					vect3.set(x, y, z);
-					const vectN = getNormalVector(vect3);
-					xN = vectN.x; yN = vectN.y; zN = vectN.z;
-					µN = xN * yN * zN;
-					$N = (xN + yN + zN) / 3;
-					µ$N = µN * $N; $µN = µN + $N;
-					µµN = µ$N * $µN;
-				}
-
-				if (isT) {
-					const hyp = Math.hypot(x, y, z);
-					xT = x / hyp; yT = y / hyp; zT = z / hyp;
-					µT = xT * yT * zT;
-					$T = (xT + yT + zT) / 3;
-					µ$T = µT * $T; $µT = µT + $T;
-					µµT = µ$T * $µT;
-				}
-
-				if (x == Infinity || x == -Infinity || isNaN(x)) { x = 0; }
-				if (y == Infinity || y == -Infinity || isNaN(y)) { y = 0; }
-				if (z == Infinity || z == -Infinity || isNaN(z)) { z = 0; }
-
-				if (equa.alpha) alpha = evalAlpha(...args);
-				if (equa.beta) beta = evalBeta(...args);
-				if (equa2.theta) theta = evalTheta(...args);
-
-				if (alpha && beta) {
-					let pos = rotateByQuaternion(x, y, z, alpha, beta);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
-
-				if (isX) { const x2 = evalX2(...args); !glo.secondCurveOperation ? x += x2 : x = x2; }
-				if (isY) { const y2 = evalY2(...args); !glo.secondCurveOperation ? y += y2 : y = y2; }
-				if (isZ) { const z2 = evalZ2(...args); !glo.secondCurveOperation ? z += z2 : z = z2; }
-
-				if (equa2.alpha) alpha2 = evalAlpha2(...args);
-				if (equa2.beta) beta2 = evalBeta2(...args);
-
-				if (alpha2 || beta2 || theta) {
-					let pos = rotateOnCenterByBabylonMatrix({ x, y, z }, alpha2, beta2, theta);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
-
-				var { x, y, z } = blendPosAll(x, y, z, u, v, O, cos(u), cos(v));
-				var { x, y, z } = functionIt(x, y, z);
-				var { x, y, z } = invPos(x, y, z);
-				var { x, y, z } = invPosIf(x, y, z);
-				var { x, y, z } = permutSign(x, y, z);
-
-				let posByR = { x, y, z };
-				if (glo.params.functionIt.r.$T.cos.val || glo.params.functionIt.r.u.sin.val) {
-					const rInfos = glo.params.functionIt.r;
-					for (let variable in rInfos) {
-						for (let prop in rInfos[variable]) {
-							const val = rInfos[variable][prop].val;
-							if (val) {
-								const nb = rInfos[variable][prop].nb;
-								posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
-							}
-						}
-					}
-				}
-				var { x, y, z } = posByR;
-
-				if (glo.additiveSurface) {
-					x += glo.savePos.x; y += glo.savePos.y; z += glo.savePos.z;
-					glo.savePos.x = x; glo.savePos.y = y; glo.savePos.z = z;
-				}
-
-				glo.currentCurveInfos.vect = new BABYLON.Vector3(x, y, z);
-
-				path.push(glo.currentCurveInfos.vect);
-				glo.currentCurveInfos.currentPath = path;
-				index_v++; n++;
-				glo.currentCurveInfos.index_v = index_v;
-				glo.currentCurveInfos.n = n;
-			}
-			this.paths[index_u] = path;
-			index_u++;
-			glo.currentCurveInfos.index_u = index_u;
+	finalize() {
+		if (glo.closeFirstWithLastPath) {
+			this.paths.push(this.paths[0]);
 		}
 
-		if (!uvInfos.isV) { this.paths[0] = this.paths.flat(); }
-
-		if (!onePoint) {
-			if (glo.closeFirstWithLastPath) { this.paths.push(this.paths[0]); }
-			glo.lines = this.paths;
-
-			this.pathsSave = this.paths.slice();
-
-			this.closed = this.pathsSave.length !== this.paths.length;
-		}
-		else {
-			return this.paths[0][1];
-		}
+		glo.lines = this.paths;
+		this.pathsSave = this.paths.slice();
+		this.closed = this.pathsSave.length !== this.paths.length;
 	}
 }
 
 // ==================== SYSTÈME SPHÉRIQUE ====================
 
-class CurvesSpherical {
+class CurvesSpherical extends CurveBase {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
 		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
@@ -243,226 +391,64 @@ class CurvesSpherical {
 		beta: glo.params.text_input_z,
 		alpha2: glo.params.text_input_alpha,
 		beta2: glo.params.text_input_beta,
-	}, f2 = {
-		x: glo.params.text_input_suit_x,
-		y: glo.params.text_input_suit_y,
-		z: glo.params.text_input_suit_z,
-		alpha: glo.params.text_input_suit_alpha,
-		beta: glo.params.text_input_suit_beta,
-		theta: glo.params.text_input_suit_theta,
-	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
+	}, f2, dim_one, fractalize, onePoint) {
+		super(parametres, f, f2, dim_one, fractalize, onePoint);
+	}
 
-		var {
-			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
-			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
-			beta, theta, alpha2, beta2, alpha3, beta3
-		} = makeCommonCurveVariables();
+	createSpecificEvalFunctions() {
+		this.evalR = this.createEvalFunction(this.f.r);
+		this.evalAlpha = this.createEvalFunction(this.f.alpha);
+		this.evalBeta = this.createEvalFunction(this.f.beta);
+		this.evalAlpha2 = this.createEvalFunction(this.f.alpha2);
+		this.evalBeta2 = this.createEvalFunction(this.f.beta2);
+	}
 
-		reg(f);
-		reg(f2);
+	computePosition(args) {
+		let r = this.evalR(...args);
+		let alpha = this.evalAlpha(...args);
+		let beta = this.evalBeta(...args);
 
-		let f3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
-		reg(f3);
+		if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
 
-		this.p1_first = new BABYLON.Vector3.Zero;
-		this.p2_first = glo.firstPoint;
+		// Coordonnées sphériques : rotation autour du point de référence
+		let pos = rotateOnCenterByBabylonMatrix(
+			{ x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r },
+			0, beta, alpha
+		);
 
-		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
-		this.max_u = parametres.u.max;
-		this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
-		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+		return { x: pos.x, y: pos.y, z: pos.z };
+	}
 
-		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
-		this.max_v = parametres.v.max;
-		this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
-		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+	applyPrimaryRotation(args, state) {
+		let { x, y, z, pos, alpha2, beta2, alpha3, beta3, theta } = state;
 
-		this.paths = [];
-		this.lines = [];
+		// Calcul de alpha2 et beta2 pour la rotation quaternion
+		alpha2 = this.evalAlpha2(...args);
+		beta2 = this.evalBeta2(...args);
+		theta = this.eval2Theta(...args);
 
-		const uvInfos = isUV();
+		// alpha3 et beta3 pour la rotation finale
+		alpha3 = this.eval2Alpha(...args);
+		beta3 = this.eval2Beta(...args);
 
-		initVarsInObj(f, "", 0); initVarsInObj(f2, "", 0);
-
-		const isX = glo.params.text_input_suit_x != "" ? true : false;
-		const isY = glo.params.text_input_suit_y != "" ? true : false;
-		const isZ = glo.params.text_input_suit_z != "" ? true : false;
-
-		let d, k, p, t;
-		let X, Y;
-
-		const additiveSurface = glo.additiveSurface;
-
-		// Liste commune de paramètres pour les fonctions créées dynamiquement
-		const paramNames = [
-			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
-			"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
-		];
-
-		// Construction de la chaîne d'affectations pour les variables issues de glo.params
-		const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
-
-		// Fonction factory pour créer les fonctions avec ou sans inclusion de varUI
-		function createEvalFunction(code, includeVarUI = true) {
-			const fullCode = (includeVarUI ? varUI + " " : "") + "return " + code;
-			return new Function(...paramNames, fullCode);
+		// Rotation avec quaternion si alpha2 et beta2 sont définis
+		if (alpha2 && beta2) {
+			pos = rotateByQuaternion(x, y, z, alpha2, beta2);
+		} else {
+			pos = { x, y, z };
 		}
 
-		// Création des fonctions dynamiques
-		const evalR = createEvalFunction(f.r);
-		const evalAlpha = createEvalFunction(f.alpha);
-		const evalBeta = createEvalFunction(f.beta);
-		const evalAlpha2 = createEvalFunction(f.alpha2);
-		const evalBeta2 = createEvalFunction(f.beta2);
-		const eval2Alpha = createEvalFunction(f2.alpha);
-		const eval2Beta = createEvalFunction(f2.beta);
-		const eval2Theta = createEvalFunction(f2.theta);
-		const evalX2 = createEvalFunction(f2.x);
-		const evalY2 = createEvalFunction(f2.y);
-		const evalZ2 = createEvalFunction(f2.z);
-		const evalXExp = createEvalFunction(f3.evalX);
-		const evalYExp = createEvalFunction(f3.evalY);
+		return { pos, alpha2, beta2, alpha3, beta3, theta };
+	}
 
-		let n = 0;
-		let path = [];
-		let index_u = 0, ind_u = 0, ind_v = 0;
-		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
-		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
-
-		for (let i = 0; i <= stepsU; i++) {
-			if (additiveSurface) { glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
-			k = !(i % 2) ? -1 : 1;
-			u += this.step_u;
-			glo.currentCurveInfos.u = u;
-			p = !(i % 2) ? -u : u;
-			let index_v = 0; ind_u = u;
-			v = this.min_v - this.step_v;
-
-			for (let j = 0; j <= stepsV; j++) {
-				v += this.step_v;
-				ind_v = v;
-				glo.currentCurveInfos.v = v;
-
-				d = !(j % 2) ? -1 : 1;
-				t = !(j % 2) ? -v : v;
-
-				if (f3.evalX) { X = evalXExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-				if (f3.evalY) { Y = evalYExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-
-				const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				let r = evalR(...args);
-				alpha = evalAlpha(...args);
-				beta = evalBeta(...args);
-
-				if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
-
-				// Coordonnées sphériques : rotation autour du point de référence
-				let pos = rotateOnCenterByBabylonMatrix(
-					{ x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r },
-					0, beta, alpha
-				);
-
-				x = pos.x; y = pos.y; z = pos.z;
-				const vect3 = new BABYLON.Vector3(x, y, z);
-				const vectN = getNormalVector(vect3);
-				xN = vectN.x; yN = vectN.y; zN = vectN.z;
-				µN = xN * yN * zN;
-				$N = (xN + yN + zN) / 3;
-				µ$N = µN * $N; $µN = µN + $N;
-				µµN = µ$N * $µN;
-
-				O = Math.asin(y / h(x, y, z));
-				T = Math.atan2(z, x);
-
-				const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x, y, z));
-				xT = vectT.x; yT = vectT.y; zT = vectT.z;
-				µT = xT * yT * zT;
-				$T = (xT + yT + zT) / 3;
-				µ$T = µT * $T; $µT = µT + $T;
-				µµT = µ$T * $µT;
-
-				// Mise à jour des arguments avec les nouvelles valeurs
-				const updatedArgs = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				alpha2 = evalAlpha2(...updatedArgs);
-				beta2 = evalBeta2(...updatedArgs);
-				theta = eval2Theta(...updatedArgs);
-
-				alpha3 = eval2Alpha(...updatedArgs);
-				beta3 = eval2Beta(...updatedArgs);
-
-				if (alpha2 && beta2) {
-					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-				}
-
-				if (isX) { const x2 = evalX2(...updatedArgs); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-				if (isY) { const y2 = evalY2(...updatedArgs); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-				if (isZ) { const z2 = evalZ2(...updatedArgs); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
-				pos = rotateOnCenterByBabylonMatrix({ x: pos.x, y: pos.y, z: pos.z }, alpha3, beta3, theta);
-
-				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				let posByR = { x: pos.x, y: pos.y, z: pos.z };
-				const rInfos = glo.params.functionIt.r;
-				for (let variable in rInfos) {
-					for (let prop in rInfos[variable]) {
-						const val = rInfos[variable][prop].val;
-						if (val) {
-							const nb = rInfos[variable][prop].nb;
-							posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
-						}
-					}
-				}
-				pos = posByR;
-
-				if (glo.additiveSurface) {
-					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
-					glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
-				}
-
-				const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-				glo.currentCurveInfos.vect = newVect;
-
-				this.new_p2 = newVect;
-
-				path.push(this.new_p2);
-				index_v++; n++;
-				glo.currentCurveInfos.index_v = index_v;
-			}
-			this.paths.push(path);
-			glo.currentCurveInfos.path = path;
-			path = [];
-			index_u++;
-			glo.currentCurveInfos.index_u = index_u;
-		}
-
-		if (!uvInfos.isV) { this.paths[0] = this.paths.flat(); }
-
-		if (!onePoint) {
-			if (glo.closeFirstWithLastPath) { this.paths.push(this.paths[0]); }
-
-			glo.lines = this.paths;
-
-			this.pathsSave = this.paths.slice();
-			this.paths = uvInfos.isV ? closedPaths(this.paths) : this.paths;
-		}
-		else {
-			return this.paths[0][1];
-		}
+	onFinalize() {
+		this.paths = this.uvInfos.isV ? closedPaths(this.paths) : this.paths;
 	}
 }
 
 // ==================== SYSTÈME CYLINDRIQUE ====================
 
-class CurvesCylindrical {
+class CurvesCylindrical extends CurveBase {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
 		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
@@ -472,227 +458,65 @@ class CurvesCylindrical {
 		beta: glo.params.text_input_z,
 		alpha2: glo.params.text_input_alpha,
 		beta2: glo.params.text_input_beta,
-	}, f2 = {
-		x: glo.params.text_input_suit_x,
-		y: glo.params.text_input_suit_y,
-		z: glo.params.text_input_suit_z,
-		alpha: glo.params.text_input_suit_alpha,
-		beta: glo.params.text_input_suit_beta,
-		theta: glo.params.text_input_suit_theta,
-	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
+	}, f2, dim_one, fractalize, onePoint) {
+		super(parametres, f, f2, dim_one, fractalize, onePoint);
+	}
 
-		var {
-			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
-			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
-			beta, theta, alpha2, beta2, alpha3, beta3
-		} = makeCommonCurveVariables();
+	createSpecificEvalFunctions() {
+		this.evalR = this.createEvalFunction(this.f.r);
+		this.evalAlpha = this.createEvalFunction(this.f.alpha);
+		this.evalBeta = this.createEvalFunction(this.f.beta);
+		this.evalAlpha2 = this.createEvalFunction(this.f.alpha2);
+		this.evalBeta2 = this.createEvalFunction(this.f.beta2);
+	}
 
-		reg(f);
-		reg(f2);
+	computePosition(args) {
+		let r = this.evalR(...args);
+		let alpha = this.evalAlpha(...args);
+		let beta = this.evalBeta(...args);
 
-		let f3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
-		reg(f3);
+		if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
 
-		this.p1_first = new BABYLON.Vector3.Zero;
-		this.p2_first = glo.firstPoint;
+		// Coordonnées cylindriques : rotation autour de l'axe Z, hauteur = beta
+		let pos = rotateOnCenterByBabylonMatrix(
+			{ x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r },
+			0, 0, alpha
+		);
+		pos.z = beta;
 
-		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
-		this.max_u = parametres.u.max;
-		this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
-		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+		return { x: pos.x, y: pos.y, z: pos.z };
+	}
 
-		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
-		this.max_v = parametres.v.max;
-		this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
-		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+	applyPrimaryRotation(args, state) {
+		let { x, y, z, pos, alpha2, beta2, alpha3, beta3, theta } = state;
 
-		this.paths = [];
-		this.lines = [];
+		// Calcul de alpha2 et beta2 pour la rotation quaternion
+		alpha2 = this.evalAlpha2(...args);
+		beta2 = this.evalBeta2(...args);
+		theta = this.eval2Theta(...args);
 
-		const uvInfos = isUV();
+		// alpha3 et beta3 pour la rotation finale
+		alpha3 = this.eval2Alpha(...args);
+		beta3 = this.eval2Beta(...args);
 
-		initVarsInObj(f, "", 0); initVarsInObj(f2, "", 0);
-
-		const isX = glo.params.text_input_suit_x != "" ? true : false;
-		const isY = glo.params.text_input_suit_y != "" ? true : false;
-		const isZ = glo.params.text_input_suit_z != "" ? true : false;
-
-		let d, k, p, t;
-		let X, Y;
-
-		const additiveSurface = glo.additiveSurface;
-
-		// Liste commune de paramètres pour les fonctions créées dynamiquement
-		const paramNames = [
-			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
-			"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
-		];
-
-		// Construction de la chaîne d'affectations pour les variables issues de glo.params
-		const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
-
-		// Fonction factory pour créer les fonctions avec ou sans inclusion de varUI
-		function createEvalFunction(code, includeVarUI = true) {
-			const fullCode = (includeVarUI ? varUI + " " : "") + "return " + code;
-			return new Function(...paramNames, fullCode);
+		// Rotation avec quaternion si alpha2 et beta2 sont définis
+		if (alpha2 && beta2) {
+			pos = rotateByQuaternion(x, y, z, alpha2, beta2);
+		} else {
+			pos = { x, y, z };
 		}
 
-		// Création des fonctions dynamiques
-		const evalR = createEvalFunction(f.r);
-		const evalAlpha = createEvalFunction(f.alpha);
-		const evalBeta = createEvalFunction(f.beta);
-		const evalAlpha2 = createEvalFunction(f.alpha2);
-		const evalBeta2 = createEvalFunction(f.beta2);
-		const eval2Alpha = createEvalFunction(f2.alpha);
-		const eval2Beta = createEvalFunction(f2.beta);
-		const eval2Theta = createEvalFunction(f2.theta);
-		const evalX2 = createEvalFunction(f2.x);
-		const evalY2 = createEvalFunction(f2.y);
-		const evalZ2 = createEvalFunction(f2.z);
-		const evalXExp = createEvalFunction(f3.evalX);
-		const evalYExp = createEvalFunction(f3.evalY);
+		return { pos, alpha2, beta2, alpha3, beta3, theta };
+	}
 
-		let n = 0;
-		let path = [];
-		let index_u = 0, ind_u = 0, ind_v = 0;
-		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
-		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
-
-		for (let i = 0; i <= stepsU; i++) {
-			if (additiveSurface) { glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
-			k = !(i % 2) ? -1 : 1;
-			u += this.step_u;
-			glo.currentCurveInfos.u = u;
-			p = !(i % 2) ? -u : u;
-			let index_v = 0; ind_u = u;
-			v = this.min_v - this.step_v;
-
-			for (let j = 0; j <= stepsV; j++) {
-				v += this.step_v;
-				ind_v = v;
-				glo.currentCurveInfos.v = v;
-
-				d = !(j % 2) ? -1 : 1;
-				t = !(j % 2) ? -v : v;
-
-				if (f3.evalX) { X = evalXExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-				if (f3.evalY) { Y = evalYExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-
-				const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				let r = evalR(...args);
-				alpha = evalAlpha(...args);
-				beta = evalBeta(...args);
-
-				if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
-
-				// Coordonnées cylindriques : rotation autour de l'axe Z, hauteur = beta
-				let pos = rotateOnCenterByBabylonMatrix(
-					{ x: this.p2_first.x * r, y: this.p2_first.y * r, z: this.p2_first.z * r },
-					0, 0, alpha
-				);
-				pos.z = beta;
-
-				x = pos.x; y = pos.y; z = pos.z;
-				const vect3 = new BABYLON.Vector3(x, y, z);
-				const vectN = getNormalVector(vect3);
-				xN = vectN.x; yN = vectN.y; zN = vectN.z;
-				µN = xN * yN * zN;
-				$N = (xN + yN + zN) / 3;
-				µ$N = µN * $N; $µN = µN + $N;
-				µµN = µ$N * $µN;
-
-				O = Math.asin(y / h(x, y, z));
-				T = Math.atan2(z, x);
-
-				const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x, y, z));
-				xT = vectT.x; yT = vectT.y; zT = vectT.z;
-				µT = xT * yT * zT;
-				$T = (xT + yT + zT) / 3;
-				µ$T = µT * $T; $µT = µT + $T;
-				µµT = µ$T * $µT;
-
-				// Mise à jour des arguments avec les nouvelles valeurs
-				const updatedArgs = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				alpha2 = evalAlpha2(...updatedArgs);
-				beta2 = evalBeta2(...updatedArgs);
-				theta = eval2Theta(...updatedArgs);
-
-				alpha3 = eval2Alpha(...updatedArgs);
-				beta3 = eval2Beta(...updatedArgs);
-
-				if (alpha2 && beta2) {
-					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-				}
-
-				if (isX) { const x2 = evalX2(...updatedArgs); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-				if (isY) { const y2 = evalY2(...updatedArgs); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-				if (isZ) { const z2 = evalZ2(...updatedArgs); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
-				pos = rotateOnCenterByBabylonMatrix({ x: pos.x, y: pos.y, z: pos.z }, alpha3, beta3, theta);
-
-				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				let posByR = { x: pos.x, y: pos.y, z: pos.z };
-				const rInfos = glo.params.functionIt.r;
-				for (let variable in rInfos) {
-					for (let prop in rInfos[variable]) {
-						const val = rInfos[variable][prop].val;
-						if (val) {
-							const nb = rInfos[variable][prop].nb;
-							posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
-						}
-					}
-				}
-				pos = posByR;
-
-				if (glo.additiveSurface) {
-					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
-					glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
-				}
-
-				const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-				glo.currentCurveInfos.vect = newVect;
-
-				this.new_p2 = newVect;
-
-				path.push(this.new_p2);
-				index_v++; n++;
-				glo.currentCurveInfos.index_v = index_v;
-			}
-			this.paths.push(path);
-			glo.currentCurveInfos.path = path;
-			path = [];
-			index_u++;
-			glo.currentCurveInfos.index_u = index_u;
-		}
-
-		if (!uvInfos.isV) { this.paths[0] = this.paths.flat(); }
-
-		if (!onePoint) {
-			if (glo.closeFirstWithLastPath) { this.paths.push(this.paths[0]); }
-
-			glo.lines = this.paths;
-
-			this.pathsSave = this.paths.slice();
-			this.paths = uvInfos.isV ? closedPaths(this.paths) : this.paths;
-		}
-		else {
-			return this.paths[0][1];
-		}
+	onFinalize() {
+		this.paths = this.uvInfos.isV ? closedPaths(this.paths) : this.paths;
 	}
 }
 
 // ==================== SYSTÈME PAR COURBURE ====================
 
-class CurvesByCurvature {
+class CurvesByCurvature extends CurveBase {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
 		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
@@ -702,230 +526,99 @@ class CurvesByCurvature {
 		beta: glo.params.text_input_z,
 		alpha2: glo.params.text_input_alpha,
 		beta2: glo.params.text_input_beta,
-	}, f2 = {
-		x: glo.params.text_input_suit_x,
-		y: glo.params.text_input_suit_y,
-		z: glo.params.text_input_suit_z,
-		alpha: glo.params.text_input_suit_alpha,
-		beta: glo.params.text_input_suit_beta,
-		theta: glo.params.text_input_suit_theta,
-	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
+	}, f2, dim_one, fractalize, onePoint) {
+		super(parametres, f, f2, dim_one, fractalize, onePoint);
+	}
 
-		var {
-			x, y, z, xN, yN, zN, µN, $N, µ$N, $µN, µµN, O, T, xT, yT, zT, µT, $T, µ$T,
-			$µT, µµT, rCol, gCol, bCol, mCol, A, B, C, D, E, F, G, H, I, K, L, M, alpha,
-			beta, theta, alpha2, beta2, alpha3, beta3
-		} = makeCommonCurveVariables();
+	createSpecificEvalFunctions() {
+		this.evalR = this.createEvalFunction(this.f.r);
+		this.evalAlpha = this.createEvalFunction(this.f.alpha);
+		this.evalBeta = this.createEvalFunction(this.f.beta);
+		this.evalAlpha2 = this.createEvalFunction(this.f.alpha2);
+		this.evalBeta2 = this.createEvalFunction(this.f.beta2);
+	}
 
-		reg(f);
-		reg(f2);
+	initComputeState() {
+		// Position accumulée pour le système par courbure
+		this.pos = { x: 0, y: 0, z: 0 };
+		this.moyPos = { x: 0, y: 0, z: 0 };
+		this.pointCount = 0;
+	}
 
-		let f3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
-		reg(f3);
+	onStartLoopU(path, state) {
+		// Réinitialiser la position si curvaturetoZero est activé
+		if (glo.params.curvaturetoZero) {
+			this.pos = { x: 0, y: 0, z: 0 };
+			path.push(BABYLON.Vector3.Zero());
+			return { path, x: 0, y: 0, z: 0 };
+		}
+		return { path: [], x: state.x, y: state.y, z: state.z };
+	}
 
-		this.p1_first = new BABYLON.Vector3.Zero;
-		this.p2_first = glo.firstPoint;
+	computePosition(args) {
+		let r = this.evalR(...args);
+		let alpha = this.evalAlpha(...args);
+		let beta = this.evalBeta(...args);
 
-		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
-		this.max_u = parametres.u.max;
-		this.nb_steps_u = paramsOrFractNbPaths('u', parametres.u.nb_steps, fractalize);
-		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+		if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
 
-		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
-		this.max_v = parametres.v.max;
-		this.nb_steps_v = paramsOrFractNbPaths('v', parametres.v.nb_steps, fractalize);
-		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+		// Système par courbure : accumulation de la position selon la direction
+		const dirXY = directionXY({ x: alpha, y: beta }, r);
+		this.pos.x += dirXY.x;
+		this.pos.y += dirXY.y;
+		this.pos.z += dirXY.z;
 
-		this.paths = [];
-		this.lines = [];
+		return { x: this.pos.x, y: this.pos.y, z: this.pos.z };
+	}
 
-		const uvInfos = isUV();
+	applyPrimaryRotation(args, state) {
+		let { x, y, z, pos, alpha2, beta2, alpha3, beta3, theta } = state;
 
-		let d, k, p, t;
-		let X, Y;
+		// Calcul de alpha2 et beta2 pour la rotation quaternion
+		alpha2 = this.evalAlpha2(...args);
+		beta2 = this.evalBeta2(...args);
+		theta = this.eval2Theta(...args);
 
-		initVarsInObj(f, "", 0); initVarsInObj(f2, "", 0);
+		// alpha3 et beta3 pour la rotation finale
+		alpha3 = this.eval2Alpha(...args);
+		beta3 = this.eval2Beta(...args);
 
-		const isX = glo.params.text_input_suit_x != "" ? true : false;
-		const isY = glo.params.text_input_suit_y != "" ? true : false;
-		const isZ = glo.params.text_input_suit_z != "" ? true : false;
-
-		let moyPos = { x: 0, y: 0, z: 0 };
-		let pos = { x: 0, y: 0, z: 0 };
-
-		const additiveSurface = glo.additiveSurface;
-
-		// Liste commune de paramètres pour les fonctions créées dynamiquement
-		const paramNames = [
-			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
-			"O", "T", "xN", "yN", "zN", "$N", "xT", "yT", "zT", "$T"
-		];
-
-		// Construction de la chaîne d'affectations pour les variables issues de glo.params
-		const varNames = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = varNames.map(v => `${v} = glo.params.${v};`).join(" ");
-
-		// Fonction factory pour créer les fonctions avec ou sans inclusion de varUI
-		function createEvalFunction(code, includeVarUI = true) {
-			const fullCode = (includeVarUI ? varUI + " " : "") + "return " + code;
-			return new Function(...paramNames, fullCode);
+		// Rotation avec quaternion si alpha2 et beta2 sont définis
+		if (alpha2 && beta2) {
+			pos = rotateByQuaternion(x, y, z, alpha2, beta2);
+			// Mettre à jour la position accumulée
+			this.pos.x = pos.x;
+			this.pos.y = pos.y;
+			this.pos.z = pos.z;
+		} else {
+			pos = { x, y, z };
 		}
 
-		// Création des fonctions dynamiques
-		const evalR = createEvalFunction(f.r);
-		const evalAlpha = createEvalFunction(f.alpha);
-		const evalBeta = createEvalFunction(f.beta);
-		const evalAlpha2 = createEvalFunction(f.alpha2);
-		const evalBeta2 = createEvalFunction(f.beta2);
-		const eval2Alpha = createEvalFunction(f2.alpha);
-		const eval2Beta = createEvalFunction(f2.beta);
-		const eval2Theta = createEvalFunction(f2.theta);
-		const evalX2 = createEvalFunction(f2.x);
-		const evalY2 = createEvalFunction(f2.y);
-		const evalZ2 = createEvalFunction(f2.z);
-		const evalXExp = createEvalFunction(f3.evalX);
-		const evalYExp = createEvalFunction(f3.evalY);
+		return { pos, alpha2, beta2, alpha3, beta3, theta };
+	}
 
-		let n = 0;
-		let path = [];
-		let index_u = 0, ind_u = 0, ind_v = 0;
-		const stepsU = uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = uvInfos.isV ? this.nb_steps_v : 0;
-		let u = this.min_u - this.step_u, v = this.min_v - this.step_v;
+	onPointComputed(pos) {
+		// Accumuler pour le calcul de la position moyenne
+		this.moyPos.x += pos.x;
+		this.moyPos.y += pos.y;
+		this.moyPos.z += pos.z;
+		this.pointCount++;
+	}
 
-		for (let i = 0; i <= stepsU; i++) {
-			if (additiveSurface) { glo.savePos.x = 0; glo.savePos.y = 0; glo.savePos.z = 0; }
-			if (glo.params.curvaturetoZero) { pos = { x: 0, y: 0, z: 0 }; path.push(BABYLON.Vector3.Zero()); }
-			k = !(i % 2) ? -1 : 1;
-			u += this.step_u;
-			glo.currentCurveInfos.u = u;
-			p = !(i % 2) ? -u : u;
-			let index_v = 0; ind_u = u;
-			v = this.min_v - this.step_v;
-
-			for (let j = 0; j <= stepsV; j++) {
-				v += this.step_v;
-				ind_v = v;
-				glo.currentCurveInfos.v = v;
-
-				d = !(j % 2) ? -1 : 1;
-				t = !(j % 2) ? -v : v;
-
-				if (f3.evalX) { X = evalXExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-				if (f3.evalY) { Y = evalYExp(u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T); }
-
-				const args = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				let r = evalR(...args);
-				alpha = evalAlpha(...args);
-				beta = evalBeta(...args);
-
-				if (r == Infinity || r == -Infinity || isNaN(r)) { r = 0; }
-
-				// Système par courbure : accumulation de la position selon la direction
-				const dirXY = directionXY({ x: alpha, y: beta }, r);
-				pos.x += dirXY.x; pos.y += dirXY.y; pos.z += dirXY.z;
-
-				x = pos.x; y = pos.y; z = pos.z;
-				const vect3 = new BABYLON.Vector3(x, y, z);
-				const vectN = getNormalVector(vect3);
-				xN = vectN.x; yN = vectN.y; zN = vectN.z;
-				µN = xN * yN * zN;
-				$N = (xN + yN + zN) / 3;
-				µ$N = µN * $N; $µN = µN + $N;
-				µµN = µ$N * $µN;
-
-				O = Math.asin(y / h(x, y, z));
-				T = Math.atan2(z, x);
-
-				const vectT = BABYLON.Vector3.Normalize(new BABYLON.Vector3(x, y, z));
-				xT = vectT.x; yT = vectT.y; zT = vectT.z;
-				µT = xT * yT * zT;
-				$T = (xT + yT + zT) / 3;
-				µ$T = µT * $T; $µT = µT + $T;
-				µµT = µ$T * $µT;
-
-				// Mise à jour des arguments avec les nouvelles valeurs
-				const updatedArgs = [u, v, w, x, y, z, d, k, p, t, n, i, j, X, Y, O, T, xN, yN, zN, $N, xT, yT, zT, $T];
-
-				alpha2 = evalAlpha2(...updatedArgs);
-				beta2 = evalBeta2(...updatedArgs);
-				theta = eval2Theta(...updatedArgs);
-
-				alpha3 = eval2Alpha(...updatedArgs);
-				beta3 = eval2Beta(...updatedArgs);
-
-				if (alpha2 && beta2) {
-					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-				}
-
-				if (isX) { const x2 = evalX2(...updatedArgs); !glo.secondCurveOperation ? pos.x += x2 : pos.x = x2; }
-				if (isY) { const y2 = evalY2(...updatedArgs); !glo.secondCurveOperation ? pos.y += y2 : pos.y = y2; }
-				if (isZ) { const z2 = evalZ2(...updatedArgs); !glo.secondCurveOperation ? pos.z += z2 : pos.z = z2; }
-
-				pos = rotateOnCenterByBabylonMatrix({ x: pos.x, y: pos.y, z: pos.z }, alpha3, beta3, theta);
-
-				pos = blendPosAll(pos.x, pos.y, pos.z, u, v, O, cos(u), cos(v));
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				let posByR = { x: pos.x, y: pos.y, z: pos.z };
-				const rInfos = glo.params.functionIt.r;
-				for (let variable in rInfos) {
-					for (let prop in rInfos[variable]) {
-						const val = rInfos[variable][prop].val;
-						if (val) {
-							const nb = rInfos[variable][prop].nb;
-							posByR = updateRibbonByR(posByR, nb * (prop === 'cos' ? Math.cos(val * $T) : Math.sin(val * u)));
-						}
-					}
-				}
-				pos = posByR;
-
-				if (glo.additiveSurface) {
-					pos.x += glo.savePos.x; pos.y += glo.savePos.y; pos.z += glo.savePos.z;
-					glo.savePos.x = pos.x; glo.savePos.y = pos.y; glo.savePos.z = pos.z;
-				}
-
-				const newVect = new BABYLON.Vector3(pos.x, pos.y, pos.z);
-				glo.currentCurveInfos.vect = newVect;
-
-				this.new_p2 = newVect;
-
-				moyPos.x += pos.x; moyPos.y += pos.y; moyPos.z += pos.z;
-
-				path.push(this.new_p2);
-				glo.currentCurveInfos.path = path;
-				index_v++; n++;
-				glo.currentCurveInfos.index_v = index_v;
-			}
-			this.paths.push(path);
-			path = [];
-			index_u++;
-			glo.currentCurveInfos.index_u = index_u;
+	onFinalize() {
+		// Centrer les paths sur la position moyenne
+		if (this.pointCount > 1) {
+			this.moyPos.x /= (this.pointCount - 1);
+			this.moyPos.y /= (this.pointCount - 1);
+			this.moyPos.z /= (this.pointCount - 1);
+			offsetPathsByMoyPos(this.paths, this.moyPos);
 		}
 
-		if (!uvInfos.isV) { this.paths[0] = this.paths.flat(); }
-
-		if (!onePoint) {
-			if (glo.closeFirstWithLastPath) { this.paths.push(this.paths[0]); }
-
-			moyPos.x /= (n - 1); moyPos.y /= (n - 1); moyPos.z /= (n - 1);
-			offsetPathsByMoyPos(this.paths, moyPos);
-
-			glo.lines = this.paths;
-			this.pathsSave = this.paths.slice();
-			this.paths = uvInfos.isV ? closedPaths(this.paths) : this.paths;
-		}
-		else {
-			return this.paths[0][1];
-		}
+		this.paths = this.uvInfos.isV ? closedPaths(this.paths) : this.paths;
 	}
 }
 
-// ==================== FONCTIONS UTILITAIRES (conservées de l'original) ====================
+// ==================== FONCTIONS UTILITAIRES ====================
 
 function makeCommonCurveVariables() {
 	return {

@@ -1,11 +1,12 @@
 /**
  * Shader CRUD System
  * Gère la création, lecture, mise à jour et suppression des shaders
+ * en modifiant directement le fichier shaders-frags.js
  */
 
 const ShaderCRUD = {
-    // Clé pour le localStorage
-    STORAGE_KEY: 'surface_shaders',
+    // Handle du fichier pour l'écriture
+    fileHandle: null,
 
     // Index du shader en cours d'édition
     currentShaderIndex: 0,
@@ -20,9 +21,6 @@ const ShaderCRUD = {
      * Initialise le système CRUD
      */
     init: function() {
-        // Charger les shaders depuis localStorage si disponibles
-        this.loadFromStorage();
-
         // Peupler le select avec les shaders existants
         this.populateSelect();
 
@@ -35,30 +33,59 @@ const ShaderCRUD = {
     },
 
     /**
-     * Charge les shaders depuis localStorage
+     * Génère le contenu du fichier shaders-frags.js
      */
-    loadFromStorage: function() {
-        const stored = localStorage.getItem(this.STORAGE_KEY);
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    fragmentShaders = parsed;
-                }
-            } catch (e) {
-                console.warn('Erreur lors du chargement des shaders depuis localStorage:', e);
+    generateFileContent: function() {
+        let content = 'fragmentShaders = [\n';
+
+        fragmentShaders.forEach((shader, index) => {
+            content += '`' + shader + '`';
+            if (index < fragmentShaders.length - 1) {
+                content += ',';
             }
-        }
+            content += '\n';
+        });
+
+        content += '];\n';
+        return content;
     },
 
     /**
-     * Sauvegarde les shaders dans localStorage
+     * Sauvegarde les shaders dans le fichier shaders-frags.js
      */
-    saveToStorage: function() {
+    saveToFile: async function() {
         try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(fragmentShaders));
-        } catch (e) {
-            console.warn('Erreur lors de la sauvegarde des shaders:', e);
+            // Si on n'a pas encore de handle, demander à l'utilisateur de sélectionner le fichier
+            if (!this.fileHandle) {
+                // Utiliser showSaveFilePicker pour obtenir un handle d'écriture
+                this.fileHandle = await window.showSaveFilePicker({
+                    suggestedName: 'shaders-frags.js',
+                    types: [{
+                        description: 'JavaScript Files',
+                        accept: { 'application/javascript': ['.js'] }
+                    }]
+                });
+            }
+
+            // Créer un writable stream
+            const writable = await this.fileHandle.createWritable();
+
+            // Écrire le contenu
+            const content = this.generateFileContent();
+            await writable.write(content);
+
+            // Fermer le stream
+            await writable.close();
+
+            return true;
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                console.log('Sauvegarde annulée par l\'utilisateur');
+                return false;
+            }
+            console.error('Erreur lors de la sauvegarde:', err);
+            updateStatus('Erreur: ' + err.message, true);
+            return false;
         }
     },
 
@@ -135,7 +162,7 @@ const ShaderCRUD = {
             });
         }
 
-        // Bouton Exporter
+        // Bouton Exporter (téléchargement direct)
         const exportBtn = document.getElementById('exportShadersBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', (e) => {
@@ -209,32 +236,18 @@ const ShaderCRUD = {
 
         const fullCode = editor.getValue();
 
-        // Trouver les positions du header et footer
-        const headerEnd = fullCode.indexOf('void main(){');
-        const footerStart = fullCode.indexOf('if(invcol == 1)');
+        // Trouver la position après "void main(){"
+        const mainPos = fullCode.indexOf('void main(){');
+        if (mainPos === -1) return '';
 
-        if (headerEnd === -1 || footerStart === -1) {
-            // Si on ne trouve pas les marqueurs, retourner le code après main()
-            const mainPos = fullCode.indexOf('void main(){');
-            if (mainPos !== -1) {
-                const afterMain = fullCode.substring(mainPos + 12);
-                const beforeFooter = afterMain.indexOf('if(invcol');
-                if (beforeFooter !== -1) {
-                    return afterMain.substring(0, beforeFooter).trim();
-                }
-            }
-            return '';
-        }
+        const afterMain = fullCode.substring(mainPos + 12);
 
-        // Extraire le code entre le header et le footer
-        const afterMain = fullCode.substring(headerEnd + 12);
-        const beforeFooter = afterMain.indexOf('if(invcol');
+        // Trouver la position de "if(invcol" qui marque le début du footer
+        const footerPos = afterMain.indexOf('if(invcol');
+        if (footerPos === -1) return '';
 
-        if (beforeFooter !== -1) {
-            return afterMain.substring(0, beforeFooter).trim();
-        }
-
-        return '';
+        // Extraire le code entre main() et le footer
+        return afterMain.substring(0, footerPos);
     },
 
     /**
@@ -259,9 +272,9 @@ const ShaderCRUD = {
     },
 
     /**
-     * Sauvegarde le shader actuel
+     * Sauvegarde le shader actuel dans le fichier
      */
-    save: function() {
+    save: async function() {
         const fragmentCode = this.extractFragmentCode();
 
         if (!fragmentCode.trim()) {
@@ -271,21 +284,22 @@ const ShaderCRUD = {
 
         if (this.isCreatingNew) {
             // Ajouter le nouveau shader au tableau
-            fragmentShaders.push('\n' + fragmentCode + '\n');
+            fragmentShaders.push(fragmentCode);
             this.currentShaderIndex = fragmentShaders.length - 1;
             glo.shaders.params.numshader = this.currentShaderIndex;
             this.isCreatingNew = false;
             this.tempNewShader = '';
-
-            updateStatus('Nouveau shader créé (index ' + this.currentShaderIndex + ')');
         } else {
             // Mettre à jour le shader existant
-            fragmentShaders[this.currentShaderIndex] = '\n' + fragmentCode + '\n';
-            updateStatus('Shader ' + this.currentShaderIndex + ' sauvegardé');
+            fragmentShaders[this.currentShaderIndex] = fragmentCode;
         }
 
-        // Sauvegarder dans localStorage
-        this.saveToStorage();
+        // Sauvegarder dans le fichier
+        const saved = await this.saveToFile();
+
+        if (saved) {
+            updateStatus('Shader ' + this.currentShaderIndex + ' sauvegardé dans le fichier');
+        }
 
         // Mettre à jour le select
         this.populateSelect();
@@ -296,9 +310,9 @@ const ShaderCRUD = {
     },
 
     /**
-     * Supprime le shader actuel
+     * Supprime le shader actuel du fichier
      */
-    delete: function() {
+    delete: async function() {
         if (fragmentShaders.length <= 1) {
             updateStatus('Erreur: Impossible de supprimer le dernier shader', true);
             return;
@@ -314,7 +328,7 @@ const ShaderCRUD = {
             return;
         }
 
-        if (!confirm('Supprimer le shader ' + this.currentShaderIndex + ' ?')) {
+        if (!confirm('Supprimer le shader ' + this.currentShaderIndex + ' du fichier ?')) {
             return;
         }
 
@@ -333,25 +347,25 @@ const ShaderCRUD = {
             glo.numShaderMove.next();
         }
 
-        // Sauvegarder dans localStorage
-        this.saveToStorage();
+        // Sauvegarder dans le fichier
+        const saved = await this.saveToFile();
+
+        if (saved) {
+            updateStatus('Shader supprimé du fichier');
+        }
 
         // Mettre à jour l'interface
         this.populateSelect();
         this.updateSelectValue();
         this.loadShaderInEditor(this.currentShaderIndex);
         this.compileCurrentShader();
-
-        updateStatus('Shader supprimé');
     },
 
     /**
-     * Exporte tous les shaders vers un fichier JS
+     * Exporte tous les shaders vers un fichier JS (téléchargement)
      */
     exportAll: function() {
-        const content = 'fragmentShaders = [\n' +
-            fragmentShaders.map(shader => '`' + shader + '`').join(',\n') +
-            '\n];';
+        const content = this.generateFileContent();
 
         const blob = new Blob([content], { type: 'application/javascript' });
         const url = URL.createObjectURL(blob);
@@ -370,25 +384,23 @@ const ShaderCRUD = {
     /**
      * Importe des shaders depuis un fichier
      */
-    importFromFile: function(e) {
+    importFromFile: async function(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const content = event.target.result;
 
                 // Parser le contenu du fichier
-                // On s'attend à un format: fragmentShaders = [`...`, `...`];
                 const match = content.match(/fragmentShaders\s*=\s*\[([\s\S]*)\];/);
 
                 if (match) {
-                    // Extraire les shaders du tableau
                     const arrayContent = match[1];
                     const tempShaders = [];
 
-                    // Utiliser une regex pour extraire les template literals
+                    // Extraire les template literals
                     const shaderRegex = /`([\s\S]*?)`/g;
                     let shaderMatch;
 
@@ -397,7 +409,6 @@ const ShaderCRUD = {
                     }
 
                     if (tempShaders.length > 0) {
-                        // Demander si on veut remplacer ou fusionner
                         const replace = confirm(
                             'Shaders trouvés: ' + tempShaders.length + '\n\n' +
                             'OK = Remplacer tous les shaders existants\n' +
@@ -416,14 +427,18 @@ const ShaderCRUD = {
                         // Réinitialiser le générateur
                         glo.numShaderMove = glo.numShaderMove();
 
-                        // Sauvegarder et mettre à jour l'interface
-                        this.saveToStorage();
+                        // Sauvegarder dans le fichier
+                        const saved = await this.saveToFile();
+
+                        // Mettre à jour l'interface
                         this.populateSelect();
                         this.updateSelectValue();
                         this.loadShaderInEditor(this.currentShaderIndex);
                         this.compileCurrentShader();
 
-                        updateStatus('Import réussi: ' + tempShaders.length + ' shaders');
+                        if (saved) {
+                            updateStatus('Import réussi: ' + tempShaders.length + ' shaders sauvegardés');
+                        }
                     } else {
                         updateStatus('Erreur: Aucun shader trouvé dans le fichier', true);
                     }
@@ -435,7 +450,6 @@ const ShaderCRUD = {
                 updateStatus('Erreur lors de l\'import', true);
             }
 
-            // Reset le file input
             e.target.value = '';
         };
 
@@ -449,7 +463,7 @@ const ShaderCRUD = {
         // Mettre à jour le fragmentShader global
         fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
 
-        // Déclencher la recompilation si le bouton compile existe
+        // Déclencher la recompilation
         const compileBtn = document.getElementById('compileBtn');
         if (compileBtn) {
             compileBtn.click();
@@ -459,7 +473,6 @@ const ShaderCRUD = {
 
 // Initialiser le système CRUD quand le DOM est prêt
 document.addEventListener('DOMContentLoaded', function() {
-    // Attendre un peu pour que les autres scripts soient chargés
     setTimeout(() => {
         ShaderCRUD.init();
     }, 500);

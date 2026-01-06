@@ -5,6 +5,9 @@
  */
 
 const ShaderCRUD = {
+    // Handle du fichier pour écriture directe
+    fileHandle: null,
+
     // Index du shader en cours d'édition
     currentShaderIndex: 0,
 
@@ -40,23 +43,58 @@ const ShaderCRUD = {
     },
 
     /**
-     * Sauvegarde les shaders dans le fichier shaders-frags.js
-     * Télécharge automatiquement le fichier
+     * Demande à l'utilisateur de sélectionner le fichier shaders-frags.js
+     * Une fois sélectionné, il sera modifié directement
      */
-    saveToFile: function() {
-        const content = this.generateFileContent();
-        const blob = new Blob([content], { type: 'application/javascript' });
-        const url = URL.createObjectURL(blob);
+    selectFile: async function() {
+        try {
+            [this.fileHandle] = await window.showOpenFilePicker({
+                types: [{
+                    description: 'JavaScript Files',
+                    accept: { 'application/javascript': ['.js'] }
+                }],
+                multiple: false
+            });
+            return true;
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.error('Erreur sélection fichier:', err);
+            }
+            return false;
+        }
+    },
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'shaders-frags.js';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    /**
+     * Sauvegarde les shaders dans le fichier shaders-frags.js
+     */
+    saveToFile: async function() {
+        try {
+            // Si pas de handle, demander de sélectionner le fichier
+            if (!this.fileHandle) {
+                const selected = await this.selectFile();
+                if (!selected) {
+                    updateStatus('Sauvegarde annulée', true);
+                    return false;
+                }
+            }
 
-        return true;
+            // Écrire dans le fichier
+            const writable = await this.fileHandle.createWritable();
+            await writable.write(this.generateFileContent());
+            await writable.close();
+
+            return true;
+        } catch (err) {
+            console.error('Erreur sauvegarde:', err);
+            // Si erreur de permission, réessayer avec sélection
+            if (err.name === 'NotAllowedError') {
+                this.fileHandle = null;
+                updateStatus('Permission refusée, resélectionnez le fichier', true);
+            } else {
+                updateStatus('Erreur: ' + err.message, true);
+            }
+            return false;
+        }
     },
 
     /**
@@ -178,7 +216,6 @@ const ShaderCRUD = {
      */
     loadShaderInEditor: function(index) {
         if (typeof editor !== 'undefined' && editor) {
-            // Construire le shader complet comme dans shaders.js
             const fullShader = fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter;
             editor.setValue(fullShader);
             updateStatus('Shader ' + index + ' chargé');
@@ -204,7 +241,6 @@ const ShaderCRUD = {
         const footerPos = afterMain.indexOf('if(invcol');
         if (footerPos === -1) return '';
 
-        // Retourner uniquement le fragment (entre main et footer)
         return afterMain.substring(0, footerPos);
     },
 
@@ -222,7 +258,6 @@ const ShaderCRUD = {
         this.populateSelect();
 
         if (typeof editor !== 'undefined' && editor) {
-            // Afficher le shader complet avec le nouveau fragment
             const fullShader = fragmentShaderHeader + newFragment + fragmentShaderFooter;
             editor.setValue(fullShader);
             updateStatus('Mode création - Modifier et sauvegarder');
@@ -232,8 +267,7 @@ const ShaderCRUD = {
     /**
      * Sauvegarde le shader actuel
      */
-    save: function() {
-        // Extraire uniquement le fragment depuis le shader complet
+    save: async function() {
         const fragmentCode = this.extractFragmentCode();
 
         if (!fragmentCode.trim()) {
@@ -242,20 +276,20 @@ const ShaderCRUD = {
         }
 
         if (this.isCreatingNew) {
-            // Ajouter le nouveau fragment au tableau
             fragmentShaders.push(fragmentCode);
             this.currentShaderIndex = fragmentShaders.length - 1;
             glo.shaders.params.numshader = this.currentShaderIndex;
             this.isCreatingNew = false;
-            updateStatus('Nouveau shader créé (index ' + this.currentShaderIndex + ')');
         } else {
-            // Mettre à jour le fragment existant
             fragmentShaders[this.currentShaderIndex] = fragmentCode;
-            updateStatus('Shader ' + this.currentShaderIndex + ' mis à jour');
         }
 
-        // Télécharger le fichier shaders-frags.js mis à jour
-        this.saveToFile();
+        // Sauvegarder dans le fichier
+        const saved = await this.saveToFile();
+
+        if (saved) {
+            updateStatus('Shader ' + this.currentShaderIndex + ' sauvegardé dans shaders-frags.js');
+        }
 
         this.populateSelect();
         this.updateSelectValue();
@@ -265,7 +299,7 @@ const ShaderCRUD = {
     /**
      * Supprime le shader actuel
      */
-    delete: function() {
+    delete: async function() {
         if (fragmentShaders.length <= 1) {
             updateStatus('Erreur: Impossible de supprimer le dernier shader', true);
             return;
@@ -296,34 +330,47 @@ const ShaderCRUD = {
             glo.numShaderMove.next();
         }
 
-        // Télécharger le fichier mis à jour
-        this.saveToFile();
+        // Sauvegarder dans le fichier
+        const saved = await this.saveToFile();
+
+        if (saved) {
+            updateStatus('Shader supprimé de shaders-frags.js');
+        }
 
         this.populateSelect();
         this.updateSelectValue();
         this.loadShaderInEditor(this.currentShaderIndex);
         this.compileCurrentShader();
-
-        updateStatus('Shader supprimé');
     },
 
     /**
-     * Exporte tous les shaders
+     * Exporte tous les shaders (téléchargement)
      */
     exportAll: function() {
-        this.saveToFile();
+        const content = this.generateFileContent();
+        const blob = new Blob([content], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shaders-frags.js';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
         updateStatus('Fichier shaders-frags.js téléchargé');
     },
 
     /**
      * Importe des shaders depuis un fichier
      */
-    importFromFile: function(e) {
+    importFromFile: async function(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const content = event.target.result;
                 const match = content.match(/fragmentShaders\s*=\s*\[([\s\S]*)\];/);
@@ -356,6 +403,9 @@ const ShaderCRUD = {
                         glo.shaders.params.numshader = this.currentShaderIndex;
                         glo.numShaderMove = glo.numShaderMove();
 
+                        // Sauvegarder dans le fichier
+                        await this.saveToFile();
+
                         this.populateSelect();
                         this.updateSelectValue();
                         this.loadShaderInEditor(this.currentShaderIndex);
@@ -381,7 +431,6 @@ const ShaderCRUD = {
 
     /**
      * Compile le shader actuel
-     * Combine header (shaders.js) + fragment (shaders-frags.js) + footer (shaders.js)
      */
     compileCurrentShader: function() {
         fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;

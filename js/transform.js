@@ -286,6 +286,7 @@ async function applyDeformation(upd = false) {
 
             if (symmAngle.vals.x || symmAngle.vals.y) {
                 _normalVector = rotate(_normalVector, symmAngle.vals.x, symmAngle.vals.y, 0, _center);
+				if(_normalVector.length === undefined){ _normalVector = new BABYLON.Vector3(_normalVector.x , _normalVector.y, _normalVector.z); }
             }
 
             const angleXY = getAzimuthElevationAngles(glo.params.normByFace ? _normalVector : vectT, _center);
@@ -1051,7 +1052,6 @@ function applyTransformations(mesh = glo.ribbon) {
 }
 
 function reformatPaths(originalPaths = glo.curves.paths) {
-    // Déterminer le nombre de chemins et la longueur du chemin le plus long
     const numPaths = originalPaths.length;
     let maxPathLength = 0;
     originalPaths.forEach(path => {
@@ -1060,22 +1060,48 @@ function reformatPaths(originalPaths = glo.curves.paths) {
         }
     });
 
-    // Initialiser le nouveau tableau de chemins
     const newPaths = [];
 
-    // Construire chaque nouveau chemin en prenant le nième point de chaque chemin original
+    // Détecter s'il y a une discontinuité (mesh symétrisé)
+    // On cherche un saut significatif entre deux paths consécutifs
+    let splitIndex = -1;
+    
+    if (isSym()) { // ou ta condition pour détecter la symétrie
+        // La moitié des paths correspond au premier ribbon
+        splitIndex = Math.floor(numPaths / 2);
+    }
+
+    // Construire les chemins pour la première partie
     for (let i = 0; i < maxPathLength; i++) {
         const newPath = [];
-        for (let j = 0; j < numPaths; j++) {
-            if (i < originalPaths[j].length) { // Vérifie si le point existe
+        const endIndex = splitIndex > 0 ? splitIndex : numPaths;
+        
+        for (let j = 0; j < endIndex; j++) {
+            if (i < originalPaths[j].length) {
                 newPath.push(originalPaths[j][i]);
             }
         }
-        newPaths.push(newPath);
+        if (newPath.length > 1) {
+            newPaths.push(newPath);
+        }
     }
 
-	glo.curves.doublePaths = newPaths;
+    // Si symétrisé, construire les chemins pour la seconde partie
+    if (splitIndex > 0) {
+        for (let i = 0; i < maxPathLength; i++) {
+            const newPath = [];
+            for (let j = splitIndex; j < numPaths; j++) {
+                if (i < originalPaths[j].length) {
+                    newPath.push(originalPaths[j][i]);
+                }
+            }
+            if (newPath.length > 1) {
+                newPaths.push(newPath);
+            }
+        }
+    }
 
+    glo.curves.doublePaths = newPaths;
     return newPaths;
 }
 

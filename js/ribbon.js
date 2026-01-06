@@ -107,7 +107,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 	glo.isClosedArray = isClosedArray;
 	
-	if(glo.input_sym_r.text){ await applyDeformation(); }
+	//if(glo.input_sym_r.text){ await applyDeformation(); }
     
     let paths = glo.curves.paths;
 
@@ -169,6 +169,8 @@ async function make_ribbon(symmetrize = true, histo = true){
 				});
 			}
 		}
+
+		if(glo.input_sym_r.text){ await applyDeformation(true); }
 		
 		glo.ribbon.createNormals(true);
 
@@ -202,6 +204,7 @@ async function make_ribbon(symmetrize = true, histo = true){
             await makeSymmetrizeRibbon();
         }
 
+		//console.log(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind));
 		giveMaterialToMesh();
 
         if (glo.lines_visible) { makeLineSystem(updateRibbon); }

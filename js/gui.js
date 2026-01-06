@@ -1105,13 +1105,13 @@ function add_color_pickers(){
   addSlider(panelLight, "lightIntensity", "Intensity", 0.7, 2, 0, 1, 0.01, async function(value){
     glo.light.intensity = value;
   }, 'header right third');
-  addSlider(panelLight, "lightDirectionX", "Direction X", 0.3, 2, 0, 1, 0.01, async function(value){
+  addSlider(panelLight, "lightDirectionX", "Direction X", 0.3, 2, -PI, PI, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(value, glo.light.direction.y, glo.light.direction.z);
   }, 'header right third');
-  addSlider(panelLight, "lightDirectionY", "Direction Y", 0.6, 2, 0, 1, 0.01, async function(value){
+  addSlider(panelLight, "lightDirectionY", "Direction Y", 0.6, 2, -PI, PI, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, value, glo.light.direction.z);
   }, 'header right third');
-  addSlider(panelLight, "lightDirectionZ", "Direction Z", 0.5, 2, -1, 1, 0.01, async function(value){
+  addSlider(panelLight, "lightDirectionZ", "Direction Z", 0.5, 2, -PI, PI, 0.01, async function(value){
     glo.light.direction = new BABYLON.Vector3(glo.light.direction.x, glo.light.direction.y, value);
   });
   addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){

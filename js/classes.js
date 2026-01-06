@@ -56,6 +56,9 @@ class CurveBase {
 		this.isY = glo.params.text_input_suit_y != "" ? true : false;
 		this.isZ = glo.params.text_input_suit_z != "" ? true : false;
 
+		this.isN = glo.allControls.haveThisClass('input').some(input => input.text.includes('N'));
+		this.isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
+
 		// Paramètres pour les fonctions dynamiques
 		this.paramNames = [
 			"u", "v", "w", "x", "y", "z", "d", "k", "p", "t", "n", "i", "j", 'X', 'Y',
@@ -168,21 +171,25 @@ class CurveBase {
 				T = Math.atan2(z, x);
 
 				// Calcul du vecteur normal
-				vect3.set(x, y, z);
-				const vectN = getNormalVector(vect3);
-				xN = vectN.x; yN = vectN.y; zN = vectN.z;
-				µN = xN * yN * zN;
-				$N = (xN + yN + zN) / 3;
-				µ$N = µN * $N; $µN = µN + $N;
-				µµN = µ$N * $µN;
+				if (this.isN) {
+					vect3.set(x, y, z);
+					const vectN = getNormalVector(vect3);
+					xN = vectN.x; yN = vectN.y; zN = vectN.z;
+					µN = xN * yN * zN;
+					$N = (xN + yN + zN) / 3;
+					µ$N = µN * $N; $µN = µN + $N;
+					µµN = µ$N * $µN;
+				}
 
 				// Calcul du vecteur tangent
-				const hyp = Math.hypot(x, y, z);
-				xT = x / hyp; yT = y / hyp; zT = z / hyp;
-				µT = xT * yT * zT;
-				$T = (xT + yT + zT) / 3;
-				µ$T = µT * $T; $µT = µT + $T;
-				µµT = µ$T * $µT;
+				if (this.isT) {
+					const hyp = Math.hypot(x, y, z);
+					xT = x / hyp; yT = y / hyp; zT = z / hyp;
+					µT = xT * yT * zT;
+					$T = (xT + yT + zT) / 3;
+					µ$T = µT * $T; $µT = µT + $T;
+					µµT = µ$T * $µT;
+				}
 
 				// Gestion des valeurs infinies ou NaN
 				if (x == Infinity || x == -Infinity || isNaN(x)) { x = 0; }
@@ -212,8 +219,8 @@ class CurveBase {
 
 				// Rotation secondaire
 				alpha2 = this.eval2Alpha(...updatedArgs);
-				beta2 = this.eval2Beta(...updatedArgs);
-				theta = this.eval2Theta(...updatedArgs);
+				beta2  = this.eval2Beta(...updatedArgs);
+				theta  = this.eval2Theta(...updatedArgs);
 
 				if (alpha2 || beta2 || theta) {
 					pos = rotateOnCenterByBabylonMatrix({ x, y, z }, alpha2, beta2, theta);

@@ -5,29 +5,18 @@
  */
 
 const ShaderCRUD = {
-    // Handle du fichier pour l'écriture
-    fileHandle: null,
-
     // Index du shader en cours d'édition
     currentShaderIndex: 0,
 
     // Flag pour savoir si on est en mode création
     isCreatingNew: false,
 
-    // Shader temporaire pour la création
-    tempNewShader: '',
-
     /**
      * Initialise le système CRUD
      */
     init: function() {
-        // Peupler le select avec les shaders existants
         this.populateSelect();
-
-        // Attacher les événements aux boutons
         this.bindEvents();
-
-        // Synchroniser avec l'index actuel de glo
         this.currentShaderIndex = glo.shaders.params.numshader;
         this.updateSelectValue();
     },
@@ -52,41 +41,22 @@ const ShaderCRUD = {
 
     /**
      * Sauvegarde les shaders dans le fichier shaders-frags.js
+     * Télécharge automatiquement le fichier
      */
-    saveToFile: async function() {
-        try {
-            // Si on n'a pas encore de handle, demander à l'utilisateur de sélectionner le fichier
-            if (!this.fileHandle) {
-                // Utiliser showSaveFilePicker pour obtenir un handle d'écriture
-                this.fileHandle = await window.showSaveFilePicker({
-                    suggestedName: 'shaders-frags.js',
-                    types: [{
-                        description: 'JavaScript Files',
-                        accept: { 'application/javascript': ['.js'] }
-                    }]
-                });
-            }
+    saveToFile: function() {
+        const content = this.generateFileContent();
+        const blob = new Blob([content], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
 
-            // Créer un writable stream
-            const writable = await this.fileHandle.createWritable();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shaders-frags.js';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
 
-            // Écrire le contenu
-            const content = this.generateFileContent();
-            await writable.write(content);
-
-            // Fermer le stream
-            await writable.close();
-
-            return true;
-        } catch (err) {
-            if (err.name === 'AbortError') {
-                console.log('Sauvegarde annulée par l\'utilisateur');
-                return false;
-            }
-            console.error('Erreur lors de la sauvegarde:', err);
-            updateStatus('Erreur: ' + err.message, true);
-            return false;
-        }
+        return true;
     },
 
     /**
@@ -105,7 +75,6 @@ const ShaderCRUD = {
             select.appendChild(option);
         });
 
-        // Ajouter l'option "Nouveau" si en mode création
         if (this.isCreatingNew) {
             const option = document.createElement('option');
             option.value = 'new';
@@ -129,13 +98,11 @@ const ShaderCRUD = {
      * Attache les événements aux éléments du DOM
      */
     bindEvents: function() {
-        // Select de shader
         const select = document.getElementById('shaderSelect');
         if (select) {
             select.addEventListener('change', (e) => this.onSelectChange(e));
         }
 
-        // Bouton Nouveau
         const newBtn = document.getElementById('newShaderBtn');
         if (newBtn) {
             newBtn.addEventListener('click', (e) => {
@@ -144,7 +111,6 @@ const ShaderCRUD = {
             });
         }
 
-        // Bouton Sauvegarder
         const saveBtn = document.getElementById('saveShaderBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', (e) => {
@@ -153,7 +119,6 @@ const ShaderCRUD = {
             });
         }
 
-        // Bouton Supprimer
         const deleteBtn = document.getElementById('deleteShaderBtn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', (e) => {
@@ -162,7 +127,6 @@ const ShaderCRUD = {
             });
         }
 
-        // Bouton Exporter (téléchargement direct)
         const exportBtn = document.getElementById('exportShadersBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', (e) => {
@@ -171,7 +135,6 @@ const ShaderCRUD = {
             });
         }
 
-        // Bouton Importer
         const importBtn = document.getElementById('importShadersBtn');
         if (importBtn) {
             importBtn.addEventListener('click', (e) => {
@@ -180,7 +143,6 @@ const ShaderCRUD = {
             });
         }
 
-        // Input file pour l'import
         const importFile = document.getElementById('importShadersFile');
         if (importFile) {
             importFile.addEventListener('change', (e) => this.importFromFile(e));
@@ -197,10 +159,8 @@ const ShaderCRUD = {
             return;
         }
 
-        // Annuler le mode création si on sélectionne un shader existant
         if (this.isCreatingNew) {
             this.isCreatingNew = false;
-            this.tempNewShader = '';
             this.populateSelect();
         }
 
@@ -208,46 +168,29 @@ const ShaderCRUD = {
         this.currentShaderIndex = index;
         glo.shaders.params.numshader = index;
 
-        // Mettre à jour l'éditeur avec le code du shader sélectionné
+        // Charger uniquement le fragment dans l'éditeur
         this.loadShaderInEditor(index);
-
-        // Compiler automatiquement le shader
         this.compileCurrentShader();
     },
 
     /**
-     * Charge un shader dans l'éditeur Monaco
+     * Charge uniquement le fragment shader dans l'éditeur Monaco
+     * (sans le header/footer qui sont dans shaders.js)
      */
     loadShaderInEditor: function(index) {
         if (typeof editor !== 'undefined' && editor) {
             const shaderCode = fragmentShaders[index] || '';
-            // Construire le shader complet pour l'affichage
-            const fullShader = fragmentShaderHeader + shaderCode + fragmentShaderFooter;
-            editor.setValue(fullShader);
+            editor.setValue(shaderCode);
             updateStatus('Shader ' + index + ' chargé');
         }
     },
 
     /**
-     * Extrait le code du fragment shader depuis l'éditeur
+     * Récupère le code fragment depuis l'éditeur
      */
-    extractFragmentCode: function() {
+    getFragmentCode: function() {
         if (typeof editor === 'undefined' || !editor) return '';
-
-        const fullCode = editor.getValue();
-
-        // Trouver la position après "void main(){"
-        const mainPos = fullCode.indexOf('void main(){');
-        if (mainPos === -1) return '';
-
-        const afterMain = fullCode.substring(mainPos + 12);
-
-        // Trouver la position de "if(invcol" qui marque le début du footer
-        const footerPos = afterMain.indexOf('if(invcol');
-        if (footerPos === -1) return '';
-
-        // Extraire le code entre main() et le footer
-        return afterMain.substring(0, footerPos);
+        return editor.getValue();
     },
 
     /**
@@ -255,27 +198,25 @@ const ShaderCRUD = {
      */
     createNew: function() {
         this.isCreatingNew = true;
-        this.tempNewShader = `
+
+        const newShaderTemplate = `
     // Nouveau shader
     vec3 col = palette(length(npos()));
 `;
 
-        // Ajouter l'option "Nouveau" au select
         this.populateSelect();
 
-        // Charger le template dans l'éditeur
         if (typeof editor !== 'undefined' && editor) {
-            const fullShader = fragmentShaderHeader + this.tempNewShader + fragmentShaderFooter;
-            editor.setValue(fullShader);
+            editor.setValue(newShaderTemplate);
             updateStatus('Mode création - Modifier et sauvegarder');
         }
     },
 
     /**
-     * Sauvegarde le shader actuel dans le fichier
+     * Sauvegarde le shader actuel
      */
-    save: async function() {
-        const fragmentCode = this.extractFragmentCode();
+    save: function() {
+        const fragmentCode = this.getFragmentCode();
 
         if (!fragmentCode.trim()) {
             updateStatus('Erreur: Code shader vide', true);
@@ -283,59 +224,47 @@ const ShaderCRUD = {
         }
 
         if (this.isCreatingNew) {
-            // Ajouter le nouveau shader au tableau
             fragmentShaders.push(fragmentCode);
             this.currentShaderIndex = fragmentShaders.length - 1;
             glo.shaders.params.numshader = this.currentShaderIndex;
             this.isCreatingNew = false;
-            this.tempNewShader = '';
+            updateStatus('Nouveau shader créé (index ' + this.currentShaderIndex + ')');
         } else {
-            // Mettre à jour le shader existant
             fragmentShaders[this.currentShaderIndex] = fragmentCode;
+            updateStatus('Shader ' + this.currentShaderIndex + ' mis à jour');
         }
 
-        // Sauvegarder dans le fichier
-        const saved = await this.saveToFile();
+        // Télécharger le fichier mis à jour
+        this.saveToFile();
 
-        if (saved) {
-            updateStatus('Shader ' + this.currentShaderIndex + ' sauvegardé dans le fichier');
-        }
-
-        // Mettre à jour le select
         this.populateSelect();
         this.updateSelectValue();
-
-        // Compiler le shader
         this.compileCurrentShader();
     },
 
     /**
-     * Supprime le shader actuel du fichier
+     * Supprime le shader actuel
      */
-    delete: async function() {
+    delete: function() {
         if (fragmentShaders.length <= 1) {
             updateStatus('Erreur: Impossible de supprimer le dernier shader', true);
             return;
         }
 
         if (this.isCreatingNew) {
-            // Annuler la création
             this.isCreatingNew = false;
-            this.tempNewShader = '';
             this.populateSelect();
             this.loadShaderInEditor(this.currentShaderIndex);
             updateStatus('Création annulée');
             return;
         }
 
-        if (!confirm('Supprimer le shader ' + this.currentShaderIndex + ' du fichier ?')) {
+        if (!confirm('Supprimer le shader ' + this.currentShaderIndex + ' ?')) {
             return;
         }
 
-        // Supprimer le shader du tableau
         fragmentShaders.splice(this.currentShaderIndex, 1);
 
-        // Ajuster l'index si nécessaire
         if (this.currentShaderIndex >= fragmentShaders.length) {
             this.currentShaderIndex = fragmentShaders.length - 1;
         }
@@ -347,60 +276,42 @@ const ShaderCRUD = {
             glo.numShaderMove.next();
         }
 
-        // Sauvegarder dans le fichier
-        const saved = await this.saveToFile();
+        // Télécharger le fichier mis à jour
+        this.saveToFile();
 
-        if (saved) {
-            updateStatus('Shader supprimé du fichier');
-        }
-
-        // Mettre à jour l'interface
         this.populateSelect();
         this.updateSelectValue();
         this.loadShaderInEditor(this.currentShaderIndex);
         this.compileCurrentShader();
+
+        updateStatus('Shader supprimé');
     },
 
     /**
-     * Exporte tous les shaders vers un fichier JS (téléchargement)
+     * Exporte tous les shaders (identique à saveToFile)
      */
     exportAll: function() {
-        const content = this.generateFileContent();
-
-        const blob = new Blob([content], { type: 'application/javascript' });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'shaders-frags.js';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        updateStatus('Shaders exportés');
+        this.saveToFile();
+        updateStatus('Fichier shaders-frags.js téléchargé');
     },
 
     /**
      * Importe des shaders depuis un fichier
      */
-    importFromFile: async function(e) {
+    importFromFile: function(e) {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = async (event) => {
+        reader.onload = (event) => {
             try {
                 const content = event.target.result;
-
-                // Parser le contenu du fichier
                 const match = content.match(/fragmentShaders\s*=\s*\[([\s\S]*)\];/);
 
                 if (match) {
                     const arrayContent = match[1];
                     const tempShaders = [];
 
-                    // Extraire les template literals
                     const shaderRegex = /`([\s\S]*?)`/g;
                     let shaderMatch;
 
@@ -411,7 +322,7 @@ const ShaderCRUD = {
                     if (tempShaders.length > 0) {
                         const replace = confirm(
                             'Shaders trouvés: ' + tempShaders.length + '\n\n' +
-                            'OK = Remplacer tous les shaders existants\n' +
+                            'OK = Remplacer tous les shaders\n' +
                             'Annuler = Ajouter aux shaders existants'
                         );
 
@@ -423,31 +334,23 @@ const ShaderCRUD = {
                         }
 
                         glo.shaders.params.numshader = this.currentShaderIndex;
-
-                        // Réinitialiser le générateur
                         glo.numShaderMove = glo.numShaderMove();
 
-                        // Sauvegarder dans le fichier
-                        const saved = await this.saveToFile();
-
-                        // Mettre à jour l'interface
                         this.populateSelect();
                         this.updateSelectValue();
                         this.loadShaderInEditor(this.currentShaderIndex);
                         this.compileCurrentShader();
 
-                        if (saved) {
-                            updateStatus('Import réussi: ' + tempShaders.length + ' shaders sauvegardés');
-                        }
+                        updateStatus('Import réussi: ' + tempShaders.length + ' shaders');
                     } else {
-                        updateStatus('Erreur: Aucun shader trouvé dans le fichier', true);
+                        updateStatus('Erreur: Aucun shader trouvé', true);
                     }
                 } else {
-                    updateStatus('Erreur: Format de fichier invalide', true);
+                    updateStatus('Erreur: Format invalide', true);
                 }
             } catch (err) {
-                console.error('Erreur lors de l\'import:', err);
-                updateStatus('Erreur lors de l\'import', true);
+                console.error('Erreur import:', err);
+                updateStatus('Erreur import', true);
             }
 
             e.target.value = '';
@@ -457,13 +360,12 @@ const ShaderCRUD = {
     },
 
     /**
-     * Compile le shader actuel
+     * Compile le shader actuel en combinant header + fragment + footer
      */
     compileCurrentShader: function() {
-        // Mettre à jour le fragmentShader global
+        // Le header et footer viennent de shaders.js
         fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
 
-        // Déclencher la recompilation
         const compileBtn = document.getElementById('compileBtn');
         if (compileBtn) {
             compileBtn.click();

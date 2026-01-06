@@ -2,6 +2,10 @@
  * Shader CRUD System
  * Gère la création, lecture, mise à jour et suppression des shaders
  * en modifiant directement le fichier shaders-frags.js
+ *
+ * Les shaders peuvent être nommés avec un commentaire en première ligne :
+ * // Mon Shader
+ * vec3 col = ...
  */
 
 const ShaderCRUD = {
@@ -25,6 +29,24 @@ const ShaderCRUD = {
     },
 
     /**
+     * Extrait le nom du shader depuis le commentaire de première ligne
+     * Format attendu : // Nom du shader
+     */
+    getShaderName: function(shaderCode, index) {
+        if (!shaderCode) return `Shader ${index}`;
+
+        // Chercher un commentaire en première ligne (après les espaces/sauts de ligne)
+        const trimmed = shaderCode.trim();
+        const match = trimmed.match(/^\/\/\s*(.+)/);
+
+        if (match && match[1]) {
+            return match[1].trim();
+        }
+
+        return `Shader ${index}`;
+    },
+
+    /**
      * Génère le contenu du fichier shaders-frags.js
      */
     generateFileContent: function() {
@@ -44,7 +66,6 @@ const ShaderCRUD = {
 
     /**
      * Demande à l'utilisateur de sélectionner le fichier shaders-frags.js
-     * Une fois sélectionné, il sera modifié directement
      */
     selectFile: async function() {
         try {
@@ -69,7 +90,6 @@ const ShaderCRUD = {
      */
     saveToFile: async function() {
         try {
-            // Si pas de handle, demander de sélectionner le fichier
             if (!this.fileHandle) {
                 const selected = await this.selectFile();
                 if (!selected) {
@@ -78,7 +98,6 @@ const ShaderCRUD = {
                 }
             }
 
-            // Écrire dans le fichier
             const writable = await this.fileHandle.createWritable();
             await writable.write(this.generateFileContent());
             await writable.close();
@@ -86,7 +105,6 @@ const ShaderCRUD = {
             return true;
         } catch (err) {
             console.error('Erreur sauvegarde:', err);
-            // Si erreur de permission, réessayer avec sélection
             if (err.name === 'NotAllowedError') {
                 this.fileHandle = null;
                 updateStatus('Permission refusée, resélectionnez le fichier', true);
@@ -98,7 +116,7 @@ const ShaderCRUD = {
     },
 
     /**
-     * Peuple le select avec les shaders disponibles
+     * Peuple le select avec les shaders disponibles (avec leurs noms)
      */
     populateSelect: function() {
         const select = document.getElementById('shaderSelect');
@@ -109,7 +127,7 @@ const ShaderCRUD = {
         fragmentShaders.forEach((shader, index) => {
             const option = document.createElement('option');
             option.value = index;
-            option.textContent = `Shader ${index}`;
+            option.textContent = this.getShaderName(shader, index);
             select.appendChild(option);
         });
 
@@ -212,32 +230,28 @@ const ShaderCRUD = {
 
     /**
      * Charge le shader COMPLET dans l'éditeur Monaco
-     * (header de shaders.js + fragment de shaders-frags.js + footer de shaders.js)
      */
     loadShaderInEditor: function(index) {
         if (typeof editor !== 'undefined' && editor) {
             const fullShader = fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter;
             editor.setValue(fullShader);
-            updateStatus('Shader ' + index + ' chargé');
+            updateStatus(this.getShaderName(fragmentShaders[index], index) + ' chargé');
         }
     },
 
     /**
-     * Extrait uniquement le fragment (partie modifiable) depuis l'éditeur
-     * C'est cette partie qui sera sauvegardée dans shaders-frags.js
+     * Extrait uniquement le fragment depuis l'éditeur
      */
     extractFragmentCode: function() {
         if (typeof editor === 'undefined' || !editor) return '';
 
         const fullCode = editor.getValue();
 
-        // Trouver la position après "void main(){"
         const mainPos = fullCode.indexOf('void main(){');
         if (mainPos === -1) return '';
 
         const afterMain = fullCode.substring(mainPos + 12);
 
-        // Trouver la position de "if(invcol" qui marque le début du footer
         const footerPos = afterMain.indexOf('if(invcol');
         if (footerPos === -1) return '';
 
@@ -250,8 +264,15 @@ const ShaderCRUD = {
     createNew: function() {
         this.isCreatingNew = true;
 
+        // Demander un nom pour le shader
+        const shaderName = prompt('Nom du nouveau shader :', 'Nouveau shader');
+        if (shaderName === null) {
+            this.isCreatingNew = false;
+            return;
+        }
+
         const newFragment = `
-    // Nouveau shader
+    // ${shaderName}
     vec3 col = palette(length(npos()));
 `;
 
@@ -284,11 +305,11 @@ const ShaderCRUD = {
             fragmentShaders[this.currentShaderIndex] = fragmentCode;
         }
 
-        // Sauvegarder dans le fichier
         const saved = await this.saveToFile();
 
         if (saved) {
-            updateStatus('Shader ' + this.currentShaderIndex + ' sauvegardé dans shaders-frags.js');
+            const name = this.getShaderName(fragmentCode, this.currentShaderIndex);
+            updateStatus(name + ' sauvegardé');
         }
 
         this.populateSelect();
@@ -313,7 +334,8 @@ const ShaderCRUD = {
             return;
         }
 
-        if (!confirm('Supprimer le shader ' + this.currentShaderIndex + ' ?')) {
+        const shaderName = this.getShaderName(fragmentShaders[this.currentShaderIndex], this.currentShaderIndex);
+        if (!confirm('Supprimer "' + shaderName + '" ?')) {
             return;
         }
 
@@ -324,17 +346,10 @@ const ShaderCRUD = {
         }
         glo.shaders.params.numshader = this.currentShaderIndex;
 
-        // Réinitialiser le générateur numShaderMove
-        glo.numShaderMove = glo.numShaderMove();
-        for (let i = 0; i < this.currentShaderIndex; i++) {
-            glo.numShaderMove.next();
-        }
-
-        // Sauvegarder dans le fichier
         const saved = await this.saveToFile();
 
         if (saved) {
-            updateStatus('Shader supprimé de shaders-frags.js');
+            updateStatus(shaderName + ' supprimé');
         }
 
         this.populateSelect();
@@ -401,9 +416,7 @@ const ShaderCRUD = {
                         }
 
                         glo.shaders.params.numshader = this.currentShaderIndex;
-                        glo.numShaderMove = glo.numShaderMove();
 
-                        // Sauvegarder dans le fichier
                         await this.saveToFile();
 
                         this.populateSelect();

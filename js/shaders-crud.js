@@ -66,22 +66,62 @@ const ShaderCRUD = {
 
     /**
      * Demande à l'utilisateur de sélectionner le fichier shaders-frags.js
+     * Vérifie que le bon fichier est sélectionné
      */
     selectFile: async function() {
-        try {
-            [this.fileHandle] = await window.showOpenFilePicker({
-                types: [{
-                    description: 'JavaScript Files',
-                    accept: { 'application/javascript': ['.js'] }
-                }],
-                multiple: false
-            });
-            return true;
-        } catch (err) {
-            if (err.name !== 'AbortError') {
+        const expectedFileName = 'shaders-frags.js';
+
+        while (true) {
+            try {
+                alert('Veuillez sélectionner le fichier "shaders-frags.js" dans le dossier js/');
+
+                [this.fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'Fichier shaders-frags.js',
+                        accept: { 'application/javascript': ['.js'] }
+                    }],
+                    multiple: false
+                });
+
+                // Vérifier le nom du fichier
+                const file = await this.fileHandle.getFile();
+                if (file.name !== expectedFileName) {
+                    const retry = confirm(
+                        `Fichier incorrect : "${file.name}"\n\n` +
+                        `Vous devez sélectionner "${expectedFileName}"\n\n` +
+                        `Cliquez OK pour réessayer, ou Annuler pour abandonner.`
+                    );
+                    if (!retry) {
+                        this.fileHandle = null;
+                        return false;
+                    }
+                    continue;
+                }
+
+                // Vérifier que le contenu ressemble à shaders-frags.js
+                const content = await file.text();
+                if (!content.includes('fragmentShaders')) {
+                    const retry = confirm(
+                        `Le fichier ne semble pas être le bon.\n` +
+                        `Il devrait contenir "fragmentShaders".\n\n` +
+                        `Cliquez OK pour réessayer, ou Annuler pour abandonner.`
+                    );
+                    if (!retry) {
+                        this.fileHandle = null;
+                        return false;
+                    }
+                    continue;
+                }
+
+                return true;
+
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    return false;
+                }
                 console.error('Erreur sélection fichier:', err);
+                return false;
             }
-            return false;
         }
     },
 

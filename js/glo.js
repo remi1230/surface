@@ -553,13 +553,14 @@ var glo = {
 			}
 		}
 	},
+	numShaderSelect: 0,
 	numShaderMove: function* (){
 	  var index = 0;
 	  var tab = fragmentShaders;
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
-			this.shaders.params.numshader = index;
+			this.numShaderSelect = index;
 	    yield index;
 	  }
 	},

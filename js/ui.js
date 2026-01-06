@@ -85,6 +85,19 @@ async function switchFractalOrient(normalSens = true){
     await remakeRibbon('fractalize');
 }
 
+function switchShader(normalSens = true){
+	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
+      fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+
+      if(editor){
+		editor.setValue(fragmentShader);
+	  }
+
+	  getById('shaderSelect').value = glo.numShaderSelect;
+
+      giveMaterialToMesh();
+}
+
 function switchSymmetrizeOrder(normalSens = true){
 	genInTwoWays(glo.symmetrizeOrders, 'symmetrizeOrder', normalSens);
 

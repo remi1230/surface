@@ -332,7 +332,7 @@ fragmentShaderFooter = `
 
 glo.numShaderMove = glo.numShaderMove();
 
-fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
+fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
 function validateShader(shaderCode) {
     const canvas = document.createElement('canvas');

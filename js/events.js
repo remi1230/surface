@@ -522,8 +522,8 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "8":
-                  glo.shaders.params.numshader = glo.numShaderMove.next().value;
-                  fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
+                  glo.numShaderSelect = glo.numShaderMove.next().value;
+                  fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
                   if(editor){ editor.setValue(fragmentShader); }
 

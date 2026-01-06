@@ -182,3 +182,85 @@
 .shader-editor-window {
     animation: slideIn 0.2s ease-out;
 }
+
+/* Barre CRUD des shaders */
+.shader-crud-bar {
+    background: #252526;
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #333;
+    flex-wrap: wrap;
+}
+
+.shader-select-wrapper {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+}
+
+.shader-select-wrapper select {
+    width: 100%;
+    background: #3c3c3c;
+    color: #fff;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+}
+
+.shader-select-wrapper select:hover {
+    border-color: #007acc;
+}
+
+.shader-select-wrapper select:focus {
+    border-color: #007acc;
+    box-shadow: 0 0 0 1px #007acc;
+}
+
+.shader-select-wrapper select option {
+    background: #252526;
+    color: #fff;
+}
+
+.shader-crud-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.shader-crud-buttons .btn-small {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.shader-crud-buttons .btn-small i {
+    font-size: 18px;
+    margin: 0;
+    line-height: 36px;
+}
+
+/* Responsivité pour petits écrans */
+@media (max-width: 500px) {
+    .shader-crud-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .shader-select-wrapper {
+        max-width: none;
+    }
+
+    .shader-crud-buttons {
+        justify-content: center;
+    }
+}

@@ -91,8 +91,6 @@ fragmentShaders = [
     vec3 col = palette(length(fract(vec2(vUV.x*0.125,vUV.y)*24.0)-0.5)+0.125*time);
 
     
-    col = hsv2rgb(col*(1.0+2.0*Ts(0.33)));
-    
     
     `
 ];

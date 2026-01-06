@@ -3,7 +3,7 @@
 //*****************************************************************************************************//
 
 //Les touches a ou z enfoncée plus le ckique gauche de la souris
-BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
+/*BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
   this.isKeyPressed = false; // Drapeau pour éviter les déclenchements multiples
 
   this.onPointerEnterObservable.add(function() {
@@ -52,7 +52,7 @@ BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
       var val = e.y < 0 ? this.step : -this.step;
       this.value += val;
   }.bind(this));
-};
+};*/
 
 BABYLON.GUI.InputText.prototype.subscribeToFocusAndBlurEvents = function() {
   this.onFocusObservable.add(() => {
@@ -1332,14 +1332,9 @@ function add_shaders_ctrl(){
       glo.shaderMaterial = !glo.shaderMaterial;
       giveMaterialToMesh();
   });
-  add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, async function(){
-      glo.shaders.params.numshader = glo.numShaderMove.next().value;
-      fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
-
-      if(editor){ editor.setValue(fragmentShader); }
-
-      giveMaterialToMesh();
-  });
+  add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, function(){
+      switchShader();
+  }, function(){ switchShader(false); });
   add_button(panelButtons, "invcolShaderEditorButton", "Inv", "20%", 30, 0, 10, 0, async function(){
       glo.shaders.params.invcol = !glo.shaders.params.invcol;
       giveMaterialToMesh();
@@ -2346,7 +2341,7 @@ function param_controls(){
   glo.allControls.haveTheseClasses('input', 'right', 'fourth').map(inp => {
     parmamControl(inp, '', '', { hAlign: 'right', vAlign: 'top', h: 22.5, background: 'grey', }, true, false);
   });
-  glo.allControls.haveThisClass('slider').map(slider => { slider.subscribeToKeyEventsOnHover(); });
+  //glo.allControls.haveThisClass('slider').map(slider => { slider.subscribeToKeyEventsOnHover(); });
   glo.allControls.haveThisClass('input').map(input => { input.subscribeToFocusAndBlurEvents(); });
 }
 

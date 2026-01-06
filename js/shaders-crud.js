@@ -168,29 +168,44 @@ const ShaderCRUD = {
         this.currentShaderIndex = index;
         glo.shaders.params.numshader = index;
 
-        // Charger uniquement le fragment dans l'éditeur
         this.loadShaderInEditor(index);
         this.compileCurrentShader();
     },
 
     /**
-     * Charge uniquement le fragment shader dans l'éditeur Monaco
-     * (sans le header/footer qui sont dans shaders.js)
+     * Charge le shader COMPLET dans l'éditeur Monaco
+     * (header de shaders.js + fragment de shaders-frags.js + footer de shaders.js)
      */
     loadShaderInEditor: function(index) {
         if (typeof editor !== 'undefined' && editor) {
-            const shaderCode = fragmentShaders[index] || '';
-            editor.setValue(shaderCode);
+            // Construire le shader complet comme dans shaders.js
+            const fullShader = fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter;
+            editor.setValue(fullShader);
             updateStatus('Shader ' + index + ' chargé');
         }
     },
 
     /**
-     * Récupère le code fragment depuis l'éditeur
+     * Extrait uniquement le fragment (partie modifiable) depuis l'éditeur
+     * C'est cette partie qui sera sauvegardée dans shaders-frags.js
      */
-    getFragmentCode: function() {
+    extractFragmentCode: function() {
         if (typeof editor === 'undefined' || !editor) return '';
-        return editor.getValue();
+
+        const fullCode = editor.getValue();
+
+        // Trouver la position après "void main(){"
+        const mainPos = fullCode.indexOf('void main(){');
+        if (mainPos === -1) return '';
+
+        const afterMain = fullCode.substring(mainPos + 12);
+
+        // Trouver la position de "if(invcol" qui marque le début du footer
+        const footerPos = afterMain.indexOf('if(invcol');
+        if (footerPos === -1) return '';
+
+        // Retourner uniquement le fragment (entre main et footer)
+        return afterMain.substring(0, footerPos);
     },
 
     /**
@@ -199,7 +214,7 @@ const ShaderCRUD = {
     createNew: function() {
         this.isCreatingNew = true;
 
-        const newShaderTemplate = `
+        const newFragment = `
     // Nouveau shader
     vec3 col = palette(length(npos()));
 `;
@@ -207,7 +222,9 @@ const ShaderCRUD = {
         this.populateSelect();
 
         if (typeof editor !== 'undefined' && editor) {
-            editor.setValue(newShaderTemplate);
+            // Afficher le shader complet avec le nouveau fragment
+            const fullShader = fragmentShaderHeader + newFragment + fragmentShaderFooter;
+            editor.setValue(fullShader);
             updateStatus('Mode création - Modifier et sauvegarder');
         }
     },
@@ -216,7 +233,8 @@ const ShaderCRUD = {
      * Sauvegarde le shader actuel
      */
     save: function() {
-        const fragmentCode = this.getFragmentCode();
+        // Extraire uniquement le fragment depuis le shader complet
+        const fragmentCode = this.extractFragmentCode();
 
         if (!fragmentCode.trim()) {
             updateStatus('Erreur: Code shader vide', true);
@@ -224,17 +242,19 @@ const ShaderCRUD = {
         }
 
         if (this.isCreatingNew) {
+            // Ajouter le nouveau fragment au tableau
             fragmentShaders.push(fragmentCode);
             this.currentShaderIndex = fragmentShaders.length - 1;
             glo.shaders.params.numshader = this.currentShaderIndex;
             this.isCreatingNew = false;
             updateStatus('Nouveau shader créé (index ' + this.currentShaderIndex + ')');
         } else {
+            // Mettre à jour le fragment existant
             fragmentShaders[this.currentShaderIndex] = fragmentCode;
             updateStatus('Shader ' + this.currentShaderIndex + ' mis à jour');
         }
 
-        // Télécharger le fichier mis à jour
+        // Télécharger le fichier shaders-frags.js mis à jour
         this.saveToFile();
 
         this.populateSelect();
@@ -288,7 +308,7 @@ const ShaderCRUD = {
     },
 
     /**
-     * Exporte tous les shaders (identique à saveToFile)
+     * Exporte tous les shaders
      */
     exportAll: function() {
         this.saveToFile();
@@ -360,10 +380,10 @@ const ShaderCRUD = {
     },
 
     /**
-     * Compile le shader actuel en combinant header + fragment + footer
+     * Compile le shader actuel
+     * Combine header (shaders.js) + fragment (shaders-frags.js) + footer (shaders.js)
      */
     compileCurrentShader: function() {
-        // Le header et footer viennent de shaders.js
         fragmentShader = fragmentShaderHeader + fragmentShaders[glo.shaders.params.numshader] + fragmentShaderFooter;
 
         const compileBtn = document.getElementById('compileBtn');

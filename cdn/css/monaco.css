@@ -198,7 +198,27 @@
 .shader-select-wrapper {
     flex: 1;
     min-width: 120px;
-    max-width: 200px;
+    max-width: 250px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Indicateur de source (serveur/local) */
+.storage-indicator {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: #3c3c3c;
+    color: #888;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.storage-indicator:hover {
+    background: #4a4a4a;
+    color: #fff;
 }
 
 .shader-select-wrapper select {

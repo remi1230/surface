@@ -10,7 +10,7 @@ fragmentShaders = [
 `,
 `
     //Npos
-    vec3 col = palette(2.0*length(npos()));
+    vec3 col = 1.0 - palette(8.0*length(npos()));
 `,
 `
     //Normal
@@ -51,48 +51,77 @@ fragmentShaders = [
 `,
 `   
     //Truchet
-    float scale = 32.0;
+    vec2 scale  = vec2(16.0, 32.0);
     vec2 cell   = floor(vUV * scale);
     vec2 uv     = fract(vUV*scale)-0.5;
     float d     = length(uv);
     float index = hash21(cell);
 
-    vec2 center1, center2;
-    if (index < 0.5) {
-        center1 = vec2(-0.5, -0.5);
-        center2 = vec2( 0.5,  0.5);
-    } else {
-        center1 = vec2( 0.5, -0.5);
-        center2 = vec2(-0.5,  0.5);
-    }
-
     float rad = 0.5;
-    float dist1 = sdCircle(uv, center1, rad);
-    float dist2 = sdCircle(uv, center2, rad);
-    
-    float thickness = 0.05;
-    float arc1 = 1.0 - smoothstep(0.0, 0.02, abs(dist1) - thickness);
-    float arc2 = 1.0 - smoothstep(0.0, 0.02, abs(dist2) - thickness);
-    float pattern = max(arc1, arc2);
+    float thickness = 0.14;
 
-    vec3 col = vec3(pattern);
+    vec3 col   = vec3(truchet(uv, index, rad, thickness));
+    float lCol = length(col);
 
-    vec3 valCol = palette(time);
-    float lCol  = length(col);
+    float c      = 0.0625*time+4.0*length(npos());
+    vec3 valCol  = palette(c);
+    vec3 valCol2 = rainbow(c);
+    vec3 valCol3 = mix(valCol, valCol2, Ts(1.0));
 
-    if(d > 0.4){
-        col += 0.66*palette(d+0.125*time);
+    col *= valCol3;
+
+    if(lCol == 0.0) col = 1.0-valCol3;
+    else{
+        col = smoothstep(0.833, 1.166-0.166*Ts(1.0), valCol3); 
     }
-    else if(d < 0.3){ col += palette(0.125*time+d); }
-    col = 1.0 - col;
+
+
 `,
 `
     // FractUV
-    vec3 col = palette(length(fract(vec2(vUV.x*0.125,vUV.y)*24.0)-0.5)+0.125*time);
+    float scale = 24.0;
+    float ratio = 0.5;
 
+    vec2 uv     = vec2(vUV.x*ratio,vUV.y)*scale; 
+    vec2 cellUv = fract(uv)-0.5;
+    vec2 cellId = floor(uv);
+    float d     = length(cellUv);
+    float index = hash21(cellId);
     
-    col = hsv2rgb(col*(1.0+2.0*Ts(0.33)));
+    float valCol = d+0.125*time;
+
+    vec3 col1 = palette(valCol-index);
+    vec3 col2 = rainbow(valCol+index);
+
+    vec3 col = mix((0.66+Tc(0.33))*col1, (0.33+Ts(0.42))*col2, cross(col1, col2));
+    
+    if(length(col) > 1.0){
+        col /= 1.414;
+    }
     
     
-    `
+    
+    
+    `,
+`
+    //Voronoi
+    vec2 st = vUV;
+    vec3 color = vec3(.0);
+
+    // Scale
+    vec2 scale = vec2(32., 64.);
+    st *= scale;
+
+    vec2 i_st = floor(st);
+    vec2 f_st = fract(st);
+
+    float m_dist = 1.0 - voronoi(i_st, f_st, scale);
+
+    float minBrightness = 0.333;
+    m_dist = minBrightness + (1.0 - minBrightness) * m_dist;
+
+    vec3 col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
+
+
+`
 ];

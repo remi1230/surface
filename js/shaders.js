@@ -248,6 +248,10 @@ vec3 c = vec3(1.0, 1.0, 1.0);  // Fréquence
 return a + b * cos(6.28318 * (c * t + phase));
 }
 
+vec2 random2( vec2 p ) {
+    return fract(sin(vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3))))*43758.5453);
+}
+
 float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -314,6 +318,68 @@ float sdHexagon(vec2 p, float r) {
 
 float sdCircle(vec2 p, vec2 center, float r) {
     return length(p-center) - r;
+}
+
+vec3 checkerboard(float x, float y, vec3 bg, vec3 fg, float coeff, float offsetX, float offsetY){
+    // Calcul de la position dans la grille
+    float gridX = floor(mod(coeff * x + offsetX, 0.0));
+    float gridY = floor(mod(coeff * y + offsetY, 0.0));
+    
+    // Pattern de damier : (x + y) % 2 pour alterner
+    float pattern = mod(gridX + gridY, 2.0);
+    
+    // Mix entre bg et fg selon le pattern
+    return mix(bg, fg, pattern);
+}
+
+float voronoi(vec2 i_st, vec2 f_st, vec2 scale){
+    float m_dist = 1.;
+
+    for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++) {
+            vec2 neighbor = vec2(float(x), float(y));
+            
+            // Position du voisin dans la grille
+            vec2 neighborCell = i_st + neighbor;
+            
+            // WRAPPING sur U (axe X) - périodicité sur 16 cellules
+            vec2 wrappedCell = vec2(
+                mod(neighborCell.x, scale.x),
+                mod(neighborCell.y, scale.y)
+            );
+            
+            // Random basé sur la cellule wrappée
+            vec2 point = random2(wrappedCell);
+
+            point = 0.5 + 0.5 * sin(time + 6.2831 * point);
+
+            vec2 diff = neighbor + point - f_st;
+
+            float dist = length(diff);
+            m_dist = min(m_dist, dist);
+        }
+    }
+    return m_dist;
+}
+
+float truchet(vec2 uv, float index, float rad, float thickness){
+    vec2 center1, center2;
+    if (index < 0.5) {
+        center1 = vec2(-0.5, -0.5);
+        center2 = vec2( 0.5,  0.5);
+    } else {
+        center1 = vec2( 0.5, -0.5);
+        center2 = vec2(-0.5,  0.5);
+    }
+
+    float dist1 = sdCircle(uv, center1, rad);
+    float dist2 = sdCircle(uv, center2, rad);
+    
+    float arc1 = 1.0 - smoothstep(0.0, 0.02, abs(dist1) - thickness);
+    float arc2 = 1.0 - smoothstep(0.0, 0.02, abs(dist2) - thickness);
+    float pattern = max(arc1, arc2);
+
+    return pattern;
 }
 
 

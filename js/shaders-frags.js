@@ -20,7 +20,7 @@ fragmentShaders = [
     `,
 `   
     //Curvatures
-    float val = mix(vCurvatures.x, vCurvatures.y, length(npos()));
+    float val = 0.5*(vCurvatures.x+vCurvatures.y);
     vec3 col  = 1.0 - rainbow(val);
 `,
 `   

@@ -336,7 +336,6 @@ async function delInRibbon(){
 	if(test_equations(f)){
 		reg(f);
 
-		glo.curves.linesSystems    = [];
 		glo.currentCurveInfos.path = [];
 		glo.curves.paths           = [];
 

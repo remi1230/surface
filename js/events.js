@@ -307,15 +307,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "a":
-                  glo.video.recording = !glo.video.recording;
-
-                  if(glo.video.recording){
-                     glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
-                     glo.video.recorder.start();
-                  }
-                  else{
-                     glo.video.recorder.stop();
-                  }
+                  switchRecordingVideo();
 
                break;
                case "ù":

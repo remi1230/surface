@@ -502,7 +502,7 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
 	//glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
-	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '30px'; });
+	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '25px'; });
 }
 
 function hdMax(){
@@ -711,7 +711,7 @@ function getFixedExportBounds(mesh, scene, margin = 20) {
     
     const screenRadius = Math.abs(screenEdge.x - screenCenter.x);
     
-	const coeff = 1.414; // Pour un peu plus d'espace
+	const coeff = glo.videoBoxRange; // Pour un peu plus d'espace
     const size  = screenRadius * coeff + margin * coeff;
     
     return {
@@ -749,10 +749,21 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             chunks = [];
             
             const stream = captureCanvas.captureStream(fps);
+
+			let recordedMimeType;
+			if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+				recordedMimeType = 'video/webm;codecs=h264';
+			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+				recordedMimeType = 'video/webm;codecs=vp9';
+			} else if(MediaRecorder.isTypeSupported('video/webm')) {
+				recordedMimeType = 'video/webm';
+			} else {
+				recordedMimeType = 'video/mp4';
+			} 
             
             mediaRecorder = new MediaRecorder(stream, {
-                mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 8000000
+                mimeType: recordedMimeType,
+                videoBitsPerSecond: 15000000
             });
             
             mediaRecorder.ondataavailable = e => {
@@ -760,16 +771,18 @@ function createMeshRecorder(mesh, scene, fps = 60) {
                     chunks.push(e.data);
                 }
             };
+
+			const extension = recordedMimeType.includes('mp4') ? 'mp4' : 'webm';
             
             mediaRecorder.onstop = () => {
                 if (chunks.length === 0) {
                     return;
                 }
-                const blob = new Blob(chunks, { type: 'video/webm' });
+                const blob = new Blob(chunks, { type: recordedMimeType });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `mesh-${Date.now()}.webm`;
+                a.download = `mesh-${Date.now()}.${extension}`;
                 a.click();
                 URL.revokeObjectURL(url);
             };
@@ -801,4 +814,54 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             return mediaRecorder?.state === 'recording';
         }
     };
+}
+
+function updateVideoCropBox() {
+  // Supprimer l'ancien carré s'il existe
+  if (glo.videoCropBox) {
+    glo.videoCropBox.dispose();
+  }
+  
+  // Récupérer les limites de capture
+  const bounds = getFixedExportBounds(glo.ribbon, glo.scene, 20);
+  
+  // Créer un rectangle GUI qui représente la zone de capture
+  if (!glo.videoCropBoxGUI) {
+    glo.videoCropBoxGUI = new BABYLON.GUI.Rectangle("videoCropBox");
+    glo.advancedTexture.addControl(glo.videoCropBoxGUI);
+  }
+  
+  const rect = glo.videoCropBoxGUI;
+  
+  // Positionner et dimensionner selon les bounds
+  rect.left   = bounds.x;
+  rect.top    = bounds.y;
+  rect.width  = bounds.width + "px";
+  rect.height = bounds.height + "px";
+  
+  rect.thickness 		   = 2;
+  rect.color 			   = "yellow";
+  rect.background          = "transparent";
+  rect.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+  rect.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+  
+  rect.isVisible = true;
+}
+
+function hideVideoCropBox() {
+  if (glo.videoCropBoxGUI) {
+    glo.videoCropBoxGUI.isVisible = false;
+  }
+}
+
+function switchRecordingVideo(){
+	glo.video.recording = !glo.video.recording;
+
+	if(glo.video.recording){
+		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
+		glo.video.recorder.start();
+	}
+	else{
+		glo.video.recorder.stop();
+	}
 }

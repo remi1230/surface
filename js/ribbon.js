@@ -25,8 +25,7 @@ async function make_curves(u_params = {
 	var good = test_equations(equations, dim_one);
 	if(good){
 		if(typeof(glo.curves) != "undefined"){
-			if(glo.curves.linesSystems){ glo.curves.linesSystems.forEach(lineSystem => { lineSystem.dispose(true); lineSystem = null; }); }
-			if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+			disposeLines();
 			glo.curves = {}; delete glo.curves;
 		}
 
@@ -234,6 +233,11 @@ async function make_ribbon(symmetrize = true, histo = true){
     }
 }
 
+function disposeLines(){
+	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
+}
+
 function fixClosedRibbonNormals(ribbon, pointsPerPath) {
     const normals = ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
     
@@ -298,6 +302,11 @@ async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false 
 
 function makeLineSystem(upd = false, newPaths = false){
 	let paths;
+
+	if(glo.justSymmetrized){
+		glo.justSymmetrized = false;
+		newPaths = false
+	}
 
 	if(!newPaths){
 		paths = !glo.normalMode ? glo.ribbon.getPaths() : glo.curves.pathsSecond;

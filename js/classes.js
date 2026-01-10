@@ -437,9 +437,9 @@ class CurvesSpherical extends CurveBase {
 		return { x, y, z };
 	}
 
-	onFinalize() {
+	/*onFinalize() {
 		this.paths = this.uvInfos.isV ? closedPaths(this.paths) : this.paths;
-	}
+	}*/
 }
 
 // ==================== SYSTÈME CYLINDRIQUE ====================

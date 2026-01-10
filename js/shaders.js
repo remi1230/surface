@@ -490,6 +490,11 @@ const glslRegs = [
     { exp: /yN([^,%*+\-\/\)])/g, upd: "yN*$1" },
     { exp: /zN([^,%*+\-\/\)])/g, upd: "zN*$1" },
 
+    // Variables spéciales ($ n'est pas valide en GLSL)
+    { exp: /\$N/g, upd: "avgN" },
+    { exp: /\$T/g, upd: "avgT" },
+    { exp: /\$P/g, upd: "avgP" },
+
     // Constantes
     { exp: /\bpi\b/g, upd: "3.14159265359" },
     { exp: /\bep\b/g, upd: "0.0001" },
@@ -555,7 +560,7 @@ const deformationVertexShader = `
     float computeDeformation(float u, float v, float x, float y, float z,
                              float xN, float yN, float zN, float O, float T,
                              float d, float k, float p, float t, float n, float i, float j) {
-        float $N = (xN + yN + zN) / 3.0;
+        float avgN = (xN + yN + zN) / 3.0;
         return DEFORMATION_EXPRESSION;
     }
 

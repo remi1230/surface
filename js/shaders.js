@@ -652,9 +652,12 @@ async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null
 
     // Transformer l'expression pour GLSL
     const glslExpression = regForGLSL(text);
+    console.log('Expression originale:', text);
+    console.log('Expression GLSL:', glslExpression);
 
     // Créer le vertex shader avec l'expression injectée
-    const customVertexShader = deformationVertexShader.replace('DEFORMATION_EXPRESSION', glslExpression);
+    const customVertexShader = deformationVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
+    console.log('Remplacement effectué:', customVertexShader.includes('DEFORMATION_EXPRESSION') ? 'NON' : 'OUI');
 
     // Valider le shader généré
     const validation = validateVertexShader(customVertexShader);

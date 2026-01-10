@@ -762,7 +762,10 @@ function setUVParamsToMesh(mesh = glo.ribbon) {
         }
     }
 
-    mesh.setVerticesData('uv_params', uvParams, true);
+    // Créer un VertexBuffer personnalisé pour uv_params
+    const buffer = new BABYLON.Buffer(glo.scene.getEngine(), uvParams, false, 2);
+    const vertexBuffer = new BABYLON.VertexBuffer(glo.scene.getEngine(), buffer, 'uv_params', false, false, 2, false, 0, 2);
+    mesh.setVerticesBuffer(vertexBuffer);
 }
 
 // Valide un vertex shader

@@ -63,9 +63,33 @@ const combinedVertexShader = `
     varying vec2 vUVParams;
     varying vec2 vCurvatures;
 
+    // Variables globales pour accès dans les fonctions
+    float gx, gy, gz;
+
     // Fonction mathématique pour puissance signée
     float cpow(float val, float p) {
         return sign(val) * pow(abs(val), p);
+    }
+
+    // Fonction m() avec 4 signatures différentes
+    // m(ncx, ncy, ncz) - utilise les 3 coefficients spécifiés
+    float m(float ncx, float ncy, float ncz) {
+        return cos(ncx * gx) * cos(ncy * gy) * cos(ncz * gz);
+    }
+
+    // m(ncx, ncy) - utilise ncx pour x, ncy pour y et z
+    float m(float ncx, float ncy) {
+        return cos(ncx * gx) * cos(ncy * gy) * cos(ncy * gz);
+    }
+
+    // m(ncx) - utilise ncx pour les 3 axes
+    float m(float ncx) {
+        return cos(ncx * gx) * cos(ncx * gy) * cos(ncx * gz);
+    }
+
+    // m() - utilise 1.0 pour les 3 axes
+    float m() {
+        return cos(gx) * cos(gy) * cos(gz);
     }
 
     // DEFORMATION_EXPRESSION sera remplacé dynamiquement
@@ -85,6 +109,11 @@ const combinedVertexShader = `
         float x = position.x;
         float y = position.y;
         float z = position.z;
+
+        // Initialiser les variables globales pour la fonction m()
+        gx = x;
+        gy = y;
+        gz = z;
 
         vec3 norm = normalize(normal);
         float xN = norm.x;

@@ -1,17 +1,17 @@
 const vertexShader = `
     precision highp float;
-    
+
     // Attributes
     attribute vec3 position;
     attribute vec3 normal;
     attribute vec2 uv;
     attribute vec2 uv_params;
     attribute vec2 curvatures;
-    
+
     // Uniforms
     uniform mat4 worldViewProjection;
     uniform mat4 world;
-    
+
     // Varyings (transmis au fragment shader)
     varying vec3 vPosition;
     varying vec3 vWorldPosition;
@@ -19,11 +19,104 @@ const vertexShader = `
     varying vec2 vUV;
     varying vec2 vUVParams;
     varying vec2 vCurvatures;
-    
+
     void main() {
         gl_Position = worldViewProjection * vec4(position, 1.0);
         vWorldPosition = (world * vec4(position, 1.0)).xyz;
         vPosition = position;
+        vNormal = normalize((world * vec4(normal, 0.0)).xyz);
+        vUV = uv;
+        vCurvatures = curvatures;
+        vUVParams = uv_params;
+    }
+`;
+
+// Vertex shader combiné : déformation + tous les outputs pour le fragment shader de couleur
+const combinedVertexShader = `
+    precision highp float;
+
+    // Attributes
+    attribute vec3 position;
+    attribute vec3 normal;
+    attribute vec2 uv;
+    attribute vec2 uv_params;
+    attribute vec2 curvatures;
+
+    // Uniforms
+    uniform mat4 worldViewProjection;
+    uniform mat4 world;
+    uniform float scaleNorm;
+    uniform float w;
+    uniform float stepU;
+    uniform float stepV;
+    uniform float minU;
+    uniform float minV;
+    uniform int stepsU;
+    uniform int stepsV;
+    uniform int deformationEnabled;
+
+    // Varyings (transmis au fragment shader de couleur)
+    varying vec3 vPosition;
+    varying vec3 vWorldPosition;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    varying vec2 vUVParams;
+    varying vec2 vCurvatures;
+
+    // Fonction mathématique pour puissance signée
+    float cpow(float val, float p) {
+        return sign(val) * pow(abs(val), p);
+    }
+
+    // DEFORMATION_EXPRESSION sera remplacé dynamiquement
+    float computeDeformation(float u, float v, float x, float y, float z,
+                             float xN, float yN, float zN, float O, float T,
+                             float d, float k, float p, float t, float n, float i, float j) {
+        float avgN = (xN + yN + zN) / 3.0;
+        return DEFORMATION_EXPRESSION;
+    }
+
+    void main() {
+        // Calculer u et v à partir des UV params
+        float u = uv_params.x;
+        float v = uv_params.y;
+
+        // Position et normale originales
+        float x = position.x;
+        float y = position.y;
+        float z = position.z;
+
+        vec3 norm = normalize(normal);
+        float xN = norm.x;
+        float yN = norm.y;
+        float zN = norm.z;
+
+        // Angles sphériques
+        float R = length(position);
+        float O = R > 0.0001 ? asin(y / R) : 0.0;
+        float T = atan(z, x);
+
+        // Variables d'index (approximation basée sur UV)
+        float i = floor(uv.x * float(stepsU));
+        float j = floor(uv.y * float(stepsV));
+        float n = i * float(stepsV) + j;
+
+        // Variables de signe alterné
+        float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
+        float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
+        float p = k < 0.0 ? -u : u;
+        float t = d < 0.0 ? -v : v;
+
+        // Calculer la position (avec ou sans déformation)
+        vec3 finalPosition = position;
+        if (deformationEnabled == 1) {
+            float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
+            finalPosition = position + norm * r;
+        }
+
+        gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
+        vWorldPosition = (world * vec4(finalPosition, 1.0)).xyz;
+        vPosition = finalPosition;
         vNormal = normalize((world * vec4(normal, 0.0)).xyz);
         vUV = uv;
         vCurvatures = curvatures;
@@ -644,28 +737,28 @@ const deformationFragmentShader = `
     }
 `;
 
-// Applique une déformation via shader au mesh
+// Applique une déformation via shader au mesh (version combinée avec shader de couleur)
 async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null) {
     if (!mesh) return;
 
     // Récupérer l'expression de déformation
     const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim()) {
+        // Si pas d'expression, désactiver la déformation
+        glo.deformationEnabled = false;
+        giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
+        return;
+    }
 
-    // Transformer l'expression pour GLSL
+    // Valider l'expression GLSL avant d'appliquer
     const glslExpression = regForGLSL(text);
-    console.log('Expression originale:', text);
-    console.log('Expression GLSL:', glslExpression);
+    const testVertexShader = combinedVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
+    const validation = validateVertexShader(testVertexShader);
 
-    // Créer le vertex shader avec l'expression injectée
-    const customVertexShader = deformationVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
-    console.log('Remplacement effectué:', customVertexShader.includes('DEFORMATION_EXPRESSION') ? 'NON' : 'OUI');
-
-    // Valider le shader généré
-    const validation = validateVertexShader(customVertexShader);
     if (!validation.valid) {
         console.error('Shader de déformation invalide:', validation.error);
         console.log('Expression GLSL générée:', glslExpression);
+        glo.deformationEnabled = false;
         return;
     }
 
@@ -674,64 +767,17 @@ async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null
         setUVParamsToMesh(mesh);
     }
 
-    // Créer le ShaderMaterial
-    const shaderMaterial = new BABYLON.ShaderMaterial(
-        "deformationShader",
-        glo.scene,
-        {
-            vertexSource: customVertexShader,
-            fragmentSource: deformationFragmentShader
-        },
-        {
-            attributes: ["position", "normal", "uv", "uv_params"],
-            uniforms: [
-                "world", "worldView", "worldViewProjection", "view", "projection",
-                "w", "scaleNorm", "cameraPosition",
-                "stepU", "stepV", "minU", "minV", "stepsU", "stepsV",
-                "emissiveColor", "diffuseColor"
-            ],
-            needAlphaBlending: false
-        }
-    );
+    // Activer la déformation et appliquer le shader combiné
+    glo.deformationEnabled = true;
+    giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
 
-    // Configuration
-    shaderMaterial.backFaceCulling = false;
+    console.log('Shader combiné (couleur + déformation) appliqué avec expression:', glslExpression);
+}
 
-    // Définir les uniforms
-    shaderMaterial.setFloat("scaleNorm", glo.scaleNorm || 1.0);
-    shaderMaterial.setFloat("w", 0);
-    shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
-
-    // Paramètres UV
-    const stepU = 2 * glo.params.u / glo.params.steps_u;
-    const stepV = 2 * glo.params.v / glo.params.steps_v;
-    shaderMaterial.setFloat("stepU", stepU);
-    shaderMaterial.setFloat("stepV", stepV);
-    shaderMaterial.setFloat("minU", -glo.params.u);
-    shaderMaterial.setFloat("minV", -glo.params.v);
-    shaderMaterial.setInt("stepsU", glo.params.steps_u);
-    shaderMaterial.setInt("stepsV", glo.params.steps_v);
-
-    // Couleurs
-    const emissive = glo.emissiveColor || new BABYLON.Color3(0.3, 0.5, 0.5);
-    const diffuse = glo.diffuseColor || new BABYLON.Color3(0.6, 0.5, 0.5);
-    shaderMaterial.setVector3("emissiveColor", { x: emissive.r, y: emissive.g, z: emissive.b });
-    shaderMaterial.setVector3("diffuseColor", { x: diffuse.r, y: diffuse.g, z: diffuse.b });
-
-    // Appliquer le matériau
-    mesh.material = shaderMaterial;
-
-    // Animation pour le temps
-    const renderObserver = glo.scene.registerBeforeRender(() => {
-        shaderMaterial.setFloat("w", performance.now() * 0.001);
-        shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
-    });
-
-    // Stocker la référence pour pouvoir la supprimer plus tard
-    mesh._deformationShaderObserver = renderObserver;
-    mesh._deformationShaderMaterial = shaderMaterial;
-
-    console.log('Shader de déformation appliqué avec expression:', glslExpression);
+// Active ou désactive la déformation
+function toggleDeformation(enabled = true) {
+    glo.deformationEnabled = enabled;
+    giveMaterialToMesh(glo.ribbon, glo.emissiveColor, glo.diffuseColor);
 }
 
 // Définit les UV params (u, v) comme attribut custom du mesh
@@ -793,20 +839,11 @@ function validateVertexShader(shaderCode) {
     return { valid: true };
 }
 
-// Supprime le shader de déformation et restaure le matériau standard
+// Supprime le shader de déformation et restaure le shader de couleur seul
 function removeDeformationShader(mesh = glo.ribbon) {
     if (!mesh) return;
 
-    if (mesh._deformationShaderObserver) {
-        glo.scene.unregisterBeforeRender(mesh._deformationShaderObserver);
-        mesh._deformationShaderObserver = null;
-    }
-
-    if (mesh._deformationShaderMaterial) {
-        mesh._deformationShaderMaterial.dispose();
-        mesh._deformationShaderMaterial = null;
-    }
-
-    // Restaurer le matériau standard
+    // Désactiver la déformation et réappliquer le shader
+    glo.deformationEnabled = false;
     giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
 }

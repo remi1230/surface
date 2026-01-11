@@ -974,6 +974,7 @@ var glo = {
 	axis_size: 30,
 	planSize: 40,
 	scaleNorm: 1,
+	deformationEnabled: false,
 	buttonBottomSize: 90,
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,

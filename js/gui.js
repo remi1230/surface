@@ -739,7 +739,8 @@ function add_inputs_equations(){
       glo.params.text_input_sym_r = text;
 
       if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
-          await remakeRibbon();
+          //await remakeRibbon();
+          await applyDeformationShader();
       }
   });
 

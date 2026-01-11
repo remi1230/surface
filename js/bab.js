@@ -95,7 +95,8 @@ Game = function(canvasId) {
             w+=wstep;
             // Lancer la déformation de manière non-bloquante
             requestAnimationFrame(() => {
-                !glo.params.isTimeVariable ? applyDeformation(true) : remakeRibbon();
+                //!glo.params.isTimeVariable ? applyDeformation(true) : remakeRibbon();
+                !glo.params.isTimeVariable ? applyDeformationShader() : remakeRibbon();
             });
         }
         _this.scene.render();

@@ -147,6 +147,8 @@ async function make_ribbon(symmetrize = true, histo = true){
 			}, glo.scene);
 			glo.ribbon._pathCount = paths.length;
 			glo.ribbon._pointsPerPath = paths[0].length;
+			glo.ribbon.savedRibbon = cloneRibbonDeep(glo.ribbon, "savedRibbon", glo.scene);
+			glo.ribbon.savedRibbon.isVisible = false;
 		} else {
 			if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
 				glo.exceptionCreate = false;
@@ -159,6 +161,8 @@ async function make_ribbon(symmetrize = true, histo = true){
 				}, glo.scene);
 				glo.ribbon._pathCount = paths.length;
 				glo.ribbon._pointsPerPath = paths[0].length;
+				glo.ribbon.savedRibbon = cloneRibbonDeep(glo.ribbon, "savedRibbon", glo.scene);
+				glo.ribbon.savedRibbon.isVisible = false;
 			} else {
 				updateRibbon = true;
 				if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
@@ -231,6 +235,37 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         if (histo) { glo.histo.save(); }
     }
+}
+
+function cloneRibbonDeep(ribbon, name, scene) {
+    const vertexData = new BABYLON.VertexData();
+    vertexData.positions = new Float32Array(ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind));
+    vertexData.indices = new Uint32Array(ribbon.getIndices());
+    
+    const normals = ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+    if (normals) vertexData.normals = new Float32Array(normals);
+    
+    const uvs = ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
+    if (uvs) vertexData.uvs = new Float32Array(uvs);
+    
+    const newMesh = new BABYLON.Mesh(name, scene);
+    vertexData.applyToMesh(newMesh, true); // true = updatable
+    
+    return newMesh;
+}
+
+function saveRibbonCopy(ribbon) {
+    const positions = ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    const normals = ribbon.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+    const uvs = ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind);
+    const indices = ribbon.getIndices();
+    
+    return {
+        positions: new Float32Array(positions),
+        normals: normals ? new Float32Array(normals) : null,
+        uvs: uvs ? new Float32Array(uvs) : null,
+        indices: new Uint32Array(indices)
+    };
 }
 
 function disposeLines(){

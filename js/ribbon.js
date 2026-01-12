@@ -173,7 +173,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 			}
 		}
 
-		if(glo.input_sym_r.text){ await applyDeformation(true); }
+		//if(glo.input_sym_r.text){ await applyDeformation(true); }
 		
 		glo.ribbon.createNormals(true);
 
@@ -210,7 +210,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 		//console.log(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind));
 		giveMaterialToMesh();
 
-        if (glo.lines_visible) { makeLineSystem(updateRibbon); }
+        if (glo.lines_visible && !glo.shaderMaterial){ makeLineSystem(updateRibbon); }
 
         if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 
@@ -878,4 +878,78 @@ function isClosedPaths(paths) {
     return firstPath.every((point, index) => 
         BABYLON.Vector3.Distance(point, lastPath[index]) < ep
     );
+}
+
+function isBackground(pixels, i, backgroundColor, tolerance = 2) {
+    const bgR = backgroundColor.r * 255;
+    const bgG = backgroundColor.g * 255;
+    const bgB = backgroundColor.b * 255;
+    
+    return Math.abs(pixels[i] - bgR) <= tolerance &&
+           Math.abs(pixels[i + 1] - bgG) <= tolerance &&
+           Math.abs(pixels[i + 2] - bgB) <= tolerance;
+}
+
+async function getMaxRadius(backgroundColor, engine = glo.engine, samples = 360) {
+    const canvas = engine.getRenderingCanvas();
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const maxR = Math.min(cx, cy);
+	const maxPossible = Math.min(canvas.width, canvas.height) / 2;
+    
+    const pixels = await engine.readPixels(0, 0, canvas.width, canvas.height);
+    
+    let maxFoundRadius = 0;
+    
+    for (let angle = 0; angle < samples; angle++) {
+        const theta = (angle / samples) * Math.PI * 2;
+        
+        // Partir du bord vers le centre, trouver le premier pixel non-fond
+        for (let r = maxR; r > 0; r--) {
+            const x = Math.round(cx + Math.cos(theta) * r);
+            const y = Math.round(cy + Math.sin(theta) * r);
+            
+            if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+            
+            const i = ((canvas.height - 1 - y) * canvas.width + x) * 4;
+            if (!isBackground(pixels, i, backgroundColor)) {
+                maxFoundRadius = Math.max(maxFoundRadius, r);
+                break;
+            }
+        }
+    }
+    
+    return maxFoundRadius/maxPossible;
+}
+
+async function getMaxRadiusRatio() {
+    return new Promise((resolve) => {
+        glo.scene.onAfterRenderObservable.addOnce(async () => {
+            const radius = await getMaxRadius(glo.backgroundColor);
+            resolve(radius);
+        });
+    });
+}
+
+async function debugPixels(backgroundColor, engine = glo.engine) {
+    const canvas = engine.getRenderingCanvas();
+    const pixels = await engine.readPixels(0, 0, canvas.width, canvas.height);
+    
+    // Pixel au centre
+    const cx = Math.floor(canvas.width / 2);
+    const cy = Math.floor(canvas.height / 2);
+    const i = (cy * canvas.width + cx) * 4;
+    
+    console.log("Centre:", pixels[i], pixels[i+1], pixels[i+2], pixels[i+3]);
+    console.log("Background attendu:", backgroundColor.r * 255, backgroundColor.g * 255, backgroundColor.b * 255);
+    
+    // Pixel au bord
+    const edge = (0 * canvas.width + 0) * 4;
+    console.log("Coin (0,0):", pixels[edge], pixels[edge+1], pixels[edge+2]);
+    
+    // Compter pixels non-fond
+    let nonBg = 0;
+    for (let j = 0; j < pixels.length; j += 4) {
+        if (!isBackground(pixels, j, backgroundColor, 2)) nonBg++;
+    }
+    console.log("Pixels non-fond:", nonBg, "/", pixels.length / 4);
 }

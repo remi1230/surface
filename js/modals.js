@@ -540,6 +540,17 @@ function initMonacoEditor() {
                 document.getElementById('compileBtn')?.click();
             }
         });
+
+        editor.addAction({
+            id: 'duplicate-line',
+            label: 'Dupliquer la ligne',
+            keybindings: [
+                monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyD
+            ],
+            run: function(ed) {
+                ed.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
+            }
+        });
         
         updateStatus('Prêt');
     });

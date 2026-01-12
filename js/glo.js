@@ -51,7 +51,7 @@ var glo = {
 			{text: "Moebius", typeCoords: 'cartesian', udef: PI, vdef: 1, nb_steps_u: 256, nb_steps_v: 12, fx: "7(1+ 0.5vc(0.5u))cu", fy: "7(1+ 0.5vc(0.5u))su", fz: "3.5vs(0.5u)", check: false, orient:{distance: 50}},
 			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "2u", fy: "2v", fz: "2uv", check: false, orient:{distance: 40}},
-			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
+			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 131, nb_steps_v: 131,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
 			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "3(cv + e)cu", fy: "3(cv + e)su", fz: "3sv", check: true, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "3(cv + e)(cu)***2", fy: "3(cv + e)(su)***2", fz: "3(sv)***2", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
@@ -168,6 +168,12 @@ var glo = {
 
 						glo.params.steps_u = !glo.meshWithTubes ? sel.nb_steps_u : round(sel.nb_steps_u/4, 0);
 						glo.params.steps_v = !glo.meshWithTubes ? sel.nb_steps_v : round(sel.nb_steps_v/4, 0);
+
+						glo.params.steps_u *= glo.resolutionCoeff;
+						glo.params.steps_v *= glo.resolutionCoeff;
+
+						glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
+						glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
 
 						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
@@ -974,6 +980,7 @@ var glo = {
 	axis_size: 30,
 	planSize: 40,
 	scaleNorm: 1,
+	deformationEnabled: false,
 	buttonBottomSize: 90,
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,
@@ -983,6 +990,7 @@ var glo = {
 	mainTopShift: 6.66,
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,
+	resolutionCoeff: 1,
 	color_text_input: "rgb(255,255,245)",
 	buttons_background: "#199191",
 	buttons_color: "rgb(255,255,225)",

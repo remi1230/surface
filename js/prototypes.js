@@ -383,8 +383,6 @@ BABYLON.Mesh.prototype.getAngles = function(paths = glo.ribbon.getPaths()) {
 };
 
 BABYLON.Mesh.prototype.setDataShader = function(paths = glo.ribbon.getPaths()) {
-    const { curvatures } = this.getAngles(paths);
-
     const nbStepsU = glo.params.steps_u;
     const nbStepsV = glo.params.steps_v;
     const minU = !glo.slidersUVOnOneSign.u ? -glo.params.u : 0;
@@ -417,23 +415,7 @@ BABYLON.Mesh.prototype.setDataShader = function(paths = glo.ribbon.getPaths()) {
         false, 0, 2
     );
 
-    // Buffer unique pour les courbures (vec2: meanH, gaussianK)
-	const curvatureData = new Float32Array(curvatures.length * 2);
-	for (let i = 0; i < curvatures.length; i++) {
-		curvatureData[i * 2]     = curvatures[i].meanH;
-		curvatureData[i * 2 + 1] = curvatures[i].gaussianK;
-	}
-
-	const curvatureBuffer = new BABYLON.VertexBuffer(
-		glo.scene.getEngine(),
-		curvatureData,
-		"curvatures",  // vec2(mean, gaussian)
-		false, false, 2,
-		false, 0, 2
-	);
-
     this.setVerticesBuffer(uvBuffer);
-    this.setVerticesBuffer(curvatureBuffer);
 };
 
 BABYLON.Mesh.prototype.averageClosedNormals = function() {

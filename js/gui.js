@@ -739,15 +739,31 @@ function add_inputs_equations(){
       glo.params.text_input_sym_r = text;
 
       if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
-          //await remakeRibbon();
+          glo.shaderMaterial = glo.input_sym_r.text ? true : false;
+
+          if(glo.shaderColor && !glo.input_sym_r.text){ glo.shaderMaterial = true; }
+
+          if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
+          if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
+
           await applyDeformationShader();
+          giveMaterialToMesh();
       }
   });
 
   glo.input_sym_r.onTextPasteObservable.add(async () => {
-      //glo.curves.paths = glo.curves.savedPaths || glo.curves.paths;
       glo.params.text_input_sym_r = glo.input_sym_r.text;
-      glo.input_sym_r.text ? await make_ribbon() : await remakeRibbon();
+
+      glo.shaderMaterial = glo.input_sym_r.text ? true : false;
+
+      if(glo.shaderColor && !glo.input_sym_r.text){ glo.shaderMaterial = true; }
+
+      if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
+      if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
+
+      await applyDeformationShader();
+      giveMaterialToMesh();
+      
   });
 }
 
@@ -1222,14 +1238,17 @@ function add_shaders_ctrl(){
       
       if (glo.editorIsOpened) {
           openShaderWindow();
-          glo.shaderMaterial = true;
-          giveMaterialToMesh();
+          if(!glo.shaderMaterial){
+            glo.shaderMaterial = true;
+            giveMaterialToMesh();
+          }
       } else {
           editorWindow.style.display = 'none';
       }
   });
   add_button(panelButtons, "colorizeShaderEditorButton", "Color", "20%", 30, 0, 10, 0, async function(){
       glo.shaderMaterial = !glo.shaderMaterial;
+      glo.shaderColor    = !glo.shaderColor;
       giveMaterialToMesh();
   });
   add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, function(){

@@ -1,32 +1,200 @@
 const vertexShader = `
     precision highp float;
-    
+
     // Attributes
     attribute vec3 position;
     attribute vec3 normal;
     attribute vec2 uv;
     attribute vec2 uv_params;
-    attribute vec2 curvatures;
-    
+
     // Uniforms
     uniform mat4 worldViewProjection;
     uniform mat4 world;
-    
+
     // Varyings (transmis au fragment shader)
     varying vec3 vPosition;
     varying vec3 vWorldPosition;
     varying vec3 vNormal;
     varying vec2 vUV;
     varying vec2 vUVParams;
-    varying vec2 vCurvatures;
-    
+
     void main() {
         gl_Position = worldViewProjection * vec4(position, 1.0);
         vWorldPosition = (world * vec4(position, 1.0)).xyz;
         vPosition = position;
         vNormal = normalize((world * vec4(normal, 0.0)).xyz);
         vUV = uv;
-        vCurvatures = curvatures;
+        vUVParams = uv_params;
+    }
+`;
+
+// Vertex shader combiné : déformation + tous les outputs pour le fragment shader de couleur
+const combinedVertexShader = `
+    precision highp float;
+
+    // Attributes
+    attribute vec3 position;
+    attribute vec3 normal;
+    attribute vec2 uv;
+    attribute vec2 uv_params;
+
+    // Uniforms
+    uniform mat4 worldViewProjection;
+    uniform mat4 world;
+    uniform float scaleNorm;
+    uniform float w;
+    uniform float stepU;
+    uniform float stepV;
+    uniform float minU;
+    uniform float minV;
+    uniform int stepsU;
+    uniform int stepsV;
+    uniform int deformationEnabled;
+
+    // Varyings (transmis au fragment shader de couleur)
+    varying vec3 vPosition;
+    varying vec3 vWorldPosition;
+    varying vec3 vNormal;
+    varying vec2 vUV;
+    varying vec2 vUVParams;
+
+    // Variables globales pour accès dans les fonctions
+    float gx, gy, gz, gu, gv;
+
+    // Fonction mathématique pour puissance signée
+    float cpow(float val, float p) {
+        return sign(val) * pow(abs(val), p);
+    }
+
+    // Fonction m() avec 4 signatures différentes
+    // m(ncx, ncy, ncz) - utilise les 3 coefficients spécifiés
+    float m(float ncx, float ncy, float ncz) {
+        return cos(ncx * gx) * cos(ncy * gy) * cos(ncz * gz);
+    }
+
+    // m(ncx, ncy) - utilise ncx pour x, ncy pour y et z
+    float m(float ncx, float ncy) {
+        return cos(ncx * gx) * cos(ncy * gy) * cos(ncy * gz);
+    }
+
+    // m(ncx) - utilise ncx pour les 3 axes
+    float m(float ncx) {
+        return cos(ncx * gx) * cos(ncx * gy) * cos(ncx * gz);
+    }
+
+    // m() - utilise 1.0 pour les 3 axes
+    float m() {
+        return cos(gx) * cos(gy) * cos(gz);
+    }
+
+    // Fonction o() avec 4 signatures différentes
+    // o(ncx, ncy, ncz) - utilise les 3 coefficients spécifiés
+    float o(float ncx, float ncy, float ncz) {
+        return cos(ncx * gx) + cos(ncy * gy) + cos(ncz * gz);
+    }
+
+    // o(ncx, ncy) - utilise ncx pour x, ncy pour y et z
+    float o(float ncx, float ncy) {
+        return cos(ncx * gx) + cos(ncy * gy) + cos(ncy * gz);
+    }
+
+    // o(ncx) - utilise ncx pour les 3 axes
+    float o(float ncx) {
+        return cos(ncx * gx) + cos(ncx * gy) + cos(ncx * gz);
+    }
+
+    // o() - utilise 1.0 pour les 3 axes
+    float o() {
+        return cos(gx) + cos(gy) + cos(gz);
+    }
+
+    // b() - utilise 1.0 pour les 3 axes
+    float b(){
+		return length(vec3(cos(gx), cos(gy), cos(gz)));
+	}
+
+    float b(float ncx){
+		return length(vec3(cos(ncx * gx), cos(ncx * gy), cos(ncx * gz)));
+	}
+
+    float b(float ncx, float ncy){
+		return length(vec3(cos(ncx * gx), cos(ncy * gy), cos(ncy * gz)));
+	}
+
+    float b(float ncx, float ncy, float ncz){
+		return length(vec3(cos(ncx * gx), cos(ncy * gy), cos(ncz * gz)));
+	}
+
+    float a(float nbU, float nbV){
+		return cos(nbU * gu) * sin(nbV * gv);
+	}
+
+    float a(float nbU){
+		return cos(nbU * gu) * sin(nbU * gv);
+	}
+
+    float a(){
+		return cos(8.0 * gu) * sin(8.0 * gv);
+	}
+
+    // DEFORMATION_EXPRESSION sera remplacé dynamiquement
+    float computeDeformation(float u, float v, float x, float y, float z,
+                             float xN, float yN, float zN, float O, float T,
+                             float d, float k, float p, float t, float n, float i, float j) {
+        float avgN = (xN + yN + zN) / 3.0;
+        return DEFORMATION_EXPRESSION;
+    }
+
+    void main() {
+        // Calculer u et v à partir des UV params
+        float u = uv_params.x;
+        float v = uv_params.y;
+
+        // Position et normale originales
+        float x = position.x;
+        float y = position.y;
+        float z = position.z;
+
+        // Initialiser les variables globales pour les fonctions de déformation
+        gx = x;
+        gy = y;
+        gz = z;
+        gu = u;
+        gv = v;
+
+        vec3 norm = normalize(normal);
+        float xN = norm.x;
+        float yN = norm.y;
+        float zN = norm.z;
+
+        // Angles sphériques
+        float R = length(position);
+        float O = R > 0.0001 ? asin(y / R) : 0.0;
+        float T = atan(z, x);
+
+        // Variables d'index (approximation basée sur UV)
+        float i = floor(uv.x * float(stepsU));
+        float j = floor(uv.y * float(stepsV));
+        float n = i * float(stepsV) + j;
+
+        // Variables de signe alterné
+        float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
+        float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
+        float p = k < 0.0 ? -u : u;
+        float t = d < 0.0 ? -v : v;
+
+        // Calculer la position (avec ou sans déformation)
+        vec3 finalPosition = position;
+        if (deformationEnabled == 1) {
+            float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
+            finalPosition = position + norm * r;
+        }
+
+        gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
+        vWorldPosition = (world * vec4(finalPosition, 1.0)).xyz;
+        vPosition = finalPosition;
+        vNormal = normalize((world * vec4(normal, 0.0)).xyz);
+        vUV = uv;
         vUVParams = uv_params;
     }
 `;
@@ -45,7 +213,6 @@ in vec3 vPosition;
 in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUV;
-in vec2 vCurvatures;
 in vec2 vUVParams;
 
 // Sortie du fragment shader
@@ -422,27 +589,44 @@ function validateShader(shaderCode) {
     return { valid: true };
 }
 
-// Regex pour transformer les expressions mathématiques en GLSL
 const glslRegs = [
-    // Puissance signée avec *** -> cpow()
-    { exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g, upd: 'cpow($1,$2)' },
-    { exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g, upd: 'cpow($1,$2)' },
-    { exp: /([A-Za-z_$][\w$]*\(\s*[^()]+?\s*\))\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?|\(\s*[^()]+?\s*\))/g, upd: 'cpow($1,$2)' },
-    { exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g, upd: 'cpow($1,$2)' },
-    { exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g, upd: 'cpow($1,$2)' },
-
-    // Puissance standard ** -> pow()
-    { exp: /\(\s*([^()]+?)\s*\)\s*\*\*\s*\(\s*([^()]+?)\s*\)/g, upd: 'pow($1,$2)' },
-    { exp: /\(\s*([^()]+?)\s*\)\s*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g, upd: 'pow($1,$2)' },
-    { exp: /([A-Za-z_$][\w$]*)\s*\*\*\s*\(\s*([^()]+?)\s*\)/g, upd: 'pow($1,$2)' },
-    { exp: /([A-Za-z_$][\w$]*)\s*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g, upd: 'pow($1,$2)' },
-
-    // Supprimer les espaces
+    {
+        exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
+        upd: 'cpow($1,$2)'
+    },
+    // 2) (gauche) *** droiteSimple (identifiant ou nombre)
+    {
+        exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
+        upd: 'cpow($1,$2)'
+    },
+    // 3) identifiant(groupe) ***(identifiant|nombre|groupe)
+    {
+        exp: /([A-Za-z_$][\w$]*\(\s*[^()]+?\s*\))\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?|\(\s*[^()]+?\s*\))/g,
+        upd: 'cpow($1,$2)'
+    },
+    // 4) identifiant ***(groupe)
+    {
+        exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
+        upd: 'cpow($1,$2)'
+    },
+    // 5) identifiant ***(identifiant|nombre)
+    {
+        exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
+        upd: 'cpow($1,$2)'
+    },
     { exp: /\s/g, upd: "" },
-
-    // Raccourcis trigonométriques pour R = h(x,y,z)
+    { exp: /a(?![\(])/g, upd: "a()" },
+    { exp: /b(?![\(])/g, upd: "b()" },
+    { exp: /aa(?![\(])/g, upd: "aa()" },
+    { exp: /bb(?![\(])/g, upd: "bb()" },
+    { exp: /(?<![cp])o(?![\(])/g, upd: "o()" },
     { exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
     { exp: /s([^*\(R\)]*)R/g, upd: "sin($1R)" },
+    { exp: /c([^*\(X\)]*)X/g, upd: "cos($1X)" },
+    { exp: /s([^*\(X\)]*)X/g, upd: "sin($1X)" },
+    { exp: /c([^*\(Y\)]*)Y/g, upd: "cos($1Y)" },
+    { exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
+
     { exp: /R/g, upd: "length(vec3(x,y,z))" },
 
     // Raccourcis pour q = h(u,v)
@@ -450,9 +634,11 @@ const glslRegs = [
     { exp: /s([^q\(]*)q/g, upd: "sin($1length(vec2(u,v)))" },
     { exp: /c([^q\(]*)q/g, upd: "cos($1length(vec2(u,v)))" },
 
-    // Raccourcis trigonométriques combinés u/v
+    { exp: /m(?![\(xyz])/g, upd: "m()" },
+    { exp: /cc(?![\(])/g, upd: "cc()" },
+    { exp: /ù(?![\(])/g, upd: "ù()" },
     { exp: /cudv|cvdu/g, upd: "cos(u/v)" },
-    { exp: /cufv|cvfu/g, upd: "cos(u*v)" },
+    { exp: /cufv|cvfu/g, upd: "cos(uv)" },
     { exp: /sudv|svdu/g, upd: "sin(u/v)" },
     { exp: /sufv|svfu/g, upd: "sin(u*v)" },
     { exp: /cupv|cvpu/g, upd: "cos(u+v)" },
@@ -461,14 +647,12 @@ const glslRegs = [
     { exp: /supv|svpu/g, upd: "sin(u+v)" },
     { exp: /sumv/g, upd: "sin(u-v)" },
     { exp: /svmu/g, upd: "sin(v-u)" },
-
-    // Raccourcis trigonométriques simples
     { exp: /c([^u\(vw]*)u/g, upd: "cos($1u)" },
     { exp: /c([^v\(uw]*)v/g, upd: "cos($1v)" },
+    { exp: /c([^w\(uvp]*)w/g, upd: "cos($1w)" },
     { exp: /s([^u\(vw]*)u/g, upd: "sin($1u)" },
     { exp: /s([^v\(uw]*)v/g, upd: "sin($1v)" },
-    { exp: /c([^w\(w]*)w/g, upd: "cos($1w)" },
-    { exp: /s([^w\(w]*)w/g, upd: "sin($1w)" },
+    { exp: /s([^w\(uv]*)w/g, upd: "sin($1w)" },
     { exp: /c([^*\(v]*)O/g, upd: "cos($1O)" },
     { exp: /s([^*\(v]*)O/g, upd: "sin($1O)" },
     { exp: /c([^x\(]*)x/g, upd: "cos($1x)" },
@@ -477,29 +661,90 @@ const glslRegs = [
     { exp: /s([^x\(]*)x/g, upd: "sin($1x)" },
     { exp: /s([^y\(]*)y/g, upd: "sin($1y)" },
     { exp: /s([^z\(]*)z/g, upd: "sin($1z)" },
-
-    // Puissances Unicode
-    { exp: /²/g, upd: "*$0*$0" }, // sera remplacé après
-    { exp: /³/g, upd: "*$0*$0*$0" },
-
-    // Multiplications implicites
-    { exp: /u([^,%*+\-\/\)])/g, upd: "u*$1" },
-    { exp: /v([^,%*+\-\/\)])/g, upd: "v*$1" },
-    { exp: /x([^,%*+\-\/NPT\)])/g, upd: "x*$1" },
-    { exp: /y([^,%*+\-\/NPT\)])/g, upd: "y*$1" },
-    { exp: /z([^,%*+\-\/NPT\)])/g, upd: "z*$1" },
-    { exp: /xN([^,%*+\-\/\)])/g, upd: "xN*$1" },
-    { exp: /yN([^,%*+\-\/\)])/g, upd: "yN*$1" },
-    { exp: /zN([^,%*+\-\/\)])/g, upd: "zN*$1" },
-
-    // Variables spéciales ($ n'est pas valide en GLSL)
-    { exp: /\$N/g, upd: "avgN" },
-    { exp: /\$T/g, upd: "avgT" },
-    { exp: /\$P/g, upd: "avgP" },
-
-    // Constantes
-    { exp: /\bpi\b/g, upd: "3.14159265359" },
-    { exp: /\bep\b/g, upd: "0.0001" },
+    { exp: /²/g, upd: "**2" },
+    { exp: /³/g, upd: "**3" },
+    { exp: /uu([^,%*+-/)])/g, upd: "uu*$1" },
+    { exp: /vv([^,%*+-/)])/g, upd: "vv*$1" },
+    { exp: /u([^,%*+-/)])/g, upd: "u*$1" },
+    { exp: /v([^,%*+-/)])/g, upd: "v*$1" },
+    { exp: /(?<!cpo)w([^\(),%*+\-\/)])/g, upd: "w*$1" },
+    { exp: /µP([^,%*+-/)])/g, upd: "µP*$1" },
+    { exp: /µN([^,%*+-/)])/g, upd: "µN*$1" },
+    { exp: /\$N([^,%*+-/)])/g, upd: "$N*$1" },
+    { exp: /\$P([^,%*+-/)])/g, upd: "$P*$1" },
+    { exp: /x([^,%*+-/NPT)])/g, upd: "x*$1" },
+    { exp: /y([^,%*+-/NPT)])/g, upd: "y*$1" },
+    { exp: /z([^,%*+-/NPT)])/g, upd: "z*$1" },
+    { exp: /n([^,%*+-/d)])/g, upd: "n*$1" },
+    { exp: /r([^,%*+-/nmC)])/g, upd: "r*$1" },
+    { exp: /alpha([^,%*+-/nt)])/g, upd: "alpha*$1" },
+    { exp: /beta([^,%*+-/nt)])/g, upd: "beta*$1" },
+    { exp: /(?<!s)i([^,%*+\-\/)])/g, upd: "i*$1" },
+    { exp: /j([^,%*+-/)])/g, upd: "j*$1" },
+    { exp: /xN([^,%*+-/)])/g, upd: "xN*$1" },
+    { exp: /yN([^,%*+-/)])/g, upd: "yN*$1" },
+    { exp: /zN([^,%*+-/)])/g, upd: "zN*$1" },
+    { exp: /xP([^,%*+-/)])/g, upd: "xP*$1" },
+    { exp: /yP([^,%*+-/)])/g, upd: "yP*$1" },
+    { exp: /zP([^,%*+-/)])/g, upd: "zP*$1" },
+    { exp: /pi([^,%*+-/)])/g, upd: "pi*$1" },
+    { exp: /ep([^,%*+-/)])/g, upd: "ep*$1" },
+    { exp: /A([^,%*+-/)])/g, upd: "A*$1" },
+    { exp: /B([^,%*+-/)])/g, upd: "B*$1" },
+    { exp: /C([^,%*+-/o)])/g, upd: "C*$1" },
+    { exp: /D([^,%*+-/)])/g, upd: "D*$1" },
+    { exp: /d([^,%*+-/)])/g, upd: "d*$1" },
+    { exp: /E([^,%*+-/)])/g, upd: "E*$1" },
+    { exp: /F([^,%*+-/)])/g, upd: "F*$1" },
+    { exp: /G([^,%*+-/)])/g, upd: "G*$1" },
+    { exp: /H([^,%*+-/)])/g, upd: "H*$1" },
+    { exp: /I([^,%*+-/)])/g, upd: "I*$1" },
+    { exp: /J([^,%*+-/)])/g, upd: "J*$1" },
+    { exp: /K([^,%*+-/)])/g, upd: "K*$1" },
+    { exp: /k([^,%*+-/)])/g, upd: "k*$1" },
+    { exp: /L([^,%*+-/)])/g, upd: "L*$1" },
+    { exp: /M([^,%*+-/)])/g, upd: "M*$1" },
+    { exp: /X([^,%*+-/)])/g, upd: "X*$1" },
+    { exp: /Y([^,%*+-/)])/g, upd: "Y*$1" },
+    { exp: /S([^,%*+-/\())])/g, upd: "S($1)" },
+    { exp: /p([^,%*+-/)])/g, upd: "p*$1" },
+    { exp: /(?<!fac)t([^,%*+\-/)])/g, upd: "t*$1" },
+    { exp: /rCol([^,%*+-/)])/g, upd: "rCol*$1" },
+    { exp: /gCol([^,%*+-/)])/g, upd: "gCol*$1" },
+    { exp: /bCol([^,%*+-/)])/g, upd: "bCol*$1" },
+    { exp: /mCol([^,%*+-/)])/g, upd: "mCol*$1" },
+    { exp: /O([^,%*+-/)])/g, upd: "O*$1" },
+    { exp: /T([^,%*+-/)])/g, upd: "T*$1" },
+    { exp: /e([^,%*+-/)pi])/g, upd: "e*$1" },
+    { exp: /Q([^,%*+-/)])/g, upd: "Q*$1" },
+    { exp: /Z([^,%*+-/)])/g, upd: "Z*$1" },
+    { exp: /\)([^,%*+-/)'])/g, upd: ")*$1" },
+    { exp: /(\d+)([^,%*+-/.\d)])/g, upd: "$1*$2" },
+    { exp: /u\*_mod/g, upd: "u_mod" },
+    { exp: /v\*_mod/g, upd: "v_mod" },
+    { exp: /be\*ta/g, upd: "beta" },
+    { exp: /sin\*/g, upd: "sin" },
+    { exp: /tan\*/g, upd: "tan" },
+    { exp: /t\*an/g, upd: "tan" },
+    { exp: /tan\*\(/g, upd: "tan(" },
+    { exp: /sign\*/g, upd: "sign" },
+    { exp: /logte\*n\*/g, upd: "logten" },
+    { exp: /hy\*pot/g, upd: "hypot" },
+    { exp: /fact_de\*c/g, upd: "fact_dec" },
+    { exp: /p\*o/g, upd: "po" },
+    { exp: /cp\*/g, upd: "cp" },
+    { exp: /p\*c/g, upd: "pc" },
+    { exp: /mx\*/g, upd: "mx" },
+    { exp: /my\*/g, upd: "my" },
+    { exp: /mz\*/g, upd: "mz" },
+    { exp: /e\*x/g, upd: "ex" },
+    { exp: /ex\*/g, upd: "ex" },
+    { exp: /exp\*/g, upd: "exp" },
+    { exp: /p\*i/g, upd: "pi" },
+    { exp: /ep\*i/g, upd: "e*pi" },
+    { exp: /e\*p/g, upd: "ep" },
+    { exp: /se\*/g, upd: "se" },
+    { exp: /mod\*/g, upd: "mod" },
 ];
 
 // Transforme une expression mathématique JavaScript en GLSL
@@ -517,9 +762,9 @@ function regForGLSL(expr) {
     result = result.replace(/(\w+)\*\$0\*\$0/g, '($1*$1)');
 
     // Assurer que les nombres ont un point décimal pour GLSL
-    result = result.replace(/\b(\d+)(?!\.)\b/g, '$1.0');
+    result = result.replace(/(?<!\.\d*)(\b\d+\b)(?!\.)/g, '$1.0');
     // Éviter les doubles points (ex: 3.0.0)
-    result = result.replace(/\.0\.0/g, '.0');
+    //result = result.replace(/\.0\.0/g, '.0');
 
     return result;
 }
@@ -644,28 +889,28 @@ const deformationFragmentShader = `
     }
 `;
 
-// Applique une déformation via shader au mesh
+// Applique une déformation via shader au mesh (version combinée avec shader de couleur)
 async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null) {
     if (!mesh) return;
 
     // Récupérer l'expression de déformation
     const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim()) {
+        // Si pas d'expression, désactiver la déformation
+        glo.deformationEnabled = false;
+        giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
+        return;
+    }
 
-    // Transformer l'expression pour GLSL
+    // Valider l'expression GLSL avant d'appliquer
     const glslExpression = regForGLSL(text);
-    console.log('Expression originale:', text);
-    console.log('Expression GLSL:', glslExpression);
+    const testVertexShader = combinedVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
+    const validation = validateVertexShader(testVertexShader);
 
-    // Créer le vertex shader avec l'expression injectée
-    const customVertexShader = deformationVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
-    console.log('Remplacement effectué:', customVertexShader.includes('DEFORMATION_EXPRESSION') ? 'NON' : 'OUI');
-
-    // Valider le shader généré
-    const validation = validateVertexShader(customVertexShader);
     if (!validation.valid) {
-        console.error('Shader de déformation invalide:', validation.error);
-        console.log('Expression GLSL générée:', glslExpression);
+        /*console.error('Shader de déformation invalide:', validation.error);
+        console.log('Expression GLSL générée:', glslExpression);*/
+        glo.deformationEnabled = false;
         return;
     }
 
@@ -674,64 +919,19 @@ async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null
         setUVParamsToMesh(mesh);
     }
 
-    // Créer le ShaderMaterial
-    const shaderMaterial = new BABYLON.ShaderMaterial(
-        "deformationShader",
-        glo.scene,
-        {
-            vertexSource: customVertexShader,
-            fragmentSource: deformationFragmentShader
-        },
-        {
-            attributes: ["position", "normal", "uv", "uv_params"],
-            uniforms: [
-                "world", "worldView", "worldViewProjection", "view", "projection",
-                "w", "scaleNorm", "cameraPosition",
-                "stepU", "stepV", "minU", "minV", "stepsU", "stepsV",
-                "emissiveColor", "diffuseColor"
-            ],
-            needAlphaBlending: false
-        }
-    );
+    // Activer la déformation et appliquer le shader combiné
+    glo.deformationEnabled = true;
+    giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
 
-    // Configuration
-    shaderMaterial.backFaceCulling = false;
+    applyTransformations();
 
-    // Définir les uniforms
-    shaderMaterial.setFloat("scaleNorm", glo.scaleNorm || 1.0);
-    shaderMaterial.setFloat("w", 0);
-    shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+    console.log('Shader combiné (couleur + déformation) appliqué avec expression:', glslExpression);
+}
 
-    // Paramètres UV
-    const stepU = 2 * glo.params.u / glo.params.steps_u;
-    const stepV = 2 * glo.params.v / glo.params.steps_v;
-    shaderMaterial.setFloat("stepU", stepU);
-    shaderMaterial.setFloat("stepV", stepV);
-    shaderMaterial.setFloat("minU", -glo.params.u);
-    shaderMaterial.setFloat("minV", -glo.params.v);
-    shaderMaterial.setInt("stepsU", glo.params.steps_u);
-    shaderMaterial.setInt("stepsV", glo.params.steps_v);
-
-    // Couleurs
-    const emissive = glo.emissiveColor || new BABYLON.Color3(0.3, 0.5, 0.5);
-    const diffuse = glo.diffuseColor || new BABYLON.Color3(0.6, 0.5, 0.5);
-    shaderMaterial.setVector3("emissiveColor", { x: emissive.r, y: emissive.g, z: emissive.b });
-    shaderMaterial.setVector3("diffuseColor", { x: diffuse.r, y: diffuse.g, z: diffuse.b });
-
-    // Appliquer le matériau
-    mesh.material = shaderMaterial;
-
-    // Animation pour le temps
-    const renderObserver = glo.scene.registerBeforeRender(() => {
-        shaderMaterial.setFloat("w", performance.now() * 0.001);
-        shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
-    });
-
-    // Stocker la référence pour pouvoir la supprimer plus tard
-    mesh._deformationShaderObserver = renderObserver;
-    mesh._deformationShaderMaterial = shaderMaterial;
-
-    console.log('Shader de déformation appliqué avec expression:', glslExpression);
+// Active ou désactive la déformation
+function toggleDeformation(enabled = true) {
+    glo.deformationEnabled = enabled;
+    giveMaterialToMesh(glo.ribbon, glo.emissiveColor, glo.diffuseColor);
 }
 
 // Définit les UV params (u, v) comme attribut custom du mesh
@@ -784,7 +984,7 @@ function validateVertexShader(shaderCode) {
     gl.compileShader(shader);
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        const error = gl.getShaderInfoLog(shader);
+        const error = gl.getShaderInfoLog(shader); //console.log(error);
         gl.deleteShader(shader);
         return { valid: false, error };
     }
@@ -793,20 +993,11 @@ function validateVertexShader(shaderCode) {
     return { valid: true };
 }
 
-// Supprime le shader de déformation et restaure le matériau standard
+// Supprime le shader de déformation et restaure le shader de couleur seul
 function removeDeformationShader(mesh = glo.ribbon) {
     if (!mesh) return;
 
-    if (mesh._deformationShaderObserver) {
-        glo.scene.unregisterBeforeRender(mesh._deformationShaderObserver);
-        mesh._deformationShaderObserver = null;
-    }
-
-    if (mesh._deformationShaderMaterial) {
-        mesh._deformationShaderMaterial.dispose();
-        mesh._deformationShaderMaterial = null;
-    }
-
-    // Restaurer le matériau standard
+    // Désactiver la déformation et réappliquer le shader
+    glo.deformationEnabled = false;
     giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
 }

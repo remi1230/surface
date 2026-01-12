@@ -619,6 +619,57 @@ function blendPosAll(x, y, z, u, v, O, cosu, cosv){
 	return {x, y, z};
 }
 
+// Twist classique autour de Y
+function twist(pos, angle) {
+    const s = Math.sin(angle * pos.y);
+    const c = Math.cos(angle * pos.y);
+    return {
+        x: pos.x * c - pos.z * s,
+        y: pos.y,
+        z: pos.x * s + pos.z * c
+    };
+}
+async function testTwist(angle){
+	const paths = glo.ribbon.getPaths();
+
+    let newPaths = paths.map(line => { return line.map(point => twist(point, angle)); });
+
+	await BABYLON.MeshBuilder.CreateRibbon("testRibbon", { pathArray: newPaths, instance: glo.ribbon });
+}
+
+// Bulge/spherify déformation
+function spherify(pos, factor) {
+    const r = Math.sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z);
+    const targetR = 1.0; // rayon cible
+    const blend = factor;
+    const newR = r + (targetR - r) * blend;
+    const scale = r > 0.0001 ? newR / r : 1;
+    return { x: pos.x * scale, y: pos.y * scale, z: pos.z * scale };
+}
+async function testSpherify(factor){
+	const paths = glo.ribbon.getPaths();
+
+    let newPaths = paths.map(line => { return line.map(point => spherify(point, factor)); });
+
+	await BABYLON.MeshBuilder.CreateRibbon("testRibbon", { pathArray: newPaths, instance: glo.ribbon });
+}
+
+// Wave déformation
+function wave(pos, amplitude, frequency, phase) {
+    return {
+        x: pos.x,
+        y: pos.y + Math.sin(pos.x * frequency + phase) * amplitude,
+        z: pos.z
+    };
+}
+async function testWave(amplitude, frequency, phase){
+	const paths = glo.ribbon.getPaths();
+
+    let newPaths = paths.map(line => { return line.map(point => wave(point, amplitude, frequency, phase)); });
+
+	await BABYLON.MeshBuilder.CreateRibbon("testRibbon", { pathArray: newPaths, instance: glo.ribbon });
+}
+
 function invPos(x, y, z){
 	const invpos = glo.params.invPos;
 
@@ -1035,7 +1086,8 @@ function applyTransformations(mesh = glo.ribbon) {
     });
 
     // Appliquer les transformations (scaling, rotation, position)
-	const scale = glo.params.gridScale ? mesh.gridScale() : 1;
+	//const scale = glo.params.gridScale ? (mesh.savedRibbon ? mesh.savedRibbon.gridScale() : mesh.gridScale()) : 1;
+	const scale = glo.params.gridScale ? mesh.gridScale(): 1;
 	mesh.gridScaleValue = scale;
     transformationsAxis.forEach(transformationsAxis => {
         if (glo.params[transformationsAxis.name]) {

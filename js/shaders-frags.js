@@ -3,10 +3,13 @@ fragmentShaders = [
     //Norm&Pos
     float coeff = 1.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()));
-    vec3 col1   = fract(coeff*palette(lnpos));
-    vec3 col2   = fract(3.0*rainbow(lnpos));
+    
+    vec3 col1 = fract(coeff*palette(lnpos));
+    vec3 col2 = fract(3.0*rainbow(lnpos));
+    vec3 col3 = 1.0 - mix(col1, col2, dot(col1,col2));
+    vec3 col4 = 1.0 - mix(col1, col2, cross(col1,col2));
 
-    vec3 col = 1.0 - mix(col1, col2, dot(col1,col2));
+    vec3 col = mix(col3, col4, Ts(1.0));
 `,
 `
     //Npos
@@ -17,11 +20,6 @@ fragmentShaders = [
     vec3 col = vNormal;
 
     
-    `,
-`   
-    //Curvatures
-    float val = 0.5*(vCurvatures.x+vCurvatures.y);
-    vec3 col  = 1.0 - rainbow(val);
 `,
 `   
     //RotTile

@@ -556,6 +556,22 @@ function gui_resize(){
 	glo.advancedTexture.idealHeight = h / coeff;
 }
 
+function changeResolution(change = 'increase'){
+	const coeff = change === 'increase' ? 2 : 0.5;
+
+	glo.slider_nb_steps_u.maximum*=coeff;
+	glo.slider_nb_steps_v.maximum*=coeff;
+
+	if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
+		glo.fromHisto = true;
+		glo.slider_nb_steps_u.value*=coeff;
+		glo.slider_nb_steps_v.value*=coeff;
+		glo.fromHisto = false;
+
+		remakeRibbon();
+	}
+}
+
 function uvToXy(remake = true){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 

@@ -1,89 +1,490 @@
 /**
  * Classes GPU pour le calcul des paths du ribbon selon différents systèmes de coordonnées
- * Utilise gpu.js 2.16.0 pour effectuer les calculs sur le GPU
  *
- * PRINCIPE : L'expression mathématique est injectée directement dans le code du kernel GPU
- * (comme pour les shaders GLSL). Le kernel est compilé une seule fois, puis le GPU
- * calcule TOUS les points en parallèle. Pas de boucle CPU, pas d'eval par point.
+ * APPROCHE : Utilisation de WebGL2 Transform Feedback pour calculer les positions sur le GPU
+ * L'expression mathématique est injectée directement dans le code GLSL (concaténation de strings)
+ * AUCUN eval() ni new Function() - le navigateur compile le GLSL nativement.
+ *
+ * Le GPU calcule TOUS les points en parallèle, puis on récupère les résultats via Transform Feedback.
  */
 
-// ==================== INSTANCE GPU GLOBALE ====================
+// ==================== GESTIONNAIRE WebGL2 ====================
 
-let gpuInstance = null;
+class WebGL2MeshComputer {
+	constructor() {
+		// Créer un canvas offscreen pour WebGL2
+		this.canvas = document.createElement('canvas');
+		this.gl = this.canvas.getContext('webgl2');
 
-function getGPUInstance() {
-	if (!gpuInstance) {
-		gpuInstance = new GPU({ mode: 'gpu' });
+		if (!this.gl) {
+			console.error('WebGL2 non supporté');
+			this.supported = false;
+			return;
+		}
+
+		this.supported = true;
+		this.programs = new Map(); // Cache des programmes compilés
 	}
-	return gpuInstance;
+
+	/**
+	 * Transforme une expression mathématique en GLSL valide
+	 */
+	transformExpressionToGLSL(expr) {
+		if (!expr || expr.trim() === '') return '0.0';
+
+		let result = expr;
+
+		// Remplacer les constantes
+		result = result.replace(/\bPI\b/g, '3.14159265358979');
+		result = result.replace(/\bpi\b/g, '3.14159265358979');
+		result = result.replace(/\bep\b/g, '2.71828182845905');
+		result = result.replace(/\be\b(?![xp])/g, '2.71828182845905');
+		result = result.replace(/\bQ\b/g, '1.41421356237310');
+		result = result.replace(/\bZ\b/g, '1.61803398874989');
+
+		// GLSL utilise les mêmes noms de fonctions que JavaScript
+		// sin, cos, tan, asin, acos, atan, sqrt, pow, exp, log, abs, sign, floor, ceil, min, max
+		// sinh, cosh, tanh sont aussi supportés en GLSL
+
+		// Fonction hypot -> length pour 2 args, ou calcul manuel
+		result = result.replace(/\bhypot\s*\(\s*([^,]+)\s*,\s*([^,)]+)\s*\)/g, 'length(vec2($1, $2))');
+		result = result.replace(/\bh\s*\(\s*([^,]+)\s*,\s*([^,)]+)\s*\)/g, 'length(vec2($1, $2))');
+		result = result.replace(/\bhypot\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, 'length(vec3($1, $2, $3))');
+		result = result.replace(/\bh\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, 'length(vec3($1, $2, $3))');
+
+		// ** en GLSL c'est pow()
+		result = result.replace(/\*\*/g, '^POW^');
+		result = result.replace(/([a-zA-Z0-9_.()]+)\s*\^POW\^\s*([a-zA-Z0-9_.()]+)/g, 'pow($1, $2)');
+
+		// S'assurer que les nombres ont un point décimal pour GLSL
+		result = result.replace(/\b(\d+)(?![\d.])/g, '$1.0');
+
+		// Corriger les doubles points
+		result = result.replace(/\.0\.0/g, '.0');
+		result = result.replace(/(\d+)\.0\.0/g, '$1.0');
+
+		return result;
+	}
+
+	/**
+	 * Crée le vertex shader GLSL avec les expressions injectées
+	 */
+	createVertexShader(exprX, exprY, exprZ, exprAlpha, exprBeta, coordSystem = 'cartesian') {
+		const glslX = this.transformExpressionToGLSL(exprX);
+		const glslY = this.transformExpressionToGLSL(exprY);
+		const glslZ = this.transformExpressionToGLSL(exprZ);
+		const glslAlpha = this.transformExpressionToGLSL(exprAlpha || '0.0');
+		const glslBeta = this.transformExpressionToGLSL(exprBeta || '0.0');
+
+		let positionCalculation;
+
+		if (coordSystem === 'cartesian') {
+			positionCalculation = `
+				// Coordonnées cartésiennes
+				float px = ${glslX};
+				float py = ${glslY};
+				float pz = ${glslZ};
+
+				// Rotation si alpha et beta définis
+				float alpha = ${glslAlpha};
+				float beta = ${glslBeta};
+
+				if (alpha != 0.0 || beta != 0.0) {
+					float cosA = cos(alpha);
+					float sinA = sin(alpha);
+					float cosB = cos(beta);
+					float sinB = sin(beta);
+
+					// Rotation Y puis Z
+					float x1 = px * cosB - pz * sinB;
+					float z1 = px * sinB + pz * cosB;
+					float x2 = x1 * cosA - py * sinA;
+					float y2 = x1 * sinA + py * cosA;
+
+					px = x2;
+					py = y2;
+					pz = z1;
+				}
+
+				outPosition = vec3(px, py, pz);
+			`;
+		} else if (coordSystem === 'spheric') {
+			positionCalculation = `
+				// Coordonnées sphériques
+				float r = ${glslX};
+				float alpha = ${glslY};
+				float beta = ${glslZ};
+
+				if (isinf(r) || isnan(r)) r = 0.0;
+
+				// Point initial * r
+				vec3 p = uFirstPoint * r;
+
+				// Rotation sphérique
+				float cosAlpha = cos(alpha);
+				float sinAlpha = sin(alpha);
+				float cosBeta = cos(beta);
+				float sinBeta = sin(beta);
+
+				// Rotation Y (beta)
+				float x1 = p.x * cosBeta + p.z * sinBeta;
+				float y1 = p.y;
+				float z1 = -p.x * sinBeta + p.z * cosBeta;
+
+				// Rotation Z (alpha)
+				float px = x1 * cosAlpha - y1 * sinAlpha;
+				float py = x1 * sinAlpha + y1 * cosAlpha;
+				float pz = z1;
+
+				// Rotation secondaire
+				float alpha2 = ${glslAlpha};
+				float beta2 = ${glslBeta};
+
+				if (alpha2 != 0.0 || beta2 != 0.0) {
+					float cosA2 = cos(alpha2);
+					float sinA2 = sin(alpha2);
+					float cosB2 = cos(beta2);
+					float sinB2 = sin(beta2);
+
+					float x2 = px * cosB2 - pz * sinB2;
+					float z2 = px * sinB2 + pz * cosB2;
+					float x3 = x2 * cosA2 - py * sinA2;
+					float y3 = x2 * sinA2 + py * cosA2;
+
+					px = x3;
+					py = y3;
+					pz = z2;
+				}
+
+				outPosition = vec3(px, py, pz);
+			`;
+		} else if (coordSystem === 'cylindrical') {
+			positionCalculation = `
+				// Coordonnées cylindriques
+				float r = ${glslX};
+				float alpha = ${glslY};
+				float height = ${glslZ};
+
+				if (isinf(r) || isnan(r)) r = 0.0;
+
+				// Rotation autour de Z
+				float cosAlpha = cos(alpha);
+				float sinAlpha = sin(alpha);
+
+				float px = uFirstPoint.x * r * cosAlpha - uFirstPoint.y * r * sinAlpha;
+				float py = uFirstPoint.x * r * sinAlpha + uFirstPoint.y * r * cosAlpha;
+				float pz = height;
+
+				// Rotation secondaire
+				float alpha2 = ${glslAlpha};
+				float beta2 = ${glslBeta};
+
+				if (alpha2 != 0.0 || beta2 != 0.0) {
+					float cosA2 = cos(alpha2);
+					float sinA2 = sin(alpha2);
+					float cosB2 = cos(beta2);
+					float sinB2 = sin(beta2);
+
+					float x2 = px * cosB2 - pz * sinB2;
+					float z2 = px * sinB2 + pz * cosB2;
+					float x3 = x2 * cosA2 - py * sinA2;
+					float y3 = x2 * sinA2 + py * cosA2;
+
+					px = x3;
+					py = y3;
+					pz = z2;
+				}
+
+				outPosition = vec3(px, py, pz);
+			`;
+		} else if (coordSystem === 'curvature') {
+			// Pour la courbure, on calcule les deltas
+			positionCalculation = `
+				// Système par courbure - calcul des deltas
+				float r = ${glslX};
+				float alpha = ${glslY};
+				float beta = ${glslZ};
+
+				if (isinf(r) || isnan(r)) r = 0.0;
+
+				float cosAlpha = cos(alpha);
+				float sinAlpha = sin(alpha);
+				float cosBeta = cos(beta);
+				float sinBeta = sin(beta);
+
+				// Delta de déplacement
+				float dx = r * cosAlpha * cosBeta;
+				float dy = r * sinAlpha * cosBeta;
+				float dz = r * sinBeta;
+
+				outPosition = vec3(dx, dy, dz);
+			`;
+		}
+
+		return `#version 300 es
+			precision highp float;
+
+			// Attributs d'entrée (indices i, j)
+			in vec2 aIndex;
+
+			// Uniforms
+			uniform float uMinU;
+			uniform float uStepU;
+			uniform float uMinV;
+			uniform float uStepV;
+			uniform float uStepsV;
+			uniform float A, B, C, D, E, F, G, H, I, J, K, L;
+			uniform vec3 uFirstPoint;
+
+			// Sortie pour Transform Feedback
+			out vec3 outPosition;
+
+			void main() {
+				float i = aIndex.x;
+				float j = aIndex.y;
+
+				float u = uMinU + i * uStepU;
+				float v = uMinV + j * uStepV;
+
+				// Variables auxiliaires
+				float d = mod(j, 2.0) == 0.0 ? -1.0 : 1.0;
+				float k = mod(i, 2.0) == 0.0 ? -1.0 : 1.0;
+				float p = mod(i, 2.0) == 0.0 ? -u : u;
+				float t = mod(j, 2.0) == 0.0 ? -v : v;
+				float n = i * (uStepsV + 1.0) + j;
+
+				${positionCalculation}
+
+				// Position factice pour le vertex shader (non utilisée)
+				gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+			}
+		`;
+	}
+
+	/**
+	 * Compile un programme shader
+	 */
+	compileProgram(vertexSource) {
+		const gl = this.gl;
+
+		// Vertex shader
+		const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vertexShader, vertexSource);
+		gl.compileShader(vertexShader);
+
+		if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+			console.error('Erreur compilation vertex shader:', gl.getShaderInfoLog(vertexShader));
+			console.error('Source:', vertexSource);
+			gl.deleteShader(vertexShader);
+			return null;
+		}
+
+		// Fragment shader minimal (requis mais non utilisé avec Transform Feedback)
+		const fragmentSource = `#version 300 es
+			precision highp float;
+			out vec4 fragColor;
+			void main() {
+				fragColor = vec4(0.0);
+			}
+		`;
+
+		const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fragmentShader, fragmentSource);
+		gl.compileShader(fragmentShader);
+
+		if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+			console.error('Erreur compilation fragment shader:', gl.getShaderInfoLog(fragmentShader));
+			gl.deleteShader(vertexShader);
+			gl.deleteShader(fragmentShader);
+			return null;
+		}
+
+		// Programme
+		const program = gl.createProgram();
+		gl.attachShader(program, vertexShader);
+		gl.attachShader(program, fragmentShader);
+
+		// Configurer Transform Feedback AVANT le linkage
+		gl.transformFeedbackVaryings(program, ['outPosition'], gl.SEPARATE_ATTRIBS);
+
+		gl.linkProgram(program);
+
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			console.error('Erreur linkage programme:', gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
+			gl.deleteShader(vertexShader);
+			gl.deleteShader(fragmentShader);
+			return null;
+		}
+
+		// Cleanup shaders (attachés au programme)
+		gl.deleteShader(vertexShader);
+		gl.deleteShader(fragmentShader);
+
+		return program;
+	}
+
+	/**
+	 * Calcule les positions sur le GPU
+	 * @returns {Float32Array} Positions [x,y,z,x,y,z,...]
+	 */
+	compute(options) {
+		if (!this.supported) return null;
+
+		const {
+			stepsU, stepsV,
+			minU, stepU, minV, stepV,
+			exprX, exprY, exprZ, exprAlpha, exprBeta,
+			A, B, C, D, E, F, G, H, I, J, K, L,
+			firstPoint,
+			coordSystem
+		} = options;
+
+		const gl = this.gl;
+		const totalPoints = (stepsU + 1) * (stepsV + 1);
+
+		// Créer le vertex shader avec les expressions injectées
+		const vertexSource = this.createVertexShader(exprX, exprY, exprZ, exprAlpha, exprBeta, coordSystem);
+
+		// Compiler le programme
+		const program = this.compileProgram(vertexSource);
+		if (!program) return null;
+
+		gl.useProgram(program);
+
+		// Créer le buffer d'indices (i, j)
+		const indices = new Float32Array(totalPoints * 2);
+		let idx = 0;
+		for (let i = 0; i <= stepsU; i++) {
+			for (let j = 0; j <= stepsV; j++) {
+				indices[idx++] = i;
+				indices[idx++] = j;
+			}
+		}
+
+		// Buffer d'entrée
+		const indexBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+
+		// Configurer l'attribut
+		const aIndexLoc = gl.getAttribLocation(program, 'aIndex');
+		gl.enableVertexAttribArray(aIndexLoc);
+		gl.vertexAttribPointer(aIndexLoc, 2, gl.FLOAT, false, 0, 0);
+
+		// Uniforms
+		gl.uniform1f(gl.getUniformLocation(program, 'uMinU'), minU);
+		gl.uniform1f(gl.getUniformLocation(program, 'uStepU'), stepU);
+		gl.uniform1f(gl.getUniformLocation(program, 'uMinV'), minV);
+		gl.uniform1f(gl.getUniformLocation(program, 'uStepV'), stepV);
+		gl.uniform1f(gl.getUniformLocation(program, 'uStepsV'), stepsV);
+		gl.uniform1f(gl.getUniformLocation(program, 'A'), A || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'B'), B || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'C'), C || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'D'), D || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'E'), E || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'F'), F || 0);
+		gl.uniform1f(gl.getUniformLocation(program, 'G'), G || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'H'), H || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'I'), I || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'J'), J || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'K'), K || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'L'), L || 1);
+		gl.uniform3f(gl.getUniformLocation(program, 'uFirstPoint'),
+			firstPoint?.x || 1, firstPoint?.y || 0, firstPoint?.z || 0);
+
+		// Buffer de sortie pour Transform Feedback
+		const outputBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, totalPoints * 3 * 4, gl.STATIC_READ); // 3 floats * 4 bytes
+
+		// Configurer Transform Feedback
+		const transformFeedback = gl.createTransformFeedback();
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, transformFeedback);
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, outputBuffer);
+
+		// Désactiver le rasterizer (on ne veut que le Transform Feedback)
+		gl.enable(gl.RASTERIZER_DISCARD);
+
+		// Exécuter le calcul GPU
+		gl.beginTransformFeedback(gl.POINTS);
+		gl.drawArrays(gl.POINTS, 0, totalPoints);
+		gl.endTransformFeedback();
+
+		// Réactiver le rasterizer
+		gl.disable(gl.RASTERIZER_DISCARD);
+
+		// Lire les résultats
+		const positions = new Float32Array(totalPoints * 3);
+		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
+		gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
+
+		// Cleanup
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+		gl.deleteTransformFeedback(transformFeedback);
+		gl.deleteBuffer(indexBuffer);
+		gl.deleteBuffer(outputBuffer);
+		gl.deleteProgram(program);
+
+		return positions;
+	}
+
+	/**
+	 * Convertit les positions en paths de BABYLON.Vector3
+	 */
+	positionsToPaths(positions, stepsU, stepsV) {
+		const paths = [];
+		let idx = 0;
+
+		for (let i = 0; i <= stepsU; i++) {
+			const path = [];
+			for (let j = 0; j <= stepsV; j++) {
+				let x = positions[idx];
+				let y = positions[idx + 1];
+				let z = positions[idx + 2];
+
+				// Gestion des valeurs invalides
+				if (!isFinite(x) || isNaN(x)) x = 0;
+				if (!isFinite(y) || isNaN(y)) y = 0;
+				if (!isFinite(z) || isNaN(z)) z = 0;
+
+				path.push(new BABYLON.Vector3(x, y, z));
+				idx += 3;
+			}
+			paths.push(path);
+		}
+
+		return paths;
+	}
+
+	destroy() {
+		if (this.gl) {
+			const ext = this.gl.getExtension('WEBGL_lose_context');
+			if (ext) ext.loseContext();
+		}
+	}
+}
+
+// Instance globale du computer WebGL2
+let webgl2Computer = null;
+
+function getWebGL2Computer() {
+	if (!webgl2Computer) {
+		webgl2Computer = new WebGL2MeshComputer();
+	}
+	return webgl2Computer;
 }
 
 // ==================== TRANSFORMATION D'EXPRESSION ====================
 
 /**
- * Transforme une expression mathématique utilisateur en code compatible gpu.js
- * Les expressions sont transformées pour utiliser les fonctions JavaScript standard
- * qui seront compilées en GLSL par gpu.js
- */
-function transformExpressionForGPU(expr) {
-	if (!expr || expr.trim() === '') return '0.0';
-
-	let result = expr;
-
-	// Constantes mathématiques - remplacer par les valeurs numériques
-	result = result.replace(/\bPI\b/g, '3.14159265358979');
-	result = result.replace(/\bpi\b/g, '3.14159265358979');
-	result = result.replace(/\bep\b/g, '2.71828182845905');
-	result = result.replace(/\be\b(?![xp])/g, '2.71828182845905');
-	result = result.replace(/\bQ\b/g, '1.41421356237310'); // sqrt(2)
-	result = result.replace(/\bZ\b/g, '1.61803398874989'); // nombre d'or
-
-	// Les fonctions Math.* sont supportées nativement par gpu.js
-	// On s'assure que les noms de fonctions sont corrects
-	result = result.replace(/\bcos\b/g, 'Math.cos');
-	result = result.replace(/\bsin\b/g, 'Math.sin');
-	result = result.replace(/\btan\b/g, 'Math.tan');
-	result = result.replace(/\bacos\b/g, 'Math.acos');
-	result = result.replace(/\basin\b/g, 'Math.asin');
-	result = result.replace(/\batan\b/g, 'Math.atan');
-	result = result.replace(/\batan2\b/g, 'Math.atan2');
-	result = result.replace(/\bsqrt\b/g, 'Math.sqrt');
-	result = result.replace(/\bpow\b/g, 'Math.pow');
-	result = result.replace(/\bexp\b/g, 'Math.exp');
-	result = result.replace(/\blog\b/g, 'Math.log');
-	result = result.replace(/\babs\b/g, 'Math.abs');
-	result = result.replace(/\bsign\b/g, 'Math.sign');
-	result = result.replace(/\bfloor\b/g, 'Math.floor');
-	result = result.replace(/\bceil\b/g, 'Math.ceil');
-	result = result.replace(/\bmin\b/g, 'Math.min');
-	result = result.replace(/\bmax\b/g, 'Math.max');
-	result = result.replace(/\bsinh\b/g, 'Math.sinh');
-	result = result.replace(/\bcosh\b/g, 'Math.cosh');
-	result = result.replace(/\btanh\b/g, 'Math.tanh');
-
-	// Fonction hypot (distance)
-	result = result.replace(/\bh\s*\(/g, 'Math.hypot(');
-	result = result.replace(/\bhypot\b/g, 'Math.hypot');
-
-	// Opérateur puissance **
-	// gpu.js supporte ** nativement
-
-	// Corriger les doubles Math.Math
-	result = result.replace(/Math\.Math\./g, 'Math.');
-
-	return result;
-}
-
-/**
  * Applique les transformations regex de glo.regs à une expression
- * pour la convertir de la syntaxe raccourcie vers la syntaxe standard
  */
-function applyGloRegs(expr) {
+function applyGloRegsGPU(expr) {
 	if (!expr || expr.trim() === '') return '0';
 
 	let result = expr;
 
-	// Appliquer les regex de transformation de glo.regs
 	for (const reg of glo.regs) {
 		result = result.replace(reg.exp, reg.upd);
 	}
@@ -128,10 +529,10 @@ class CurveBaseGPU {
 		this.equa = equa;
 		this.equa2 = equa2;
 
-		// GPU instance
-		this.gpu = getGPUInstance();
+		// Computer WebGL2
+		this.computer = getWebGL2Computer();
 
-		// Paramètres UI constants
+		// Paramètres UI
 		this.A = glo.params.A; this.B = glo.params.B;
 		this.C = glo.params.C; this.D = glo.params.D;
 		this.E = glo.params.E; this.F = glo.params.F;
@@ -152,18 +553,13 @@ class CurveBaseGPU {
 		if (!equa) return;
 		for (let prop in equa) {
 			if (typeof equa[prop] === 'string') {
-				equa[prop] = applyGloRegs(equa[prop]);
+				equa[prop] = applyGloRegsGPU(equa[prop]);
 			}
 		}
 	}
 
-	/**
-	 * Crée et exécute le kernel GPU avec les expressions injectées
-	 * À surcharger par les classes filles
-	 */
-	compute() {
-		// À implémenter dans les classes filles
-	}
+	// À surcharger
+	compute() {}
 
 	computeOnePoint() {
 		this.compute();
@@ -180,42 +576,6 @@ class CurveBaseGPU {
 	}
 
 	onFinalize() {}
-
-	/**
-	 * Convertit le résultat GPU (Float32Array 2D) en paths de BABYLON.Vector3
-	 */
-	convertResultToPaths(gpuResult, stepsU, stepsV) {
-		this.paths = [];
-
-		for (let i = 0; i <= stepsU; i++) {
-			const path = [];
-			for (let j = 0; j <= stepsV; j++) {
-				const point = gpuResult[i][j];
-				let x = point[0];
-				let y = point[1];
-				let z = point[2];
-
-				// Gestion des valeurs invalides
-				if (!isFinite(x) || isNaN(x)) x = 0;
-				if (!isFinite(y) || isNaN(y)) y = 0;
-				if (!isFinite(z) || isNaN(z)) z = 0;
-
-				path.push(new BABYLON.Vector3(x, y, z));
-			}
-			this.paths.push(path);
-		}
-
-		if (!this.uvInfos.isV) {
-			this.paths[0] = this.paths.flat();
-		}
-	}
-
-	destroy() {
-		if (this.kernel) {
-			this.kernel.destroy();
-			this.kernel = null;
-		}
-	}
 }
 
 // ==================== SYSTÈME CARTÉSIEN GPU ====================
@@ -238,75 +598,29 @@ class CurvesCartesianGPU extends CurveBaseGPU {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Transformer les expressions pour GPU
-		const exprX = transformExpressionForGPU(this.equa.x || 'u');
-		const exprY = transformExpressionForGPU(this.equa.y || 'v');
-		const exprZ = transformExpressionForGPU(this.equa.z || '0');
-		const exprAlpha = transformExpressionForGPU(this.equa.alpha || '0');
-		const exprBeta = transformExpressionForGPU(this.equa.beta || '0');
+		const positions = this.computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.x || 'u',
+			exprY: this.equa.y || 'v',
+			exprZ: this.equa.z || '0',
+			exprAlpha: this.equa.alpha || '0',
+			exprBeta: this.equa.beta || '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'cartesian'
+		});
 
-		// Construire le code du kernel avec les expressions injectées
-		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
-			const i = this.thread.y;
-			const j = this.thread.x;
+		if (positions) {
+			this.paths = this.computer.positionsToPaths(positions, stepsU, stepsV);
+		}
 
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			// Variables auxiliaires
-			const d = (j % 2 === 0) ? -1.0 : 1.0;
-			const k = (i % 2 === 0) ? -1.0 : 1.0;
-			const p = (i % 2 === 0) ? -u : u;
-			const t = (j % 2 === 0) ? -v : v;
-			const n = i * ${stepsV + 1} + j;
-
-			// Calcul des coordonnées avec les expressions injectées
-			let x = ${exprX};
-			let y = ${exprY};
-			let z = ${exprZ};
-
-			// Rotation si alpha et beta sont définis
-			const alpha = ${exprAlpha};
-			const beta = ${exprBeta};
-
-			if (alpha !== 0.0 && beta !== 0.0) {
-				// Rotation par quaternion simplifiée
-				const cosA = Math.cos(alpha);
-				const sinA = Math.sin(alpha);
-				const cosB = Math.cos(beta);
-				const sinB = Math.sin(beta);
-
-				// Rotation autour de Y puis Z
-				const x1 = x * cosB - z * sinB;
-				const z1 = x * sinB + z * cosB;
-				const x2 = x1 * cosA - y * sinA;
-				const y2 = x1 * sinA + y * cosA;
-
-				x = x2;
-				y = y2;
-				z = z1;
-			}
-
-			return [x, y, z];
-		}`;
-
-		// Créer le kernel à partir du code
-		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
-			.setOutput([stepsV + 1, stepsU + 1])
-			.setPipeline(false)
-			.setImmutable(true);
-
-		// Exécuter le kernel - UN SEUL APPEL, le GPU calcule tout en parallèle
-		const result = this.kernel(
-			this.min_u, this.step_u,
-			this.min_v, this.step_v,
-			this.A, this.B, this.C, this.D,
-			this.E, this.F, this.G, this.H,
-			this.I, this.J, this.K, this.L
-		);
-
-		// Convertir le résultat en paths BABYLON
-		this.convertResultToPaths(result, stepsU, stepsV);
+		if (!this.uvInfos.isV && this.paths.length > 0) {
+			this.paths[0] = this.paths.flat();
+		}
 	}
 }
 
@@ -330,98 +644,29 @@ class CurvesSphericalGPU extends CurveBaseGPU {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Point de référence
-		const p2x = glo.firstPoint.x;
-		const p2y = glo.firstPoint.y;
-		const p2z = glo.firstPoint.z;
+		const positions = this.computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.r || '1',
+			exprY: this.equa.alpha || 'u',
+			exprZ: this.equa.beta || 'v',
+			exprAlpha: this.equa.alpha2 || '0',
+			exprBeta: this.equa.beta2 || '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'spheric'
+		});
 
-		// Transformer les expressions pour GPU
-		const exprR = transformExpressionForGPU(this.equa.r || '1');
-		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
-		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
-		const exprAlpha2 = transformExpressionForGPU(this.equa.alpha2 || '0');
-		const exprBeta2 = transformExpressionForGPU(this.equa.beta2 || '0');
+		if (positions) {
+			this.paths = this.computer.positionsToPaths(positions, stepsU, stepsV);
+		}
 
-		// Construire le code du kernel
-		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L, p2x, p2y, p2z) {
-			const i = this.thread.y;
-			const j = this.thread.x;
-
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			const d = (j % 2 === 0) ? -1.0 : 1.0;
-			const k = (i % 2 === 0) ? -1.0 : 1.0;
-			const p = (i % 2 === 0) ? -u : u;
-			const t = (j % 2 === 0) ? -v : v;
-			const n = i * ${stepsV + 1} + j;
-
-			// Calcul des paramètres sphériques
-			let r = ${exprR};
-			const alpha = ${exprAlpha};
-			const beta = ${exprBeta};
-
-			if (!isFinite(r)) r = 0.0;
-
-			// Point initial mis à l'échelle
-			let px = p2x * r;
-			let py = p2y * r;
-			let pz = p2z * r;
-
-			// Rotation sphérique (autour de Y pour beta, autour de Z pour alpha)
-			const cosAlpha = Math.cos(alpha);
-			const sinAlpha = Math.sin(alpha);
-			const cosBeta = Math.cos(beta);
-			const sinBeta = Math.sin(beta);
-
-			// Rotation autour de Y (beta)
-			let x1 = px * cosBeta + pz * sinBeta;
-			let y1 = py;
-			let z1 = -px * sinBeta + pz * cosBeta;
-
-			// Rotation autour de Z (alpha)
-			let x = x1 * cosAlpha - y1 * sinAlpha;
-			let y = x1 * sinAlpha + y1 * cosAlpha;
-			let z = z1;
-
-			// Rotation secondaire si définie
-			const alpha2 = ${exprAlpha2};
-			const beta2 = ${exprBeta2};
-
-			if (alpha2 !== 0.0 && beta2 !== 0.0) {
-				const cosA2 = Math.cos(alpha2);
-				const sinA2 = Math.sin(alpha2);
-				const cosB2 = Math.cos(beta2);
-				const sinB2 = Math.sin(beta2);
-
-				const x2 = x * cosB2 - z * sinB2;
-				const z2 = x * sinB2 + z * cosB2;
-				const x3 = x2 * cosA2 - y * sinA2;
-				const y3 = x2 * sinA2 + y * cosA2;
-
-				x = x3;
-				y = y3;
-				z = z2;
-			}
-
-			return [x, y, z];
-		}`;
-
-		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
-			.setOutput([stepsV + 1, stepsU + 1])
-			.setPipeline(false)
-			.setImmutable(true);
-
-		const result = this.kernel(
-			this.min_u, this.step_u,
-			this.min_v, this.step_v,
-			this.A, this.B, this.C, this.D,
-			this.E, this.F, this.G, this.H,
-			this.I, this.J, this.K, this.L,
-			p2x, p2y, p2z
-		);
-
-		this.convertResultToPaths(result, stepsU, stepsV);
+		if (!this.uvInfos.isV && this.paths.length > 0) {
+			this.paths[0] = this.paths.flat();
+		}
 	}
 }
 
@@ -445,84 +690,29 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		const p2x = glo.firstPoint.x;
-		const p2y = glo.firstPoint.y;
+		const positions = this.computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.r || '1',
+			exprY: this.equa.alpha || 'u',
+			exprZ: this.equa.beta || 'v',
+			exprAlpha: this.equa.alpha2 || '0',
+			exprBeta: this.equa.beta2 || '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'cylindrical'
+		});
 
-		const exprR = transformExpressionForGPU(this.equa.r || '1');
-		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
-		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
-		const exprAlpha2 = transformExpressionForGPU(this.equa.alpha2 || '0');
-		const exprBeta2 = transformExpressionForGPU(this.equa.beta2 || '0');
+		if (positions) {
+			this.paths = this.computer.positionsToPaths(positions, stepsU, stepsV);
+		}
 
-		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L, p2x, p2y) {
-			const i = this.thread.y;
-			const j = this.thread.x;
-
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			const d = (j % 2 === 0) ? -1.0 : 1.0;
-			const k = (i % 2 === 0) ? -1.0 : 1.0;
-			const p = (i % 2 === 0) ? -u : u;
-			const t = (j % 2 === 0) ? -v : v;
-			const n = i * ${stepsV + 1} + j;
-
-			let r = ${exprR};
-			const alpha = ${exprAlpha};
-			const beta = ${exprBeta};
-
-			if (!isFinite(r)) r = 0.0;
-
-			// Point initial mis à l'échelle
-			let px = p2x * r;
-			let py = p2y * r;
-
-			// Rotation autour de Z (coordonnées cylindriques)
-			const cosAlpha = Math.cos(alpha);
-			const sinAlpha = Math.sin(alpha);
-
-			let x = px * cosAlpha - py * sinAlpha;
-			let y = px * sinAlpha + py * cosAlpha;
-			let z = beta; // Hauteur
-
-			// Rotation secondaire
-			const alpha2 = ${exprAlpha2};
-			const beta2 = ${exprBeta2};
-
-			if (alpha2 !== 0.0 && beta2 !== 0.0) {
-				const cosA2 = Math.cos(alpha2);
-				const sinA2 = Math.sin(alpha2);
-				const cosB2 = Math.cos(beta2);
-				const sinB2 = Math.sin(beta2);
-
-				const x2 = x * cosB2 - z * sinB2;
-				const z2 = x * sinB2 + z * cosB2;
-				const x3 = x2 * cosA2 - y * sinA2;
-				const y3 = x2 * sinA2 + y * cosA2;
-
-				x = x3;
-				y = y3;
-				z = z2;
-			}
-
-			return [x, y, z];
-		}`;
-
-		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
-			.setOutput([stepsV + 1, stepsU + 1])
-			.setPipeline(false)
-			.setImmutable(true);
-
-		const result = this.kernel(
-			this.min_u, this.step_u,
-			this.min_v, this.step_v,
-			this.A, this.B, this.C, this.D,
-			this.E, this.F, this.G, this.H,
-			this.I, this.J, this.K, this.L,
-			p2x, p2y
-		);
-
-		this.convertResultToPaths(result, stepsU, stepsV);
+		if (!this.uvInfos.isV && this.paths.length > 0) {
+			this.paths[0] = this.paths.flat();
+		}
 	}
 
 	onFinalize() {
@@ -532,11 +722,6 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 
 // ==================== SYSTÈME PAR COURBURE GPU ====================
 
-/**
- * Note: Le système par courbure est intrinsèquement séquentiel car chaque point
- * dépend du précédent. On utilise quand même le GPU pour les calculs trigonométriques
- * mais avec une approche différente utilisant un scan parallèle (prefix sum).
- */
 class CurvesByCurvatureGPU extends CurveBaseGPU {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
@@ -555,62 +740,30 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		const exprR = transformExpressionForGPU(this.equa.r || '1');
-		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
-		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
+		// Étape 1: GPU calcule les deltas
+		const deltas = this.computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.r || '1',
+			exprY: this.equa.alpha || 'u',
+			exprZ: this.equa.beta || 'v',
+			exprAlpha: '0',
+			exprBeta: '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'curvature'
+		});
 
-		// Étape 1: Calculer les déplacements locaux (dx, dy, dz) pour chaque point
-		const kernelDeltas = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
-			const i = this.thread.y;
-			const j = this.thread.x;
+		if (!deltas) return;
 
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			const d = (j % 2 === 0) ? -1.0 : 1.0;
-			const k = (i % 2 === 0) ? -1.0 : 1.0;
-			const p = (i % 2 === 0) ? -u : u;
-			const t = (j % 2 === 0) ? -v : v;
-			const n = i * ${stepsV + 1} + j;
-
-			let r = ${exprR};
-			const alpha = ${exprAlpha};
-			const beta = ${exprBeta};
-
-			if (!isFinite(r)) r = 0.0;
-
-			// Direction selon alpha et beta
-			const cosAlpha = Math.cos(alpha);
-			const sinAlpha = Math.sin(alpha);
-			const cosBeta = Math.cos(beta);
-			const sinBeta = Math.sin(beta);
-
-			// Déplacement local
-			const dx = r * cosAlpha * cosBeta;
-			const dy = r * sinAlpha * cosBeta;
-			const dz = r * sinBeta;
-
-			return [dx, dy, dz];
-		}`;
-
-		const deltaKernel = this.gpu.createKernel(eval('(' + kernelDeltas + ')'))
-			.setOutput([stepsV + 1, stepsU + 1])
-			.setPipeline(false);
-
-		const deltas = deltaKernel(
-			this.min_u, this.step_u,
-			this.min_v, this.step_v,
-			this.A, this.B, this.C, this.D,
-			this.E, this.F, this.G, this.H,
-			this.I, this.J, this.K, this.L
-		);
-
-		// Étape 2: Prefix sum (scan) pour accumuler les positions
-		// Pour le système par courbure, chaque ligne (u fixe) est indépendante
-		// donc on peut paralléliser sur u et faire le scan séquentiellement sur v
+		// Étape 2: Prefix sum (accumulation) - séquentiel par ligne
 		this.paths = [];
 		this.moyPos = { x: 0, y: 0, z: 0 };
 		let pointCount = 0;
+		let idx = 0;
 
 		for (let i = 0; i <= stepsU; i++) {
 			const path = [];
@@ -621,12 +774,11 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 			}
 
 			for (let j = 0; j <= stepsV; j++) {
-				const delta = deltas[i][j];
-				x += delta[0];
-				y += delta[1];
-				z += delta[2];
+				x += deltas[idx];
+				y += deltas[idx + 1];
+				z += deltas[idx + 2];
+				idx += 3;
 
-				// Gestion des valeurs invalides
 				if (!isFinite(x)) x = 0;
 				if (!isFinite(y)) y = 0;
 				if (!isFinite(z)) z = 0;
@@ -649,9 +801,7 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 			offsetPathsByMoyPos(this.paths, this.moyPos);
 		}
 
-		deltaKernel.destroy();
-
-		if (!this.uvInfos.isV) {
+		if (!this.uvInfos.isV && this.paths.length > 0) {
 			this.paths[0] = this.paths.flat();
 		}
 	}
@@ -663,9 +813,6 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 
 // ==================== FACTORY ET UTILITAIRES ====================
 
-/**
- * Factory pour créer la classe appropriée selon le mode GPU/CPU
- */
 function getCurveClassGPU(coordsType) {
 	const classes = {
 		'cartesian': CurvesCartesianGPU,
@@ -676,17 +823,11 @@ function getCurveClassGPU(coordsType) {
 	return classes[coordsType] || CurvesCartesianGPU;
 }
 
-/**
- * Crée une instance de courbe GPU
- */
 function createCurvesGPU(coordsType, parametres, equa, equa2, dim_one, fractalize, onePoint) {
 	const CurveClass = getCurveClassGPU(coordsType);
 	return new CurveClass(parametres, equa, equa2, dim_one, fractalize, onePoint);
 }
 
-/**
- * Récupère les positions calculées sous forme de Float32Array
- */
 function getPositionsFromCurvesGPU(curves) {
 	const paths = curves.paths;
 	const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
@@ -704,9 +845,6 @@ function getPositionsFromCurvesGPU(curves) {
 	return positions;
 }
 
-/**
- * Crée un VertexData Babylon.js à partir des courbes GPU calculées
- */
 function createVertexDataFromCurvesGPU(curves) {
 	const vertexData = new BABYLON.VertexData();
 	const paths = curves.paths;
@@ -714,14 +852,12 @@ function createVertexDataFromCurvesGPU(curves) {
 	const indices = [];
 	const normals = [];
 
-	// Aplatir les paths en positions
 	for (const path of paths) {
 		for (const point of path) {
 			positions.push(point.x, point.y, point.z);
 		}
 	}
 
-	// Créer les indices pour un ribbon
 	const pathLength = paths[0]?.length || 0;
 	for (let i = 0; i < paths.length - 1; i++) {
 		for (let j = 0; j < pathLength - 1; j++) {
@@ -740,15 +876,15 @@ function createVertexDataFromCurvesGPU(curves) {
 	return vertexData;
 }
 
-// ==================== CLASSE KERNEL DYNAMIQUE PURE ====================
+// ==================== CLASSE UTILITAIRE SIMPLE ====================
 
 /**
- * Classe utilitaire pour créer des kernels GPU avec des expressions arbitraires
- * sans avoir à recréer tout le système de classes
+ * Classe simple pour calculer des positions avec des expressions personnalisées
+ * AUCUN eval() ni new Function() - utilise WebGL2 Transform Feedback natif
  */
 class GPUMeshComputer {
 	constructor(options = {}) {
-		this.gpu = getGPUInstance();
+		this.computer = getWebGL2Computer();
 		this.options = Object.assign({
 			minU: -Math.PI,
 			maxU: Math.PI,
@@ -757,110 +893,46 @@ class GPUMeshComputer {
 			stepsU: 64,
 			stepsV: 64,
 		}, options);
-
-		this.kernel = null;
 	}
 
 	/**
-	 * Compile et exécute un kernel avec les expressions données
-	 * @param {string} exprX - Expression pour X
+	 * Calcule les positions sur le GPU
+	 * @param {string} exprX - Expression pour X (ex: "cos(u)*sin(v)")
 	 * @param {string} exprY - Expression pour Y
 	 * @param {string} exprZ - Expression pour Z
-	 * @param {object} params - Paramètres additionnels (A, B, C, etc.)
+	 * @param {object} params - Paramètres (A, B, C, etc.)
 	 * @returns {Float32Array} Positions [x,y,z,x,y,z,...]
 	 */
 	compute(exprX, exprY, exprZ, params = {}) {
 		const { minU, maxU, minV, maxV, stepsU, stepsV } = this.options;
-		const stepU = (maxU - minU) / stepsU;
-		const stepV = (maxV - minV) / stepsV;
 
-		// Transformer les expressions
-		const tExprX = transformExpressionForGPU(exprX || 'u');
-		const tExprY = transformExpressionForGPU(exprY || 'v');
-		const tExprZ = transformExpressionForGPU(exprZ || '0');
-
-		// Paramètres avec valeurs par défaut
-		const A = params.A || 0, B = params.B || 0, C = params.C || 0, D = params.D || 0;
-		const E = params.E || 0, F = params.F || 0, G = params.G || 1, H = params.H || 1;
-		const I = params.I || 1, J = params.J || 1, K = params.K || 1, L = params.L || 1;
-
-		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
-			const i = this.thread.y;
-			const j = this.thread.x;
-
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			const d = (j % 2 === 0) ? -1.0 : 1.0;
-			const k = (i % 2 === 0) ? -1.0 : 1.0;
-			const p = (i % 2 === 0) ? -u : u;
-			const t = (j % 2 === 0) ? -v : v;
-			const n = i * ${stepsV + 1} + j;
-
-			const x = ${tExprX};
-			const y = ${tExprY};
-			const z = ${tExprZ};
-
-			return [x, y, z];
-		}`;
-
-		// Détruire l'ancien kernel si existant
-		if (this.kernel) {
-			this.kernel.destroy();
-		}
-
-		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
-			.setOutput([stepsV + 1, stepsU + 1])
-			.setPipeline(false);
-
-		const result = this.kernel(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L);
-
-		// Convertir en Float32Array
-		const totalPoints = (stepsU + 1) * (stepsV + 1);
-		const positions = new Float32Array(totalPoints * 3);
-		let idx = 0;
-
-		for (let i = 0; i <= stepsU; i++) {
-			for (let j = 0; j <= stepsV; j++) {
-				const point = result[i][j];
-				positions[idx++] = isFinite(point[0]) ? point[0] : 0;
-				positions[idx++] = isFinite(point[1]) ? point[1] : 0;
-				positions[idx++] = isFinite(point[2]) ? point[2] : 0;
-			}
-		}
-
-		return positions;
+		return this.computer.compute({
+			stepsU, stepsV,
+			minU,
+			stepU: (maxU - minU) / stepsU,
+			minV,
+			stepV: (maxV - minV) / stepsV,
+			exprX: exprX || 'u',
+			exprY: exprY || 'v',
+			exprZ: exprZ || '0',
+			exprAlpha: '0',
+			exprBeta: '0',
+			A: params.A || 0, B: params.B || 0, C: params.C || 0, D: params.D || 0,
+			E: params.E || 0, F: params.F || 0, G: params.G || 1, H: params.H || 1,
+			I: params.I || 1, J: params.J || 1, K: params.K || 1, L: params.L || 1,
+			firstPoint: { x: 1, y: 0, z: 0 },
+			coordSystem: 'cartesian'
+		});
 	}
 
 	/**
-	 * Version qui retourne des paths de BABYLON.Vector3
+	 * Retourne des paths de BABYLON.Vector3
 	 */
 	computePaths(exprX, exprY, exprZ, params = {}) {
 		const positions = this.compute(exprX, exprY, exprZ, params);
+		if (!positions) return [];
+
 		const { stepsU, stepsV } = this.options;
-		const paths = [];
-
-		let idx = 0;
-		for (let i = 0; i <= stepsU; i++) {
-			const path = [];
-			for (let j = 0; j <= stepsV; j++) {
-				path.push(new BABYLON.Vector3(
-					positions[idx],
-					positions[idx + 1],
-					positions[idx + 2]
-				));
-				idx += 3;
-			}
-			paths.push(path);
-		}
-
-		return paths;
-	}
-
-	destroy() {
-		if (this.kernel) {
-			this.kernel.destroy();
-			this.kernel = null;
-		}
+		return this.computer.positionsToPaths(positions, stepsU, stepsV);
 	}
 }

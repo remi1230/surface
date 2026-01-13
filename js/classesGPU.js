@@ -414,13 +414,16 @@ class WebGL2MeshComputer {
 		// Réactiver le rasterizer
 		gl.disable(gl.RASTERIZER_DISCARD);
 
+		// IMPORTANT: Délier le buffer du Transform Feedback AVANT de le lire
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
 		// Lire les résultats
 		const positions = new Float32Array(totalPoints * 3);
 		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
 		gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
 
 		// Cleanup
-		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 		gl.deleteTransformFeedback(transformFeedback);
 		gl.deleteBuffer(indexBuffer);
 		gl.deleteBuffer(outputBuffer);

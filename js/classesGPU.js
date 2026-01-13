@@ -420,13 +420,8 @@ class WebGL2MeshComputer {
 		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
 		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 
-		// Attendre que le GPU ait terminé avec une fence sync
-		const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-		gl.flush();
-
-		// Attendre la fence (timeout de 1 seconde max)
-		const waitResult = gl.clientWaitSync(sync, gl.SYNC_FLUSH_COMMANDS_BIT, 1000000000);
-		gl.deleteSync(sync);
+		// Attendre que le GPU ait terminé (gl.finish est le plus fiable en WebGL)
+		gl.finish();
 
 		// Lire les résultats
 		const positions = new Float32Array(totalPoints * 3);

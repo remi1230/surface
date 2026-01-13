@@ -396,7 +396,9 @@ class WebGL2MeshComputer {
 		// Buffer de sortie pour Transform Feedback
 		const outputBuffer = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, totalPoints * 3 * 4, gl.STATIC_READ); // 3 floats * 4 bytes
+		gl.bufferData(gl.ARRAY_BUFFER, totalPoints * 3 * 4, gl.STREAM_READ); // 3 floats * 4 bytes
+		// IMPORTANT: Délier de ARRAY_BUFFER avant d'utiliser comme Transform Feedback target
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 		// Configurer Transform Feedback
 		const transformFeedback = gl.createTransformFeedback();
@@ -414,14 +416,23 @@ class WebGL2MeshComputer {
 		// Réactiver le rasterizer
 		gl.disable(gl.RASTERIZER_DISCARD);
 
-		// IMPORTANT: Délier le buffer du Transform Feedback AVANT de le lire
+		// Délier le buffer du Transform Feedback
 		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
 		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+		// Attendre que le GPU ait terminé avec une fence sync
+		const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+		gl.flush();
+
+		// Attendre la fence (timeout de 1 seconde max)
+		const waitResult = gl.clientWaitSync(sync, gl.SYNC_FLUSH_COMMANDS_BIT, 1000000000);
+		gl.deleteSync(sync);
 
 		// Lire les résultats
 		const positions = new Float32Array(totalPoints * 3);
 		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
 		gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
+		gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
 		// Cleanup
 		gl.deleteTransformFeedback(transformFeedback);

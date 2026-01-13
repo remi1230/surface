@@ -137,6 +137,27 @@ const combinedVertexShader = `
 		return cos(8.0 * gu) * sin(8.0 * gv);
 	}
 
+    float h(float x, float y){
+        return length(vec2(x, y));
+    }
+
+    float h(float x, float y, float z){
+        return length(vec3(x, y, z));
+    }
+
+    float h(float x, float y, float z, float w){
+        return length(vec4(x, y, z, w));
+    }
+
+    float h(float x, float y, float z, float w, float coeff){
+        return length(vec4(x*coeff, y*coeff, z*coeff, w*coeff));
+    }
+
+    /*float h(float x, float y, float noparam){
+        float sum = sign(x)*x*x + sign(y)*y*y;
+        return sign(sum) * sqrt(abs(sum));
+    }*/
+
     // DEFORMATION_EXPRESSION sera remplacé dynamiquement
     float computeDeformation(float u, float v, float x, float y, float z,
                              float xN, float yN, float zN, float O, float T,

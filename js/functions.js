@@ -176,15 +176,6 @@ function addCommonTools(obj){
 		return Math.cos(Math.exp(val));
 	};
 
-	obj.ww = function(val){
-		return Math.cos(this.ec(val));
-	};
-
-	obj.w = function(val, isCos = 1){
-		let res = isCos ? Math.acos(val) : Math.asin(val);
-		return isNaN(res) ? val : res;
-	};
-
 	obj.b = function(val){
 		if(val > 0){ return val < 1 ? val + 1 : val; }
 		else{ return val > -1 ? val - 1 : val; }

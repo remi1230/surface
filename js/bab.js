@@ -90,22 +90,14 @@ Game = function(canvasId) {
         if (glo.rotateType != 'none') { rotate_camera(); }
         if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
         
-        /*if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
+        if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
             lastDeformTime = now;
             w+=wstep;
             // Lancer la déformation de manière non-bloquante
             requestAnimationFrame(() => {
-                //!glo.params.isTimeVariable ? applyDeformation(true) : remakeRibbon();
-                !glo.params.isTimeVariable ? applyDeformationShader() : remakeRibbon();
+                remakeRibbon();
             });
-        }*/
-        /*if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
-            lastDeformTime = now;
-            // Lancer la déformation de manière non-bloquante
-            requestAnimationFrame(() => {
-                applyTransformations();
-            });
-        }*/
+        }
         _this.scene.render();
     });
   });

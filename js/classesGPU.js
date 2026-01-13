@@ -1,48 +1,97 @@
 /**
  * Classes GPU pour le calcul des paths du ribbon selon différents systèmes de coordonnées
- * Utilise gpu.js 2.16.0 pour effectuer les calculs sur le GPU et récupérer les nouveaux points
- * Architecture : une classe mère CurveBaseGPU et 4 classes filles
+ * Utilise gpu.js 2.16.0 pour effectuer les calculs sur le GPU
+ *
+ * PRINCIPE : L'expression mathématique est injectée directement dans le code du kernel GPU
+ * (comme pour les shaders GLSL). Le kernel est compilé une seule fois, puis le GPU
+ * calcule TOUS les points en parallèle. Pas de boucle CPU, pas d'eval par point.
  */
 
-// ==================== INITIALISATION GPU.JS ====================
+// ==================== INSTANCE GPU GLOBALE ====================
 
-// Instance GPU globale (sera créée une fois)
 let gpuInstance = null;
 
 function getGPUInstance() {
 	if (!gpuInstance) {
 		gpuInstance = new GPU({ mode: 'gpu' });
-		// Ajouter les fonctions mathématiques natives comme fonctions GPU
-		gpuInstance.addNativeFunction('gpuCos', `float gpuCos(float x) { return cos(x); }`);
-		gpuInstance.addNativeFunction('gpuSin', `float gpuSin(float x) { return sin(x); }`);
-		gpuInstance.addNativeFunction('gpuTan', `float gpuTan(float x) { return tan(x); }`);
-		gpuInstance.addNativeFunction('gpuAcos', `float gpuAcos(float x) { return acos(x); }`);
-		gpuInstance.addNativeFunction('gpuAsin', `float gpuAsin(float x) { return asin(x); }`);
-		gpuInstance.addNativeFunction('gpuAtan', `float gpuAtan(float x) { return atan(x); }`);
-		gpuInstance.addNativeFunction('gpuAtan2', `float gpuAtan2(float y, float x) { return atan(y, x); }`);
-		gpuInstance.addNativeFunction('gpuSqrt', `float gpuSqrt(float x) { return sqrt(x); }`);
-		gpuInstance.addNativeFunction('gpuPow', `float gpuPow(float x, float y) { return pow(x, y); }`);
-		gpuInstance.addNativeFunction('gpuExp', `float gpuExp(float x) { return exp(x); }`);
-		gpuInstance.addNativeFunction('gpuLog', `float gpuLog(float x) { return log(x); }`);
-		gpuInstance.addNativeFunction('gpuAbs', `float gpuAbs(float x) { return abs(x); }`);
-		gpuInstance.addNativeFunction('gpuSign', `float gpuSign(float x) { return sign(x); }`);
-		gpuInstance.addNativeFunction('gpuFloor', `float gpuFloor(float x) { return floor(x); }`);
-		gpuInstance.addNativeFunction('gpuCeil', `float gpuCeil(float x) { return ceil(x); }`);
-		gpuInstance.addNativeFunction('gpuMod', `float gpuMod(float x, float y) { return mod(x, y); }`);
-		gpuInstance.addNativeFunction('gpuMin', `float gpuMin(float x, float y) { return min(x, y); }`);
-		gpuInstance.addNativeFunction('gpuMax', `float gpuMax(float x, float y) { return max(x, y); }`);
-		gpuInstance.addNativeFunction('gpuClamp', `float gpuClamp(float x, float minVal, float maxVal) { return clamp(x, minVal, maxVal); }`);
-		gpuInstance.addNativeFunction('gpuMix', `float gpuMix(float x, float y, float a) { return mix(x, y, a); }`);
-		gpuInstance.addNativeFunction('gpuSinh', `float gpuSinh(float x) { return sinh(x); }`);
-		gpuInstance.addNativeFunction('gpuCosh', `float gpuCosh(float x) { return cosh(x); }`);
-		gpuInstance.addNativeFunction('gpuTanh', `float gpuTanh(float x) { return tanh(x); }`);
-		gpuInstance.addNativeFunction('gpuHypot', `float gpuHypot(float x, float y) { return sqrt(x*x + y*y); }`);
-		gpuInstance.addNativeFunction('gpuHypot3', `float gpuHypot3(float x, float y, float z) { return sqrt(x*x + y*y + z*z); }`);
 	}
 	return gpuInstance;
 }
 
-// ==================== CLASSE MÈRE GPU ====================
+// ==================== TRANSFORMATION D'EXPRESSION ====================
+
+/**
+ * Transforme une expression mathématique utilisateur en code compatible gpu.js
+ * Les expressions sont transformées pour utiliser les fonctions JavaScript standard
+ * qui seront compilées en GLSL par gpu.js
+ */
+function transformExpressionForGPU(expr) {
+	if (!expr || expr.trim() === '') return '0.0';
+
+	let result = expr;
+
+	// Constantes mathématiques - remplacer par les valeurs numériques
+	result = result.replace(/\bPI\b/g, '3.14159265358979');
+	result = result.replace(/\bpi\b/g, '3.14159265358979');
+	result = result.replace(/\bep\b/g, '2.71828182845905');
+	result = result.replace(/\be\b(?![xp])/g, '2.71828182845905');
+	result = result.replace(/\bQ\b/g, '1.41421356237310'); // sqrt(2)
+	result = result.replace(/\bZ\b/g, '1.61803398874989'); // nombre d'or
+
+	// Les fonctions Math.* sont supportées nativement par gpu.js
+	// On s'assure que les noms de fonctions sont corrects
+	result = result.replace(/\bcos\b/g, 'Math.cos');
+	result = result.replace(/\bsin\b/g, 'Math.sin');
+	result = result.replace(/\btan\b/g, 'Math.tan');
+	result = result.replace(/\bacos\b/g, 'Math.acos');
+	result = result.replace(/\basin\b/g, 'Math.asin');
+	result = result.replace(/\batan\b/g, 'Math.atan');
+	result = result.replace(/\batan2\b/g, 'Math.atan2');
+	result = result.replace(/\bsqrt\b/g, 'Math.sqrt');
+	result = result.replace(/\bpow\b/g, 'Math.pow');
+	result = result.replace(/\bexp\b/g, 'Math.exp');
+	result = result.replace(/\blog\b/g, 'Math.log');
+	result = result.replace(/\babs\b/g, 'Math.abs');
+	result = result.replace(/\bsign\b/g, 'Math.sign');
+	result = result.replace(/\bfloor\b/g, 'Math.floor');
+	result = result.replace(/\bceil\b/g, 'Math.ceil');
+	result = result.replace(/\bmin\b/g, 'Math.min');
+	result = result.replace(/\bmax\b/g, 'Math.max');
+	result = result.replace(/\bsinh\b/g, 'Math.sinh');
+	result = result.replace(/\bcosh\b/g, 'Math.cosh');
+	result = result.replace(/\btanh\b/g, 'Math.tanh');
+
+	// Fonction hypot (distance)
+	result = result.replace(/\bh\s*\(/g, 'Math.hypot(');
+	result = result.replace(/\bhypot\b/g, 'Math.hypot');
+
+	// Opérateur puissance **
+	// gpu.js supporte ** nativement
+
+	// Corriger les doubles Math.Math
+	result = result.replace(/Math\.Math\./g, 'Math.');
+
+	return result;
+}
+
+/**
+ * Applique les transformations regex de glo.regs à une expression
+ * pour la convertir de la syntaxe raccourcie vers la syntaxe standard
+ */
+function applyGloRegs(expr) {
+	if (!expr || expr.trim() === '') return '0';
+
+	let result = expr;
+
+	// Appliquer les regex de transformation de glo.regs
+	for (const reg of glo.regs) {
+		result = result.replace(reg.exp, reg.upd);
+	}
+
+	return result;
+}
+
+// ==================== CLASSE GPU BASE ====================
 
 class CurveBaseGPU {
 	constructor(parametres = {
@@ -57,10 +106,9 @@ class CurveBaseGPU {
 		theta: glo.params.text_input_suit_theta,
 	}, dim_one = glo.dim_one, fractalize = false, onePoint = false) {
 
-		reg(equa); reg(equa2);
-
-		this.equa3 = { evalX: glo.input_eval_x.text, evalY: glo.input_eval_y.text };
-		reg(this.equa3);
+		// Appliquer les transformations regex aux équations
+		this.processEquations(equa);
+		this.processEquations(equa2);
 
 		// Initialisation des paramètres u
 		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
@@ -75,47 +123,23 @@ class CurveBaseGPU {
 		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
 
 		this.paths = [];
-		this.lines = [];
-
 		this.uvInfos = isUV();
-		this.additiveSurface = glo.additiveSurface;
-
-		// Variables communes
-		this.vars = makeCommonCurveVariables();
-
-		// Initialisation des objets equa
-		initVarsInObj(equa, "", 0);
-		initVarsInObj(equa2, "", 0);
 
 		this.equa = equa;
 		this.equa2 = equa2;
 
-		// Flags pour les entrées secondaires
-		this.isX = glo.params.text_input_suit_x != "" ? true : false;
-		this.isY = glo.params.text_input_suit_y != "" ? true : false;
-		this.isZ = glo.params.text_input_suit_z != "" ? true : false;
-
-		this.isN = glo.allControls.haveThisClass('input').some(input => input.text.includes('N'));
-		this.isT = glo.allControls.haveThisClass('input').some(input => input.text.includes('T'));
-
-		// Points de référence
-		this.p1_first = new BABYLON.Vector3.Zero;
-		this.p2_first = glo.firstPoint;
-
 		// GPU instance
 		this.gpu = getGPUInstance();
 
-		// Paramètres UI
-		this.uiParams = {
-			A: glo.params.A, B: glo.params.B, C: glo.params.C, D: glo.params.D,
-			E: glo.params.E, F: glo.params.F, G: glo.params.G, H: glo.params.H,
-			I: glo.params.I, J: glo.params.J, K: glo.params.K, L: glo.params.L,
-		};
+		// Paramètres UI constants
+		this.A = glo.params.A; this.B = glo.params.B;
+		this.C = glo.params.C; this.D = glo.params.D;
+		this.E = glo.params.E; this.F = glo.params.F;
+		this.G = glo.params.G; this.H = glo.params.H;
+		this.I = glo.params.I; this.J = glo.params.J;
+		this.K = glo.params.K; this.L = glo.params.L;
 
-		// Créer le kernel GPU spécifique
-		this.createGPUKernel();
-
-		// Exécution du calcul
+		// Exécution
 		if (onePoint) {
 			return this.computeOnePoint();
 		} else {
@@ -124,57 +148,59 @@ class CurveBaseGPU {
 		}
 	}
 
-	// Méthode à surcharger par les classes filles pour créer leur kernel GPU
-	createGPUKernel() {
-		// À implémenter dans les classes filles
+	processEquations(equa) {
+		if (!equa) return;
+		for (let prop in equa) {
+			if (typeof equa[prop] === 'string') {
+				equa[prop] = applyGloRegs(equa[prop]);
+			}
+		}
 	}
 
-	// Calcul principal GPU
+	/**
+	 * Crée et exécute le kernel GPU avec les expressions injectées
+	 * À surcharger par les classes filles
+	 */
 	compute() {
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
-
-		// Exécuter le kernel GPU
-		const result = this.executeGPUKernel(stepsU, stepsV);
-
-		// Convertir les résultats GPU en paths de BABYLON.Vector3
-		this.convertGPUResultToPaths(result, stepsU, stepsV);
-	}
-
-	// Exécuter le kernel GPU - à surcharger par les classes filles
-	executeGPUKernel(stepsU, stepsV) {
 		// À implémenter dans les classes filles
-		return null;
 	}
 
-	// Convertir les résultats GPU en paths
-	convertGPUResultToPaths(result, stepsU, stepsV) {
+	computeOnePoint() {
+		this.compute();
+		return this.paths[0] && this.paths[0][1] ? this.paths[0][1] : BABYLON.Vector3.Zero();
+	}
+
+	finalize() {
+		if (glo.closeFirstWithLastPath && this.paths.length > 0) {
+			this.paths.push(this.paths[0]);
+		}
+		glo.lines = this.paths;
+		this.pathsSave = this.paths.slice();
+		this.onFinalize();
+	}
+
+	onFinalize() {}
+
+	/**
+	 * Convertit le résultat GPU (Float32Array 2D) en paths de BABYLON.Vector3
+	 */
+	convertResultToPaths(gpuResult, stepsU, stepsV) {
 		this.paths = [];
 
 		for (let i = 0; i <= stepsU; i++) {
 			const path = [];
 			for (let j = 0; j <= stepsV; j++) {
-				let x = result[i][j][0];
-				let y = result[i][j][1];
-				let z = result[i][j][2];
+				const point = gpuResult[i][j];
+				let x = point[0];
+				let y = point[1];
+				let z = point[2];
 
 				// Gestion des valeurs invalides
 				if (!isFinite(x) || isNaN(x)) x = 0;
 				if (!isFinite(y) || isNaN(y)) y = 0;
 				if (!isFinite(z) || isNaN(z)) z = 0;
 
-				// Post-traitements (si nécessaire, appliqués côté CPU pour les opérations complexes)
-				let pos = { x, y, z };
-				pos = blendPosAll(x, y, z,
-					this.min_u + i * this.step_u,
-					this.min_v + j * this.step_v,
-					0, 1, 1);
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
+				path.push(new BABYLON.Vector3(x, y, z));
 			}
 			this.paths.push(path);
 		}
@@ -184,31 +210,10 @@ class CurveBaseGPU {
 		}
 	}
 
-	computeOnePoint() {
-		this.compute();
-		return this.paths[0][1];
-	}
-
-	finalize() {
-		if (glo.closeFirstWithLastPath) {
-			this.paths.push(this.paths[0]);
-		}
-
-		glo.lines = this.paths;
-		this.pathsSave = this.paths.slice();
-		this.closed = this.pathsSave.length !== this.paths.length;
-
-		this.onFinalize();
-	}
-
-	onFinalize() {
-		// Hook de finalisation
-	}
-
-	// Nettoyer les ressources GPU
 	destroy() {
 		if (this.kernel) {
 			this.kernel.destroy();
+			this.kernel = null;
 		}
 	}
 }
@@ -229,122 +234,19 @@ class CurvesCartesianGPU extends CurveBaseGPU {
 		super(parametres, equa, equa2, dim_one, fractalize, onePoint);
 	}
 
-	createGPUKernel() {
-		const gpu = this.gpu;
-		const equa = this.equa;
+	compute() {
+		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
+		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Parser et compiler les expressions en fonctions GPU
-		const exprX = this.parseExpressionForGPU(equa.x || '0');
-		const exprY = this.parseExpressionForGPU(equa.y || '0');
-		const exprZ = this.parseExpressionForGPU(equa.z || '0');
+		// Transformer les expressions pour GPU
+		const exprX = transformExpressionForGPU(this.equa.x || 'u');
+		const exprY = transformExpressionForGPU(this.equa.y || 'v');
+		const exprZ = transformExpressionForGPU(this.equa.z || '0');
+		const exprAlpha = transformExpressionForGPU(this.equa.alpha || '0');
+		const exprBeta = transformExpressionForGPU(this.equa.beta || '0');
 
-		// Créer le kernel avec les expressions
-		this.kernel = gpu.createKernel(function(
-			minU, stepU, minV, stepV,
-			A, B, C, D, E, F, G, H, I, J, K, L, pi, ep
-		) {
-			const i = this.thread.y;
-			const j = this.thread.x;
-
-			const u = minU + i * stepU;
-			const v = minV + j * stepV;
-
-			// Calcul des positions avec les fonctions GPU natives
-			// Note: Les expressions sont évaluées via les fonctions natives GPU
-			let x = 0, y = 0, z = 0;
-
-			// Les expressions seront injectées dynamiquement via createKernelFromString
-			return [x, y, z];
-		})
-		.setOutput([this.nb_steps_v + 1, this.nb_steps_u + 1, 3])
-		.setPipeline(false)
-		.setImmutable(true);
-	}
-
-	// Parser une expression mathématique pour GPU
-	parseExpressionForGPU(expr) {
-		if (!expr || expr === '') return '0.0';
-
-		let parsed = expr;
-
-		// Remplacer les fonctions par leurs équivalents GPU
-		const replacements = [
-			[/\bcos\(/g, 'gpuCos('],
-			[/\bsin\(/g, 'gpuSin('],
-			[/\btan\(/g, 'gpuTan('],
-			[/\bacos\(/g, 'gpuAcos('],
-			[/\basin\(/g, 'gpuAsin('],
-			[/\batan\(/g, 'gpuAtan('],
-			[/\batan2\(/g, 'gpuAtan2('],
-			[/\bsqrt\(/g, 'gpuSqrt('],
-			[/\bpow\(/g, 'gpuPow('],
-			[/\bexp\(/g, 'gpuExp('],
-			[/\blog\(/g, 'gpuLog('],
-			[/\babs\(/g, 'gpuAbs('],
-			[/\bsign\(/g, 'gpuSign('],
-			[/\bfloor\(/g, 'gpuFloor('],
-			[/\bceil\(/g, 'gpuCeil('],
-			[/\bsinh\(/g, 'gpuSinh('],
-			[/\bcosh\(/g, 'gpuCosh('],
-			[/\btanh\(/g, 'gpuTanh('],
-			[/\bhypot\(/g, 'gpuHypot('],
-			[/\bh\(/g, 'gpuHypot('],
-			[/\*\*/g, '^'],  // Puissance
-			[/\bpi\b/g, '3.14159265359'],
-			[/\bPI\b/g, '3.14159265359'],
-			[/\be\b/g, '2.71828182846'],
-		];
-
-		for (const [pattern, replacement] of replacements) {
-			parsed = parsed.replace(pattern, replacement);
-		}
-
-		return parsed;
-	}
-
-	executeGPUKernel(stepsU, stepsV) {
-		// Pour les coordonnées cartésiennes, on utilise une approche hybride
-		// Le calcul principal est fait sur GPU via un kernel dynamique
-
-		const gpu = this.gpu;
-		const equa = this.equa;
-		const minU = this.min_u;
-		const maxU = this.max_u;
-		const minV = this.min_v;
-		const maxV = this.max_v;
-		const stepU = this.step_u;
-		const stepV = this.step_v;
-
-		// Paramètres UI
-		const { A, B, C, D, E, F, G, H, I, J, K, L } = this.uiParams;
-
-		// Créer un kernel dynamique basé sur les expressions
-		const kernelFunc = this.createDynamicKernel(equa, stepsU, stepsV);
-
-		// Exécuter le kernel
-		const result = kernelFunc(
-			minU, stepU, minV, stepV,
-			A, B, C, D, E, F, G, H, I, J, K, L,
-			Math.PI, Math.E
-		);
-
-		return result;
-	}
-
-	createDynamicKernel(equa, stepsU, stepsV) {
-		const gpu = this.gpu;
-
-		// Préparer les expressions
-		const exprX = this.prepareExpression(equa.x || 'u');
-		const exprY = this.prepareExpression(equa.y || 'v');
-		const exprZ = this.prepareExpression(equa.z || '0');
-
-		// Créer le kernel
-		const kernel = gpu.createKernel(function(
-			minU, stepU, minV, stepV,
-			A, B, C, D, E, F, G, H, I, J, K, L,
-			pi, ep
-		) {
+		// Construire le code du kernel avec les expressions injectées
+		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
 			const i = this.thread.y;
 			const j = this.thread.x;
 
@@ -352,195 +254,59 @@ class CurvesCartesianGPU extends CurveBaseGPU {
 			const v = minV + j * stepV;
 
 			// Variables auxiliaires
-			const d = (j % 2 === 0) ? -1 : 1;
-			const k = (i % 2 === 0) ? -1 : 1;
+			const d = (j % 2 === 0) ? -1.0 : 1.0;
+			const k = (i % 2 === 0) ? -1.0 : 1.0;
 			const p = (i % 2 === 0) ? -u : u;
 			const t = (j % 2 === 0) ? -v : v;
-			const n = i * (this.constants.stepsV + 1) + j;
+			const n = i * ${stepsV + 1} + j;
 
-			// Calcul des coordonnées - évaluation simplifiée
-			let x = u;
-			let y = v;
-			let z = 0;
+			// Calcul des coordonnées avec les expressions injectées
+			let x = ${exprX};
+			let y = ${exprY};
+			let z = ${exprZ};
+
+			// Rotation si alpha et beta sont définis
+			const alpha = ${exprAlpha};
+			const beta = ${exprBeta};
+
+			if (alpha !== 0.0 && beta !== 0.0) {
+				// Rotation par quaternion simplifiée
+				const cosA = Math.cos(alpha);
+				const sinA = Math.sin(alpha);
+				const cosB = Math.cos(beta);
+				const sinB = Math.sin(beta);
+
+				// Rotation autour de Y puis Z
+				const x1 = x * cosB - z * sinB;
+				const z1 = x * sinB + z * cosB;
+				const x2 = x1 * cosA - y * sinA;
+				const y2 = x1 * sinA + y * cosA;
+
+				x = x2;
+				y = y2;
+				z = z1;
+			}
 
 			return [x, y, z];
-		}, {
-			constants: { stepsU, stepsV }
-		})
-		.setOutput([stepsV + 1, stepsU + 1])
-		.setPipeline(false);
+		}`;
 
-		return kernel;
-	}
+		// Créer le kernel à partir du code
+		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
+			.setOutput([stepsV + 1, stepsU + 1])
+			.setPipeline(false)
+			.setImmutable(true);
 
-	prepareExpression(expr) {
-		if (!expr || expr === '') return '0';
-		return expr;
-	}
+		// Exécuter le kernel - UN SEUL APPEL, le GPU calcule tout en parallèle
+		const result = this.kernel(
+			this.min_u, this.step_u,
+			this.min_v, this.step_v,
+			this.A, this.B, this.C, this.D,
+			this.E, this.F, this.G, this.H,
+			this.I, this.J, this.K, this.L
+		);
 
-	// Surcharge pour utiliser une approche CPU-GPU hybride plus efficace
-	compute() {
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
-
-		// Créer les fonctions d'évaluation JavaScript
-		const paramNames = ["u", "v", "d", "k", "p", "t", "n", "i", "j", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = `const pi = Math.PI; const PI = Math.PI; const e = Math.E; const ep = Math.E;
-			const cos = Math.cos; const sin = Math.sin; const tan = Math.tan;
-			const acos = Math.acos; const asin = Math.asin; const atan = Math.atan;
-			const sqrt = Math.sqrt; const pow = Math.pow; const exp = Math.exp;
-			const log = Math.log; const abs = Math.abs; const sign = Math.sign;
-			const sinh = Math.sinh; const cosh = Math.cosh; const tanh = Math.tanh;
-			const hypot = Math.hypot; const h = Math.hypot;
-			const floor = Math.floor; const ceil = Math.ceil;
-			const Q = Math.SQRT2; const Z = (1+Math.sqrt(5))*0.5;`;
-
-		const createEvalFunc = (expr) => {
-			if (!expr || expr === '' || expr === '0') return () => 0;
-			const code = varUI + ` return ${expr};`;
-			try {
-				return new Function(...paramNames, code);
-			} catch(e) {
-				console.error('Expression error:', expr, e);
-				return () => 0;
-			}
-		};
-
-		const evalX = createEvalFunc(this.equa.x);
-		const evalY = createEvalFunc(this.equa.y);
-		const evalZ = createEvalFunc(this.equa.z);
-		const evalAlpha = createEvalFunc(this.equa.alpha);
-		const evalBeta = createEvalFunc(this.equa.beta);
-
-		// Paramètres UI
-		const { A, B, C, D, E, F, G, H, I, J, K, L } = this.uiParams;
-
-		// Préparer les tableaux pour le kernel GPU
-		const totalPoints = (stepsU + 1) * (stepsV + 1);
-		const uValues = new Float32Array(totalPoints);
-		const vValues = new Float32Array(totalPoints);
-		const dValues = new Float32Array(totalPoints);
-		const kValues = new Float32Array(totalPoints);
-		const pValues = new Float32Array(totalPoints);
-		const tValues = new Float32Array(totalPoints);
-		const nValues = new Float32Array(totalPoints);
-		const iValues = new Float32Array(totalPoints);
-		const jValues = new Float32Array(totalPoints);
-
-		// Pré-calculer u, v et autres variables
-		let idx = 0;
-		for (let i = 0; i <= stepsU; i++) {
-			const u = this.min_u + i * this.step_u;
-			const k = (i % 2 === 0) ? -1 : 1;
-			const p = (i % 2 === 0) ? -u : u;
-
-			for (let j = 0; j <= stepsV; j++) {
-				const v = this.min_v + j * this.step_v;
-				const d = (j % 2 === 0) ? -1 : 1;
-				const t = (j % 2 === 0) ? -v : v;
-
-				uValues[idx] = u;
-				vValues[idx] = v;
-				dValues[idx] = d;
-				kValues[idx] = k;
-				pValues[idx] = p;
-				tValues[idx] = t;
-				nValues[idx] = idx;
-				iValues[idx] = i;
-				jValues[idx] = j;
-				idx++;
-			}
-		}
-
-		// Créer le kernel GPU pour le calcul parallèle
-		const gpu = this.gpu;
-
-		// Kernel pour calculer x, y, z en parallèle
-		const computeKernel = gpu.createKernel(function(
-			uVals, vVals, dVals, kVals, pVals, tVals, nVals, iVals, jVals,
-			A, B, C, D, E, F, G, H, I, J, K, L
-		) {
-			const idx = this.thread.x;
-			const u = uVals[idx];
-			const v = vVals[idx];
-			const d = dVals[idx];
-			const k = kVals[idx];
-			const p = pVals[idx];
-			const t = tVals[idx];
-			const n = nVals[idx];
-			const i = iVals[idx];
-			const j = jVals[idx];
-
-			// Calculs de base - seront remplacés par les expressions réelles
-			// Pour les expressions complexes, on utilise les fonctions natives
-			const pi = 3.14159265359;
-			const ep = 2.71828182846;
-
-			let x = u;
-			let y = v;
-			let z = 0;
-
-			return [x, y, z];
-		})
-		.setOutput([totalPoints])
-		.setPipeline(false);
-
-		// Pour l'instant, utilisons une approche CPU parallèle optimisée
-		// car gpu.js a des limitations avec les expressions dynamiques
-		this.computeCPUOptimized(stepsU, stepsV, evalX, evalY, evalZ, evalAlpha, evalBeta, A, B, C, D, E, F, G, H, I, J, K, L);
-	}
-
-	// Calcul CPU optimisé avec stockage des résultats
-	computeCPUOptimized(stepsU, stepsV, evalX, evalY, evalZ, evalAlpha, evalBeta, A, B, C, D, E, F, G, H, I, J, K, L) {
-		this.paths = [];
-		let n = 0;
-
-		for (let i = 0; i <= stepsU; i++) {
-			const u = this.min_u + i * this.step_u;
-			const k = (i % 2 === 0) ? -1 : 1;
-			const p = (i % 2 === 0) ? -u : u;
-			const path = [];
-
-			for (let j = 0; j <= stepsV; j++) {
-				const v = this.min_v + j * this.step_v;
-				const d = (j % 2 === 0) ? -1 : 1;
-				const t = (j % 2 === 0) ? -v : v;
-
-				let x = evalX(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let y = evalY(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let z = evalZ(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-
-				// Gestion des valeurs invalides
-				if (!isFinite(x) || isNaN(x)) x = 0;
-				if (!isFinite(y) || isNaN(y)) y = 0;
-				if (!isFinite(z) || isNaN(z)) z = 0;
-
-				// Rotation primaire si alpha/beta définis
-				const alpha = evalAlpha(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				const beta = evalBeta(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-
-				if (alpha && beta) {
-					const pos = rotateByQuaternion(x, y, z, alpha, beta);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
-
-				// Post-traitements
-				let pos = { x, y, z };
-				pos = blendPosAll(x, y, z, u, v, 0, 1, 1);
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-				n++;
-			}
-			this.paths.push(path);
-		}
-
-		if (!this.uvInfos.isV) {
-			this.paths[0] = this.paths.flat();
-		}
+		// Convertir le résultat en paths BABYLON
+		this.convertResultToPaths(result, stepsU, stepsV);
 	}
 }
 
@@ -560,99 +326,102 @@ class CurvesSphericalGPU extends CurveBaseGPU {
 		super(parametres, equa, equa2, dim_one, fractalize, onePoint);
 	}
 
-	createGPUKernel() {
-		// Kernel GPU pour coordonnées sphériques
-	}
-
 	compute() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Créer les fonctions d'évaluation
-		const paramNames = ["u", "v", "d", "k", "p", "t", "n", "i", "j", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = `const pi = Math.PI; const PI = Math.PI; const e = Math.E; const ep = Math.E;
-			const cos = Math.cos; const sin = Math.sin; const tan = Math.tan;
-			const acos = Math.acos; const asin = Math.asin; const atan = Math.atan;
-			const sqrt = Math.sqrt; const pow = Math.pow; const exp = Math.exp;
-			const log = Math.log; const abs = Math.abs; const sign = Math.sign;
-			const sinh = Math.sinh; const cosh = Math.cosh; const tanh = Math.tanh;
-			const hypot = Math.hypot; const h = Math.hypot;
-			const Q = Math.SQRT2; const Z = (1+Math.sqrt(5))*0.5;`;
+		// Point de référence
+		const p2x = glo.firstPoint.x;
+		const p2y = glo.firstPoint.y;
+		const p2z = glo.firstPoint.z;
 
-		const createEvalFunc = (expr) => {
-			if (!expr || expr === '' || expr === '0') return () => 0;
-			const code = varUI + ` return ${expr};`;
-			try {
-				return new Function(...paramNames, code);
-			} catch(e) {
-				console.error('Expression error:', expr, e);
-				return () => 0;
-			}
-		};
+		// Transformer les expressions pour GPU
+		const exprR = transformExpressionForGPU(this.equa.r || '1');
+		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
+		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
+		const exprAlpha2 = transformExpressionForGPU(this.equa.alpha2 || '0');
+		const exprBeta2 = transformExpressionForGPU(this.equa.beta2 || '0');
 
-		const evalR = createEvalFunc(this.equa.r);
-		const evalAlpha = createEvalFunc(this.equa.alpha);
-		const evalBeta = createEvalFunc(this.equa.beta);
-		const evalAlpha2 = createEvalFunc(this.equa.alpha2);
-		const evalBeta2 = createEvalFunc(this.equa.beta2);
+		// Construire le code du kernel
+		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L, p2x, p2y, p2z) {
+			const i = this.thread.y;
+			const j = this.thread.x;
 
-		const { A, B, C, D, E, F, G, H, I, J, K, L } = this.uiParams;
-		const p2_first = this.p2_first;
+			const u = minU + i * stepU;
+			const v = minV + j * stepV;
 
-		this.paths = [];
-		let n = 0;
-
-		for (let i = 0; i <= stepsU; i++) {
-			const u = this.min_u + i * this.step_u;
-			const k = (i % 2 === 0) ? -1 : 1;
+			const d = (j % 2 === 0) ? -1.0 : 1.0;
+			const k = (i % 2 === 0) ? -1.0 : 1.0;
 			const p = (i % 2 === 0) ? -u : u;
-			const path = [];
+			const t = (j % 2 === 0) ? -v : v;
+			const n = i * ${stepsV + 1} + j;
 
-			for (let j = 0; j <= stepsV; j++) {
-				const v = this.min_v + j * this.step_v;
-				const d = (j % 2 === 0) ? -1 : 1;
-				const t = (j % 2 === 0) ? -v : v;
+			// Calcul des paramètres sphériques
+			let r = ${exprR};
+			const alpha = ${exprAlpha};
+			const beta = ${exprBeta};
 
-				let r = evalR(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let alpha = evalAlpha(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let beta = evalBeta(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
+			if (!isFinite(r)) r = 0.0;
 
-				if (!isFinite(r) || isNaN(r)) r = 0;
+			// Point initial mis à l'échelle
+			let px = p2x * r;
+			let py = p2y * r;
+			let pz = p2z * r;
 
-				// Coordonnées sphériques
-				let pos = rotateOnCenterByBabylonMatrix(
-					{ x: p2_first.x * r, y: p2_first.y * r, z: p2_first.z * r },
-					0, beta, alpha
-				);
+			// Rotation sphérique (autour de Y pour beta, autour de Z pour alpha)
+			const cosAlpha = Math.cos(alpha);
+			const sinAlpha = Math.sin(alpha);
+			const cosBeta = Math.cos(beta);
+			const sinBeta = Math.sin(beta);
 
-				let x = pos.x, y = pos.y, z = pos.z;
+			// Rotation autour de Y (beta)
+			let x1 = px * cosBeta + pz * sinBeta;
+			let y1 = py;
+			let z1 = -px * sinBeta + pz * cosBeta;
 
-				// Rotation secondaire
-				const alpha2 = evalAlpha2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				const beta2 = evalBeta2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
+			// Rotation autour de Z (alpha)
+			let x = x1 * cosAlpha - y1 * sinAlpha;
+			let y = x1 * sinAlpha + y1 * cosAlpha;
+			let z = z1;
 
-				if (alpha2 && beta2) {
-					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
+			// Rotation secondaire si définie
+			const alpha2 = ${exprAlpha2};
+			const beta2 = ${exprBeta2};
 
-				// Post-traitements
-				pos = { x, y, z };
-				pos = blendPosAll(x, y, z, u, v, 0, 1, 1);
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
+			if (alpha2 !== 0.0 && beta2 !== 0.0) {
+				const cosA2 = Math.cos(alpha2);
+				const sinA2 = Math.sin(alpha2);
+				const cosB2 = Math.cos(beta2);
+				const sinB2 = Math.sin(beta2);
 
-				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-				n++;
+				const x2 = x * cosB2 - z * sinB2;
+				const z2 = x * sinB2 + z * cosB2;
+				const x3 = x2 * cosA2 - y * sinA2;
+				const y3 = x2 * sinA2 + y * cosA2;
+
+				x = x3;
+				y = y3;
+				z = z2;
 			}
-			this.paths.push(path);
-		}
 
-		if (!this.uvInfos.isV) {
-			this.paths[0] = this.paths.flat();
-		}
+			return [x, y, z];
+		}`;
+
+		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
+			.setOutput([stepsV + 1, stepsU + 1])
+			.setPipeline(false)
+			.setImmutable(true);
+
+		const result = this.kernel(
+			this.min_u, this.step_u,
+			this.min_v, this.step_v,
+			this.A, this.B, this.C, this.D,
+			this.E, this.F, this.G, this.H,
+			this.I, this.J, this.K, this.L,
+			p2x, p2y, p2z
+		);
+
+		this.convertResultToPaths(result, stepsU, stepsV);
 	}
 }
 
@@ -672,100 +441,88 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 		super(parametres, equa, equa2, dim_one, fractalize, onePoint);
 	}
 
-	createGPUKernel() {
-		// Kernel GPU pour coordonnées cylindriques
-	}
-
 	compute() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Créer les fonctions d'évaluation
-		const paramNames = ["u", "v", "d", "k", "p", "t", "n", "i", "j", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = `const pi = Math.PI; const PI = Math.PI; const e = Math.E; const ep = Math.E;
-			const cos = Math.cos; const sin = Math.sin; const tan = Math.tan;
-			const acos = Math.acos; const asin = Math.asin; const atan = Math.atan;
-			const sqrt = Math.sqrt; const pow = Math.pow; const exp = Math.exp;
-			const log = Math.log; const abs = Math.abs; const sign = Math.sign;
-			const sinh = Math.sinh; const cosh = Math.cosh; const tanh = Math.tanh;
-			const hypot = Math.hypot; const h = Math.hypot;
-			const Q = Math.SQRT2; const Z = (1+Math.sqrt(5))*0.5;`;
+		const p2x = glo.firstPoint.x;
+		const p2y = glo.firstPoint.y;
 
-		const createEvalFunc = (expr) => {
-			if (!expr || expr === '' || expr === '0') return () => 0;
-			const code = varUI + ` return ${expr};`;
-			try {
-				return new Function(...paramNames, code);
-			} catch(e) {
-				console.error('Expression error:', expr, e);
-				return () => 0;
-			}
-		};
+		const exprR = transformExpressionForGPU(this.equa.r || '1');
+		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
+		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
+		const exprAlpha2 = transformExpressionForGPU(this.equa.alpha2 || '0');
+		const exprBeta2 = transformExpressionForGPU(this.equa.beta2 || '0');
 
-		const evalR = createEvalFunc(this.equa.r);
-		const evalAlpha = createEvalFunc(this.equa.alpha);
-		const evalBeta = createEvalFunc(this.equa.beta);
-		const evalAlpha2 = createEvalFunc(this.equa.alpha2);
-		const evalBeta2 = createEvalFunc(this.equa.beta2);
+		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L, p2x, p2y) {
+			const i = this.thread.y;
+			const j = this.thread.x;
 
-		const { A, B, C, D, E, F, G, H, I, J, K, L } = this.uiParams;
-		const p2_first = this.p2_first;
+			const u = minU + i * stepU;
+			const v = minV + j * stepV;
 
-		this.paths = [];
-		let n = 0;
-
-		for (let i = 0; i <= stepsU; i++) {
-			const u = this.min_u + i * this.step_u;
-			const k = (i % 2 === 0) ? -1 : 1;
+			const d = (j % 2 === 0) ? -1.0 : 1.0;
+			const k = (i % 2 === 0) ? -1.0 : 1.0;
 			const p = (i % 2 === 0) ? -u : u;
-			const path = [];
+			const t = (j % 2 === 0) ? -v : v;
+			const n = i * ${stepsV + 1} + j;
 
-			for (let j = 0; j <= stepsV; j++) {
-				const v = this.min_v + j * this.step_v;
-				const d = (j % 2 === 0) ? -1 : 1;
-				const t = (j % 2 === 0) ? -v : v;
+			let r = ${exprR};
+			const alpha = ${exprAlpha};
+			const beta = ${exprBeta};
 
-				let r = evalR(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let alpha = evalAlpha(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let beta = evalBeta(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
+			if (!isFinite(r)) r = 0.0;
 
-				if (!isFinite(r) || isNaN(r)) r = 0;
+			// Point initial mis à l'échelle
+			let px = p2x * r;
+			let py = p2y * r;
 
-				// Coordonnées cylindriques : rotation autour de l'axe Z
-				let pos = rotateOnCenterByBabylonMatrix(
-					{ x: p2_first.x * r, y: p2_first.y * r, z: p2_first.z * r },
-					0, 0, alpha
-				);
-				pos.z = beta;
+			// Rotation autour de Z (coordonnées cylindriques)
+			const cosAlpha = Math.cos(alpha);
+			const sinAlpha = Math.sin(alpha);
 
-				let x = pos.x, y = pos.y, z = pos.z;
+			let x = px * cosAlpha - py * sinAlpha;
+			let y = px * sinAlpha + py * cosAlpha;
+			let z = beta; // Hauteur
 
-				// Rotation secondaire
-				const alpha2 = evalAlpha2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				const beta2 = evalBeta2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
+			// Rotation secondaire
+			const alpha2 = ${exprAlpha2};
+			const beta2 = ${exprBeta2};
 
-				if (alpha2 && beta2) {
-					pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-					x = pos.x; y = pos.y; z = pos.z;
-				}
+			if (alpha2 !== 0.0 && beta2 !== 0.0) {
+				const cosA2 = Math.cos(alpha2);
+				const sinA2 = Math.sin(alpha2);
+				const cosB2 = Math.cos(beta2);
+				const sinB2 = Math.sin(beta2);
 
-				// Post-traitements
-				pos = { x, y, z };
-				pos = blendPosAll(x, y, z, u, v, 0, 1, 1);
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
+				const x2 = x * cosB2 - z * sinB2;
+				const z2 = x * sinB2 + z * cosB2;
+				const x3 = x2 * cosA2 - y * sinA2;
+				const y3 = x2 * sinA2 + y * cosA2;
 
-				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-				n++;
+				x = x3;
+				y = y3;
+				z = z2;
 			}
-			this.paths.push(path);
-		}
 
-		if (!this.uvInfos.isV) {
-			this.paths[0] = this.paths.flat();
-		}
+			return [x, y, z];
+		}`;
+
+		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
+			.setOutput([stepsV + 1, stepsU + 1])
+			.setPipeline(false)
+			.setImmutable(true);
+
+		const result = this.kernel(
+			this.min_u, this.step_u,
+			this.min_v, this.step_v,
+			this.A, this.B, this.C, this.D,
+			this.E, this.F, this.G, this.H,
+			this.I, this.J, this.K, this.L,
+			p2x, p2y
+		);
+
+		this.convertResultToPaths(result, stepsU, stepsV);
 	}
 
 	onFinalize() {
@@ -775,6 +532,11 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 
 // ==================== SYSTÈME PAR COURBURE GPU ====================
 
+/**
+ * Note: Le système par courbure est intrinsèquement séquentiel car chaque point
+ * dépend du précédent. On utilise quand même le GPU pour les calculs trigonométriques
+ * mais avec une approche différente utilisant un scan parallèle (prefix sum).
+ */
 class CurvesByCurvatureGPU extends CurveBaseGPU {
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
@@ -789,109 +551,105 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 		super(parametres, equa, equa2, dim_one, fractalize, onePoint);
 	}
 
-	createGPUKernel() {
-		// Kernel GPU pour système par courbure
-	}
-
 	compute() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Créer les fonctions d'évaluation
-		const paramNames = ["u", "v", "d", "k", "p", "t", "n", "i", "j", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
-		const varUI = `const pi = Math.PI; const PI = Math.PI; const e = Math.E; const ep = Math.E;
-			const cos = Math.cos; const sin = Math.sin; const tan = Math.tan;
-			const acos = Math.acos; const asin = Math.asin; const atan = Math.atan;
-			const sqrt = Math.sqrt; const pow = Math.pow; const exp = Math.exp;
-			const log = Math.log; const abs = Math.abs; const sign = Math.sign;
-			const sinh = Math.sinh; const cosh = Math.cosh; const tanh = Math.tanh;
-			const hypot = Math.hypot; const h = Math.hypot;
-			const Q = Math.SQRT2; const Z = (1+Math.sqrt(5))*0.5;`;
+		const exprR = transformExpressionForGPU(this.equa.r || '1');
+		const exprAlpha = transformExpressionForGPU(this.equa.alpha || 'u');
+		const exprBeta = transformExpressionForGPU(this.equa.beta || 'v');
 
-		const createEvalFunc = (expr) => {
-			if (!expr || expr === '' || expr === '0') return () => 0;
-			const code = varUI + ` return ${expr};`;
-			try {
-				return new Function(...paramNames, code);
-			} catch(e) {
-				console.error('Expression error:', expr, e);
-				return () => 0;
-			}
-		};
+		// Étape 1: Calculer les déplacements locaux (dx, dy, dz) pour chaque point
+		const kernelDeltas = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
+			const i = this.thread.y;
+			const j = this.thread.x;
 
-		const evalR = createEvalFunc(this.equa.r);
-		const evalAlpha = createEvalFunc(this.equa.alpha);
-		const evalBeta = createEvalFunc(this.equa.beta);
-		const evalAlpha2 = createEvalFunc(this.equa.alpha2);
-		const evalBeta2 = createEvalFunc(this.equa.beta2);
+			const u = minU + i * stepU;
+			const v = minV + j * stepV;
 
-		const { A, B, C, D, E, F, G, H, I, J, K, L } = this.uiParams;
+			const d = (j % 2 === 0) ? -1.0 : 1.0;
+			const k = (i % 2 === 0) ? -1.0 : 1.0;
+			const p = (i % 2 === 0) ? -u : u;
+			const t = (j % 2 === 0) ? -v : v;
+			const n = i * ${stepsV + 1} + j;
 
+			let r = ${exprR};
+			const alpha = ${exprAlpha};
+			const beta = ${exprBeta};
+
+			if (!isFinite(r)) r = 0.0;
+
+			// Direction selon alpha et beta
+			const cosAlpha = Math.cos(alpha);
+			const sinAlpha = Math.sin(alpha);
+			const cosBeta = Math.cos(beta);
+			const sinBeta = Math.sin(beta);
+
+			// Déplacement local
+			const dx = r * cosAlpha * cosBeta;
+			const dy = r * sinAlpha * cosBeta;
+			const dz = r * sinBeta;
+
+			return [dx, dy, dz];
+		}`;
+
+		const deltaKernel = this.gpu.createKernel(eval('(' + kernelDeltas + ')'))
+			.setOutput([stepsV + 1, stepsU + 1])
+			.setPipeline(false);
+
+		const deltas = deltaKernel(
+			this.min_u, this.step_u,
+			this.min_v, this.step_v,
+			this.A, this.B, this.C, this.D,
+			this.E, this.F, this.G, this.H,
+			this.I, this.J, this.K, this.L
+		);
+
+		// Étape 2: Prefix sum (scan) pour accumuler les positions
+		// Pour le système par courbure, chaque ligne (u fixe) est indépendante
+		// donc on peut paralléliser sur u et faire le scan séquentiellement sur v
 		this.paths = [];
 		this.moyPos = { x: 0, y: 0, z: 0 };
-		this.pointCount = 0;
-		let n = 0;
+		let pointCount = 0;
 
 		for (let i = 0; i <= stepsU; i++) {
-			const u = this.min_u + i * this.step_u;
-			const k = (i % 2 === 0) ? -1 : 1;
-			const p = (i % 2 === 0) ? -u : u;
 			const path = [];
+			let x = 0, y = 0, z = 0;
 
-			// Réinitialiser la position pour le système par courbure
-			let posAccum = { x: 0, y: 0, z: 0 };
 			if (glo.params.curvaturetoZero) {
 				path.push(BABYLON.Vector3.Zero());
 			}
 
 			for (let j = 0; j <= stepsV; j++) {
-				const v = this.min_v + j * this.step_v;
-				const d = (j % 2 === 0) ? -1 : 1;
-				const t = (j % 2 === 0) ? -v : v;
+				const delta = deltas[i][j];
+				x += delta[0];
+				y += delta[1];
+				z += delta[2];
 
-				let r = evalR(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let alpha = evalAlpha(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				let beta = evalBeta(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
+				// Gestion des valeurs invalides
+				if (!isFinite(x)) x = 0;
+				if (!isFinite(y)) y = 0;
+				if (!isFinite(z)) z = 0;
 
-				if (!isFinite(r) || isNaN(r)) r = 0;
+				path.push(new BABYLON.Vector3(x, y, z));
 
-				// Système par courbure : accumulation selon la direction
-				const dirXY = directionXY({ x: alpha, y: beta }, r);
-				posAccum.x += dirXY.x;
-				posAccum.y += dirXY.y;
-				posAccum.z += dirXY.z;
-
-				let x = posAccum.x, y = posAccum.y, z = posAccum.z;
-
-				// Rotation secondaire
-				const alpha2 = evalAlpha2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-				const beta2 = evalBeta2(u, v, d, k, p, t, n, i, j, A, B, C, D, E, F, G, H, I, J, K, L);
-
-				if (alpha2 && beta2) {
-					const pos = rotateByQuaternion(x, y, z, alpha2, beta2);
-					x = pos.x; y = pos.y; z = pos.z;
-					posAccum.x = x; posAccum.y = y; posAccum.z = z;
-				}
-
-				// Post-traitements
-				let pos = { x, y, z };
-				pos = blendPosAll(x, y, z, u, v, 0, 1, 1);
-				pos = functionIt(pos.x, pos.y, pos.z);
-				pos = invPos(pos.x, pos.y, pos.z);
-				pos = invPosIf(pos.x, pos.y, pos.z);
-				pos = permutSign(pos.x, pos.y, pos.z);
-
-				// Accumuler pour la position moyenne
-				this.moyPos.x += pos.x;
-				this.moyPos.y += pos.y;
-				this.moyPos.z += pos.z;
-				this.pointCount++;
-
-				path.push(new BABYLON.Vector3(pos.x, pos.y, pos.z));
-				n++;
+				this.moyPos.x += x;
+				this.moyPos.y += y;
+				this.moyPos.z += z;
+				pointCount++;
 			}
 			this.paths.push(path);
 		}
+
+		// Centrer
+		if (pointCount > 1) {
+			this.moyPos.x /= pointCount;
+			this.moyPos.y /= pointCount;
+			this.moyPos.z /= pointCount;
+			offsetPathsByMoyPos(this.paths, this.moyPos);
+		}
+
+		deltaKernel.destroy();
 
 		if (!this.uvInfos.isV) {
 			this.paths[0] = this.paths.flat();
@@ -899,178 +657,37 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 	}
 
 	onFinalize() {
-		// Centrer les paths sur la position moyenne
-		if (this.pointCount > 1) {
-			this.moyPos.x /= (this.pointCount - 1);
-			this.moyPos.y /= (this.pointCount - 1);
-			this.moyPos.z /= (this.pointCount - 1);
-			offsetPathsByMoyPos(this.paths, this.moyPos);
-		}
-
 		this.paths = this.uvInfos.isV ? closedPaths(this.paths) : this.paths;
 	}
 }
 
-// ==================== FONCTION UTILITAIRE POUR CHOISIR GPU vs CPU ====================
+// ==================== FACTORY ET UTILITAIRES ====================
 
 /**
- * Fonction factory pour créer la classe appropriée selon le mode
- * @param {string} coordsType - Type de coordonnées ('cartesian', 'spheric', 'cylindrical', 'curvature')
- * @param {boolean} useGPU - Si true, utilise les classes GPU
- * @returns {class} La classe à utiliser
+ * Factory pour créer la classe appropriée selon le mode GPU/CPU
  */
-function getCurveClass(coordsType, useGPU = false) {
-	const gpuClasses = {
+function getCurveClassGPU(coordsType) {
+	const classes = {
 		'cartesian': CurvesCartesianGPU,
 		'spheric': CurvesSphericalGPU,
 		'cylindrical': CurvesCylindricalGPU,
 		'curvature': CurvesByCurvatureGPU,
 	};
-
-	const cpuClasses = {
-		'cartesian': CurvesCartesian,
-		'spheric': CurvesSpherical,
-		'cylindrical': CurvesCylindrical,
-		'curvature': CurvesByCurvature,
-	};
-
-	if (useGPU) {
-		return gpuClasses[coordsType] || CurvesCartesianGPU;
-	}
-	return cpuClasses[coordsType] || CurvesCartesian;
+	return classes[coordsType] || CurvesCartesianGPU;
 }
 
 /**
- * Crée une instance de courbe avec GPU ou CPU selon le paramètre
- * @param {string} coordsType - Type de coordonnées
- * @param {object} parametres - Paramètres u/v
- * @param {object} equa - Équations
- * @param {object} equa2 - Équations secondaires
- * @param {boolean} dim_one - Mode dimension 1
- * @param {boolean} fractalize - Mode fractal
- * @param {boolean} onePoint - Mode un seul point
- * @param {boolean} useGPU - Utiliser le GPU
- * @returns {CurveBase|CurveBaseGPU} Instance de courbe
+ * Crée une instance de courbe GPU
  */
-function createCurves(coordsType, parametres, equa, equa2, dim_one, fractalize, onePoint, useGPU = false) {
-	const CurveClass = getCurveClass(coordsType, useGPU);
+function createCurvesGPU(coordsType, parametres, equa, equa2, dim_one, fractalize, onePoint) {
+	const CurveClass = getCurveClassGPU(coordsType);
 	return new CurveClass(parametres, equa, equa2, dim_one, fractalize, onePoint);
 }
 
-// ==================== CLASSE GPU PURE AVEC COMPUTE SHADERS ====================
-
 /**
- * Version GPU pure utilisant des kernels gpu.js pour le calcul parallèle massif
- * Cette classe pré-calcule toutes les positions en parallèle sur le GPU
+ * Récupère les positions calculées sous forme de Float32Array
  */
-class CurvesGPUPure {
-	constructor(options = {}) {
-		this.gpu = getGPUInstance();
-		this.options = Object.assign({
-			minU: -Math.PI,
-			maxU: Math.PI,
-			minV: -Math.PI,
-			maxV: Math.PI,
-			stepsU: 64,
-			stepsV: 64,
-			exprX: 'u',
-			exprY: 'v',
-			exprZ: '0',
-		}, options);
-
-		this.createKernels();
-	}
-
-	createKernels() {
-		const gpu = this.gpu;
-		const { stepsU, stepsV } = this.options;
-
-		// Kernel pour calculer les valeurs u
-		this.kernelU = gpu.createKernel(function(minU, stepU) {
-			return minU + this.thread.x * stepU;
-		}).setOutput([stepsU + 1]);
-
-		// Kernel pour calculer les valeurs v
-		this.kernelV = gpu.createKernel(function(minV, stepV) {
-			return minV + this.thread.x * stepV;
-		}).setOutput([stepsV + 1]);
-
-		// Kernel principal pour le calcul des positions
-		// Note: Ce kernel utilise une approche générique
-		this.kernelPositions = gpu.createKernel(function(uVals, vVals, mode) {
-			const i = this.thread.y;
-			const j = this.thread.x;
-			const u = uVals[i];
-			const v = vVals[j];
-
-			// Mode 0: x=u, y=v, z=0 (plan)
-			// Mode 1: sphere
-			// Mode 2: torus
-			let x = u;
-			let y = v;
-			let z = 0;
-
-			if (mode === 1) {
-				// Sphere
-				x = gpuCos(u) * gpuCos(v);
-				y = gpuSin(u) * gpuCos(v);
-				z = gpuSin(v);
-			} else if (mode === 2) {
-				// Torus
-				const R = 3;
-				const r = 1;
-				x = (R + r * gpuCos(v)) * gpuCos(u);
-				y = (R + r * gpuCos(v)) * gpuSin(u);
-				z = r * gpuSin(v);
-			}
-
-			return [x, y, z];
-		})
-		.setOutput([stepsV + 1, stepsU + 1])
-		.setPipeline(false);
-	}
-
-	compute(mode = 0) {
-		const { minU, maxU, minV, maxV, stepsU, stepsV } = this.options;
-		const stepU = (maxU - minU) / stepsU;
-		const stepV = (maxV - minV) / stepsV;
-
-		// Calculer les valeurs u et v
-		const uVals = this.kernelU(minU, stepU);
-		const vVals = this.kernelV(minV, stepV);
-
-		// Calculer toutes les positions
-		const positions = this.kernelPositions(uVals, vVals, mode);
-
-		// Convertir en paths BABYLON
-		const paths = [];
-		for (let i = 0; i <= stepsU; i++) {
-			const path = [];
-			for (let j = 0; j <= stepsV; j++) {
-				const [x, y, z] = positions[i][j];
-				path.push(new BABYLON.Vector3(x, y, z));
-			}
-			paths.push(path);
-		}
-
-		return paths;
-	}
-
-	destroy() {
-		if (this.kernelU) this.kernelU.destroy();
-		if (this.kernelV) this.kernelV.destroy();
-		if (this.kernelPositions) this.kernelPositions.destroy();
-	}
-}
-
-// ==================== EXPORT DES POSITIONS CALCULÉES ====================
-
-/**
- * Récupère les positions calculées depuis un objet curves GPU ou CPU
- * @param {CurveBase|CurveBaseGPU} curves - Instance de courbes
- * @returns {Float32Array} Tableau des positions [x,y,z,x,y,z,...]
- */
-function getPositionsFromCurves(curves) {
+function getPositionsFromCurvesGPU(curves) {
 	const paths = curves.paths;
 	const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
 	const positions = new Float32Array(totalPoints * 3);
@@ -1088,24 +705,19 @@ function getPositionsFromCurves(curves) {
 }
 
 /**
- * Crée un VertexData Babylon.js à partir des positions calculées
- * @param {CurveBase|CurveBaseGPU} curves - Instance de courbes
- * @returns {BABYLON.VertexData} Données de vertex pour créer un mesh
+ * Crée un VertexData Babylon.js à partir des courbes GPU calculées
  */
-function createVertexDataFromCurves(curves) {
+function createVertexDataFromCurvesGPU(curves) {
 	const vertexData = new BABYLON.VertexData();
-
 	const paths = curves.paths;
 	const positions = [];
 	const indices = [];
 	const normals = [];
 
 	// Aplatir les paths en positions
-	let vertexIndex = 0;
 	for (const path of paths) {
 		for (const point of path) {
 			positions.push(point.x, point.y, point.z);
-			vertexIndex++;
 		}
 	}
 
@@ -1122,9 +734,133 @@ function createVertexDataFromCurves(curves) {
 	vertexData.positions = positions;
 	vertexData.indices = indices;
 
-	// Calculer les normales
 	BABYLON.VertexData.ComputeNormals(positions, indices, normals);
 	vertexData.normals = normals;
 
 	return vertexData;
+}
+
+// ==================== CLASSE KERNEL DYNAMIQUE PURE ====================
+
+/**
+ * Classe utilitaire pour créer des kernels GPU avec des expressions arbitraires
+ * sans avoir à recréer tout le système de classes
+ */
+class GPUMeshComputer {
+	constructor(options = {}) {
+		this.gpu = getGPUInstance();
+		this.options = Object.assign({
+			minU: -Math.PI,
+			maxU: Math.PI,
+			minV: -Math.PI,
+			maxV: Math.PI,
+			stepsU: 64,
+			stepsV: 64,
+		}, options);
+
+		this.kernel = null;
+	}
+
+	/**
+	 * Compile et exécute un kernel avec les expressions données
+	 * @param {string} exprX - Expression pour X
+	 * @param {string} exprY - Expression pour Y
+	 * @param {string} exprZ - Expression pour Z
+	 * @param {object} params - Paramètres additionnels (A, B, C, etc.)
+	 * @returns {Float32Array} Positions [x,y,z,x,y,z,...]
+	 */
+	compute(exprX, exprY, exprZ, params = {}) {
+		const { minU, maxU, minV, maxV, stepsU, stepsV } = this.options;
+		const stepU = (maxU - minU) / stepsU;
+		const stepV = (maxV - minV) / stepsV;
+
+		// Transformer les expressions
+		const tExprX = transformExpressionForGPU(exprX || 'u');
+		const tExprY = transformExpressionForGPU(exprY || 'v');
+		const tExprZ = transformExpressionForGPU(exprZ || '0');
+
+		// Paramètres avec valeurs par défaut
+		const A = params.A || 0, B = params.B || 0, C = params.C || 0, D = params.D || 0;
+		const E = params.E || 0, F = params.F || 0, G = params.G || 1, H = params.H || 1;
+		const I = params.I || 1, J = params.J || 1, K = params.K || 1, L = params.L || 1;
+
+		const kernelCode = `function(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L) {
+			const i = this.thread.y;
+			const j = this.thread.x;
+
+			const u = minU + i * stepU;
+			const v = minV + j * stepV;
+
+			const d = (j % 2 === 0) ? -1.0 : 1.0;
+			const k = (i % 2 === 0) ? -1.0 : 1.0;
+			const p = (i % 2 === 0) ? -u : u;
+			const t = (j % 2 === 0) ? -v : v;
+			const n = i * ${stepsV + 1} + j;
+
+			const x = ${tExprX};
+			const y = ${tExprY};
+			const z = ${tExprZ};
+
+			return [x, y, z];
+		}`;
+
+		// Détruire l'ancien kernel si existant
+		if (this.kernel) {
+			this.kernel.destroy();
+		}
+
+		this.kernel = this.gpu.createKernel(eval('(' + kernelCode + ')'))
+			.setOutput([stepsV + 1, stepsU + 1])
+			.setPipeline(false);
+
+		const result = this.kernel(minU, stepU, minV, stepV, A, B, C, D, E, F, G, H, I, J, K, L);
+
+		// Convertir en Float32Array
+		const totalPoints = (stepsU + 1) * (stepsV + 1);
+		const positions = new Float32Array(totalPoints * 3);
+		let idx = 0;
+
+		for (let i = 0; i <= stepsU; i++) {
+			for (let j = 0; j <= stepsV; j++) {
+				const point = result[i][j];
+				positions[idx++] = isFinite(point[0]) ? point[0] : 0;
+				positions[idx++] = isFinite(point[1]) ? point[1] : 0;
+				positions[idx++] = isFinite(point[2]) ? point[2] : 0;
+			}
+		}
+
+		return positions;
+	}
+
+	/**
+	 * Version qui retourne des paths de BABYLON.Vector3
+	 */
+	computePaths(exprX, exprY, exprZ, params = {}) {
+		const positions = this.compute(exprX, exprY, exprZ, params);
+		const { stepsU, stepsV } = this.options;
+		const paths = [];
+
+		let idx = 0;
+		for (let i = 0; i <= stepsU; i++) {
+			const path = [];
+			for (let j = 0; j <= stepsV; j++) {
+				path.push(new BABYLON.Vector3(
+					positions[idx],
+					positions[idx + 1],
+					positions[idx + 2]
+				));
+				idx += 3;
+			}
+			paths.push(path);
+		}
+
+		return paths;
+	}
+
+	destroy() {
+		if (this.kernel) {
+			this.kernel.destroy();
+			this.kernel = null;
+		}
+	}
 }

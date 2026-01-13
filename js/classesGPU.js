@@ -423,11 +423,11 @@ class WebGL2MeshComputer {
 		// Attendre que le GPU ait terminé (gl.finish est le plus fiable en WebGL)
 		gl.finish();
 
-		// Lire les résultats
+		// Lire les résultats via COPY_READ_BUFFER (recommandé pour les lectures)
 		const positions = new Float32Array(totalPoints * 3);
-		gl.bindBuffer(gl.ARRAY_BUFFER, outputBuffer);
-		gl.getBufferSubData(gl.ARRAY_BUFFER, 0, positions);
-		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+		gl.bindBuffer(gl.COPY_READ_BUFFER, outputBuffer);
+		gl.getBufferSubData(gl.COPY_READ_BUFFER, 0, positions);
+		gl.bindBuffer(gl.COPY_READ_BUFFER, null);
 
 		// Cleanup
 		gl.deleteTransformFeedback(transformFeedback);

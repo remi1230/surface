@@ -242,6 +242,7 @@ class WebGL2MeshComputer {
 			uniform float uStepV;
 			uniform float uStepsV;
 			uniform float A, B, C, D, E, F, G, H, I, J, K, L;
+			uniform float w;  // Variable temps
 			uniform vec3 uFirstPoint;
 
 			// Sortie pour Transform Feedback
@@ -344,6 +345,7 @@ class WebGL2MeshComputer {
 			minU, stepU, minV, stepV,
 			exprX, exprY, exprZ, exprAlpha, exprBeta,
 			A, B, C, D, E, F, G, H, I, J, K, L,
+			w,
 			firstPoint,
 			coordSystem
 		} = options;
@@ -398,6 +400,7 @@ class WebGL2MeshComputer {
 		gl.uniform1f(gl.getUniformLocation(program, 'J'), J || 1);
 		gl.uniform1f(gl.getUniformLocation(program, 'K'), K || 1);
 		gl.uniform1f(gl.getUniformLocation(program, 'L'), L || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'w'), w || 0);
 		gl.uniform3f(gl.getUniformLocation(program, 'uFirstPoint'),
 			firstPoint?.x || 1, firstPoint?.y || 0, firstPoint?.z || 0);
 
@@ -556,6 +559,7 @@ class CurveBaseGPU {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
+		this.w = glo.params.w;  // Variable temps
 
 		// Exécution
 		if (onePoint) {
@@ -627,6 +631,7 @@ class CurvesCartesianGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'cartesian'
 		});
@@ -673,6 +678,7 @@ class CurvesSphericalGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'spheric'
 		});
@@ -719,6 +725,7 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'cylindrical'
 		});
@@ -770,6 +777,7 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'curvature'
 		});
@@ -937,6 +945,7 @@ class GPUMeshComputer {
 			A: params.A || 0, B: params.B || 0, C: params.C || 0, D: params.D || 0,
 			E: params.E || 0, F: params.F || 0, G: params.G || 1, H: params.H || 1,
 			I: params.I || 1, J: params.J || 1, K: params.K || 1, L: params.L || 1,
+			w: params.w || 0,
 			firstPoint: { x: 1, y: 0, z: 0 },
 			coordSystem: 'cartesian'
 		});

@@ -73,3 +73,30 @@ kbd.functions_list {
   text-align: center; 
   color: var(--exportTitleColor);
 }
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  cursor: pointer;
+}
+
+.checkbox input {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.checkboxesHorizontalContainer{
+  display: flex;
+}
+
+#optShaderTitle{
+  color: #b4b4b4;
+}
+

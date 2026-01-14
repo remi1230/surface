@@ -149,6 +149,13 @@ document.getElementById('toggleFullscreen')?.addEventListener('click', function(
    }
 });
 
+const shaderOpt1 = getById("shaderOpt1");
+const shaderOpt2 = getById("shaderOpt2");
+const shaderOpt3 = getById("shaderOpt3");
+shaderOpt1.addEventListener("change", () => { glo.shaderOpt.opt1 = shaderOpt1.checked; giveMaterialToMesh(); });
+shaderOpt2.addEventListener("change", () => { glo.shaderOpt.opt2 = shaderOpt2.checked; giveMaterialToMesh(); });
+shaderOpt3.addEventListener("change", () => { glo.shaderOpt.opt3 = shaderOpt3.checked; giveMaterialToMesh(); });
+
 document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 

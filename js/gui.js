@@ -705,8 +705,8 @@ function add_inputs_equations(){
   add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
   add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
   add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
-  add_input(panel, "R", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
-  add_input(panel, "W", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
+  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
+  add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
 
   add_input(panelSuitsEquations, "X", "", "inputSuitX", "header right fourth", "input equation right fourth", "text_input_suit_x", "input_suit_x");
   add_input(panelSuitsEquations, "Y", "", "inputSuitY", "header right fourth", "input equation right fourth", "text_input_suit_y", "input_suit_y");

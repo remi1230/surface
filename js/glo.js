@@ -42,7 +42,7 @@ var glo = {
 		select:[
 			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "7cosh(v/2)cu", fy: "3.5v", fz: "7cosh(v/2)su", check: false, orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
 			{text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", beta:"cusu", theta: "cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
-			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "", theta:"G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
+			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "6cosh(v/2)cu", fy: "piv", fz: "6cosh(v/2)su", alpha: "G(cv + 1)", check: false, orient: {axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "7cu", fy: "7cv", fz: "7cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 100} },
 			{text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32, fx: "sinh(v)su", fy: "3u", fz: "-sinh(v)cu", check: false, orient: {axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
@@ -52,10 +52,10 @@ var glo = {
 			{text: "Plan", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,  fx: "2u", fy: "2v", fz: "2uv", check: false, orient:{distance: 40}},
 			{text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 131, nb_steps_v: 131,  fx: "7cucv", fy: "7sucv", fz: "7sv", check: false, orient:{distance: 60}},
-			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "3(cv + e)cu", fy: "3(cv + e)su", fz: "3sv", check: true, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
+			{text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 32,  fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 64,  fx: "3(cv + e)(cu)***2", fy: "3(cv + e)(su)***2", fz: "3(sv)***2", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 60}},
 			{text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,  fx: "(cv + 10)cu", fy: "(cv + 10)su", fz: "sv", beta: "u", check: false, orient: {axis: "X", direction: -1, alpha: 0, beta: PI/8}},
-			{text: "Twisted Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "3(cv + 2)cu", fy: "3(cv + 2)su", fz: "3sv", alpha: "G(cv + Q)", beta:"G(cv + Q)", theta: "", check: false, orient: {axis: "Y", direction: 1, alpha: PI/4, beta: 0, distance: 60}},
+			{text: "Twisted Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 132, nb_steps_v: 132,  fx: "3(cv + 2)cu", fy: "3(cv + 2)su", fz: "3sv", alpha: "G(cv)", beta:"G(cv)", theta: "", check: false, orient: {axis: "X", direction: 1, alpha: PI/2, beta: 0, distance: 60}},
 			{text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "-0.5sh(u,v)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Waves square", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 512, nb_steps_v: 512,  fx: "u", fy: "v", fz: "0.5ch(uxT,vyT)+cusvmz(1,1)0.1", beta: "h(u,v)/20", check: false, orient: {axis: "Z", direction: 1, alpha: -PI/8, beta: -PI/8}},
 			{text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 132, nb_steps_v: 132,  fx: "7(cucv)***2", fy: "7(svcu)***2", fz: "7Q/2s(u)", alpha: "", beta: "", check: false, suit: true, orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 80}},
@@ -138,9 +138,9 @@ var glo = {
 						glo.params.text_input_z = sel.fz;
 
 						if(glo.params.updateRots){
-							glo.params.text_input_suit_alpha = falpha;
-							glo.params.text_input_suit_beta  = fbeta;
-							glo.params.text_input_suit_theta = ftheta;
+							glo.params.text_input_alpha = falpha;
+							glo.params.text_input_beta  = fbeta;
+							//glo.params.text_input_suit_theta = ftheta;
 						}
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
@@ -150,9 +150,9 @@ var glo = {
 							glo.input_y.text = sel.fy;
 							glo.input_z.text = sel.fz;
 							if(glo.params.updateRots){
-								glo.input_suit_alpha.text = falpha;
-								glo.input_suit_beta.text  = fbeta;
-								glo.input_suit_theta.text = ftheta;
+								glo.input_alpha.text = falpha;
+								glo.input_beta.text  = fbeta;
+								//glo.input_suit_theta.text = ftheta;
 							}
 						}
 
@@ -967,6 +967,11 @@ var glo = {
 		meshRecorder: null,
 		chunks: [],
 		recording: false,
+	},
+	shaderOpt: {
+		opt1: false,
+		opt2: false,
+		opt3: false,
 	},
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['GridScale', 'updateRots'],

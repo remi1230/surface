@@ -19,10 +19,12 @@
   <script src="cdn/js/babylon/babylonjs.serializers.js" defer></script>
   <script src="cdn/js/babylon/babylonx.cloner.js" defer></script>
   <script src="cdn/js/babylon/babylon.objFileLoader.js" defer></script>
+  <script src="cdn/js/gpu/gpu.min.js" defer></script>
 
   <script src="js/glo.js" defer></script>
   <script src="js/prototypes.js" defer></script>
   <script src="js/classes.js" defer></script>
+  <script src="js/classesGPU.js" defer></script>
   <script src="js/shaders-frags.js" defer></script>
   <script src="js/shaders-loader.js" defer></script>
   <script src="js/shaders-crud.js" defer></script>
@@ -267,6 +269,25 @@
                   <option value="0">Shader 0</option>
               </select>
               <span id="storageIndicator" class="storage-indicator" title="Source des shaders"></span>
+          </div>
+          <div>
+            <div>
+              <span id="optShaderTitle">Opt 1,2,3</span>
+            </div>
+            <div class="checkboxesHorizontalContainer">
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt1" data-numopt="1" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt2" data-numopt="2" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt3" data-numopt="3" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+            </div>
           </div>
           <div class="shader-crud-buttons">
               <a href="#!" class="btn-small waves-effect waves-light teal" id="newShaderBtn" title="Nouveau shader">

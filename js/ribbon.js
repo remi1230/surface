@@ -74,16 +74,16 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
     }*/
 	switch (coordTypes || glo.coordsType) {
         case 'cartesian':
-            glo[objToSet] = new CurvesCartesian(parameters, f, f2, d, fractalize, onePoint);
+            glo[objToSet] = new CurvesCartesianGPU(parameters, f, f2, d, fractalize, onePoint);
             break;
         case 'spheric':
-			glo[objToSet] = new CurvesSpherical(parameters, f, f2, d, fractalize, onePoint);
+			glo[objToSet] = new CurvesSphericalGPU(parameters, f, f2, d, fractalize, onePoint);
 			break;
         case 'cylindrical':
-            glo[objToSet] = new CurvesCylindrical(parameters, f, f2, d, fractalize, onePoint);
+            glo[objToSet] = new CurvesCylindricalGPU(parameters, f, f2, d, fractalize, onePoint);
             break;
         case 'curvature':
-            glo[objToSet] = new CurvesByCurvature(parameters, f, f2, d, fractalize, onePoint);
+            glo[objToSet] = new CurvesByCurvatureGPU(parameters, f, f2, d, fractalize, onePoint);
             break;
     }
 

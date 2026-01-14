@@ -34,12 +34,20 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 			}
 		}
 
+		/*const f    = {x: glo.params.text_input_x, y: glo.params.text_input_y, z: glo.params.text_input_z};
+		const fReg = reg(f);
+		const defines = `
+			#define eqx ${fReg.x}
+			#define eqy ${fReg.y}
+			#define eqz ${fReg.z}
+		`;*/
+
 		const shaderMaterial = new BABYLON.ShaderMaterial(
 			"ribbonShader",
 			glo.scene,
 			{
-				vertexSource: usedVertexShader,
-				fragmentSource: fragmentShader
+				vertexSource: /*defines + */usedVertexShader,
+				fragmentSource: /*defines + */fragmentShader
 			},
 			{
 				attributes: ["position", "normal", "uv", 'uv_params'],
@@ -101,6 +109,10 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 		shaderMaterial.setInt("stepsU", glo.params.steps_u);
 		shaderMaterial.setInt("stepsV", glo.params.steps_v);
 		shaderMaterial.setInt("deformationEnabled", hasDeformation ? 1 : 0);
+		shaderMaterial.setInt("opt1", glo.shaderOpt.opt1 ? 1 : 0);
+		shaderMaterial.setInt("opt2", glo.shaderOpt.opt2 ? 1 : 0);
+		shaderMaterial.setInt("opt3", glo.shaderOpt.opt3 ? 1 : 0);
+
 
 		// Appliquer le matériau au mesh
 		mesh.material = shaderMaterial;

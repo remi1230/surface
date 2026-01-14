@@ -118,8 +118,8 @@ class WebGL2MeshComputer {
 
 				if (isinf(r) || isnan(r)) r = 0.0;
 
-				// Point initial * r
-				vec3 p = uFirstPoint * r;
+				// Point initial * r (sp = spherical point, évite conflit avec variable p)
+				vec3 sp = uFirstPoint * r;
 
 				// Rotation sphérique
 				float cosAlpha = cos(alpha);
@@ -128,9 +128,9 @@ class WebGL2MeshComputer {
 				float sinBeta = sin(beta);
 
 				// Rotation Y (beta)
-				float x1 = p.x * cosBeta + p.z * sinBeta;
-				float y1 = p.y;
-				float z1 = -p.x * sinBeta + p.z * cosBeta;
+				float x1 = sp.x * cosBeta + sp.z * sinBeta;
+				float y1 = sp.y;
+				float z1 = -sp.x * sinBeta + sp.z * cosBeta;
 
 				// Rotation Z (alpha)
 				float px = x1 * cosAlpha - y1 * sinAlpha;

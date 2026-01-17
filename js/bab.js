@@ -42,7 +42,7 @@ Arena = function(game) {
   var scene = game.scene;
   var light = new BABYLON.HemisphericLight(
     "light1",
-    new BABYLON.Vector3(0.3, 0.6, 0.0),
+    new BABYLON.Vector3(-0.4, -0.4, 0.0),
     scene
   );
   light.intensity = 0.7;

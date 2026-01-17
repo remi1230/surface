@@ -53,8 +53,10 @@ class WebGL2MeshComputer {
 		result = result.replace(/\bh\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, 'length(vec3($1, $2, $3))');
 
 		// ** en GLSL c'est pow()
-		result = result.replace(/\*\*/g, '^POW^');
-		result = result.replace(/([a-zA-Z0-9_.()]+)\s*\^POW\^\s*([a-zA-Z0-9_.()]+)/g, 'pow($1, $2)');
+		//result = result.replace(/\*\*/g, '^POW^');
+		//result = result.replace(/([a-zA-Z0-9_.()]+)\s*\^POW\^\s*([a-zA-Z0-9_.()]+)/g, 'pow($1, $2)');
+
+		result = this.replacePow(result);
 
 		// S'assurer que les nombres ont un point décimal pour GLSL
 		//result = result.replace(/\b(\d+)(?![\d.])/g, '$1.0');
@@ -65,6 +67,47 @@ class WebGL2MeshComputer {
 		//result = result.replace(/(\d+)\.0\.0/g, '$1.0');
 
 		return result;
+	}
+
+	replacePow(expr) {
+		let result = expr.replace(/\*\*/g, '^POW^');
+		
+		const powIndex = result.indexOf('^POW^');
+		if (powIndex === -1) return result;
+		
+		// Trouver l'opérande gauche (remonter les parenthèses)
+		let left = '', i = powIndex - 1;
+		let depth = 0;
+		while (i >= 0) {
+			const c = result[i];
+			if (c === ')') depth++;
+			else if (c === '(') {
+				if (depth === 0) break;
+				depth--;
+			}
+			if (depth === 0 && /[\s,+\-*\/]/.test(c)) break;
+			left = c + left;
+			i--;
+		}
+		
+		// Trouver l'opérande droit
+		let right = '', j = powIndex + 5;
+		depth = 0;
+		while (j < result.length) {
+			const c = result[j];
+			if (c === '(') depth++;
+			else if (c === ')') {
+				if (depth === 0) break;
+				depth--;
+			}
+			if (depth === 0 && /[\s,+\-*\/]/.test(c)) break;
+			right += c;
+			j++;
+		}
+		
+		const before = result.slice(0, i + 1);
+		const after = result.slice(j);
+		return this.replacePow(before + `pow(${left.trim()}, ${right.trim()})` + after);
 	}
 
 	/**
@@ -119,7 +162,7 @@ class WebGL2MeshComputer {
 				if (isinf(r) || isnan(r)) r = 0.0;
 
 				// Point initial * r
-				vec3 p = uFirstPoint * r;
+				vec3 sp = uFirstPoint * r;
 
 				// Rotation sphérique
 				float cosAlpha = cos(alpha);
@@ -127,15 +170,19 @@ class WebGL2MeshComputer {
 				float cosBeta = cos(beta);
 				float sinBeta = sin(beta);
 
+				
+
 				// Rotation Y (beta)
-				float x1 = p.x * cosBeta + p.z * sinBeta;
-				float y1 = p.y;
-				float z1 = -p.x * sinBeta + p.z * cosBeta;
+				float x1 = sp.x * cosAlpha - sp.y * sinAlpha;
+				float y1 = sp.x * sinAlpha + sp.y * cosAlpha;
+				float z1 = sp.z;
 
 				// Rotation Z (alpha)
-				float px = x1 * cosAlpha - y1 * sinAlpha;
-				float py = x1 * sinAlpha + y1 * cosAlpha;
-				float pz = z1;
+				float px = x1 * cosBeta + z1 * sinBeta;
+				float py = y1;
+				float pz = -x1 * sinBeta + z1 * cosBeta;
+
+
 
 				// Rotation secondaire
 				float alpha2 = ${glslAlpha};
@@ -242,6 +289,7 @@ class WebGL2MeshComputer {
 			uniform float uStepV;
 			uniform float uStepsV;
 			uniform float A, B, C, D, E, F, G, H, I, J, K, L;
+			uniform float w;
 			uniform vec3 uFirstPoint;
 
 			// Sortie pour Transform Feedback
@@ -344,6 +392,7 @@ class WebGL2MeshComputer {
 			minU, stepU, minV, stepV,
 			exprX, exprY, exprZ, exprAlpha, exprBeta,
 			A, B, C, D, E, F, G, H, I, J, K, L,
+			w,
 			firstPoint,
 			coordSystem
 		} = options;
@@ -398,6 +447,7 @@ class WebGL2MeshComputer {
 		gl.uniform1f(gl.getUniformLocation(program, 'J'), J || 1);
 		gl.uniform1f(gl.getUniformLocation(program, 'K'), K || 1);
 		gl.uniform1f(gl.getUniformLocation(program, 'L'), L || 1);
+		gl.uniform1f(gl.getUniformLocation(program, 'w'), w || 0);
 		gl.uniform3f(gl.getUniformLocation(program, 'uFirstPoint'),
 			firstPoint?.x || 1, firstPoint?.y || 0, firstPoint?.z || 0);
 
@@ -556,6 +606,7 @@ class CurveBaseGPU {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
+		this.w = w;
 
 		// Exécution
 		if (onePoint) {
@@ -627,6 +678,7 @@ class CurvesCartesianGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'cartesian'
 		});
@@ -673,6 +725,7 @@ class CurvesSphericalGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'spheric'
 		});
@@ -719,6 +772,7 @@ class CurvesCylindricalGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'cylindrical'
 		});
@@ -770,6 +824,7 @@ class CurvesByCurvatureGPU extends CurveBaseGPU {
 			A: this.A, B: this.B, C: this.C, D: this.D,
 			E: this.E, F: this.F, G: this.G, H: this.H,
 			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
 			firstPoint: glo.firstPoint,
 			coordSystem: 'curvature'
 		});
@@ -937,6 +992,7 @@ class GPUMeshComputer {
 			A: params.A || 0, B: params.B || 0, C: params.C || 0, D: params.D || 0,
 			E: params.E || 0, F: params.F || 0, G: params.G || 1, H: params.H || 1,
 			I: params.I || 1, J: params.J || 1, K: params.K || 1, L: params.L || 1,
+			w: params.w,
 			firstPoint: { x: 1, y: 0, z: 0 },
 			coordSystem: 'cartesian'
 		});

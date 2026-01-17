@@ -88,11 +88,11 @@ function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor
 		shaderMaterial.setVector3("msize",
 			{x: meshinfos.boundingBox.extendSizeWorld.x, y: meshinfos.boundingBox.extendSizeWorld.y, z: meshinfos.boundingBox.extendSizeWorld.z});
 
-		shaderMaterial.setInt("invcol", glo.shaders.params.invcol);
+		shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
 		shaderMaterial.setInt("islight", glo.shaders.params.islight);
 
-		shaderMaterial.setVector3("lampPosition", {x: glo.light.direction.x, y: glo.light.direction.y, z: glo.light.direction.z});
-		shaderMaterial.setFloat("lampIntensity", glo.light.intensity);
+		shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
+		shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
 		shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
 		shaderMaterial.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
 		shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);

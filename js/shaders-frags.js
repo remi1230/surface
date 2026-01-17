@@ -14,6 +14,10 @@ fragmentShaders = [
     else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 `,
 `
+    //Simple
+    vec3 col = vec3(0.125, 1.0, length(npos()));
+`,
+`
     //Npos
     vec3 col = 1.0 - palette(8.0*length(npos()));
 `,

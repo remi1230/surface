@@ -503,6 +503,9 @@ function param_special_controls(){
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
 	//glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '25px'; });
+
+	glo.allControls.getByName('header_inputRSymmetrize').fontSize = '14px';
+	glo.allControls.getByName('header_inputRSymmetrize').color    = 'white';
 }
 
 function hdMax(){
@@ -880,4 +883,14 @@ function switchRecordingVideo(){
 	else{
 		glo.video.recorder.stop();
 	}
+}
+
+function isWInMeshEquations(){
+	glo.withTime = [
+		glo.params.text_input_x,
+		glo.params.text_input_y,
+		glo.params.text_input_z,
+		glo.params.text_input_alpha,
+		glo.params.text_input_beta,
+	].some(exp => exp.includes('w'));
 }

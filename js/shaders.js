@@ -181,7 +181,7 @@ const combinedVertexShader = `
     float computeDeformation(float u, float v, float x, float y, float z,
                              float xN, float yN, float zN, float O, float T,
                              float d, float k, float p, float t, float n, float i, float j) {
-        float avgN = (xN + yN + zN) / 3.0;
+        float g = xN * yN * zN;
         return DEFORMATION_EXPRESSION;
     }
 
@@ -710,7 +710,7 @@ const glslRegs = [
     { exp: /b(?![\(])/g, upd: "b()" },
     { exp: /aa(?![\(])/g, upd: "aa()" },
     { exp: /bb(?![\(])/g, upd: "bb()" },
-    { exp: /(?<!d|l|p|cr|c)o|(?<=d)o(?!t)|(?<=l)o(?!g)|(?<=c)o(?!s)|(?<=p)o(?!w)|(?<=cr)o(?!ss)/g, upd: "o()" },
+    { exp: /(?<!d|l|p|cr|c)o(?!\()|(?<=d)o(?!t|\()|(?<=l)o(?!g|\()|(?<=c)o(?!s|\()|(?<=p)o(?!w|\()|(?<=cr)o(?!ss|\()/g, upd: "o()" },
     { exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
     { exp: /s([^*\(R\)]*)R/g, upd: "sin($1R)" },
     { exp: /c([^*\(X\)]*)X/g, upd: "cos($1X)" },
@@ -771,6 +771,7 @@ const glslRegs = [
     { exp: /zP([^,%*+-/)])/g, upd: "zP*$1" },
     { exp: /pi([^,%*+-/)])/g, upd: "pi*$1" },
     { exp: /ep([^,%*+-/)])/g, upd: "ep*$1" },
+    { exp: /g([^,%*+-/)])/g, upd: "g*$1" },
     { exp: /([A-MXYk])([^,%*+\-\/)])/g, upd: "$1*$2" },
     { exp: /d(?!ot)([^,%*+\-\/)])/g, upd: "d*$1" },
     { exp: /S([^,%*+-/\())])/g, upd: "S($1)" },
@@ -882,7 +883,7 @@ const deformationVertexShader = `
     float computeDeformation(float u, float v, float x, float y, float z,
                              float xN, float yN, float zN, float O, float T,
                              float d, float k, float p, float t, float n, float i, float j) {
-        float avgN = (xN + yN + zN) / 3.0;
+        float g = xN * yN * zN;
         return DEFORMATION_EXPRESSION;
     }
 

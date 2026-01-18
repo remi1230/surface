@@ -497,8 +497,8 @@ function param_special_controls(){
 
 	glo.allControls.haveTheseClasses('header', 'right', 'seventh', 'noAutoParam').map(header => {header.height = '25px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'eighth', 'noAutoParam').map(header => {header.height = '23px'; });
-	glo.allControls.haveTheseClasses('header', 'right', 'nineth', 'noAutoParam').map(header => {header.height = '23px'; });
-	glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
+	//glo.allControls.haveTheseClasses('header', 'right', 'nineth', 'noAutoParam').map(header => {header.height = '23px'; });
+	//glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
 	//glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });

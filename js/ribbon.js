@@ -181,7 +181,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         const norm = glo.params.functionIt.norm;
 
-        if (isDel()) { await delInRibbon(); }
+        //if (isDel()) { await delInRibbon(); }
 
         if (glo.params.fractalize.actived) {
             await glo.ribbon.fractalize();

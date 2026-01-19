@@ -100,11 +100,11 @@ async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiv
 			const blenderInfos = glo.params.blender;
 			shaderMaterial.setVector4("blendU",
 				{x: blenderInfos.u.x, y: blenderInfos.u.y, z: blenderInfos.u.z, w: blenderInfos.u.x + blenderInfos.u.y + blenderInfos.u.z});
+			shaderMaterial.setVector3("blendO",
+				{x: blenderInfos.O.x, y: blenderInfos.O.y, z: blenderInfos.O.z});
 
 			shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
 			shaderMaterial.setInt("islight", glo.shaders.params.islight);
-
-			shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
 
 			shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
 			shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);

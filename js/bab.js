@@ -52,10 +52,12 @@ Arena = function(game) {
 
 Game = function(canvasId) {
   var canvas = document.getElementById(canvasId);
+  
   var engine = new BABYLON.Engine(canvas, true, {
     doNotHandleContextLost: true,
     disableWebGL2Support: false
   });
+  canvas.height = window.innerHeight;engine.resize();
   engine.enableOfflineSupport = false;
   glo.engine = engine;
   var _this = this;
@@ -103,15 +105,7 @@ Game = function(canvasId) {
   });
 
   window.addEventListener("resize", function() {
-    setTimeout(() => {
-          glo.engine.resize();
-          
-          // Resync le GUI
-          /*glo.advancedTexture.scaleTo(
-              glo.engine.getRenderWidth(), 
-              glo.engine.getRenderHeight()
-          );*/
-      }, 100);
+    glo.engine.resize();
   }, false);
 };
 

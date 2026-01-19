@@ -242,8 +242,16 @@ const combinedVertexShader = `
             float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
             finalPosition = position + norm * r;
 
-            if(blendU.w > 0.0){
-                finalPosition *= rotateAxis(vec3(blendU.x, blendU.y, blendU.z), u);
+            // Appliquer les rotations séparées sur chaque axe
+            // blendU.x/y/z = amplitude de rotation sur chaque axe, multipliée par u
+            if(blendU.x != 0.0){
+                finalPosition = rotateAxis(vec3(1.0, 0.0, 0.0), blendU.x * u) * finalPosition;
+            }
+            if(blendU.y != 0.0){
+                finalPosition = rotateAxis(vec3(0.0, 1.0, 0.0), blendU.y * u) * finalPosition;
+            }
+            if(blendU.z != 0.0){
+                finalPosition = rotateAxis(vec3(0.0, 0.0, 1.0), blendU.z * u) * finalPosition;
             }
         }
 

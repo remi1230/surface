@@ -1468,12 +1468,18 @@ function add_blender_sliders(){
 
         event(value);
 
-        await applyDeformationShader();
-          giveMaterialToMesh();
-
-        /*getPathsInfos();
-
-        await remakeRibbon();*/
+        // Optimisation: mettre à jour uniquement l'uniform si le matériau existe déjà
+        if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
+            const blenderInfos = glo.params.blender;
+            glo.ribbon.material.setVector4("blendU", {
+                x: blenderInfos.u.x,
+                y: blenderInfos.u.y,
+                z: blenderInfos.u.z,
+                w: blenderInfos.u.x + blenderInfos.u.y + blenderInfos.u.z
+            });
+        } else {
+            await applyDeformationShader();
+        }
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){

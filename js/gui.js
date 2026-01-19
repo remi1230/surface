@@ -751,7 +751,7 @@ function add_inputs_equations(){
           if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
           await applyDeformationShader();
-          giveMaterialToMesh();
+          //giveMaterialToMesh();
       }
   });
 
@@ -766,7 +766,7 @@ function add_inputs_equations(){
       if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
       await applyDeformationShader();
-      giveMaterialToMesh();
+      //giveMaterialToMesh();
       
   });
 }
@@ -1468,9 +1468,12 @@ function add_blender_sliders(){
 
         event(value);
 
-        getPathsInfos();
+        await applyDeformationShader();
+          giveMaterialToMesh();
 
-        await remakeRibbon();
+        /*getPathsInfos();
+
+        await remakeRibbon();*/
     });
     slider.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
@@ -1594,7 +1597,19 @@ function add_symmetrize_sliders(){
     }
   }
 
-  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, fontSize = 14){
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  const debouncedGiveMaterial = debounce(() => {
+    giveMaterialToMesh();
+  }, 16);
+
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, fontSize = 14, toShaders = false){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: fontSize, h: 20, pT: 4, }, true);
     parent.addControl(header);
@@ -1610,11 +1625,15 @@ function add_symmetrize_sliders(){
 
         event(value);
 
-        getPathsInfos();
-
-        glo.justSymmetrized = true;
-        await remakeRibbon();
-        //glo.histo.save();
+        if(!toShaders){ 
+          getPathsInfos();
+          glo.justSymmetrized = true;
+          await remakeRibbon();
+        }
+        else{ 
+          //giveMaterialToMesh();
+          debouncedGiveMaterial(); 
+        }
     });
     
     slider.onPointerClickObservable.add(function (e) {
@@ -1645,7 +1664,7 @@ function add_symmetrize_sliders(){
 
   addSlider(panelCheckB, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; }, 16);
 
-  addSlider(panelScaleNorm, "scaleNorm", "Scale", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; }, 14);
+  addSlider(panelScaleNorm, "scaleNorm", "Scale", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; }, 14, true);
 
   add_button("centerLocal", "⊕ on origin", 100, 30, 0, 0, 0, function(){
     glo.params.centerIsLocal = !glo.params.centerIsLocal;

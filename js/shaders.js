@@ -41,6 +41,7 @@ const combinedVertexShader = `
     // Uniforms
     uniform mat4 worldViewProjection;
     uniform mat4 world;
+    uniform vec4 blendU;
     uniform float scaleNorm;
     uniform float w;
     uniform float stepU;
@@ -177,6 +178,18 @@ const combinedVertexShader = `
         return length(cross(vec3(x1, y1, z1), vec3(x2, y2, z2)));
     }
 
+    mat3 rotateAxis(vec3 axis, float angle) {
+        vec3 a = normalize(axis);
+        float c = cos(angle);
+        float s = sin(angle);
+        float t = 1.0 - c;
+        return mat3(
+            t*a.x*a.x + c,      t*a.x*a.y - s*a.z,  t*a.x*a.z + s*a.y,
+            t*a.x*a.y + s*a.z,  t*a.y*a.y + c,      t*a.y*a.z - s*a.x,
+            t*a.x*a.z - s*a.y,  t*a.y*a.z + s*a.x,  t*a.z*a.z + c
+        );
+    }
+
     // DEFORMATION_EXPRESSION sera remplacé dynamiquement
     float computeDeformation(float u, float v, float x, float y, float z,
                              float xN, float yN, float zN, float O, float T,
@@ -228,6 +241,10 @@ const combinedVertexShader = `
         if (deformationEnabled == 1) {
             float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
             finalPosition = position + norm * r;
+
+            if(blendU.w > 0.0){
+                finalPosition *= rotateAxis(vec3(blendU.x, blendU.y, blendU.z), u);
+            }
         }
 
         gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
@@ -845,138 +862,18 @@ function regForGLSL(expr) {
     return result;
 }
 
-// Vertex shader pour la déformation par normale
-const deformationVertexShader = `
-    precision highp float;
-
-    // Attributes
-    attribute vec3 position;
-    attribute vec3 normal;
-    attribute vec2 uv;
-    attribute vec2 uv_params;
-
-    // Uniforms
-    uniform mat4 worldViewProjection;
-    uniform mat4 world;
-    uniform float scaleNorm;
-    uniform float w;
-    uniform float stepU;
-    uniform float stepV;
-    uniform float minU;
-    uniform float minV;
-    uniform int stepsU;
-    uniform int stepsV;
-
-    // Varyings
-    varying vec3 vPosition;
-    varying vec3 vWorldPosition;
-    varying vec3 vNormal;
-    varying vec2 vUV;
-    varying vec2 vUVParams;
-
-    // Fonctions mathématiques GLSL
-    float cpow(float val, float p) {
-        return sign(val) * pow(abs(val), p);
-    }
-
-    // DEFORMATION_EXPRESSION sera remplacé dynamiquement
-    float computeDeformation(float u, float v, float x, float y, float z,
-                             float xN, float yN, float zN, float O, float T,
-                             float d, float k, float p, float t, float n, float i, float j) {
-        float g = xN * yN * zN;
-        return DEFORMATION_EXPRESSION;
-    }
-
-    void main() {
-        // Calculer u et v à partir des UV params ou de l'indice du vertex
-        float u = uv_params.x;
-        float v = uv_params.y;
-
-        // Position et normale
-        float x = position.x;
-        float y = position.y;
-        float z = position.z;
-
-        vec3 norm = normalize(normal);
-        float xN = norm.x;
-        float yN = norm.y;
-        float zN = norm.z;
-
-        // Angles sphériques
-        float R = length(position);
-        float O = R > 0.0001 ? asin(y / R) : 0.0;
-        float T = atan(z, x);
-
-        // Variables d'index (approximation basée sur UV)
-        float i = floor(uv.x * float(stepsU));
-        float j = floor(uv.y * float(stepsV));
-        float n = i * float(stepsV) + j;
-
-        // Variables de signe alterné
-        float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
-        float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
-        float p = k < 0.0 ? -u : u;
-        float t = d < 0.0 ? -v : v;
-
-        // Calculer la déformation
-        float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
-
-        // Appliquer la déformation le long de la normale
-        vec3 deformedPosition = position + norm * r;
-
-        gl_Position = worldViewProjection * vec4(deformedPosition, 1.0);
-        vWorldPosition = (world * vec4(deformedPosition, 1.0)).xyz;
-        vPosition = deformedPosition;
-        vNormal = normalize((world * vec4(normal, 0.0)).xyz);
-        vUV = uv;
-        vUVParams = uv_params;
-    }
-`;
-
-// Fragment shader simple pour la déformation (peut être combiné avec les shaders existants)
-const deformationFragmentShader = `
-    precision highp float;
-
-    varying vec3 vPosition;
-    varying vec3 vWorldPosition;
-    varying vec3 vNormal;
-    varying vec2 vUV;
-
-    uniform vec3 cameraPosition;
-    uniform vec3 emissiveColor;
-    uniform vec3 diffuseColor;
-
-    void main() {
-        vec3 N = normalize(vNormal);
-        vec3 V = normalize(cameraPosition - vWorldPosition);
-
-        // Flip normale si nécessaire
-        if (dot(N, V) < 0.0) {
-            N = -N;
-        }
-
-        // Éclairage simple
-        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-        float diff = max(dot(N, lightDir), 0.0);
-
-        vec3 color = emissiveColor + diffuseColor * diff;
-
-        gl_FragColor = vec4(color, 1.0);
-    }
-`;
-
 // Applique une déformation via shader au mesh (version combinée avec shader de couleur)
 async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null) {
     if (!mesh) return;
 
     // Récupérer l'expression de déformation
     const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
-    if (!text || !text.trim()) {
+    /*if (!text || !text.trim()) {
         // Si pas d'expression, désactiver la déformation
         glo.deformationEnabled = false;
         giveMaterialToMesh(mesh, glo.emissiveColor, glo.diffuseColor);
         return;
-    }
+    }*/
 
     // Valider l'expression GLSL avant d'appliquer
     const glslExpression = regForGLSL(text);

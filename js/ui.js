@@ -894,3 +894,16 @@ function isWInMeshEquations(){
 		glo.params.text_input_beta,
 	].some(exp => exp.includes('w'));
 }
+
+function isBlender(){
+	for(prop in glo.params.blender){
+		if(glo.params.blender[prop] !== 'force'){
+			for(sprop in glo.params.blender[prop]) {
+				if(glo.params.blender[prop][sprop] !== 0){
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}

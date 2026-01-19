@@ -1,131 +1,162 @@
-function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
-	disposeAllMaterials();
-
-	if(!glo.shaderMaterial){
-		let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
-
-		material.backFaceCulling = false;
-		mesh.material = material;
-		mesh.material.emissiveColor = emissiveColor;
-		mesh.material.diffuseColor = diffuseColor;
-		mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
-		mesh.material.alpha = glo.ribbon_alpha;
-		mesh.alphaIndex = 998;
-		mesh.material.wireframe = glo.wireframe;
+async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiveColor, diffuseColor = glo.diffuseColor){
+	if(glo.isApplyingMaterial){
+		glo.pendingMaterialUpdate = true;
+		return;
 	}
-	else{
-		glo.ribbon.setDataShader();
-
-		// Déterminer si la déformation est active et obtenir l'expression
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
-		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
-
-		// Choisir le vertex shader approprié
-		let usedVertexShader = vertexShader;
-		if (hasDeformation) {
-			const glslExpression = regForGLSL(deformText);
-			usedVertexShader = combinedVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
-
-			// Valider le shader
-			const validation = validateVertexShader(usedVertexShader);
-			if (!validation.valid) {
-				console.error('Shader combiné invalide, utilisation du shader standard:', validation.error);
-				usedVertexShader = vertexShader;
-			}
+	glo.isApplyingMaterial = true;
+	
+	try{
+		if(glo.shaderRenderObserver){
+			glo.scene.onBeforeRenderObservable.remove(glo.shaderRenderObserver);
+			glo.shaderRenderObserver = null;
 		}
 
-		/*const f    = {x: glo.params.text_input_x, y: glo.params.text_input_y, z: glo.params.text_input_z};
-		const fReg = reg(f);
-		const defines = `
-			#define eqx ${fReg.x}
-			#define eqy ${fReg.y}
-			#define eqz ${fReg.z}
-		`;*/
+		disposeAllMaterials();
+		const isBlend = isBlender();
+		if(!glo.shaderMaterial && !isBlend){
+			let material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 
-		const shaderMaterial = new BABYLON.ShaderMaterial(
-			"ribbonShader",
-			glo.scene,
-			{
-				vertexSource: /*defines + */usedVertexShader,
-				fragmentSource: /*defines + */fragmentShader
-			},
-			{
-				attributes: ["position", "normal", "uv", 'uv_params'],
-				uniforms: [
-					"world", "worldView", "worldViewProjection", "view", "projection",
-					"time", "cameraPosition", "iResolution",
-					// Uniforms pour la déformation
-					"scaleNorm", "w", "stepU", "stepV", "minU", "minV", "stepsU", "stepsV", "deformationEnabled"
-				],
-				needAlphaBlending: false
+			material.backFaceCulling = false;
+			mesh.material = material;
+			mesh.material.emissiveColor = emissiveColor;
+			mesh.material.diffuseColor = diffuseColor;
+			mesh.material.alphaMode = BABYLON.Engine.ALPHA_COMBINE;
+			mesh.material.alpha = glo.ribbon_alpha;
+			mesh.alphaIndex = 998;
+			mesh.material.wireframe = glo.wireframe;
+		}
+		else{
+			glo.ribbon.setDataShader();
+
+			// Déterminer si la déformation est active et obtenir l'expression
+			const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+			const hasDeformation = (deformText && deformText.trim() && glo.deformationEnabled) || isBlend;
+
+			// Choisir le vertex shader approprié
+			let usedVertexShader = vertexShader;
+			if (hasDeformation) {
+				const glslExpression = regForGLSL(deformText);
+				usedVertexShader = combinedVertexShader.replace(/DEFORMATION_EXPRESSION/g, glslExpression);
+
+				// Valider le shader
+				const validation = validateVertexShader(usedVertexShader);
+				if (!validation.valid) {
+					console.error('Shader combiné invalide, utilisation du shader standard:', validation.error);
+					usedVertexShader = vertexShader;
+				}
 			}
-		);
 
-		shaderMaterial.setVector2("iResolution", new BABYLON.Vector2(
-			glo.scene.getEngine().getRenderWidth(),
-			glo.scene.getEngine().getRenderHeight()
-		));
+			/*const f    = {x: glo.params.text_input_x, y: glo.params.text_input_y, z: glo.params.text_input_z};
+			const fReg = reg(f);
+			const defines = `
+				#define eqx ${fReg.x}
+				#define eqy ${fReg.y}
+				#define eqz ${fReg.z}
+			`;*/
 
-		// Configuration du backface culling pour voir les deux côtés
-		shaderMaterial.backFaceCulling = false;
+			const shaderMaterial = new BABYLON.ShaderMaterial(
+				"ribbonShader",
+				glo.scene,
+				{
+					vertexSource: /*defines + */usedVertexShader,
+					fragmentSource: /*defines + */fragmentShader
+				},
+				{
+					attributes: ["position", "normal", "uv", 'uv_params'],
+					uniforms: [
+						"world", "worldView", "worldViewProjection", "view", "projection",
+						"time", "cameraPosition", "iResolution",
+						// Uniforms pour la déformation
+						"scaleNorm", "w", "stepU", "stepV", "minU", "minV", "stepsU", "stepsV", "deformationEnabled"
+					],
+					needAlphaBlending: false
+				}
+			);
 
-		// Définir les uniforms
-		shaderMaterial.setFloat("time", 0);
-		shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+			shaderMaterial.setVector2("iResolution", new BABYLON.Vector2(
+				glo.scene.getEngine().getRenderWidth(),
+				glo.scene.getEngine().getRenderHeight()
+			));
 
-		shaderMaterial.setFloat("gridU", glo.params.steps_u);
-		shaderMaterial.setFloat("gridV", glo.params.steps_v);
-		shaderMaterial.setFloat("lineWidth", 1.0);
+			// Configuration du backface culling pour voir les deux côtés
+			shaderMaterial.backFaceCulling = false;
 
-		const meshinfos = mesh.getBoundingInfo();
-
-		shaderMaterial.setVector3("minpoint",
-			{x: meshinfos.boundingBox.minimumWorld.x, y: meshinfos.boundingBox.minimumWorld.y, z: meshinfos.boundingBox.minimumWorld.z});
-
-		shaderMaterial.setVector3("maxpoint",
-			{x: meshinfos.boundingBox.maximumWorld.x, y: meshinfos.boundingBox.maximumWorld.y, z: meshinfos.boundingBox.maximumWorld.z});
-
-		shaderMaterial.setVector3("msize",
-			{x: meshinfos.boundingBox.extendSizeWorld.x, y: meshinfos.boundingBox.extendSizeWorld.y, z: meshinfos.boundingBox.extendSizeWorld.z});
-
-		shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
-		shaderMaterial.setInt("islight", glo.shaders.params.islight);
-
-		shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
-		shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
-		shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
-		shaderMaterial.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
-		shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
-
-		// Uniforms pour la déformation
-		shaderMaterial.setFloat("scaleNorm", glo.scaleNorm || 1.0);
-		shaderMaterial.setFloat("w", 0);
-		const stepU = 2 * glo.params.u / glo.params.steps_u;
-		const stepV = 2 * glo.params.v / glo.params.steps_v;
-		shaderMaterial.setFloat("stepU", stepU);
-		shaderMaterial.setFloat("stepV", stepV);
-		shaderMaterial.setFloat("minU", -glo.params.u);
-		shaderMaterial.setFloat("minV", -glo.params.v);
-		shaderMaterial.setInt("stepsU", glo.params.steps_u);
-		shaderMaterial.setInt("stepsV", glo.params.steps_v);
-		shaderMaterial.setInt("deformationEnabled", hasDeformation ? 1 : 0);
-		shaderMaterial.setInt("opt1", glo.shaderOpt.opt1 ? 1 : 0);
-		shaderMaterial.setInt("opt2", glo.shaderOpt.opt2 ? 1 : 0);
-		shaderMaterial.setInt("opt3", glo.shaderOpt.opt3 ? 1 : 0);
-
-
-		// Appliquer le matériau au mesh
-		mesh.material = shaderMaterial;
-		mesh.alphaIndex = 998;
-		mesh.material.wireframe = glo.wireframe;
-
-		// Animation
-		glo.scene.registerBeforeRender(() => {
-			shaderMaterial.setFloat("time", performance.now() * 0.001);
-			shaderMaterial.setFloat("w", performance.now() * 0.001);
+			// Définir les uniforms
+			shaderMaterial.setFloat("time", 0);
 			shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
-		});
+
+			shaderMaterial.setFloat("gridU", glo.params.steps_u);
+			shaderMaterial.setFloat("gridV", glo.params.steps_v);
+			shaderMaterial.setFloat("lineWidth", 1.0);
+
+			const meshinfos = mesh.getBoundingInfo();
+
+			shaderMaterial.setVector3("minpoint",
+				{x: meshinfos.boundingBox.minimumWorld.x, y: meshinfos.boundingBox.minimumWorld.y, z: meshinfos.boundingBox.minimumWorld.z});
+
+			shaderMaterial.setVector3("maxpoint",
+				{x: meshinfos.boundingBox.maximumWorld.x, y: meshinfos.boundingBox.maximumWorld.y, z: meshinfos.boundingBox.maximumWorld.z});
+			
+			const blenderInfos = glo.params.blender;
+			shaderMaterial.setVector4("blendU",
+				{x: blenderInfos.u.x, y: blenderInfos.u.y, z: blenderInfos.u.z, w: blenderInfos.u.x + blenderInfos.u.y + blenderInfos.u.z});
+
+			shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+			shaderMaterial.setInt("islight", glo.shaders.params.islight);
+
+			shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
+
+			shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
+			shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
+			shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
+			shaderMaterial.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
+			shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
+
+			// Uniforms pour la déformation
+			shaderMaterial.setFloat("scaleNorm", glo.scaleNorm || 1.0);
+			shaderMaterial.setFloat("w", 0);
+			const stepU = 2 * glo.params.u / glo.params.steps_u;
+			const stepV = 2 * glo.params.v / glo.params.steps_v;
+			shaderMaterial.setFloat("stepU", stepU);
+			shaderMaterial.setFloat("stepV", stepV);
+			shaderMaterial.setFloat("minU", -glo.params.u);
+			shaderMaterial.setFloat("minV", -glo.params.v);
+			shaderMaterial.setInt("stepsU", glo.params.steps_u);
+			shaderMaterial.setInt("stepsV", glo.params.steps_v);
+			shaderMaterial.setInt("deformationEnabled", hasDeformation ? 1 : 0);
+			shaderMaterial.setInt("opt1", glo.shaderOpt.opt1 ? 1 : 0);
+			shaderMaterial.setInt("opt2", glo.shaderOpt.opt2 ? 1 : 0);
+			shaderMaterial.setInt("opt3", glo.shaderOpt.opt3 ? 1 : 0);
+
+
+			// Appliquer le matériau au mesh
+			mesh.material = shaderMaterial;
+			mesh.alphaIndex = 998;
+			mesh.material.wireframe = glo.wireframe;
+
+			// Animation
+			/*glo.scene.registerBeforeRender(() => {
+				shaderMaterial.setFloat("time", performance.now() * 0.001);
+				shaderMaterial.setFloat("w", performance.now() * 0.001);
+				shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+			});*/
+			glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
+				shaderMaterial.setFloat("time", performance.now() * 0.001);
+				shaderMaterial.setFloat("w", performance.now() * 0.001);
+				shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+			});
+		}
 	}
+	catch(e){
+		console.error("Error in giveMaterialToMesh:", e);
+	}
+	finally{
+		glo.isApplyingMaterial = false;
+		if(glo.pendingMaterialUpdate){
+			glo.pendingMaterialUpdate = false;
+			await giveMaterialToMesh();
+		}
+	}	
 }
 
 function disposeAllMaterials(){

@@ -121,6 +121,10 @@ async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiv
 			shaderMaterial.setFloat("stepV", stepV);
 			shaderMaterial.setFloat("minU", -glo.params.u);
 			shaderMaterial.setFloat("minV", -glo.params.v);
+			shaderMaterial.setFloat("A", glo.shaders.uservars.A);
+			shaderMaterial.setFloat("B", glo.shaders.uservars.B);
+			shaderMaterial.setFloat("C", glo.shaders.uservars.C);
+			shaderMaterial.setFloat("D", glo.shaders.uservars.D);
 			shaderMaterial.setInt("stepsU", glo.params.steps_u);
 			shaderMaterial.setInt("stepsV", glo.params.steps_v);
 			shaderMaterial.setInt("deformationEnabled", hasDeformation ? 1 : 0);

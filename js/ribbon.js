@@ -208,7 +208,6 @@ async function make_ribbon(symmetrize = true, histo = true){
         }
 
 		//console.log(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind));
-		giveMaterialToMesh();
 
         if (glo.lines_visible && !glo.shaderMaterial){ makeLineSystem(updateRibbon); }
 
@@ -232,6 +231,8 @@ async function make_ribbon(symmetrize = true, histo = true){
         glo.ribbon.curveByStep = glo.ribbon.curveByStepGen();
 
         glo.ribbon.resetCurveByStep();
+
+		giveMaterialToMesh();
 
         if (histo) { glo.histo.save(); }
     }

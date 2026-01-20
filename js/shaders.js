@@ -296,6 +296,10 @@ uniform vec3 msize;
 uniform vec2 iResolution;
 uniform float gridU;
 uniform float gridV;
+uniform float A;
+uniform float B;
+uniform float C;
+uniform float D;
 uniform float lineWidth;
 uniform float invcol;
 uniform int islight;
@@ -646,6 +650,22 @@ float truchet(vec2 uv, float index, float rad, float thickness){
     return pattern;
 }
 
+float m(vec3 p){
+    return cos(p.x) * cos(p.y) * cos(p.z);
+}
+
+float m(float x, float y, float z){
+    return cos(x) * cos(y) * cos(z);
+}
+
+float o(vec3 p, float coeff){
+    return cos(coeff*p.x) + cos(coeff*p.y) + cos(coeff*p.z);
+}
+
+float o(float x, float y, float z){
+    return cos(x) + cos(y) + cos(z);
+}
+
 
 void main(){`;
 
@@ -929,7 +949,7 @@ function toggleDeformation(enabled = true) {
 function setUVParamsToMesh(mesh = glo.ribbon) {
     if (!mesh) return;
 
-    const positions = mesh.savedRibbon.getVerticesData(BABYLON.VertexBuffer.PositionKind) || mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+    const positions = mesh.savedRibbon ? mesh.savedRibbon.getVerticesData(BABYLON.VertexBuffer.PositionKind) : mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     if (!positions) return;
 
     const vertexCount = positions.length / 3;

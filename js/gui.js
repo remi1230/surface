@@ -883,7 +883,7 @@ function add_gui_controls() {
   add_histo_buttons();
   add_views_buttons();
 
-  // Les autres contrôles (à migrer dans les prochaines étapes)
+  // Sliders et contrôles
   add_uv_sliders();
   add_alpha_slider();
   add_inputs_equations();

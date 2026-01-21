@@ -1697,17 +1697,17 @@ function add_color_pickers() {
     glo.allControls.haveThisClass('button').forEach(bt => { bt.background = color.toHexString(); });
   }, { paddingLeft: "10px" });
 
-  glo.pickerMeshBackground = add_color_picker('meshBackgroundColorPicker', panel2, glo.ribbon_emissiveColor, function(color) {
+  glo.pickerMeshBackground = add_color_picker('meshBackgroundColorPicker', panel2, glo.ribbon_emissiveColor || new BABYLON.Color3(0, 0, 0), function(color) {
     if (glo.ribbon) glo.ribbon.material.emissiveColor = color;
     glo.ribbon_emissiveColor = color;
   });
 
-  glo.pickerDiffuse = add_color_picker('diffuseColorPicker', panel2, glo.ribbon_diffuseColor, function(color) {
+  glo.pickerDiffuse = add_color_picker('diffuseColorPicker', panel2, glo.ribbon_diffuseColor || new BABYLON.Color3(1, 1, 1), function(color) {
     if (glo.ribbon) glo.ribbon.material.diffuseColor = color;
     glo.ribbon_diffuseColor = color;
   }, { paddingLeft: "10px" });
 
-  glo.pickerLine = add_color_picker('lineColorPicker', panel2, glo.line_Color, function(color) {
+  glo.pickerLine = add_color_picker('lineColorPicker', panel2, glo.line_Color || new BABYLON.Color3(1, 1, 1), function(color) {
     glo.curves.color = [color.r, color.g, color.b];
     glo.line_Color = color;
     make_curves();

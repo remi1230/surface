@@ -59,9 +59,9 @@ document.getElementById('resetBtn')?.addEventListener('click', () => {
 
 document.getElementById('compileBtn')?.addEventListener('click', () => {
    // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
-    monaco.editor.setModelMarkers(editor.getModel(), 'glsl', []);
+    monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', []);
     
-    fragmentShader   = editor.getValue();
+    fragmentShader   = glo.editor.getValue();
     const validation = validateShader(fragmentShader);
 
     if(validation.valid){
@@ -98,7 +98,7 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
             .trim();
         
         // Afficher le marqueur d'erreur dans Monaco
-        monaco.editor.setModelMarkers(editor.getModel(), 'glsl', [{
+        monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', [{
             severity: monaco.MarkerSeverity.Error,
             message: cleanMessage,
             startLineNumber: lineNumber,
@@ -108,9 +108,9 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
         }]);
         
         // Aller à la ligne de l'erreur et la mettre en surbrillance
-        editor.revealLineInCenter(lineNumber);
-        editor.setPosition({ lineNumber: lineNumber, column: columnNumber });
-        editor.focus();
+        glo.editor.revealLineInCenter(lineNumber);
+        glo.editor.setPosition({ lineNumber: lineNumber, column: columnNumber });
+        glo.editor.focus();
         
         // Toast avec le numéro de ligne
         M.toast({
@@ -127,7 +127,7 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
 // Fermer l'éditeur
 document.getElementById('closeEditor')?.addEventListener('click', () => {
    glo.editorIsOpened = false;
-   editorWindow.style.display = 'none';
+   glo.editorWindow.style.display = 'none';
 });
 
 // Plein écran
@@ -135,17 +135,17 @@ document.getElementById('toggleFullscreen')?.addEventListener('click', function(
    const icon = this.querySelector('i');
    
    if (!isFullscreen) {
-      editorWindow.classList.add('fullscreen');
+      glo.editorWindow.classList.add('fullscreen');
       icon.textContent = 'fullscreen_exit';
       isFullscreen = true;
    } else {
-      editorWindow.classList.remove('fullscreen');
+      glo.editorWindow.classList.remove('fullscreen');
       icon.textContent = 'fullscreen';
       isFullscreen = false;
    }
    
-   if (editor) {
-      setTimeout(() => editor.layout(), 100);
+   if (glo.editor) {
+      setTimeout(() => glo.editor.layout(), 100);
    }
 });
 
@@ -314,7 +314,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "a":
-                  switchRecordingVideo();
+                  applyFontToAll(glo.fontUIs.next().value);
 
                break;
                case "ù":
@@ -331,7 +331,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case ")":
-                  //FREE
+                  glo.editorGeometryIsOpened = !glo.editorGeometryIsOpened;
+      
+                  if (glo.editorGeometryIsOpened) {
+                     openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, combinedVertexShader, getById('editor-geometry-container'));
+                     if(!glo.shaderMaterial){
+                        glo.shaderMaterial = true;
+                        giveMaterialToMesh();
+                     }
+                  } else {
+                     glo.editorWindowGeometry.style.display = 'none';
+                  }
 
                break;
                case '"':
@@ -513,7 +523,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                case "6":
                   glo.shaderMaterial = !glo.shaderMaterial;
                   if(glo.shaderMaterial){ openShaderWindow(); }
-                  else{ editorWindow.style.display = 'none'; }
+                  else{ glo.editorWindow.style.display = 'none'; }
                   giveMaterialToMesh();
 
                   break;
@@ -526,7 +536,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   glo.numShaderSelect = glo.numShaderMove.next().value;
                   fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
-                  if(editor){ editor.setValue(fragmentShader); }
+                  if(glo.editor){ glo.editor.setValue(fragmentShader); }
 
                   giveMaterialToMesh();
 

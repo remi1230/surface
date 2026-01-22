@@ -85,12 +85,12 @@ async function switchFractalOrient(normalSens = true){
     await remakeRibbon('fractalize');
 }
 
-function switchShader(normalSens = true){
+function switchShader(normalSens = true, edit = glo.editor){
 	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
       fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
-      if(editor){
-		editor.setValue(fragmentShader);
+      if(edit){
+		edit.setValue(fragmentShader);
 	  }
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
@@ -732,7 +732,7 @@ function getFixedExportBounds(mesh, scene, margin = 20) {
     
 	const coeff = glo.videoBoxRange; // Pour un peu plus d'espace
     const size  = screenRadius * coeff + margin * coeff;
-    
+	
     return {
         x: Math.max(0, screenCenter.x - size / 2),
         y: Math.max(0, screenCenter.y - size / 2),
@@ -836,15 +836,13 @@ function createMeshRecorder(mesh, scene, fps = 60) {
 }
 
 function updateVideoCropBox() {
-  // Supprimer l'ancien carré s'il existe
   if (glo.videoCropBox) {
     glo.videoCropBox.dispose();
   }
   
-  // Récupérer les limites de capture
   const bounds = getFixedExportBounds(glo.ribbon, glo.scene, 20);
+  const canvas = glo.engine.getRenderingCanvas();
   
-  // Créer un rectangle GUI qui représente la zone de capture
   if (!glo.videoCropBoxGUI) {
     glo.videoCropBoxGUI = new BABYLON.GUI.Rectangle("videoCropBox");
     glo.advancedTexture.addControl(glo.videoCropBoxGUI);
@@ -852,17 +850,22 @@ function updateVideoCropBox() {
   
   const rect = glo.videoCropBoxGUI;
   
-  // Positionner et dimensionner selon les bounds
-  rect.left   = bounds.x;
-  rect.top    = bounds.y;
   rect.width  = bounds.width + "px";
   rect.height = bounds.height + "px";
   
-  rect.thickness 		   = 2;
-  rect.color 			   = "yellow";
+  // Convertir de coordonnées écran (0,0 = top-left) 
+  // vers coordonnées GUI centrées (0,0 = center)
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  
+  rect.left = (centerX - canvas.clientWidth / 2) + "px";
+  rect.top  = (centerY - canvas.clientHeight / 2) + "px";
+  
+  rect.thickness           = 2;
+  rect.color               = "yellow";
   rect.background          = "transparent";
-  rect.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-  rect.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+  rect.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  rect.verticalAlignment   = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
   
   rect.isVisible = true;
 }

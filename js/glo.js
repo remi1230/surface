@@ -18,7 +18,7 @@ const deepCopy = (inObject) => {
 
 const getById = function (id) { return document.getElementById(id); };
 
-let shaderModalInstance, editor, fragmentShader, fragmentShaderHeader;
+let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
 let fragmentShaders = [];
 
@@ -26,7 +26,6 @@ let g     = 0;
 let w     = 0;
 let wstep = 0.008;
 
-const editorWindow = getById('shaderEditor');
 let isFullscreen = false;
 
 var num_mesh = 0;
@@ -534,10 +533,22 @@ var glo = {
 	    yield tab[index];
 	  }
 	},
+	fontUI: 'none',
+	fontUIs: function* (){
+	  var index = 0;
+	  var tab = ['BlinkMacSystemFont', 'Segoe UI', 'Roboto, sans-serif', 'ui-monospace, "Cascadia Code", "Consolas", monospace'];
+	  while(true){
+			index++;
+			if(index == tab.length){ index = 0; }
+			this.fontUI = tab[index];
+	    yield tab[index];
+	  }
+	},
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
+	  //var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -960,7 +971,7 @@ var glo = {
 			D: 0,
 		},
 		light:{
-			direction: {x: -0.4, y: -0.4, z: 0.6},
+			direction: {x: -0.4, y: -0.4, z: 0.5},
 			intensity: 1.0,
 			radius: 100.0,
 			specular: {power: 2.0, intensity: 4.0},
@@ -979,6 +990,9 @@ var glo = {
 		opt2: false,
 		opt3: false,
 	},
+	editorWindow: getById('shaderEditor'),
+	editorWindowGeometry: getById('shaderEditorGeometry'),
+	editor: null,
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
@@ -1063,7 +1077,8 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
+	//rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',
@@ -1163,6 +1178,7 @@ glo.permutSigns         = glo.permutSigns();
 glo.invPositionIfs      = glo.invPosIfs();
 glo.fractalizeOrients   = glo.fractalizeOrients();
 glo.colorByCurves       = glo.colorByCurves();
+glo.fontUIs       		= glo.fontUIs();
 
 let dataTableBody = document.getElementById('dataTableBody');
 

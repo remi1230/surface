@@ -23,7 +23,6 @@
 
   <script src="js/glo.js" defer></script>
   <script src="js/prototypes.js" defer></script>
-  <script src="js/classes.js" defer></script>
   <script src="js/classesGPU.js" defer></script>
   <script src="js/shaders-frags.js" defer></script>
   <script src="js/shaders-loader.js" defer></script>
@@ -321,6 +320,94 @@
               <i class="material-icons left">build</i>Compiler
           </a>
           <span class="editor-status" id="editorStatus"></span>
+      </div>
+      
+      <!-- Poignées de redimensionnement -->
+      <div class="resize-handle resize-handle-n"></div>
+      <div class="resize-handle resize-handle-s"></div>
+      <div class="resize-handle resize-handle-e"></div>
+      <div class="resize-handle resize-handle-w"></div>
+      <div class="resize-handle resize-handle-ne"></div>
+      <div class="resize-handle resize-handle-nw"></div>
+      <div class="resize-handle resize-handle-se"></div>
+      <div class="resize-handle resize-handle-sw"></div>
+  </div>
+
+  <div id="shaderEditorGeometry" class="shader-editor-window" style="display: none;">
+      <div class="editor-header">
+          <span class="editor-title">
+              <i class="material-icons">code</i>
+              Éditeur de Shader GLSL - Géométrie
+          </span>
+          <div class="editor-controls">
+              <a href="#!" class="btn-floating btn-small waves-effect waves-light blue" id="toggleFullscreen" title="Plein écran">
+                  <i class="material-icons">fullscreen</i>
+              </a>
+              <a href="#!" class="btn-floating btn-small waves-effect waves-light red" id="closeEditor" title="Fermer">
+                  <i class="material-icons">close</i>
+              </a>
+          </div>
+      </div>
+
+      <!-- Barre de gestion CRUD des shaders -->
+      <div class="shader-crud-bar">
+          <div class="shader-select-wrapper">
+              <select id="shaderSelectGeometry" class="browser-default">
+                  <option value="0">Shader 0</option>
+              </select>
+              <span id="storageIndicatorGeometry" class="storage-indicator" title="Source des shaders"></span>
+          </div>
+          <div>
+            <div>
+              <span id="optShaderTitleGeometry">Opt 1,2,3</span>
+            </div>
+            <div class="checkboxesHorizontalContainer">
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt1Geometry" data-numopt="1" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt2Geometry" data-numopt="2" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" id="shaderOpt3Geometry" data-numopt="3" name="shaderOpts">
+                <span class="checkmark"></span>
+              </label>
+            </div>
+          </div>
+          <div class="shader-crud-buttons">
+              <a href="#!" class="btn-small waves-effect waves-light teal" id="newShaderBtnGeometry" title="Nouveau shader">
+                  <i class="material-icons">add</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light blue" id="saveShaderBtnGeometry" title="Sauvegarder">
+                  <i class="material-icons">save</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light red" id="deleteShaderBtnGeometry" title="Supprimer">
+                  <i class="material-icons">delete</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light orange" id="exportShadersBtnGeometry" title="Exporter tous les shaders">
+                  <i class="material-icons">file_download</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light purple" id="importShadersBtnGeometry" title="Importer des shaders">
+                  <i class="material-icons">file_upload</i>
+              </a>
+              <input type="file" id="importShadersFileGeometry" accept=".js" style="display: none;">
+          </div>
+      </div>
+
+      <div class="editor-body">
+          <div id="editor-geometry-container"></div>
+      </div>
+
+      <div class="editor-footer">
+          <a href="#!" class="waves-effect waves-yellow btn-flat" id="resetBtnGeometry">
+              <i class="material-icons left">refresh</i>Réinitialiser
+          </a>
+          <a href="#!" class="waves-effect waves-green btn green" id="compileBtnGeometry">
+              <i class="material-icons left">build</i>Compiler
+          </a>
+          <span class="editor-status" id="editorStatusGeometry"></span>
       </div>
       
       <!-- Poignées de redimensionnement -->

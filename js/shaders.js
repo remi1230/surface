@@ -653,17 +653,40 @@ float truchet(vec2 uv, float index, float rad, float thickness){
 float m(vec3 p){
     return cos(p.x) * cos(p.y) * cos(p.z);
 }
-
+float m(vec3 p, float coeff){
+    return cos(coeff*p.x) * cos(coeff*p.y) * cos(coeff*p.z);
+}
 float m(float x, float y, float z){
     return cos(x) * cos(y) * cos(z);
+}    
+float m(float x, float y, float z, float coeff){
+    return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
+float o(vec3 p){
+    return cos(p.x) + cos(p.y) + cos(p.z);
+}
 float o(vec3 p, float coeff){
     return cos(coeff*p.x) + cos(coeff*p.y) + cos(coeff*p.z);
 }
-
 float o(float x, float y, float z){
     return cos(x) + cos(y) + cos(z);
+}
+float o(float x, float y, float z, float coeff){
+    return cos(coeff*x) + cos(coeff*y) + cos(coeff*z);
+}
+
+float hc(vec3 p){
+    return length(vec3(cos(p.x), cos(p.y), cos(p.z)));
+}
+float hc(vec3 p, float coeff){
+    return length(vec3(cos(coeff*p.x), cos(coeff*p.y), cos(coeff*p.z)));
+}
+float hc(float x, float y, float z){
+    return length(vec3(cos(x), cos(y), cos(z)));
+}
+float hc(float x, float y, float z, float coeff){
+    return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
 

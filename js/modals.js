@@ -332,38 +332,21 @@ require.config({
         vs: './cdn/js/monaco/vs'
     } 
 });
-function initializeMonacoEditor(){
-    const modalElem = document.getElementById('shaderModal');
-    
-    shaderModalInstance = M.Modal.init(modalElem, {
-        onOpenEnd: function() {
-            // Juste redimensionner et focus
-            if (editor) {
-                editor.layout();
-                editor.focus();
-            }
-        }
-    });
-    
-    // Créer Monaco tout de suite
-    console.log('Creating Monaco editor immediately');
-    initMonacoEditor();
-}
 
-function openShaderWindow(){
-	editorWindow.style.display = 'flex';
+function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container')){
+	editWindow.style.display = 'flex';
         
-	if (!editor) {
-		initMonacoEditor();
+	if (!target[key]) {
+		initMonacoEditor(editorContainer, target, key, shaderFragmentSource);
 	} else {
-		editor.layout();
-		editor.focus();
+		target[key].layout();
+		target[key].focus();
 	}
 }
 
 // Fonction pour déplacer la fenêtre
-function makeDraggable() {
-    const header = editorWindow.querySelector('.editor-header');
+function makeDraggable(editWindow = glo.editorWindow) {
+    const header = editWindow.querySelector('.editor-header');
     let isDragging = false;
     let currentX, currentY, initialX, initialY;
     
@@ -375,8 +358,8 @@ function makeDraggable() {
         if (isFullscreen) return;
         if (e.target.closest('.editor-controls')) return;
         
-        initialX = e.clientX - editorWindow.offsetLeft;
-        initialY = e.clientY - editorWindow.offsetTop;
+        initialX = e.clientX - editWindow.offsetLeft;
+        initialY = e.clientY - editWindow.offsetTop;
         isDragging = true;
     }
     
@@ -387,14 +370,14 @@ function makeDraggable() {
         currentX = e.clientX - initialX;
         currentY = e.clientY - initialY;
         
-        const maxX = window.innerWidth - editorWindow.offsetWidth;
-        const maxY = window.innerHeight - editorWindow.offsetHeight;
+        const maxX = window.innerWidth - editWindow.offsetWidth;
+        const maxY = window.innerHeight - editWindow.offsetHeight;
         
         currentX = Math.max(0, Math.min(currentX, maxX));
         currentY = Math.max(0, Math.min(currentY, maxY));
         
-        editorWindow.style.left = currentX + 'px';
-        editorWindow.style.top = currentY + 'px';
+        editWindow.style.left = currentX + 'px';
+        editWindow.style.top = currentY + 'px';
     }
     
     function dragEnd() {
@@ -403,8 +386,8 @@ function makeDraggable() {
 }
 
 // Fonction pour redimensionner la fenêtre
-function makeResizable() {
-    const handles = editorWindow.querySelectorAll('.resize-handle');
+function makeResizable(editWindow = glo.editorWindow) {
+    const handles = editWindow.querySelectorAll('.resize-handle');
     
     handles.forEach(handle => {
         handle.addEventListener('mousedown', initResize);
@@ -422,7 +405,7 @@ function makeResizable() {
         startX = e.clientX;
         startY = e.clientY;
         
-        const rect = editorWindow.getBoundingClientRect();
+        const rect = editWindow.getBoundingClientRect();
         startWidth = rect.width;
         startHeight = rect.height;
         startLeft = rect.left;
@@ -433,7 +416,7 @@ function makeResizable() {
         e.preventDefault();
     }
     
-    function resize(e) {
+    function resize(e, target = glo, key = 'editor', editWindow = glo.editorWindow) {
         if (!isResizing) return;
         
         const dx = e.clientX - startX;
@@ -442,24 +425,24 @@ function makeResizable() {
         const className = currentHandle.className;
         
         if (className.includes('resize-handle-e')) {
-            editorWindow.style.width = Math.max(400, startWidth + dx) + 'px';
+            editWindow.style.width = Math.max(400, startWidth + dx) + 'px';
         }
         if (className.includes('resize-handle-w')) {
             const newWidth = Math.max(400, startWidth - dx);
-            editorWindow.style.width = newWidth + 'px';
-            editorWindow.style.left = (startLeft + startWidth - newWidth) + 'px';
+            editWindow.style.width = newWidth + 'px';
+            editWindow.style.left = (startLeft + startWidth - newWidth) + 'px';
         }
         if (className.includes('resize-handle-s')) {
-            editorWindow.style.height = Math.max(300, startHeight + dy) + 'px';
+            editWindow.style.height = Math.max(300, startHeight + dy) + 'px';
         }
         if (className.includes('resize-handle-n')) {
             const newHeight = Math.max(300, startHeight - dy);
-            editorWindow.style.height = newHeight + 'px';
-            editorWindow.style.top = (startTop + startHeight - newHeight) + 'px';
+            editWindow.style.height = newHeight + 'px';
+            editWindow.style.top = (startTop + startHeight - newHeight) + 'px';
         }
         
-        if (editor) {
-            editor.layout();
+        if (target[key]) {
+            target[key].layout();
         }
     }
     
@@ -476,9 +459,7 @@ makeDraggable();
 // Rendre redimensionnable
 makeResizable();
 
-function initMonacoEditor() {
-    const container = document.getElementById('editor-container');
-    
+function initMonacoEditor(container = document.getElementById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader) {
     require(['vs/editor/editor.main'], function() {
         monaco.languages.register({ id: 'glsl' });
         
@@ -517,8 +498,8 @@ function initMonacoEditor() {
             }
         });
 
-        editor = monaco.editor.create(container, {
-            value: fragmentShader,
+        target[key] = monaco.editor.create(container, {
+            value: shaderFragmentSource,
             language: 'glsl',
             theme: 'vs-dark',
             automaticLayout: true,
@@ -532,7 +513,7 @@ function initMonacoEditor() {
         });
         
         // Action Ctrl+S pour compiler
-        editor.addAction({
+        target[key].addAction({
             id: 'compile-shader',
             label: 'Compiler le shader',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
@@ -541,7 +522,7 @@ function initMonacoEditor() {
             }
         });
 
-        editor.addAction({
+        target[key].addAction({
             id: 'duplicate-line',
             label: 'Dupliquer la ligne',
             keybindings: [
@@ -556,57 +537,9 @@ function initMonacoEditor() {
     });
 }
 
-function updateStatus(message, isError = false) {
-    const status = document.getElementById('editorStatus');
+function updateStatus(message, isError = false, status = document.getElementById('editorStatus')) {
     if (status) {
         status.textContent = message;
         status.style.color = isError ? '#ef5350' : '#4caf50';
     }
-}
-
-function initMonacoEditorOld() {
-    const container = document.getElementById('editor-container');
-    console.log('Container:', container);
-    
-    require(['vs/editor/editor.main'], function() {
-        console.log('Monaco loaded');
-        
-        monaco.languages.register({ id: 'glsl' });
-        
-        monaco.languages.setMonarchTokensProvider('glsl', {
-            keywords: [
-                'attribute', 'const', 'uniform', 'varying',
-                'float', 'int', 'void', 'bool', 'vec2', 'vec3', 'vec4',
-                'mat2', 'mat3', 'mat4', 'if', 'else', 'for', 'while'
-            ],
-            builtins: [
-                'sin', 'cos', 'tan', 'abs', 'floor', 'mix',
-                'gl_Position', 'gl_FragColor'
-            ],
-            tokenizer: {
-                root: [
-                    [/[a-zA-Z_]\w*/, {
-                        cases: {
-                            '@keywords': 'keyword',
-                            '@builtins': 'predefined',
-                            '@default': 'identifier'
-                        }
-                    }],
-                    [/[0-9]+\.[0-9]*/, 'number'],
-                    [/\/\/.*$/, 'comment']
-                ]
-            }
-        });
-
-        editor = monaco.editor.create(container, {
-            value: fragmentShader || '// Shader code',
-            language: 'glsl',
-            theme: 'vs-dark',
-            automaticLayout: true,
-            minimap: { enabled: false },
-            fontSize: 14
-        });
-        
-        console.log('Editor created successfully');
-    });
 }

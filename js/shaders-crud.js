@@ -230,9 +230,9 @@ const ShaderCRUD = {
      * Charge le shader COMPLET dans l'éditeur Monaco
      */
     loadShaderInEditor: function(index) {
-        if (typeof editor !== 'undefined' && editor) {
+        if (typeof glo.editor !== 'undefined' && glo.editor) {
             const fullShader = fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter;
-            editor.setValue(fullShader);
+            glo.editor.setValue(fullShader);
             updateStatus(this.getShaderName(fragmentShaders[index], index) + ' chargé');
         }
     },
@@ -241,9 +241,9 @@ const ShaderCRUD = {
      * Extrait uniquement le fragment depuis l'éditeur
      */
     extractFragmentCode: function() {
-        if (typeof editor === 'undefined' || !editor) return '';
+        if (typeof glo.editor === 'undefined' || !glo.editor) return '';
 
-        const fullCode = editor.getValue();
+        const fullCode = glo.editor.getValue();
 
         const mainPos = fullCode.indexOf('void main(){');
         if (mainPos === -1) return '';
@@ -276,9 +276,9 @@ const ShaderCRUD = {
 
         this.populateSelect();
 
-        if (typeof editor !== 'undefined' && editor) {
+        if (typeof glo.editor !== 'undefined' && glo.editor) {
             const fullShader = fragmentShaderHeader + newFragment + fragmentShaderFooter;
-            editor.setValue(fullShader);
+            glo.editor.setValue(fullShader);
             updateStatus('Mode création - Modifier et sauvegarder');
         }
     },

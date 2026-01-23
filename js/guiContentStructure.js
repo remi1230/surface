@@ -1896,6 +1896,523 @@ const guiContentStructure = {
         ]
       }
     }
+  },
+
+  // ============================================================================
+  // METHODES DE CREATION DU GUI
+  // ============================================================================
+
+  /**
+   * Évalue une valeur qui peut être une chaîne représentant une expression
+   * @param {*} value - La valeur à évaluer
+   * @returns {*} - La valeur évaluée
+   */
+  _evaluateValue: function(value) {
+    if (typeof value === 'string') {
+      // Expressions mathématiques avec PI
+      if (value.includes('PI') || value.includes('glo.')) {
+        try {
+          // Remplacer PI par Math.PI pour l'évaluation
+          let evalStr = value.replace(/\bPI\b/g, 'Math.PI');
+          // Évaluer les expressions glo.* si glo existe
+          if (typeof glo !== 'undefined') {
+            return eval(evalStr);
+          }
+          // Sinon évaluer juste les expressions mathématiques
+          if (!value.includes('glo.')) {
+            return eval(evalStr);
+          }
+        } catch (e) {
+          console.warn('Cannot evaluate value:', value, e);
+        }
+      }
+      // Valeurs en pourcentage
+      if (value.endsWith('%')) {
+        return value;
+      }
+    }
+    return value;
+  },
+
+  /**
+   * Applique les propriétés de layout à un contrôle
+   * @param {BABYLON.GUI.Control} control - Le contrôle
+   * @param {Object} layout - Les propriétés de layout
+   * @param {boolean} px - Si true, utilise des pixels, sinon des pourcentages
+   */
+  _applyLayout: function(control, layout, px = false) {
+    if (!layout) return;
+
+    const unit = px ? 'px' : '%';
+
+    // Alignement horizontal
+    if (layout.hAlign) {
+      switch (layout.hAlign) {
+        case 'left':
+          control.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+          break;
+        case 'right':
+          control.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+          break;
+        case 'center':
+          control.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+          break;
+      }
+    }
+
+    // Alignement vertical
+    if (layout.vAlign) {
+      switch (layout.vAlign) {
+        case 'top':
+          control.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+          break;
+        case 'bottom':
+          control.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+          break;
+        case 'center':
+          control.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+          break;
+      }
+    }
+
+    // Dimensions et positions
+    if (layout.w !== undefined) control.width = layout.w + unit;
+    if (layout.h !== undefined) control.height = layout.h + unit;
+    if (layout.t !== undefined) control.top = layout.t + unit;
+    if (layout.l !== undefined) control.left = layout.l + unit;
+    if (layout.pL !== undefined) control.paddingLeft = layout.pL + unit;
+    if (layout.pR !== undefined) control.paddingRight = layout.pR + unit;
+    if (layout.pT !== undefined) control.paddingTop = layout.pT + unit;
+
+    // Propriétés directes
+    if (layout.isVertical !== undefined) control.isVertical = layout.isVertical;
+    if (layout.height !== undefined) control.height = layout.height;
+    if (layout.width !== undefined) control.width = layout.width;
+  },
+
+  /**
+   * Applique les propriétés générales à un contrôle
+   * @param {BABYLON.GUI.Control} control - Le contrôle
+   * @param {Object} properties - Les propriétés à appliquer
+   * @param {boolean} px - Si true, utilise des pixels pour w/h/t/l
+   */
+  _applyProperties: function(control, properties, px = false) {
+    if (!properties) return;
+
+    const unit = px ? 'px' : '%';
+
+    for (const prop in properties) {
+      const value = this._evaluateValue(properties[prop]);
+
+      // Propriétés de dimension avec unité
+      if (['w', 'h', 't', 'l', 'pL', 'pR', 'pT'].includes(prop)) {
+        switch (prop) {
+          case 'w': control.width = value + unit; break;
+          case 'h': control.height = value + unit; break;
+          case 't': control.top = value + unit; break;
+          case 'l': control.left = value + unit; break;
+          case 'pL': control.paddingLeft = value + unit; break;
+          case 'pR': control.paddingRight = value + unit; break;
+          case 'pT': control.paddingTop = value + unit; break;
+        }
+      }
+      // Propriétés directes
+      else {
+        control[prop] = value;
+      }
+    }
+  },
+
+  /**
+   * Crée un TextBlock (header)
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.TextBlock}
+   */
+  _createTextBlock: function(config) {
+    const textBlock = new BABYLON.GUI.TextBlock();
+    textBlock.name = config.name || '';
+    textBlock.class = config.class || '';
+
+    if (config.properties) {
+      this._applyProperties(textBlock, config.properties, true);
+    }
+
+    // Valeurs par défaut pour les headers
+    if (!config.properties || config.properties.color === undefined) {
+      textBlock.color = 'white';
+    }
+    if (!config.properties || config.properties.fontSize === undefined) {
+      textBlock.fontSize = 16;
+    }
+    if (!config.properties || config.properties.h === undefined) {
+      textBlock.height = '20px';
+    }
+
+    return textBlock;
+  },
+
+  /**
+   * Crée un Button
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.Button}
+   */
+  _createButton: function(config) {
+    const button = BABYLON.GUI.Button.CreateSimpleButton(config.name || '', config.properties?.text || '');
+    button.name = config.name || '';
+    button.class = config.class || '';
+
+    if (config.properties) {
+      this._applyProperties(button, config.properties, true);
+    }
+
+    // Style par défaut des boutons
+    if (typeof designButton === 'function') {
+      designButton(button);
+    } else {
+      // Style de fallback
+      button.color = glo?.buttons_color || 'white';
+      button.cornerRadius = glo?.buttons_radius || 5;
+      button.background = glo?.buttons_background || '#333';
+      if (button.textBlock) {
+        button.textBlock.fontSize = glo?.buttons_fontsize || 14;
+      }
+    }
+
+    return button;
+  },
+
+  /**
+   * Crée un Slider
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.Slider}
+   */
+  _createSlider: function(config) {
+    const slider = new BABYLON.GUI.Slider();
+    slider.name = config.name || '';
+    slider.class = config.class || '';
+
+    // Propriétés par défaut
+    slider.minimum = 0;
+    slider.maximum = 1;
+    slider.value = 0;
+    slider.height = '20px';
+    slider.background = 'grey';
+
+    if (config.properties) {
+      const props = config.properties;
+      if (props.minimum !== undefined) slider.minimum = this._evaluateValue(props.minimum);
+      if (props.maximum !== undefined) slider.maximum = this._evaluateValue(props.maximum);
+      if (props.value !== undefined) slider.value = this._evaluateValue(props.value);
+      if (props.step !== undefined) slider.step = this._evaluateValue(props.step);
+      if (props.startValue !== undefined) slider.startValue = this._evaluateValue(props.startValue);
+
+      this._applyProperties(slider, props, true);
+    }
+
+    // Ajouter le support de la molette
+    if (slider.subscribeToKeyEventsOnHover) {
+      slider.subscribeToKeyEventsOnHover();
+    }
+
+    return slider;
+  },
+
+  /**
+   * Crée un InputText
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.InputText}
+   */
+  _createInputText: function(config) {
+    const input = new BABYLON.GUI.InputText();
+    input.name = config.name || '';
+    input.class = config.class || '';
+
+    // Valeurs par défaut
+    input.height = '25px';
+    input.background = 'grey';
+
+    if (config.properties) {
+      this._applyProperties(input, config.properties, true);
+    }
+
+    // Support des événements focus/blur
+    if (input.subscribeToFocusAndBlurEvents) {
+      input.subscribeToFocusAndBlurEvents();
+    }
+
+    return input;
+  },
+
+  /**
+   * Crée un ColorPicker
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.ColorPicker}
+   */
+  _createColorPicker: function(config) {
+    const picker = new BABYLON.GUI.ColorPicker();
+    picker.name = config.name || '';
+    picker.class = config.class || '';
+
+    if (config.properties) {
+      const props = config.properties;
+      if (props.value !== undefined) picker.value = this._evaluateValue(props.value);
+      this._applyProperties(picker, props, true);
+    }
+
+    return picker;
+  },
+
+  /**
+   * Crée un RadioButton avec son header
+   * @param {Object} config - Configuration du contrôle
+   * @param {string} text - Le texte du radio
+   * @returns {Object} - {button, header}
+   */
+  _createRadioButton: function(config, text) {
+    const button = new BABYLON.GUI.RadioButton();
+    button.name = 'Radio-' + text;
+    button.class = config.class || 'radio left first';
+    button.width = '13px';
+    button.height = '13px';
+    button.group = config.properties?.group || 'radiosForms';
+
+    // Style depuis le thème
+    if (glo?.theme?.radio?.button) {
+      for (const prop in glo.theme.radio.button) {
+        button[prop] = glo.theme.radio.button[prop];
+      }
+    }
+
+    const header = BABYLON.GUI.Control.AddHeader(button, text, '200px', { isHorizontal: true, controlFirst: true });
+    header.name = 'headerRadio-' + text;
+    header.class = 'header radio left first noAutoParam';
+    header.height = '20px';
+    header.paddingTop = '4px';
+    header.paddingLeft = '16%';
+
+    if (glo?.theme?.radio?.text) {
+      for (const prop in glo.theme.radio.text) {
+        header[prop] = glo.theme.radio.text[prop];
+      }
+    }
+
+    return { button, header };
+  },
+
+  /**
+   * Crée un Checkbox
+   * @param {Object} config - Configuration du contrôle
+   * @returns {BABYLON.GUI.Checkbox}
+   */
+  _createCheckbox: function(config) {
+    const checkbox = new BABYLON.GUI.Checkbox();
+    checkbox.name = config.name || '';
+    checkbox.class = config.class || '';
+    checkbox.width = '16px';
+    checkbox.height = '16px';
+    checkbox.background = '#333';
+
+    if (config.properties) {
+      this._applyProperties(checkbox, config.properties, true);
+    }
+
+    return checkbox;
+  },
+
+  /**
+   * Crée un contrôle selon son type
+   * @param {Object} config - Configuration du contrôle
+   * @param {BABYLON.GUI.Container} parent - Le conteneur parent
+   * @returns {BABYLON.GUI.Control|null}
+   */
+  _createControl: function(config, parent) {
+    if (!config || !config.type) return null;
+
+    let control = null;
+
+    switch (config.type) {
+      case 'TextBlock':
+        control = this._createTextBlock(config);
+        break;
+
+      case 'Button':
+        control = this._createButton(config);
+        break;
+
+      case 'Slider':
+        // Si le slider a un header, le créer d'abord
+        if (config.header) {
+          const headerConfig = {
+            type: 'TextBlock',
+            name: config.header.name,
+            class: config.class?.replace('slider', 'header') || 'header',
+            properties: {
+              text: config.header.text,
+              color: config.header.color || 'white',
+              fontSize: config.header.fontSize || 14,
+              h: 20
+            }
+          };
+          const header = this._createTextBlock(headerConfig);
+          parent.addControl(header);
+        }
+        control = this._createSlider(config);
+        break;
+
+      case 'InputText':
+        control = this._createInputText(config);
+        break;
+
+      case 'ColorPicker':
+        control = this._createColorPicker(config);
+        break;
+
+      case 'Checkbox':
+        control = this._createCheckbox(config);
+        break;
+
+      case 'RadioButton[]':
+        // Les radios sont créés dynamiquement, on ne fait rien ici
+        return null;
+
+      case 'XYZSlider':
+      case 'LinkedXYZSliders':
+      case 'HorizontalSlider':
+        // Ces types complexes nécessitent une implémentation spéciale
+        // Pour l'instant, on crée un slider simple avec le header
+        if (config.header) {
+          const headerConfig = {
+            type: 'TextBlock',
+            name: config.header.name,
+            class: 'header',
+            properties: {
+              text: config.header.text,
+              color: 'white',
+              fontSize: 14,
+              h: 20
+            }
+          };
+          const header = this._createTextBlock(headerConfig);
+          parent.addControl(header);
+        }
+        control = this._createSlider(config);
+        break;
+
+      default:
+        console.warn('Unknown control type:', config.type);
+        return null;
+    }
+
+    return control;
+  },
+
+  /**
+   * Crée un panel avec tous ses contrôles
+   * @param {Object} panelConfig - Configuration du panel
+   * @param {BABYLON.GUI.AdvancedDynamicTexture} advancedTexture - La texture GUI
+   * @returns {BABYLON.GUI.StackPanel}
+   */
+  _createPanel: function(panelConfig, advancedTexture) {
+    const panel = new BABYLON.GUI.StackPanel();
+    panel.name = panelConfig.name || '';
+    panel.class = panelConfig.class || '';
+
+    // Appliquer le layout
+    this._applyLayout(panel, panelConfig.layout);
+
+    // Créer les contrôles
+    if (panelConfig.controls && Array.isArray(panelConfig.controls)) {
+      panelConfig.controls.forEach(controlConfig => {
+        const control = this._createControl(controlConfig, panel);
+        if (control) {
+          panel.addControl(control);
+        }
+      });
+    }
+
+    // Ajouter à l'advancedTexture
+    advancedTexture.addControl(panel);
+
+    return panel;
+  },
+
+  /**
+   * Crée tout le GUI à partir de la structure
+   * @param {BABYLON.GUI.AdvancedDynamicTexture} advancedTexture - La texture GUI (optionnel, utilise glo.advancedTexture par défaut)
+   * @param {Array<string>} containers - Liste des conteneurs à créer (optionnel, tous par défaut)
+   * @returns {Object} - Un objet contenant tous les panels créés
+   */
+  createGui: function(advancedTexture, containers) {
+    // Utiliser glo.advancedTexture si non fourni
+    if (!advancedTexture && typeof glo !== 'undefined' && glo.advancedTexture) {
+      advancedTexture = glo.advancedTexture;
+    }
+
+    if (!advancedTexture) {
+      console.error('createGui: advancedTexture is required');
+      return null;
+    }
+
+    const createdPanels = {};
+
+    // Conteneurs à parcourir
+    const containersToProcess = containers || ['first', 'second', 'third', 'fourth', 'sixth', 'seventh', 'eighth', 'tenth', 'eleventh'];
+
+    containersToProcess.forEach(containerName => {
+      const container = this[containerName];
+      if (!container || !container.panels) return;
+
+      createdPanels[containerName] = {};
+
+      // Parcourir les panels du conteneur
+      for (const panelKey in container.panels) {
+        const panelConfig = container.panels[panelKey];
+        try {
+          const panel = this._createPanel(panelConfig, advancedTexture);
+          createdPanels[containerName][panelKey] = panel;
+        } catch (e) {
+          console.error(`Error creating panel ${panelKey}:`, e);
+        }
+      }
+    });
+
+    return createdPanels;
+  },
+
+  /**
+   * Crée uniquement un conteneur spécifique
+   * @param {string} containerName - Le nom du conteneur ('first', 'second', etc.)
+   * @param {BABYLON.GUI.AdvancedDynamicTexture} advancedTexture - La texture GUI
+   * @returns {Object} - Les panels créés pour ce conteneur
+   */
+  createContainer: function(containerName, advancedTexture) {
+    return this.createGui(advancedTexture, [containerName]);
+  },
+
+  /**
+   * Crée uniquement un panel spécifique
+   * @param {string} containerName - Le nom du conteneur
+   * @param {string} panelName - Le nom du panel
+   * @param {BABYLON.GUI.AdvancedDynamicTexture} advancedTexture - La texture GUI
+   * @returns {BABYLON.GUI.StackPanel|null}
+   */
+  createSinglePanel: function(containerName, panelName, advancedTexture) {
+    if (!advancedTexture && typeof glo !== 'undefined' && glo.advancedTexture) {
+      advancedTexture = glo.advancedTexture;
+    }
+
+    if (!advancedTexture) {
+      console.error('createSinglePanel: advancedTexture is required');
+      return null;
+    }
+
+    const container = this[containerName];
+    if (!container || !container.panels || !container.panels[panelName]) {
+      console.error(`Panel ${panelName} not found in container ${containerName}`);
+      return null;
+    }
+
+    return this._createPanel(container.panels[panelName], advancedTexture);
   }
 };
 

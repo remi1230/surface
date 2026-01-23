@@ -67,7 +67,7 @@ async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiv
 						"world", "worldView", "worldViewProjection", "view", "projection",
 						"time", "cameraPosition", "iResolution",
 						// Uniforms pour la déformation
-						"scaleNorm", "w", "stepU", "stepV", "minU", "minV", "stepsU", "stepsV", "deformationEnabled"
+						"scaleNorm", "w", "stepU", "stepV", "minU", "minV", "stepsU", "stepsV", "steps", "deformationEnabled"
 					],
 					needAlphaBlending: false
 				}
@@ -106,6 +106,8 @@ async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiv
 			shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
 			shaderMaterial.setInt("islight", glo.shaders.params.islight);
 
+			shaderMaterial.setVector3("meshBg", {x: glo.emissiveColor.r, y: glo.emissiveColor.g, z: glo.emissiveColor.b});
+			shaderMaterial.setVector3("meshFg", {x: glo.lineColor.r, y: glo.lineColor.g, z: glo.lineColor.b});
 			shaderMaterial.setVector3("lampPosition", {x: glo.shaders.light.direction.x, y: glo.shaders.light.direction.y, z: glo.shaders.light.direction.z});
 			shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
 			shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
@@ -125,8 +127,9 @@ async function giveMaterialToMesh(mesh = glo.ribbon, emissiveColor = glo.emissiv
 			shaderMaterial.setFloat("B", glo.shaders.uservars.B);
 			shaderMaterial.setFloat("C", glo.shaders.uservars.C);
 			shaderMaterial.setFloat("D", glo.shaders.uservars.D);
-			shaderMaterial.setInt("stepsU", glo.params.steps_u);
-			shaderMaterial.setInt("stepsV", glo.params.steps_v);
+			shaderMaterial.setFloat("stepsU", glo.params.steps_u);
+			shaderMaterial.setFloat("stepsV", glo.params.steps_v);
+			shaderMaterial.setVector2("steps", {x: glo.params.steps_u, y: glo.params.steps_v});
 			shaderMaterial.setInt("deformationEnabled", hasDeformation ? 1 : 0);
 			shaderMaterial.setInt("opt1", glo.shaderOpt.opt1 ? 1 : 0);
 			shaderMaterial.setInt("opt2", glo.shaderOpt.opt2 ? 1 : 0);

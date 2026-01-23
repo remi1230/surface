@@ -961,7 +961,7 @@ var glo = {
 	shaders: {
 		params:{
 			invcol: 0,
-			islight: 0,
+			islight: 1,
 			numshader: 0,
 		},
 		uservars: {
@@ -990,6 +990,8 @@ var glo = {
 		opt2: false,
 		opt3: false,
 	},
+	shaderMaterial: true,
+    shaderColor:true,
 	editorWindow: getById('shaderEditor'),
 	editorWindowGeometry: getById('shaderEditorGeometry'),
 	editor: null,
@@ -1023,12 +1025,12 @@ var glo = {
 	buttons_radius: 6.33,
 	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
-	emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
+	emissiveColor: new BABYLON.Color3(0.14, 0.43, 0.38),
 	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
 	lineColor: new BABYLON.Color3(1, 1, 1),
 	initialColor:{
 		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
-		emissiveColor: new BABYLON.Color3(0.3, 0.5, 0.5),
+		emissiveColor: new BABYLON.Color3(0.1, 0.35, 0.35),
 		backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
 		lineColor: new BABYLON.Color3(1, 1, 1),
 	},

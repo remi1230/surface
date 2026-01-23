@@ -1047,12 +1047,12 @@ function add_color_pickers(){
   picker2.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     
-    if(!ribbonToColorize.material){
+    if(ribbonToColorize && !ribbonToColorize.material){
       var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 	    material.backFaceCulling  = false;
       ribbonToColorize.material = material;
     }
-    ribbonToColorize.material.diffuseColor = value;
+    if(ribbonToColorize) ribbonToColorize.material.diffuseColor = value;
     glo.diffuseColor = value;
   });
 
@@ -1061,19 +1061,22 @@ function add_color_pickers(){
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     
-    if(!ribbonToColorize.material){
+    if(ribbonToColorize && !ribbonToColorize.material){
       var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 	    material.backFaceCulling  = false;
       ribbonToColorize.material = material;
     }
-    ribbonToColorize.material.emissiveColor = value;
+    if(ribbonToColorize) ribbonToColorize.material.emissiveColor = value;
     glo.emissiveColor = value;
+
+    giveMaterialToMesh();
   });
 
   var picker4 = new BABYLON.GUI.ColorPicker();
   parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker4.onValueChangedObservable.add(function(value) {
-      changeLineColor(value.r, value.g, value.b);
+      glo.lineColor = value;
+      giveMaterialToMesh();
   });
 
   var picker5 = new BABYLON.GUI.ColorPicker();

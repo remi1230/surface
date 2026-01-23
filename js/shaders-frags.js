@@ -1,5 +1,55 @@
 fragmentShaders = [
 `
+   //Lines fix
+    float uLineWidth      = A * 0.05 / 24.0;
+    float uLineSpacing    = 12.0 / C;
+    vec3 uBackgroundColor = meshBg;
+    vec3 uLineColor       = meshFg;
+
+    float maxU = -minU;
+    float maxV = -minV;
+    vec2 uv = vUV/ uLineSpacing;
+    
+    // Distance au bord de chaque cellule (0 au centre, 0.5 aux bords)
+    vec2 grid = abs(fract(0.5*B*uv) - 0.0);
+    
+    // Lignes avec antialiasing
+    float lineU = 1.0 - smoothstep(0.0, uLineWidth, grid.x);
+    float lineV = 1.0 - smoothstep(0.0, uLineWidth, grid.y);
+    
+    // Combinaison des deux directions
+    float line = max(lineU, lineV);
+    
+    vec3 col = mix(uBackgroundColor, uLineColor, line);
+
+    
+`,
+`
+    //Lines uv
+    float ratio           = stepsU/stepsV;
+    float uLineWidth      = A * 0.00066 / 32.0;
+    vec3 uBackgroundColor = meshBg;
+    vec3 uLineColor       = meshFg;
+
+    float maxU = -minU;
+    float maxV = -minV;
+    //Normal
+    float normU = (vUV.x - minU) / (maxU - minU);
+    float normV = ratio * (vUV.y - minV) / (maxV - minV);
+    
+    vec2 grid  = vec2(normU * steps.x, normV * steps.y);
+    vec2 lines = abs(fract(grid) - 0.5);
+    
+    float line = max(
+        1.0 - smoothstep(0.0, uLineWidth * steps.x, lines.x),
+        1.0 - smoothstep(0.0, uLineWidth * steps.y, lines.y)
+    );
+    
+    vec3 col = mix(uBackgroundColor, uLineColor, line);
+
+    
+`,
+`
     //Norm&Pos
     float coeff = 1.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()));

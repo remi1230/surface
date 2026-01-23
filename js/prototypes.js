@@ -382,7 +382,7 @@ BABYLON.Mesh.prototype.getAngles = function(paths = glo.ribbon.getPaths()) {
     return { curvatures };
 };
 
-BABYLON.Mesh.prototype.setDataShader = function(paths = glo.ribbon.getPaths()) {
+BABYLON.Mesh.prototype.setDataShader = function() {
     const nbStepsU = glo.params.steps_u;
     const nbStepsV = glo.params.steps_v;
     const minU = !glo.slidersUVOnOneSign.u ? -glo.params.u : 0;

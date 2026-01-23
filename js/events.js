@@ -13,7 +13,7 @@ $( document ).ready(function() {
   $('.modal').not('#exportModal').modal();
   $('select').formSelect();
   glo.formes.setFormeSelect(...glo.formes.selected);
-  special_randomize_colors_app(true);
+  //special_randomize_colors_app(true);
   startAnim(20, 1);
   initDataModal();
   getPathsInfos();

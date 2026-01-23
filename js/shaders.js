@@ -1,22 +1,22 @@
-const vertexShader = `
+const vertexShader = `#version 300 es
     precision highp float;
 
-    // Attributes
-    attribute vec3 position;
-    attribute vec3 normal;
-    attribute vec2 uv;
-    attribute vec2 uv_params;
+    // Attributes → "in" en WebGL 2
+    in vec3 position;
+    in vec3 normal;
+    in vec2 uv;
+    in vec2 uv_params;
 
     // Uniforms
     uniform mat4 worldViewProjection;
     uniform mat4 world;
 
-    // Varyings (transmis au fragment shader)
-    varying vec3 vPosition;
-    varying vec3 vWorldPosition;
-    varying vec3 vNormal;
-    varying vec2 vUV;
-    varying vec2 vUVParams;
+    // Varyings → "out" en WebGL 2
+    out vec3 vPosition;
+    out vec3 vWorldPosition;
+    out vec3 vNormal;
+    out vec2 vUV;
+    out vec2 vUVParams;
 
     void main() {
         gl_Position = worldViewProjection * vec4(position, 1.0);
@@ -28,15 +28,14 @@ const vertexShader = `
     }
 `;
 
-// Vertex shader combiné : déformation + tous les outputs pour le fragment shader de couleur
-const combinedVertexShader = `
+const combinedVertexShader = `#version 300 es
     precision highp float;
 
     // Attributes
-    attribute vec3 position;
-    attribute vec3 normal;
-    attribute vec2 uv;
-    attribute vec2 uv_params;
+    in vec3 position;
+    in vec3 normal;
+    in vec2 uv;
+    in vec2 uv_params;
 
     // Uniforms
     uniform mat4 worldViewProjection;
@@ -49,16 +48,16 @@ const combinedVertexShader = `
     uniform float stepV;
     uniform float minU;
     uniform float minV;
-    uniform int stepsU;
-    uniform int stepsV;
+    uniform float stepsU;
+    uniform float stepsV;
     uniform int deformationEnabled;
 
-    // Varyings (transmis au fragment shader de couleur)
-    varying vec3 vPosition;
-    varying vec3 vWorldPosition;
-    varying vec3 vNormal;
-    varying vec2 vUV;
-    varying vec2 vUVParams;
+    // Varyings
+    out vec3 vPosition;
+    out vec3 vWorldPosition;
+    out vec3 vNormal;
+    out vec2 vUV;
+    out vec2 vUVParams;
 
     // Variables globales pour accès dans les fonctions
     float gx, gy, gz, gu, gv;
@@ -227,9 +226,9 @@ const combinedVertexShader = `
         float T = atan(z, x);
 
         // Variables d'index (approximation basée sur UV)
-        float i = floor(uv.x * float(stepsU));
-        float j = floor(uv.y * float(stepsV));
-        float n = i * float(stepsV) + j;
+        float i = floor(uv.x * stepsU);
+        float j = floor(uv.y * stepsV);
+        float n = i * stepsV + j;
 
         // Variables de signe alterné
         float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
@@ -306,6 +305,13 @@ uniform int islight;
 uniform int opt1;
 uniform int opt2;
 uniform int opt3;
+uniform float minU;
+uniform float minV;
+uniform float stepsU;
+uniform float stepsV;
+uniform vec2 steps;
+uniform vec3 meshBg;
+uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform float lampIntensity;
 uniform float lampRadius;

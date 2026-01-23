@@ -2220,6 +2220,500 @@ const guiContentStructure = {
   },
 
   /**
+   * Crée un XYZSlider complet avec checkboxes X/Y/Z
+   * @param {Object} config - Configuration du contrôle
+   * @param {BABYLON.GUI.Container} parent - Le conteneur parent
+   * @returns {Object} - {groupContainer, header, slider, axisState}
+   */
+  _createXYZSlider: function(config, parent) {
+    const self = this;
+    const props = config.properties || {};
+    const headerText = config.header?.text?.split(':')[0] || config.name || 'Value';
+    const val = this._evaluateValue(props.value) || 0;
+    const min = this._evaluateValue(props.minimum) || -10;
+    const max = this._evaluateValue(props.maximum) || 10;
+    const step = this._evaluateValue(props.step) || 0.01;
+    const decimalPrecision = props.decimalPrecision || 2;
+
+    // Container principal vertical pour tout le groupe
+    const groupContainer = new BABYLON.GUI.StackPanel();
+    groupContainer.name = 'group_' + config.name;
+    groupContainer.isVertical = true;
+    groupContainer.width = '100%';
+    groupContainer.adaptHeightToChildren = true;
+    parent.addControl(groupContainer);
+
+    // Header en haut
+    const header = new BABYLON.GUI.TextBlock();
+    header.name = 'header_' + config.name;
+    header.class = config.class?.replace('slider', 'header') || 'header';
+    header.text = headerText + ': ' + val;
+    header.color = '#ff6666'; // Rouge pour X par défaut
+    header.fontSize = 14;
+    header.height = '20px';
+    header.paddingTop = '4px';
+    groupContainer.addControl(header);
+
+    // Container horizontal pour checkboxes + slider
+    const rowContainer = new BABYLON.GUI.StackPanel();
+    rowContainer.isVertical = false;
+    rowContainer.height = '20px';
+    rowContainer.width = '100%';
+    groupContainer.addControl(rowContainer);
+
+    // État des axes
+    const axisState = {
+      x: { checked: true, value: val },
+      y: { checked: false, value: val },
+      z: { checked: false, value: val }
+    };
+
+    // Couleurs des axes
+    const axisColors = {
+      x: '#ff6666',
+      y: '#66ff66',
+      z: '#6666ff'
+    };
+
+    // Créer les checkboxes inline
+    ['x', 'y', 'z'].forEach(function(axis) {
+      const checkbox = new BABYLON.GUI.Checkbox();
+      checkbox.name = config.name + '_checkbox_' + axis;
+      checkbox.width = '16px';
+      checkbox.height = '16px';
+      checkbox.isChecked = axisState[axis].checked;
+      checkbox.color = axisColors[axis];
+      checkbox.background = '#333';
+      rowContainer.addControl(checkbox);
+
+      const label = new BABYLON.GUI.TextBlock();
+      label.text = axis.toUpperCase();
+      label.width = '16px';
+      label.height = '16px';
+      label.color = axisColors[axis];
+      label.fontSize = 11;
+      label.paddingRight = '4px';
+      rowContainer.addControl(label);
+
+      checkbox.onIsCheckedChangedObservable.add(function(checked) {
+        axisState[axis].checked = checked;
+        updateSliderDisplay();
+      });
+
+      axisState[axis].checkbox = checkbox;
+    });
+
+    // Slider
+    const slider = new BABYLON.GUI.Slider();
+    slider.name = config.name;
+    slider.class = config.class || 'slider';
+    slider.minimum = min;
+    slider.maximum = max;
+    slider.value = val;
+    slider.step = step;
+    slider.startValue = val;
+    slider.lastValue = val;
+    slider.height = '18.5px';
+    slider.width = '75%';
+    slider.background = 'grey';
+    rowContainer.addControl(slider);
+
+    // Fonctions utilitaires
+    function getCheckedAxes() {
+      return ['x', 'y', 'z'].filter(axis => axisState[axis].checked);
+    }
+
+    function getDisplayValue() {
+      const checked = getCheckedAxes();
+      if (checked.length === 0) return val;
+      return axisState[checked[0]].value;
+    }
+
+    function updateSliderDisplay() {
+      const displayVal = getDisplayValue();
+      slider.value = displayVal;
+      header.text = headerText + ': ' + displayVal.toFixed(decimalPrecision);
+
+      const checked = getCheckedAxes();
+      if (checked.length === 0) {
+        header.color = 'grey';
+      } else if (checked.length === 1) {
+        header.color = axisColors[checked[0]];
+      } else {
+        header.color = 'white';
+      }
+    }
+
+    // Événement de changement de valeur (sans callback métier - juste la mise à jour visuelle)
+    slider.onValueChangedObservable.add(function(value) {
+      if (typeof glo !== 'undefined' && glo.rightButton) return;
+
+      const checked = getCheckedAxes();
+      header.text = headerText + ': ' + value.toFixed(decimalPrecision);
+
+      checked.forEach(function(axis) {
+        axisState[axis].value = value;
+      });
+
+      slider.lastValue = value;
+    });
+
+    // Clic droit pour reset
+    slider.onPointerClickObservable.add(function(e) {
+      if (e.buttonIndex === 2) {
+        if (typeof glo !== 'undefined') glo.rightButton = true;
+        const checked = getCheckedAxes();
+
+        checked.forEach(function(axis) {
+          axisState[axis].value = slider.startValue;
+        });
+
+        slider.value = slider.startValue;
+        header.text = headerText + ': ' + slider.startValue.toFixed(decimalPrecision);
+
+        if (typeof glo !== 'undefined') glo.rightButton = false;
+      }
+    });
+
+    // Support molette
+    if (slider.subscribeToKeyEventsOnHover) {
+      slider.subscribeToKeyEventsOnHover();
+    }
+
+    updateSliderDisplay();
+
+    return { groupContainer, header, slider, axisState, getCheckedAxes };
+  },
+
+  /**
+   * Crée un LinkedXYZSliders complet avec deux sliders liés (principal et secondaire)
+   * @param {Object} config - Configuration du contrôle
+   * @param {BABYLON.GUI.Container} parent - Le conteneur parent
+   * @returns {Object}
+   */
+  _createLinkedXYZSliders: function(config, parent) {
+    const self = this;
+    const mainSlider = config.mainSlider || {};
+    const secondarySlider = config.secondarySlider || {};
+
+    const textMain = mainSlider.header?.text?.split(':')[0] || 'Main';
+    const textSecondary = secondarySlider.header?.text?.split(':')[0] || 'n';
+    const valMain = this._evaluateValue(mainSlider.properties?.value) || 0;
+    const valSecondary = this._evaluateValue(secondarySlider.properties?.value) || 1;
+    const decimalPrecision = mainSlider.properties?.decimalPrecision || 1;
+
+    const minMain = this._evaluateValue(mainSlider.properties?.minimum) || -40;
+    const maxMain = this._evaluateValue(mainSlider.properties?.maximum) || 40;
+    const stepMain = this._evaluateValue(mainSlider.properties?.step) || 0.1;
+
+    const minSecondary = this._evaluateValue(secondarySlider.properties?.minimum) || -8;
+    const maxSecondary = this._evaluateValue(secondarySlider.properties?.maximum) || 8;
+    const stepSecondary = this._evaluateValue(secondarySlider.properties?.step) || 0.1;
+
+    // Container principal
+    const groupContainer = new BABYLON.GUI.StackPanel();
+    groupContainer.name = 'group_' + config.name;
+    groupContainer.isVertical = true;
+    groupContainer.width = '100%';
+    groupContainer.adaptHeightToChildren = true;
+    parent.addControl(groupContainer);
+
+    // État des axes
+    const axisState = {
+      x: { checked: true },
+      y: { checked: false },
+      z: { checked: false }
+    };
+
+    let currentAxis = 'x';
+
+    // Couleurs des axes
+    const axisColors = {
+      x: '#ff6666',
+      y: '#66ff66',
+      z: '#6666ff'
+    };
+
+    // === SLIDER PRINCIPAL ===
+    const headerMain = new BABYLON.GUI.TextBlock();
+    headerMain.name = 'header_' + config.name;
+    headerMain.text = textMain + ' X: ' + valMain;
+    headerMain.color = '#ff6666';
+    headerMain.fontSize = 14;
+    headerMain.height = '20px';
+    headerMain.paddingTop = '4px';
+    groupContainer.addControl(headerMain);
+
+    // Row pour checkboxes + slider principal
+    const rowMain = new BABYLON.GUI.StackPanel();
+    rowMain.isVertical = false;
+    rowMain.height = '20px';
+    rowMain.width = '100%';
+    groupContainer.addControl(rowMain);
+
+    // Container pour les checkboxes avec largeur fixe
+    const checkboxContainer = new BABYLON.GUI.StackPanel();
+    checkboxContainer.isVertical = false;
+    checkboxContainer.width = '96px';
+    checkboxContainer.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    rowMain.addControl(checkboxContainer);
+
+    // Checkboxes
+    ['x', 'y', 'z'].forEach(function(axis) {
+      const checkbox = new BABYLON.GUI.Checkbox();
+      checkbox.name = config.name + '_checkbox_' + axis;
+      checkbox.width = '16px';
+      checkbox.height = '16px';
+      checkbox.isChecked = axisState[axis].checked;
+      checkbox.color = axisColors[axis];
+      checkbox.background = '#333';
+      checkboxContainer.addControl(checkbox);
+
+      const label = new BABYLON.GUI.TextBlock();
+      label.text = axis.toUpperCase();
+      label.width = '16px';
+      label.height = '16px';
+      label.color = axisColors[axis];
+      label.fontSize = 11;
+      label.paddingRight = '4px';
+      checkboxContainer.addControl(label);
+
+      checkbox.onIsCheckedChangedObservable.add(function(checked) {
+        axisState[axis].checked = checked;
+
+        if (checked) {
+          currentAxis = axis;
+        } else {
+          const checkedAxes = getCheckedAxes();
+          if (checkedAxes.length > 0) {
+            currentAxis = checkedAxes[0];
+          }
+        }
+
+        updateDisplay();
+      });
+
+      axisState[axis].checkbox = checkbox;
+    });
+
+    // Slider principal
+    const sliderMain = new BABYLON.GUI.Slider();
+    sliderMain.name = config.name + 'Main';
+    sliderMain.minimum = minMain;
+    sliderMain.maximum = maxMain;
+    sliderMain.value = valMain;
+    sliderMain.step = stepMain;
+    sliderMain.startValue = valMain;
+    sliderMain.height = '18.5px';
+    sliderMain.width = '72.5%';
+    sliderMain.background = 'grey';
+    sliderMain.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    sliderMain.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    rowMain.addControl(sliderMain);
+
+    // === SLIDER SECONDAIRE (n) ===
+    const headerSecondary = new BABYLON.GUI.TextBlock();
+    headerSecondary.name = 'header_' + config.name + 'n';
+    headerSecondary.text = textSecondary + ' X: ' + valSecondary;
+    headerSecondary.color = '#ff6666';
+    headerSecondary.fontSize = 14;
+    headerSecondary.height = '20px';
+    headerSecondary.paddingTop = '4px';
+    groupContainer.addControl(headerSecondary);
+
+    const sliderSecondary = new BABYLON.GUI.Slider();
+    sliderSecondary.name = config.name + 'Secondary';
+    sliderSecondary.minimum = minSecondary;
+    sliderSecondary.maximum = maxSecondary;
+    sliderSecondary.value = valSecondary;
+    sliderSecondary.step = stepSecondary;
+    sliderSecondary.startValue = valSecondary;
+    sliderSecondary.height = '18.5px';
+    sliderSecondary.background = 'grey';
+    groupContainer.addControl(sliderSecondary);
+
+    // === FONCTIONS UTILITAIRES ===
+    function getCheckedAxes() {
+      return ['x', 'y', 'z'].filter(axis => axisState[axis].checked);
+    }
+
+    function updateDisplay() {
+      const checked = getCheckedAxes();
+
+      if (checked.length === 0) {
+        headerMain.color = 'grey';
+        headerSecondary.color = 'grey';
+        return;
+      }
+
+      if (checked.length === 1) {
+        headerMain.color = axisColors[checked[0]];
+        headerSecondary.color = axisColors[checked[0]];
+      } else {
+        headerMain.color = 'white';
+        headerSecondary.color = 'white';
+      }
+
+      const axisLabel = checked.length === 1 ? ' ' + currentAxis.toUpperCase() : '';
+      headerMain.text = textMain + axisLabel + ': ' + sliderMain.value.toFixed(decimalPrecision);
+      headerSecondary.text = textSecondary + axisLabel + ': ' + sliderSecondary.value.toFixed(decimalPrecision);
+    }
+
+    // === ÉVÉNEMENTS SLIDER PRINCIPAL ===
+    sliderMain.onValueChangedObservable.add(function(value) {
+      if (typeof glo !== 'undefined' && glo.rightButton) return;
+
+      const checked = getCheckedAxes();
+      const axisLabel = checked.length === 1 ? ' ' + currentAxis.toUpperCase() : '';
+      headerMain.text = textMain + axisLabel + ': ' + value.toFixed(decimalPrecision);
+    });
+
+    sliderMain.onPointerClickObservable.add(function(e) {
+      if (e.buttonIndex === 2) {
+        if (typeof glo !== 'undefined') glo.rightButton = true;
+
+        sliderMain.value = sliderMain.startValue;
+        const checked = getCheckedAxes();
+        const axisLabel = checked.length === 1 ? ' ' + currentAxis.toUpperCase() : '';
+        headerMain.text = textMain + axisLabel + ': ' + sliderMain.startValue.toFixed(decimalPrecision);
+
+        if (typeof glo !== 'undefined') glo.rightButton = false;
+      }
+    });
+
+    // === ÉVÉNEMENTS SLIDER SECONDAIRE ===
+    sliderSecondary.onValueChangedObservable.add(function(value) {
+      if (typeof glo !== 'undefined' && glo.rightButton) return;
+
+      const checked = getCheckedAxes();
+      const axisLabel = checked.length === 1 ? ' ' + currentAxis.toUpperCase() : '';
+      headerSecondary.text = textSecondary + axisLabel + ': ' + value.toFixed(decimalPrecision);
+    });
+
+    sliderSecondary.onPointerClickObservable.add(function(e) {
+      if (e.buttonIndex === 2) {
+        if (typeof glo !== 'undefined') glo.rightButton = true;
+
+        sliderSecondary.value = sliderSecondary.startValue;
+        const checked = getCheckedAxes();
+        const axisLabel = checked.length === 1 ? ' ' + currentAxis.toUpperCase() : '';
+        headerSecondary.text = textSecondary + axisLabel + ': ' + sliderSecondary.startValue.toFixed(decimalPrecision);
+
+        if (typeof glo !== 'undefined') glo.rightButton = false;
+      }
+    });
+
+    // Support molette
+    if (sliderMain.subscribeToKeyEventsOnHover) {
+      sliderMain.subscribeToKeyEventsOnHover();
+    }
+    if (sliderSecondary.subscribeToKeyEventsOnHover) {
+      sliderSecondary.subscribeToKeyEventsOnHover();
+    }
+
+    updateDisplay();
+
+    return { groupContainer, headerMain, sliderMain, headerSecondary, sliderSecondary, axisState, getCheckedAxes };
+  },
+
+  /**
+   * Crée une liste de RadioButtons dynamiquement
+   * @param {Object} config - Configuration du contrôle
+   * @param {BABYLON.GUI.Container} parent - Le conteneur parent
+   * @param {Array} items - Liste des éléments {text, typeCoords, check}
+   * @returns {Array} - Liste des {button, header} créés
+   */
+  _createRadioButtons: function(config, parent, items) {
+    const self = this;
+    const createdRadios = [];
+
+    if (!items || !Array.isArray(items)) {
+      // Si pas d'items fournis, essayer de récupérer depuis glo.formes.select
+      if (typeof glo !== 'undefined' && glo.formes && glo.formes.select) {
+        items = glo.formes.select.filter(forme => {
+          return forme.typeCoords === (typeof glo !== 'undefined' ? glo.coordsType : 'cartesian');
+        });
+      } else {
+        return createdRadios;
+      }
+    }
+
+    items.forEach(function(item) {
+      const text = item.text || item.name || '';
+      const isChecked = item.check || false;
+      const typeCoords = item.typeCoords;
+
+      const button = new BABYLON.GUI.RadioButton();
+      button.name = 'Radio-' + text;
+      button.class = config.class || 'radio left first';
+      button.width = '13px';
+      button.height = '13px';
+      button.group = config.properties?.group || 'radiosForms';
+      button.isChecked = isChecked;
+
+      // Style depuis le thème
+      if (typeof glo !== 'undefined' && glo.theme?.radio?.button) {
+        for (const prop in glo.theme.radio.button) {
+          button[prop] = glo.theme.radio.button[prop];
+        }
+      } else {
+        button.color = 'white';
+        button.background = '#333';
+      }
+
+      // Créer le header avec le texte
+      const header = BABYLON.GUI.Control.AddHeader(button, text, '200px', {
+        isHorizontal: true,
+        controlFirst: true
+      });
+      header.name = 'headerRadio-' + text;
+      header.class = 'header radio left first noAutoParam';
+      header.height = '20px';
+      header.paddingTop = '4px';
+      header.paddingLeft = '16%';
+
+      // Style du texte depuis le thème
+      if (typeof glo !== 'undefined' && glo.theme?.radio?.text) {
+        for (const prop in glo.theme.radio.text) {
+          header[prop] = glo.theme.radio.text[prop];
+        }
+      }
+
+      // Style du textBlock enfant
+      if (header.children && header.children[1]) {
+        header.children[1].fontSize = '17px';
+      }
+
+      parent.addControl(header);
+
+      createdRadios.push({ button, header, text, typeCoords });
+    });
+
+    // Enregistrer dans glo.radios_formes si disponible
+    if (typeof glo !== 'undefined') {
+      if (!glo.radios_formes) {
+        glo.radios_formes = [];
+        glo.radios_formes.getByName = function(name) {
+          let found = false;
+          this.forEach(item => {
+            if (item.button && item.button.name === name) found = item;
+            if (item.header && item.header.name === name) found = item;
+          });
+          return found;
+        };
+        glo.radios_formes.changeColor = function(color) {
+          this.forEach(item => {
+            if (item.header) item.header.color = color;
+          });
+        };
+      }
+      createdRadios.forEach(radio => glo.radios_formes.push(radio));
+    }
+
+    return createdRadios;
+  },
+
+  /**
    * Crée un contrôle selon son type
    * @param {Object} config - Configuration du contrôle
    * @param {BABYLON.GUI.Container} parent - Le conteneur parent
@@ -2272,31 +2766,44 @@ const guiContentStructure = {
         break;
 
       case 'RadioButton[]':
-        // Les radios sont créés dynamiquement, on ne fait rien ici
+        // Créer les radio buttons dynamiquement
+        const radios = this._createRadioButtons(config, parent);
+        // Les radios sont ajoutés directement au parent, pas besoin de retourner un contrôle
         return null;
 
       case 'XYZSlider':
+        // Créer un XYZSlider complet avec checkboxes
+        const xyzResult = this._createXYZSlider(config, parent);
+        // Le groupContainer est déjà ajouté au parent, pas besoin de retourner
+        return null;
+
       case 'LinkedXYZSliders':
+        // Créer des LinkedXYZSliders complets
+        const linkedResult = this._createLinkedXYZSliders(config, parent);
+        // Le groupContainer est déjà ajouté au parent, pas besoin de retourner
+        return null;
+
       case 'HorizontalSlider':
-        // Ces types complexes nécessitent une implémentation spéciale
-        // Pour l'instant, on crée un slider simple avec le header
+        // Slider horizontal avec header dans un container vertical
+        const hContainer = new BABYLON.GUI.StackPanel();
+        hContainer.isVertical = true;
+        hContainer.width = '85%';
+        hContainer.height = '50%';
+
         if (config.header) {
-          const headerConfig = {
-            type: 'TextBlock',
-            name: config.header.name,
-            class: 'header',
-            properties: {
-              text: config.header.text,
-              color: 'white',
-              fontSize: 14,
-              h: 20
-            }
-          };
-          const header = this._createTextBlock(headerConfig);
-          parent.addControl(header);
+          const hHeader = new BABYLON.GUI.TextBlock();
+          hHeader.name = 'header_' + config.name;
+          hHeader.text = config.header.text || '';
+          hHeader.color = 'white';
+          hHeader.fontSize = 14;
+          hHeader.height = '20px';
+          hContainer.addControl(hHeader);
         }
-        control = this._createSlider(config);
-        break;
+
+        const hSlider = this._createSlider(config);
+        hContainer.addControl(hSlider);
+        parent.addControl(hContainer);
+        return null;
 
       default:
         console.warn('Unknown control type:', config.type);

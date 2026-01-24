@@ -842,147 +842,70 @@ function convertMeshToPaths(positions, indices) {
 
 	const totalVertices = vertices.length;
 
-	if (indices && indices.length > 0) {
-		const topologyPaths = buildPathsFromAdjacency(vertices, indices);
-		if (topologyPaths && topologyPaths.length >= 2 && topologyPaths[0].length >= 2) {
-			console.log("Paths from adjacency: " + topologyPaths.length + " x " + topologyPaths[0].length);
-			return topologyPaths;
+	let gridV = detectStepFromIndices(indices);
+
+	if (!gridV || totalVertices % gridV !== 0) {
+		gridV = Math.round(Math.sqrt(totalVertices));
+		while (totalVertices % gridV !== 0 && gridV > 2) {
+			gridV--;
 		}
 	}
 
-	const gridV = Math.round(Math.sqrt(totalVertices));
-	const gridU = Math.floor(totalVertices / gridV);
-	console.log("Fallback grid: " + gridU + " x " + gridV);
-	return buildPaths(vertices, gridU, gridV);
-}
+	const gridU = totalVertices / gridV;
 
-function buildPathsFromAdjacency(vertices, indices) {
-	const edges = new Map();
-
-	for (let i = 0; i < indices.length; i += 3) {
-		const tri = [indices[i], indices[i + 1], indices[i + 2]];
-		for (let j = 0; j < 3; j++) {
-			const a = tri[j], b = tri[(j + 1) % 3];
-			const key = Math.min(a, b) + "_" + Math.max(a, b);
-			edges.set(key, (edges.get(key) || 0) + 1);
-		}
-	}
-
-	const adjacency = new Map();
-	for (let i = 0; i < vertices.length; i++) {
-		adjacency.set(i, []);
-	}
-
-	for (const [key, count] of edges) {
-		const [a, b] = key.split("_").map(Number);
-		const dist = BABYLON.Vector3.Distance(vertices[a], vertices[b]);
-		adjacency.get(a).push({ neighbor: b, dist, shared: count });
-		adjacency.get(b).push({ neighbor: a, dist, shared: count });
-	}
-
-	for (const [v, neighbors] of adjacency) {
-		neighbors.sort((a, b) => a.dist - b.dist);
-	}
-
-	let cornerVertex = -1;
-	let minNeighbors = Infinity;
-	for (const [v, neighbors] of adjacency) {
-		if (neighbors.length > 0 && neighbors.length < minNeighbors) {
-			minNeighbors = neighbors.length;
-			cornerVertex = v;
-		}
-	}
-
-	if (cornerVertex === -1) return null;
-
-	const neighbors = adjacency.get(cornerVertex);
-	if (neighbors.length < 2) return null;
-
-	const dir1 = neighbors[0].neighbor;
-	const dir2 = neighbors[1].neighbor;
-
-	const firstRow = traverseRow(cornerVertex, dir1, adjacency, vertices);
-	console.log("First row length: " + firstRow.length);
-
-	if (firstRow.length < 2) return null;
+	console.log("Grid from indices step: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
 
 	const paths = [];
-	const globalVisited = new Set(firstRow);
-	let currentRow = firstRow;
-
-	while (currentRow.length > 0) {
-		paths.push(currentRow.map(idx => vertices[idx].clone()));
-
-		const nextRow = [];
-		for (const idx of currentRow) {
-			const neighbors = adjacency.get(idx);
-			let bestNext = -1;
-			let bestDist = Infinity;
-
-			for (const { neighbor, dist } of neighbors) {
-				if (!globalVisited.has(neighbor) && dist < bestDist) {
-					bestDist = dist;
-					bestNext = neighbor;
-				}
-			}
-
-			if (bestNext !== -1) {
-				nextRow.push(bestNext);
-				globalVisited.add(bestNext);
+	for (let i = 0; i < gridU; i++) {
+		const path = [];
+		for (let j = 0; j < gridV; j++) {
+			const idx = i * gridV + j;
+			if (idx < vertices.length) {
+				path.push(vertices[idx].clone());
 			}
 		}
-
-		if (nextRow.length === 0 || nextRow.length < currentRow.length * 0.5) break;
-		currentRow = nextRow;
+		if (path.length > 0) {
+			paths.push(path);
+		}
 	}
 
-	if (paths.length < 2) return null;
-
-	const pathsT = transposePaths(paths);
-	const cont1 = measurePathContinuity(paths);
-	const cont2 = measurePathContinuity(pathsT);
-	console.log("Adjacency continuity: paths=" + cont1.toFixed(4) + ", transposed=" + cont2.toFixed(4));
-
-	return cont1 <= cont2 ? paths : pathsT;
+	return paths;
 }
 
-function traverseRow(start, next, adjacency, vertices) {
-	const row = [start];
-	const visited = new Set([start]);
-	let current = next;
-	let prev = start;
+function detectStepFromIndices(indices) {
+	if (!indices || indices.length < 6) return null;
 
-	while (current !== undefined && !visited.has(current)) {
-		row.push(current);
-		visited.add(current);
+	const stepCounts = new Map();
 
-		const direction = vertices[current].subtract(vertices[prev]).normalize();
-		const neighbors = adjacency.get(current);
+	for (let i = 0; i < Math.min(indices.length, 300); i += 3) {
+		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
 
-		let bestNext = -1;
-		let bestScore = -Infinity;
+		const diffs = [
+			Math.abs(a - b),
+			Math.abs(b - c),
+			Math.abs(a - c)
+		];
 
-		for (const { neighbor, dist } of neighbors) {
-			if (visited.has(neighbor)) continue;
-
-			const toNeighbor = vertices[neighbor].subtract(vertices[current]).normalize();
-			const dot = BABYLON.Vector3.Dot(direction, toNeighbor);
-
-			if (dot > 0.7 && dot > bestScore) {
-				bestScore = dot;
-				bestNext = neighbor;
+		for (const diff of diffs) {
+			if (diff > 1) {
+				stepCounts.set(diff, (stepCounts.get(diff) || 0) + 1);
 			}
 		}
-
-		prev = current;
-		current = bestNext === -1 ? undefined : bestNext;
 	}
 
-	return row;
-}
+	let bestStep = null;
+	let bestCount = 0;
 
-function transposePaths(paths) {
-	if (paths.length === 0 || paths[0].length === 0) return paths;
+	for (const [step, count] of stepCounts) {
+		if (count > bestCount) {
+			bestCount = count;
+			bestStep = step;
+		}
+	}
+
+	console.log("Detected step from indices: " + bestStep + " (count: " + bestCount + ")");
+	return bestStep;
+}
 
 	const transposed = [];
 	for (let j = 0; j < paths[0].length; j++) {

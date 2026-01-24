@@ -860,6 +860,24 @@ function convertMeshToPaths(positions, indices) {
 
 	console.log("Grid detected: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
 
+	const pathsUV = buildPaths(vertices, gridU, gridV);
+	const pathsVU = buildPaths(vertices, gridV, gridU);
+
+	const continuityUV = measurePathContinuity(pathsUV);
+	const continuityVU = measurePathContinuity(pathsVU);
+
+	console.log("Continuity UV: " + continuityUV.toFixed(2) + ", VU: " + continuityVU.toFixed(2));
+
+	let paths = continuityUV <= continuityVU ? pathsUV : pathsVU;
+
+	if (paths.length < 2 || paths[0].length < 2) {
+		return reorganizeVerticesByPosition(vertices);
+	}
+
+	return paths;
+}
+
+function buildPaths(vertices, gridU, gridV) {
 	const paths = [];
 	for (let i = 0; i < gridU; i++) {
 		const path = [];
@@ -873,12 +891,28 @@ function convertMeshToPaths(positions, indices) {
 			paths.push(path);
 		}
 	}
+	return paths;
+}
 
-	if (paths.length < 2 || paths[0].length < 2) {
-		return reorganizeVerticesByPosition(vertices);
+function measurePathContinuity(paths) {
+	let totalDistance = 0;
+	let count = 0;
+
+	for (const path of paths) {
+		for (let i = 1; i < path.length; i++) {
+			totalDistance += BABYLON.Vector3.Distance(path[i - 1], path[i]);
+			count++;
+		}
 	}
 
-	return paths;
+	for (let j = 0; j < paths[0].length; j++) {
+		for (let i = 1; i < paths.length; i++) {
+			totalDistance += BABYLON.Vector3.Distance(paths[i - 1][j], paths[i][j]);
+			count++;
+		}
+	}
+
+	return count > 0 ? totalDistance / count : Infinity;
 }
 
 function detectGridSizeFromIndices(indices, totalVertices) {

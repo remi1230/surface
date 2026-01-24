@@ -907,21 +907,6 @@ function detectStepFromIndices(indices) {
 	return bestStep;
 }
 
-	const transposed = [];
-	for (let j = 0; j < paths[0].length; j++) {
-		const newPath = [];
-		for (let i = 0; i < paths.length; i++) {
-			if (j < paths[i].length) {
-				newPath.push(paths[i][j]);
-			}
-		}
-		if (newPath.length > 0) {
-			transposed.push(newPath);
-		}
-	}
-	return transposed;
-}
-
 function buildPaths(vertices, gridU, gridV) {
 	const paths = [];
 	for (let i = 0; i < gridU; i++) {

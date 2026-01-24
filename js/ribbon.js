@@ -763,13 +763,29 @@ function importOBJMesh() {
 				return;
 			}
 
-			const importedMesh = result.meshes[0];
-			const positions = importedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-			const indices = importedMesh.getIndices();
+			let positions = null;
+			let indices = null;
+			let meshWithData = null;
+
+			for (const mesh of result.meshes) {
+				const pos = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+				if (pos && pos.length > 0) {
+					if (!positions) {
+						positions = pos;
+						indices = mesh.getIndices();
+						meshWithData = mesh;
+					} else {
+						const newPositions = new Float32Array(positions.length + pos.length);
+						newPositions.set(positions);
+						newPositions.set(pos, positions.length);
+						positions = newPositions;
+					}
+				}
+			}
 
 			if (!positions || positions.length === 0) {
 				console.error("No vertex data in imported mesh");
-				importedMesh.dispose();
+				result.meshes.forEach(m => m.dispose());
 				document.body.removeChild(input);
 				URL.revokeObjectURL(fileURL);
 				return;
@@ -779,13 +795,13 @@ function importOBJMesh() {
 
 			if (paths.length === 0 || paths[0].length === 0) {
 				console.error("Could not convert mesh to valid paths");
-				importedMesh.dispose();
+				result.meshes.forEach(m => m.dispose());
 				document.body.removeChild(input);
 				URL.revokeObjectURL(fileURL);
 				return;
 			}
 
-			importedMesh.dispose();
+			result.meshes.forEach(m => m.dispose());
 
 			ribbonDispose();
 

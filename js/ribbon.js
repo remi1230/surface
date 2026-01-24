@@ -843,123 +843,160 @@ function convertMeshToPaths(positions, indices) {
 	const totalVertices = vertices.length;
 
 	if (indices && indices.length > 0) {
-		const topologyPaths = buildPathsFromTopology(vertices, indices, totalVertices);
+		const topologyPaths = buildPathsFromAdjacency(vertices, indices);
 		if (topologyPaths && topologyPaths.length >= 2 && topologyPaths[0].length >= 2) {
-			console.log("Paths from topology: " + topologyPaths.length + " x " + topologyPaths[0].length);
+			console.log("Paths from adjacency: " + topologyPaths.length + " x " + topologyPaths[0].length);
 			return topologyPaths;
 		}
 	}
 
-	let gridV = detectGridSizeFromIndices(indices, totalVertices);
-	let gridU = Math.floor(totalVertices / gridV);
-
-	if (gridU * gridV !== totalVertices) {
-		const sqrtTotal = Math.sqrt(totalVertices);
-		gridV = Math.round(sqrtTotal);
-		gridU = Math.round(sqrtTotal);
-
-		for (let v = gridV; v >= 2; v--) {
-			if (totalVertices % v === 0) {
-				gridV = v;
-				gridU = totalVertices / v;
-				break;
-			}
-		}
-	}
-
-	console.log("Grid detected: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
-
-	const pathsUV = buildPaths(vertices, gridU, gridV);
-	const pathsVU = buildPaths(vertices, gridV, gridU);
-
-	const continuityUV = measurePathContinuity(pathsUV);
-	const continuityVU = measurePathContinuity(pathsVU);
-
-	console.log("Continuity UV: " + continuityUV.toFixed(2) + ", VU: " + continuityVU.toFixed(2));
-
-	let paths = continuityUV <= continuityVU ? pathsUV : pathsVU;
-
-	if (paths.length < 2 || paths[0].length < 2) {
-		return reorganizeVerticesByPosition(vertices);
-	}
-
-	return paths;
+	const gridV = Math.round(Math.sqrt(totalVertices));
+	const gridU = Math.floor(totalVertices / gridV);
+	console.log("Fallback grid: " + gridU + " x " + gridV);
+	return buildPaths(vertices, gridU, gridV);
 }
 
-function buildPathsFromTopology(vertices, indices, totalVertices) {
-	const adjacency = new Map();
+function buildPathsFromAdjacency(vertices, indices) {
+	const edges = new Map();
 
 	for (let i = 0; i < indices.length; i += 3) {
-		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
-
-		if (!adjacency.has(a)) adjacency.set(a, new Set());
-		if (!adjacency.has(b)) adjacency.set(b, new Set());
-		if (!adjacency.has(c)) adjacency.set(c, new Set());
-
-		adjacency.get(a).add(b).add(c);
-		adjacency.get(b).add(a).add(c);
-		adjacency.get(c).add(a).add(b);
-	}
-
-	const stepCounts = new Map();
-	for (let i = 0; i < Math.min(indices.length, 1000); i += 3) {
-		const tri = [indices[i], indices[i + 1], indices[i + 2]].sort((x, y) => x - y);
-		const step = tri[1] - tri[0];
-		if (step > 1) {
-			stepCounts.set(step, (stepCounts.get(step) || 0) + 1);
+		const tri = [indices[i], indices[i + 1], indices[i + 2]];
+		for (let j = 0; j < 3; j++) {
+			const a = tri[j], b = tri[(j + 1) % 3];
+			const key = Math.min(a, b) + "_" + Math.max(a, b);
+			edges.set(key, (edges.get(key) || 0) + 1);
 		}
 	}
 
-	let rowStep = 1;
-	let maxCount = 0;
-	for (const [step, count] of stepCounts) {
-		if (count > maxCount && totalVertices % step === 0) {
-			maxCount = count;
-			rowStep = step;
+	const adjacency = new Map();
+	for (let i = 0; i < vertices.length; i++) {
+		adjacency.set(i, []);
+	}
+
+	for (const [key, count] of edges) {
+		const [a, b] = key.split("_").map(Number);
+		const dist = BABYLON.Vector3.Distance(vertices[a], vertices[b]);
+		adjacency.get(a).push({ neighbor: b, dist, shared: count });
+		adjacency.get(b).push({ neighbor: a, dist, shared: count });
+	}
+
+	for (const [v, neighbors] of adjacency) {
+		neighbors.sort((a, b) => a.dist - b.dist);
+	}
+
+	let cornerVertex = -1;
+	let minNeighbors = Infinity;
+	for (const [v, neighbors] of adjacency) {
+		if (neighbors.length > 0 && neighbors.length < minNeighbors) {
+			minNeighbors = neighbors.length;
+			cornerVertex = v;
 		}
 	}
 
-	if (rowStep === 1) {
-		return null;
-	}
+	if (cornerVertex === -1) return null;
 
-	const gridV = rowStep;
-	const gridU = totalVertices / gridV;
+	const neighbors = adjacency.get(cornerVertex);
+	if (neighbors.length < 2) return null;
+
+	const dir1 = neighbors[0].neighbor;
+	const dir2 = neighbors[1].neighbor;
+
+	const firstRow = traverseRow(cornerVertex, dir1, adjacency, vertices);
+	console.log("First row length: " + firstRow.length);
+
+	if (firstRow.length < 2) return null;
 
 	const paths = [];
-	for (let i = 0; i < gridU; i++) {
-		const path = [];
-		for (let j = 0; j < gridV; j++) {
-			const idx = i * gridV + j;
-			if (idx < vertices.length) {
-				path.push(vertices[idx].clone());
+	const globalVisited = new Set(firstRow);
+	let currentRow = firstRow;
+
+	while (currentRow.length > 0) {
+		paths.push(currentRow.map(idx => vertices[idx].clone()));
+
+		const nextRow = [];
+		for (const idx of currentRow) {
+			const neighbors = adjacency.get(idx);
+			let bestNext = -1;
+			let bestDist = Infinity;
+
+			for (const { neighbor, dist } of neighbors) {
+				if (!globalVisited.has(neighbor) && dist < bestDist) {
+					bestDist = dist;
+					bestNext = neighbor;
+				}
+			}
+
+			if (bestNext !== -1) {
+				nextRow.push(bestNext);
+				globalVisited.add(bestNext);
 			}
 		}
-		if (path.length > 0) {
-			paths.push(path);
-		}
+
+		if (nextRow.length === 0 || nextRow.length < currentRow.length * 0.5) break;
+		currentRow = nextRow;
 	}
 
-	const pathsTransposed = [];
-	for (let j = 0; j < gridV; j++) {
-		const path = [];
-		for (let i = 0; i < gridU; i++) {
-			const idx = i * gridV + j;
-			if (idx < vertices.length) {
-				path.push(vertices[idx].clone());
-			}
-		}
-		if (path.length > 0) {
-			pathsTransposed.push(path);
-		}
-	}
+	if (paths.length < 2) return null;
 
+	const pathsT = transposePaths(paths);
 	const cont1 = measurePathContinuity(paths);
-	const cont2 = measurePathContinuity(pathsTransposed);
+	const cont2 = measurePathContinuity(pathsT);
+	console.log("Adjacency continuity: paths=" + cont1.toFixed(4) + ", transposed=" + cont2.toFixed(4));
 
-	console.log("Topology continuity: normal=" + cont1.toFixed(2) + ", transposed=" + cont2.toFixed(2));
+	return cont1 <= cont2 ? paths : pathsT;
+}
 
-	return cont1 <= cont2 ? paths : pathsTransposed;
+function traverseRow(start, next, adjacency, vertices) {
+	const row = [start];
+	const visited = new Set([start]);
+	let current = next;
+	let prev = start;
+
+	while (current !== undefined && !visited.has(current)) {
+		row.push(current);
+		visited.add(current);
+
+		const direction = vertices[current].subtract(vertices[prev]).normalize();
+		const neighbors = adjacency.get(current);
+
+		let bestNext = -1;
+		let bestScore = -Infinity;
+
+		for (const { neighbor, dist } of neighbors) {
+			if (visited.has(neighbor)) continue;
+
+			const toNeighbor = vertices[neighbor].subtract(vertices[current]).normalize();
+			const dot = BABYLON.Vector3.Dot(direction, toNeighbor);
+
+			if (dot > 0.7 && dot > bestScore) {
+				bestScore = dot;
+				bestNext = neighbor;
+			}
+		}
+
+		prev = current;
+		current = bestNext === -1 ? undefined : bestNext;
+	}
+
+	return row;
+}
+
+function transposePaths(paths) {
+	if (paths.length === 0 || paths[0].length === 0) return paths;
+
+	const transposed = [];
+	for (let j = 0; j < paths[0].length; j++) {
+		const newPath = [];
+		for (let i = 0; i < paths.length; i++) {
+			if (j < paths[i].length) {
+				newPath.push(paths[i][j]);
+			}
+		}
+		if (newPath.length > 0) {
+			transposed.push(newPath);
+		}
+	}
+	return transposed;
 }
 
 function buildPaths(vertices, gridU, gridV) {

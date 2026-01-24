@@ -841,24 +841,24 @@ function convertMeshToPaths(positions, indices) {
 	}
 
 	const totalVertices = vertices.length;
-	let gridU = Math.round(Math.sqrt(totalVertices));
-	let gridV = Math.round(totalVertices / gridU);
+	let gridV = detectGridSizeFromIndices(indices, totalVertices);
+	let gridU = Math.floor(totalVertices / gridV);
 
-	while (gridU * gridV > totalVertices) {
-		if (gridU > gridV) gridU--;
-		else gridV--;
-	}
-	while (gridU * gridV < totalVertices && gridU * (gridV + 1) <= totalVertices) {
-		gridV++;
-	}
+	if (gridU * gridV !== totalVertices) {
+		const sqrtTotal = Math.sqrt(totalVertices);
+		gridV = Math.round(sqrtTotal);
+		gridU = Math.round(sqrtTotal);
 
-	if (indices && indices.length > 0) {
-		const detectedGrid = detectGridFromIndices(indices, totalVertices);
-		if (detectedGrid) {
-			gridU = detectedGrid.u;
-			gridV = detectedGrid.v;
+		for (let v = gridV; v >= 2; v--) {
+			if (totalVertices % v === 0) {
+				gridV = v;
+				gridU = totalVertices / v;
+				break;
+			}
 		}
 	}
+
+	console.log("Grid detected: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
 
 	const paths = [];
 	for (let i = 0; i < gridU; i++) {
@@ -881,29 +881,51 @@ function convertMeshToPaths(positions, indices) {
 	return paths;
 }
 
-function detectGridFromIndices(indices, totalVertices) {
-	const adjacency = new Map();
-
-	for (let i = 0; i < indices.length; i += 3) {
-		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
-		if (!adjacency.has(a)) adjacency.set(a, new Set());
-		if (!adjacency.has(b)) adjacency.set(b, new Set());
-		if (!adjacency.has(c)) adjacency.set(c, new Set());
-		adjacency.get(a).add(b).add(c);
-		adjacency.get(b).add(a).add(c);
-		adjacency.get(c).add(a).add(b);
+function detectGridSizeFromIndices(indices, totalVertices) {
+	if (!indices || indices.length < 6) {
+		return Math.round(Math.sqrt(totalVertices));
 	}
 
-	for (let v = 2; v <= Math.sqrt(totalVertices) * 2; v++) {
-		if (totalVertices % v === 0) {
-			const u = totalVertices / v;
-			if (u >= 2 && v >= 2) {
-				return { u, v };
+	const stepCounts = new Map();
+
+	for (let i = 0; i < Math.min(indices.length, 600); i += 3) {
+		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
+		const sorted = [a, b, c].sort((x, y) => x - y);
+
+		const diff1 = sorted[1] - sorted[0];
+		const diff2 = sorted[2] - sorted[1];
+		const diff3 = sorted[2] - sorted[0];
+
+		if (diff1 > 1 && diff1 < totalVertices / 2) {
+			stepCounts.set(diff1, (stepCounts.get(diff1) || 0) + 1);
+		}
+		if (diff2 > 1 && diff2 < totalVertices / 2) {
+			stepCounts.set(diff2, (stepCounts.get(diff2) || 0) + 1);
+		}
+		if (diff3 > 1 && diff3 < totalVertices / 2 && diff3 !== diff1 + diff2) {
+			stepCounts.set(diff3, (stepCounts.get(diff3) || 0) + 1);
+		}
+	}
+
+	let bestStep = Math.round(Math.sqrt(totalVertices));
+	let bestCount = 0;
+
+	for (const [step, count] of stepCounts) {
+		if (totalVertices % step === 0 || totalVertices % (step - 1) === 0 || totalVertices % (step + 1) === 0) {
+			if (count > bestCount) {
+				bestCount = count;
+				if (totalVertices % step === 0) {
+					bestStep = step;
+				} else if (totalVertices % (step - 1) === 0) {
+					bestStep = step - 1;
+				} else {
+					bestStep = step + 1;
+				}
 			}
 		}
 	}
 
-	return null;
+	return bestStep;
 }
 
 function reorganizeVerticesByPosition(vertices) {

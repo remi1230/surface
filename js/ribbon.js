@@ -750,58 +750,27 @@ function importOBJMesh() {
 			return;
 		}
 
-		const fileURL = URL.createObjectURL(file);
 		const fileName = file.name;
 
 		try {
-			const result = await BABYLON.SceneLoader.ImportMeshAsync("", fileURL, "", glo.scene, null, ".obj");
+			const text = await file.text();
+			const { vertices, faces } = parseOBJ(text);
 
-			if (result.meshes.length === 0) {
-				console.error("No mesh found in OBJ file");
+			console.log("OBJ parsed: " + vertices.length + " vertices, " + faces.length + " faces");
+
+			if (vertices.length === 0) {
+				console.error("No vertices found in OBJ file");
 				document.body.removeChild(input);
-				URL.revokeObjectURL(fileURL);
 				return;
 			}
 
-			let positions = null;
-			let indices = null;
-			let meshWithData = null;
-
-			for (const mesh of result.meshes) {
-				const pos = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-				if (pos && pos.length > 0) {
-					if (!positions) {
-						positions = pos;
-						indices = mesh.getIndices();
-						meshWithData = mesh;
-					} else {
-						const newPositions = new Float32Array(positions.length + pos.length);
-						newPositions.set(positions);
-						newPositions.set(pos, positions.length);
-						positions = newPositions;
-					}
-				}
-			}
-
-			if (!positions || positions.length === 0) {
-				console.error("No vertex data in imported mesh");
-				result.meshes.forEach(m => m.dispose());
-				document.body.removeChild(input);
-				URL.revokeObjectURL(fileURL);
-				return;
-			}
-
-			const paths = convertMeshToPaths(positions, indices);
+			const paths = convertOBJToPaths(vertices, faces);
 
 			if (paths.length === 0 || paths[0].length === 0) {
 				console.error("Could not convert mesh to valid paths");
-				result.meshes.forEach(m => m.dispose());
 				document.body.removeChild(input);
-				URL.revokeObjectURL(fileURL);
 				return;
 			}
-
-			result.meshes.forEach(m => m.dispose());
 
 			ribbonDispose();
 
@@ -828,10 +797,102 @@ function importOBJMesh() {
 		}
 
 		document.body.removeChild(input);
-		URL.revokeObjectURL(fileURL);
 	};
 
 	input.click();
+}
+
+function parseOBJ(text) {
+	const vertices = [];
+	const faces = [];
+
+	const lines = text.split('\n');
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith('v ')) {
+			const parts = trimmed.split(/\s+/);
+			vertices.push(new BABYLON.Vector3(
+				parseFloat(parts[1]),
+				parseFloat(parts[2]),
+				parseFloat(parts[3])
+			));
+		} else if (trimmed.startsWith('f ')) {
+			const parts = trimmed.split(/\s+/).slice(1);
+			const faceIndices = parts.map(p => {
+				const idx = parseInt(p.split('/')[0]);
+				return idx > 0 ? idx - 1 : vertices.length + idx;
+			});
+			faces.push(faceIndices);
+		}
+	}
+
+	return { vertices, faces };
+}
+
+function convertOBJToPaths(vertices, faces) {
+	const totalVertices = vertices.length;
+
+	let gridV = detectStepFromFaces(faces, totalVertices);
+
+	if (!gridV || totalVertices % gridV !== 0) {
+		gridV = Math.round(Math.sqrt(totalVertices));
+		while (totalVertices % gridV !== 0 && gridV > 2) {
+			gridV--;
+		}
+	}
+
+	const gridU = totalVertices / gridV;
+
+	console.log("Grid: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
+
+	const paths = [];
+	for (let i = 0; i < gridU; i++) {
+		const path = [];
+		for (let j = 0; j < gridV; j++) {
+			path.push(vertices[i * gridV + j].clone());
+		}
+		paths.push(path);
+	}
+
+	return paths;
+}
+
+function detectStepFromFaces(faces, totalVertices) {
+	if (!faces || faces.length === 0) return null;
+
+	const stepCounts = new Map();
+
+	for (let i = 0; i < Math.min(faces.length, 200); i++) {
+		const face = faces[i];
+		for (let j = 0; j < face.length; j++) {
+			for (let k = j + 1; k < face.length; k++) {
+				const diff = Math.abs(face[j] - face[k]);
+				if (diff > 1) {
+					stepCounts.set(diff, (stepCounts.get(diff) || 0) + 1);
+				}
+			}
+		}
+	}
+
+	let bestStep = null;
+	let bestCount = 0;
+
+	for (const [step, count] of stepCounts) {
+		if (count > bestCount) {
+			bestCount = count;
+			bestStep = step;
+		}
+	}
+
+	if (bestStep && totalVertices % bestStep !== 0) {
+		if (totalVertices % (bestStep + 1) === 0) {
+			bestStep = bestStep + 1;
+		}
+	}
+
+	console.log("Detected step from faces: " + bestStep);
+	return bestStep;
 }
 
 function convertMeshToPaths(positions, indices) {

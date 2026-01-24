@@ -40,8 +40,6 @@ const combinedVertexShader = `#version 300 es
     // Uniforms
     uniform mat4 worldViewProjection;
     uniform mat4 world;
-    uniform vec4 blendU;
-    uniform vec3 blendO;
     uniform float scaleNorm;
     uniform float w;
     uniform float stepU;
@@ -241,27 +239,6 @@ const combinedVertexShader = `#version 300 es
         if (deformationEnabled == 1) {
             float r = computeDeformation(u, v, x, y, z, xN, yN, zN, O, T, d, k, p, t, n, i, j) * scaleNorm;
             finalPosition = position + norm * r;
-
-            // Appliquer les rotations séparées sur chaque axe
-            // blendU.x/y/z = amplitude de rotation sur chaque axe, multipliée par u
-            if(blendU.x != 0.0){
-                finalPosition = rotateAxis(vec3(1.0, 0.0, 0.0), blendU.x * u) * finalPosition;
-            }
-            if(blendU.y != 0.0){
-                finalPosition = rotateAxis(vec3(0.0, 1.0, 0.0), blendU.y * u) * finalPosition;
-            }
-            if(blendU.z != 0.0){
-                finalPosition = rotateAxis(vec3(0.0, 0.0, 1.0), blendU.z * u) * finalPosition;
-            }
-            if(blendO.x != 0.0){
-                finalPosition = rotateAxis(vec3(1.0, 0.0, 0.0), blendO.x * O) * finalPosition;
-            }
-            if(blendO.y != 0.0){
-                finalPosition = rotateAxis(vec3(0.0, 1.0, 0.0), blendO.y * O) * finalPosition;
-            }
-            if(blendO.z != 0.0){
-                finalPosition = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * finalPosition;
-            }
         }
 
         gl_Position = worldViewProjection * vec4(finalPosition, 1.0);

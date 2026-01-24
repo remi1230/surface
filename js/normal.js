@@ -274,7 +274,6 @@ async function drawSliderNormalEquations(paths = glo.curves.paths.slice(), norm 
 
 	ribbonDispose(false);
 	glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon("NormRibbonBySlider", {pathArray: glo.curves.paths, sideOrientation:1, updatable: true, }, glo.scene);
-	makeLineSystem();
 }
 
 function makeCommonCurveFunctions(){

@@ -19,6 +19,7 @@ $( document ).ready(function() {
   getPathsInfos();
   otherDesigns();
   paramRadios();
+  styleUI();
 });
 
 $("#univers_div").mouseenter(function(){
@@ -172,7 +173,6 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
             case "q": 
                glo.withTime = !glo.withTime;
                w = 0;
-               makeLineSystem(true);
             break;
             case "x": case "y": case "z":
                negativeMeshGeometry(key);
@@ -314,7 +314,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "a":
-                  applyFontToAll(glo.fontUIs.next().value);
+                  styleUI();
 
                break;
                case "ù":
@@ -335,10 +335,8 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
       
                   if (glo.editorGeometryIsOpened) {
                      openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, combinedVertexShader, getById('editor-geometry-container'));
-                     if(!glo.shaderMaterial){
-                        glo.shaderMaterial = true;
-                        giveMaterialToMesh();
-                     }
+                     giveMaterialToMesh();
+                     
                   } else {
                      glo.editorWindowGeometry.style.display = 'none';
                   }
@@ -516,14 +514,14 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                case "5":
                   e.preventDefault();
                   e.stopPropagation();
-                  glo.shaderMaterial = !glo.shaderMaterial;
                   giveMaterialToMesh();
 
                   break;
                case "6":
-                  glo.shaderMaterial = !glo.shaderMaterial;
-                  if(glo.shaderMaterial){ openShaderWindow(); }
-                  else{ glo.editorWindow.style.display = 'none'; }
+                  e.preventDefault();
+                  e.stopPropagation();
+                  glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
+                  if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
                   giveMaterialToMesh();
 
                   break;
@@ -632,9 +630,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
          switch (key) {
             case "w":
             case "W":
-            glo.normalMode = !glo.normalMode;
-            if(glo.normalMode){ resetInputsRibbonEquations(); drawNormalEquations(); }
-            else{ restoreInputsRibbonEquations(); make_curves(); }
+            //FREE
 
                break;
             case "C":

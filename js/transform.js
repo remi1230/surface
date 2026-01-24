@@ -319,7 +319,6 @@ async function applyDeformation(upd = false) {
 		});
 		glo.ribbon.averageClosedNormals();
 		if(glo.deformWithMat){ giveMaterialToMesh(); }
-		if (glo.lines_visible) { makeLineSystem(true, newPaths); }
 		applyTransformations();
 	}
 	else glo.curves.paths = newPaths;
@@ -596,27 +595,42 @@ function flatRibbon(){
 
 		glo.curves.paths = glo.ribbon.getPaths();
 		glo.lines = glo.curves.paths;
-		makeLineSystem();
 	}
 }
 
-function blendPos(x, y, z, variable, val, coeff = 0.01){
+function blendPos(pos, variable, val, coeff = 0.01){
 	if(glo.params.blender[variable].x || glo.params.blender[variable].y || glo.params.blender[variable].z){
 		val*=coeff*glo.params.blender.force;
-		var {x, y, z} = rotateByBabylonMatrix({x, y, z}, val * glo.params.blender[variable].x, val * glo.params.blender[variable].y, val * glo.params.blender[variable].z);
+		pos = rotateByBabylonMatrix(pos, val * glo.params.blender[variable].x, val * glo.params.blender[variable].y, val * glo.params.blender[variable].z);
 	}
 
-	return {x, y, z};
+	return pos;
 }
 
-function blendPosAll(x, y, z, u, v, O, cosu, cosv){
-	var {x, y, z} = blendPos(x, y, z, 'u', u);
-	var {x, y, z} = blendPos(x, y, z, 'v', v);
-	var {x, y, z} = blendPos(x, y, z, 'O', O, 0.1);
-	var {x, y, z} = blendPos(x, y, z, 'cu', cosu, 0.1);
-	var {x, y, z} = blendPos(x, y, z, 'cv', cosv, 0.1);
+function blendPosAll(pos, u, O){
+	pos = blendPos(pos, 'u', u);
+	pos = blendPos(pos, 'O', O, 0.1);
 
-	return {x, y, z};
+	return pos;
+}
+
+async function blendMesh(paths = glo.ribbon.savedRibbon ? glo.ribbon.savedRibbon.getPaths() : glo.ribbon.getPaths()){
+	let u = -1;
+	let newPaths = paths.map(line => {
+		u++;
+		return line.map(point => {
+			const O   = Math.asin(point.y / Math.hypot(point.x, point.y, point.z));
+			const pos = blendPosAll(point, u, O);
+			return new BABYLON.Vector3(pos.x, pos.y, pos.z);
+		});
+	});
+
+	glo.curves.paths = newPaths;
+	if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
+	await BABYLON.MeshBuilder.CreateRibbon("blendRibbon", {
+		pathArray: newPaths,
+		instance: glo.ribbon
+	});
 }
 
 // Twist classique autour de Y
@@ -911,9 +925,7 @@ async function inverseMeshGeometry(){
 	glo.curves.paths = newCurves;
 	glo.lines = glo.curves.paths;
 
-	if(!glo.normalMode){ make_ribbon(); }
-    else{ drawNormalEquations(); }
-	makeLineSystem();
+	make_ribbon();
 }
 
 async function negativeMeshGeometry(axis){
@@ -944,9 +956,7 @@ async function negativeMeshGeometry(axis){
 	glo.curves.paths = newCurves;
 	glo.lines = glo.curves.paths;
 
-	if(!glo.normalMode){ make_ribbon(); }
-    else{ drawNormalEquations(); }
-	makeLineSystem();
+	make_ribbon();
 }
 
 async function rotatePathsByEachCenter(alpha = glo.params.functionIt.rotLine.alpha, beta = glo.params.functionIt.rotLine.beta, theta = glo.params.functionIt.rotLine.theta){

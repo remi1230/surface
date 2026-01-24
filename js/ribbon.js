@@ -181,6 +181,8 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         const norm = glo.params.functionIt.norm;
 
+		//if(isBlender()){ await blendMesh(); }
+
         //if (isDel()) { await delInRibbon(); }
 
         if (glo.params.fractalize.actived) {
@@ -203,13 +205,7 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 		if (glo.isClosedArray) { glo.ribbon.averageClosedNormals(); }
 
-		if (symmetrize && isSym()) {
-            await makeSymmetrizeRibbon();
-        }
-
-		//console.log(glo.ribbon.getVerticesData(BABYLON.VertexBuffer.UVKind));
-
-        if (glo.lines_visible && !glo.shaderMaterial){ makeLineSystem(updateRibbon); }
+		if (symmetrize && isSym()) await makeSymmetrizeRibbon();
 
         if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 
@@ -330,10 +326,7 @@ async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false 
 	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
 	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
 
-	if(!glo.normalMode){  await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); }
-	else{
-		glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); glo.fromSlider = false; drawNormalEquations();
-	}
+	await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); 
 }
 
 function makeLineSystem(upd = false, newPaths = false){
@@ -622,8 +615,6 @@ function cubeRibbon(){
 
 	glo.curves.paths = glo.ribbon.getPaths();
 	glo.lines        = glo.curves.paths;
-
-	makeLineSystem();
 }
 
 function fibonacciSphereRibbonSave(){

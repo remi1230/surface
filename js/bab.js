@@ -78,15 +78,6 @@ Game = function(canvasId) {
   const DEFORM_INTERVAL = 16; 
   glo.end_loop = false;
   _this.scene.executeWhenReady(function() {
-    /*engine.runRenderLoop(async function() {
-      if (glo.rotateType != 'none') { rotate_camera(); }
-      if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
-      if (glo.withTime) {
-        w+=wstep;
-        !glo.params.isTimeVariable ? await applyDeformation(true)  : await remakeRibbon();
-      }
-      _this.scene.render();
-    });*/
     engine.runRenderLoop(function() {
         const now = performance.now();
 
@@ -105,9 +96,9 @@ Game = function(canvasId) {
     });
   });
 
-  window.addEventListener("resize", function() {
+  /**window.addEventListener("resize", function() {
     glo.engine.resize();
-  }, false);
+  }, false);*/
 };
 
 Game.prototype = {

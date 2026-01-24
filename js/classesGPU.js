@@ -291,9 +291,24 @@ class WebGL2MeshComputer {
 			uniform float A, B, C, D, E, F, G, H, I, J, K, L;
 			uniform float w;
 			uniform vec3 uFirstPoint;
+			uniform vec4 blendU;
+			uniform vec3 blendO;
+			uniform int isBlend;
 
 			// Sortie pour Transform Feedback
 			out vec3 outPosition;
+
+			mat3 rotateAxis(vec3 axis, float angle) {
+				vec3 a = normalize(axis);
+				float c = cos(angle);
+				float s = sin(angle);
+				float t = 1.0 - c;
+				return mat3(
+					t*a.x*a.x + c,      t*a.x*a.y - s*a.z,  t*a.x*a.z + s*a.y,
+					t*a.x*a.y + s*a.z,  t*a.y*a.y + c,      t*a.y*a.z - s*a.x,
+					t*a.x*a.z - s*a.y,  t*a.y*a.z + s*a.x,  t*a.z*a.z + c
+				);
+			}
 
 			void main() {
 				float i = aIndex.x;
@@ -310,6 +325,17 @@ class WebGL2MeshComputer {
 				float n = i * (uStepsV + 1.0) + j;
 
 				${positionCalculation}
+
+				float R = length(outPosition);
+                float O = R > 0.0001 ? asin(outPosition.y / R) : 0.0;
+
+				// Application du blender si activé
+				outPosition = rotateAxis(vec3(1.0, 0.0, 0.0), blendU.x * u) * outPosition;
+				outPosition = rotateAxis(vec3(0.0, 1.0, 0.0), blendU.y * u) * outPosition;
+				outPosition = rotateAxis(vec3(0.0, 0.0, 1.0), blendU.z * u) * outPosition;
+				outPosition = rotateAxis(vec3(1.0, 0.0, 0.0), blendO.x * O) * outPosition;
+				outPosition = rotateAxis(vec3(0.0, 1.0, 0.0), blendO.y * O) * outPosition;
+				outPosition = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * outPosition;
 
 				// Position factice pour le vertex shader (non utilisée)
 				gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
@@ -429,12 +455,18 @@ class WebGL2MeshComputer {
 		gl.enableVertexAttribArray(aIndexLoc);
 		gl.vertexAttribPointer(aIndexLoc, 2, gl.FLOAT, false, 0, 0);
 
+		const isBlend = isBlender();
+		const blenderInfos = glo.params.blender;
+
 		// Uniforms
 		gl.uniform1f(gl.getUniformLocation(program, 'uMinU'), minU);
 		gl.uniform1f(gl.getUniformLocation(program, 'uStepU'), stepU);
 		gl.uniform1f(gl.getUniformLocation(program, 'uMinV'), minV);
 		gl.uniform1f(gl.getUniformLocation(program, 'uStepV'), stepV);
 		gl.uniform1f(gl.getUniformLocation(program, 'uStepsV'), stepsV);
+		gl.uniform1f(gl.getUniformLocation(program, 'isBlend'), isBlend ? 1.0 : 0.0);
+		gl.uniform4f(gl.getUniformLocation(program, 'blendU'), blenderInfos.u.x, blenderInfos.u.y, blenderInfos.u.z, blenderInfos.u.x + blenderInfos.u.y + blenderInfos.u.z);
+		gl.uniform3f(gl.getUniformLocation(program, 'blendO'), blenderInfos.O.x, blenderInfos.O.y, blenderInfos.O.z);
 		gl.uniform1f(gl.getUniformLocation(program, 'A'), A || 0);
 		gl.uniform1f(gl.getUniformLocation(program, 'B'), B || 0);
 		gl.uniform1f(gl.getUniformLocation(program, 'C'), C || 0);

@@ -536,7 +536,7 @@ var glo = {
 	fontUI: 'none',
 	fontUIs: function* (){
 	  var index = 0;
-	  var tab = ['BlinkMacSystemFont', 'Segoe UI', 'Roboto, sans-serif', 'ui-monospace, "Cascadia Code", "Consolas", monospace'];
+	  var tab = ['BlinkMacSystemFont', 'Poppins', 'Roboto, sans-serif', 'ui-monospace, "Cascadia Code", "Consolas", monospace'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }

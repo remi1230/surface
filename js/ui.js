@@ -910,3 +910,54 @@ function isBlender(){
 	}
 	return false;
 }
+
+function parseFontSize(fontSize) {
+    if (typeof fontSize === 'number') return fontSize;
+    return parseFloat(fontSize) || 0;
+}
+
+function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
+	if (control.textBlock) {
+        control.textBlock.fontFamily = fontFamily;
+        control.textBlock.fontWeight = fontWeight;
+        if (fontSizeToAdd) {
+            control.textBlock.fontSize = parseFontSize(control.textBlock.fontSize) + fontSizeToAdd + "px";
+        }
+    }
+    else if (control.fontFamily !== undefined) {
+        control.fontFamily = fontFamily;
+        control.fontWeight = fontWeight;
+        if (fontSizeToAdd) {
+            control.fontSize = parseFontSize(control.fontSize) + fontSizeToAdd + "px";
+        }
+    }
+}
+
+function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
+  glo.allControls.haveThisClass('header').haveNotThisClass('radio').forEach(control => {
+      applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
+  });
+}
+function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
+  glo.allControls.haveThisClass('button').forEach(control => {
+      applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
+  });
+}
+function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
+  glo.radios_formes.forEach(radio => {
+	const textBlock = radio.header.children[1];
+	if (textBlock) {
+		textBlock.fontFamily = fontFamily;
+		textBlock.fontWeight = fontWeight;
+		if (fontSizeToAdd) {
+			textBlock.fontSize = parseFontSize(textBlock.fontSize) + fontSizeToAdd - 0 + "px";
+		}
+	}
+ });
+}
+
+function styleUI(){		
+	applyFontToHeaders('Poppins', 300, -1);
+    applyFontToButtons('Poppins', 400, -1);
+    applyFontToRadio('Poppins', 300, -1);
+}

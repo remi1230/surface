@@ -841,6 +841,15 @@ function convertMeshToPaths(positions, indices) {
 	}
 
 	const totalVertices = vertices.length;
+
+	if (indices && indices.length > 0) {
+		const topologyPaths = buildPathsFromTopology(vertices, indices, totalVertices);
+		if (topologyPaths && topologyPaths.length >= 2 && topologyPaths[0].length >= 2) {
+			console.log("Paths from topology: " + topologyPaths.length + " x " + topologyPaths[0].length);
+			return topologyPaths;
+		}
+	}
+
 	let gridV = detectGridSizeFromIndices(indices, totalVertices);
 	let gridU = Math.floor(totalVertices / gridV);
 
@@ -875,6 +884,82 @@ function convertMeshToPaths(positions, indices) {
 	}
 
 	return paths;
+}
+
+function buildPathsFromTopology(vertices, indices, totalVertices) {
+	const adjacency = new Map();
+
+	for (let i = 0; i < indices.length; i += 3) {
+		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
+
+		if (!adjacency.has(a)) adjacency.set(a, new Set());
+		if (!adjacency.has(b)) adjacency.set(b, new Set());
+		if (!adjacency.has(c)) adjacency.set(c, new Set());
+
+		adjacency.get(a).add(b).add(c);
+		adjacency.get(b).add(a).add(c);
+		adjacency.get(c).add(a).add(b);
+	}
+
+	const stepCounts = new Map();
+	for (let i = 0; i < Math.min(indices.length, 1000); i += 3) {
+		const tri = [indices[i], indices[i + 1], indices[i + 2]].sort((x, y) => x - y);
+		const step = tri[1] - tri[0];
+		if (step > 1) {
+			stepCounts.set(step, (stepCounts.get(step) || 0) + 1);
+		}
+	}
+
+	let rowStep = 1;
+	let maxCount = 0;
+	for (const [step, count] of stepCounts) {
+		if (count > maxCount && totalVertices % step === 0) {
+			maxCount = count;
+			rowStep = step;
+		}
+	}
+
+	if (rowStep === 1) {
+		return null;
+	}
+
+	const gridV = rowStep;
+	const gridU = totalVertices / gridV;
+
+	const paths = [];
+	for (let i = 0; i < gridU; i++) {
+		const path = [];
+		for (let j = 0; j < gridV; j++) {
+			const idx = i * gridV + j;
+			if (idx < vertices.length) {
+				path.push(vertices[idx].clone());
+			}
+		}
+		if (path.length > 0) {
+			paths.push(path);
+		}
+	}
+
+	const pathsTransposed = [];
+	for (let j = 0; j < gridV; j++) {
+		const path = [];
+		for (let i = 0; i < gridU; i++) {
+			const idx = i * gridV + j;
+			if (idx < vertices.length) {
+				path.push(vertices[idx].clone());
+			}
+		}
+		if (path.length > 0) {
+			pathsTransposed.push(path);
+		}
+	}
+
+	const cont1 = measurePathContinuity(paths);
+	const cont2 = measurePathContinuity(pathsTransposed);
+
+	console.log("Topology continuity: normal=" + cont1.toFixed(2) + ", transposed=" + cont2.toFixed(2));
+
+	return cont1 <= cont2 ? paths : pathsTransposed;
 }
 
 function buildPaths(vertices, gridU, gridV) {

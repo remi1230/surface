@@ -377,6 +377,9 @@ function add_lines_and_dim_buttons(){
   add_button("but_dimension", "EXP", 60, 30, 10, 0, function(){
     exportModal();
   });
+  add_button("but_import_obj", "IMP", 60, 30, 10, 0, function(){
+    importOBJMesh();
+  });
 }
 function add_histo_buttons(){
   var panel = new BABYLON.GUI.StackPanel();

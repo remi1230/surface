@@ -736,6 +736,188 @@ async function exportMeshToSTL(mesh){
 	document.body.removeChild(link);
 }
 
+function importOBJMesh() {
+	const input = document.createElement('input');
+	input.type = 'file';
+	input.accept = '.obj';
+	input.style.display = 'none';
+	document.body.appendChild(input);
+
+	input.onchange = async function(event) {
+		const file = event.target.files[0];
+		if (!file) {
+			document.body.removeChild(input);
+			return;
+		}
+
+		const fileURL = URL.createObjectURL(file);
+		const fileName = file.name;
+
+		try {
+			const result = await BABYLON.SceneLoader.ImportMeshAsync("", fileURL, "", glo.scene, null, ".obj");
+
+			if (result.meshes.length === 0) {
+				console.error("No mesh found in OBJ file");
+				document.body.removeChild(input);
+				URL.revokeObjectURL(fileURL);
+				return;
+			}
+
+			const importedMesh = result.meshes[0];
+			const positions = importedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+			const indices = importedMesh.getIndices();
+
+			if (!positions || positions.length === 0) {
+				console.error("No vertex data in imported mesh");
+				importedMesh.dispose();
+				document.body.removeChild(input);
+				URL.revokeObjectURL(fileURL);
+				return;
+			}
+
+			const paths = convertMeshToPaths(positions, indices);
+
+			if (paths.length === 0 || paths[0].length === 0) {
+				console.error("Could not convert mesh to valid paths");
+				importedMesh.dispose();
+				document.body.removeChild(input);
+				URL.revokeObjectURL(fileURL);
+				return;
+			}
+
+			importedMesh.dispose();
+
+			ribbonDispose();
+
+			if (typeof glo.curves === "undefined") {
+				glo.curves = {};
+			}
+			glo.curves.paths = paths;
+
+			glo.params.steps_u = paths.length - 1;
+			glo.params.steps_v = paths[0].length - 1;
+
+			await make_ribbon(true, true);
+
+			glo.ribbon.refreshBoundingInfo();
+			setTimeout(() => {
+				glo.camera.focusOn([glo.ribbon], true);
+			}, 0);
+
+			console.log("OBJ imported successfully: " + fileName);
+			console.log("Paths: " + paths.length + " x " + paths[0].length);
+
+		} catch (error) {
+			console.error("Error importing OBJ:", error);
+		}
+
+		document.body.removeChild(input);
+		URL.revokeObjectURL(fileURL);
+	};
+
+	input.click();
+}
+
+function convertMeshToPaths(positions, indices) {
+	const vertices = [];
+	for (let i = 0; i < positions.length; i += 3) {
+		vertices.push(new BABYLON.Vector3(positions[i], positions[i + 1], positions[i + 2]));
+	}
+
+	const totalVertices = vertices.length;
+	let gridU = Math.round(Math.sqrt(totalVertices));
+	let gridV = Math.round(totalVertices / gridU);
+
+	while (gridU * gridV > totalVertices) {
+		if (gridU > gridV) gridU--;
+		else gridV--;
+	}
+	while (gridU * gridV < totalVertices && gridU * (gridV + 1) <= totalVertices) {
+		gridV++;
+	}
+
+	if (indices && indices.length > 0) {
+		const detectedGrid = detectGridFromIndices(indices, totalVertices);
+		if (detectedGrid) {
+			gridU = detectedGrid.u;
+			gridV = detectedGrid.v;
+		}
+	}
+
+	const paths = [];
+	for (let i = 0; i < gridU; i++) {
+		const path = [];
+		for (let j = 0; j < gridV; j++) {
+			const idx = i * gridV + j;
+			if (idx < vertices.length) {
+				path.push(vertices[idx].clone());
+			}
+		}
+		if (path.length > 0) {
+			paths.push(path);
+		}
+	}
+
+	if (paths.length < 2 || paths[0].length < 2) {
+		return reorganizeVerticesByPosition(vertices);
+	}
+
+	return paths;
+}
+
+function detectGridFromIndices(indices, totalVertices) {
+	const adjacency = new Map();
+
+	for (let i = 0; i < indices.length; i += 3) {
+		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
+		if (!adjacency.has(a)) adjacency.set(a, new Set());
+		if (!adjacency.has(b)) adjacency.set(b, new Set());
+		if (!adjacency.has(c)) adjacency.set(c, new Set());
+		adjacency.get(a).add(b).add(c);
+		adjacency.get(b).add(a).add(c);
+		adjacency.get(c).add(a).add(b);
+	}
+
+	for (let v = 2; v <= Math.sqrt(totalVertices) * 2; v++) {
+		if (totalVertices % v === 0) {
+			const u = totalVertices / v;
+			if (u >= 2 && v >= 2) {
+				return { u, v };
+			}
+		}
+	}
+
+	return null;
+}
+
+function reorganizeVerticesByPosition(vertices) {
+	if (vertices.length < 4) return [];
+
+	const sorted = [...vertices].sort((a, b) => {
+		const diffY = a.y - b.y;
+		if (Math.abs(diffY) > 0.001) return diffY;
+		return a.x - b.x;
+	});
+
+	const gridSize = Math.ceil(Math.sqrt(sorted.length));
+	const paths = [];
+
+	for (let i = 0; i < gridSize; i++) {
+		const path = [];
+		for (let j = 0; j < gridSize; j++) {
+			const idx = i * gridSize + j;
+			if (idx < sorted.length) {
+				path.push(sorted[idx].clone());
+			}
+		}
+		if (path.length > 1) {
+			paths.push(path);
+		}
+	}
+
+	return paths;
+}
+
 async function meshWithTubes(){
 	if(glo.meshWithTubes || glo.onlyTubes){
 		if(glo.onlyTubes){ ribbonDispose(); }

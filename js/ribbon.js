@@ -754,17 +754,17 @@ function importOBJMesh() {
 
 		try {
 			const text = await file.text();
-			const { vertices, faces } = parseOBJ(text);
+			const objData = parseOBJFile(text);
 
-			console.log("OBJ parsed: " + vertices.length + " vertices, " + faces.length + " faces");
+			console.log("OBJ parsed: " + objData.vertices.length + " vertices, " + objData.faces.length + " faces");
 
-			if (vertices.length === 0) {
+			if (objData.vertices.length === 0) {
 				console.error("No vertices found in OBJ file");
 				document.body.removeChild(input);
 				return;
 			}
 
-			const paths = convertOBJToPaths(vertices, faces);
+			const paths = buildPathsFromOBJ(objData.vertices, objData.faces);
 
 			if (paths.length === 0 || paths[0].length === 0) {
 				console.error("Could not convert mesh to valid paths");
@@ -802,10 +802,9 @@ function importOBJMesh() {
 	input.click();
 }
 
-function parseOBJ(text) {
+function parseOBJFile(text) {
 	const vertices = [];
 	const faces = [];
-
 	const lines = text.split('\n');
 
 	for (const line of lines) {
@@ -830,10 +829,10 @@ function parseOBJ(text) {
 	return { vertices, faces };
 }
 
-function convertOBJToPaths(vertices, faces) {
+function buildPathsFromOBJ(vertices, faces) {
 	const totalVertices = vertices.length;
 
-	let gridV = detectStepFromFaces(faces, totalVertices);
+	let gridV = detectGridStepFromFaces(faces, totalVertices);
 
 	if (!gridV || totalVertices % gridV !== 0) {
 		gridV = Math.round(Math.sqrt(totalVertices));
@@ -858,7 +857,7 @@ function convertOBJToPaths(vertices, faces) {
 	return paths;
 }
 
-function detectStepFromFaces(faces, totalVertices) {
+function detectGridStepFromFaces(faces, totalVertices) {
 	if (!faces || faces.length === 0) return null;
 
 	const stepCounts = new Map();
@@ -891,7 +890,7 @@ function detectStepFromFaces(faces, totalVertices) {
 		}
 	}
 
-	console.log("Detected step from faces: " + bestStep);
+	console.log("Detected step: " + bestStep);
 	return bestStep;
 }
 
@@ -902,102 +901,25 @@ function convertMeshToPaths(positions, indices) {
 	}
 
 	const totalVertices = vertices.length;
+	let gridU = Math.round(Math.sqrt(totalVertices));
+	let gridV = Math.round(totalVertices / gridU);
 
-	let gridV = detectStepFromIndices(indices, totalVertices);
+	while (gridU * gridV > totalVertices) {
+		if (gridU > gridV) gridU--;
+		else gridV--;
+	}
+	while (gridU * gridV < totalVertices && gridU * (gridV + 1) <= totalVertices) {
+		gridV++;
+	}
 
-	if (!gridV || totalVertices % gridV !== 0) {
-		gridV = Math.round(Math.sqrt(totalVertices));
-		while (totalVertices % gridV !== 0 && gridV > 2) {
-			gridV--;
+	if (indices && indices.length > 0) {
+		const detectedGrid = detectGridFromIndices(indices, totalVertices);
+		if (detectedGrid) {
+			gridU = detectedGrid.u;
+			gridV = detectedGrid.v;
 		}
 	}
 
-	const gridU = totalVertices / gridV;
-
-	console.log("Grid: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
-
-	const paths1 = [];
-	for (let i = 0; i < gridU; i++) {
-		const path = [];
-		for (let j = 0; j < gridV; j++) {
-			path.push(vertices[i * gridV + j].clone());
-		}
-		paths1.push(path);
-	}
-
-	const paths2 = [];
-	for (let j = 0; j < gridV; j++) {
-		const path = [];
-		for (let i = 0; i < gridU; i++) {
-			path.push(vertices[i * gridV + j].clone());
-		}
-		paths2.push(path);
-	}
-
-	const cont1 = measureContinuity(paths1);
-	const cont2 = measureContinuity(paths2);
-
-	console.log("Continuity: orientation1=" + cont1.toFixed(4) + ", orientation2=" + cont2.toFixed(4));
-
-	return cont1 <= cont2 ? paths1 : paths2;
-}
-
-function measureContinuity(paths) {
-	let total = 0;
-	let count = 0;
-
-	for (let i = 1; i < paths.length; i++) {
-		for (let j = 0; j < paths[i].length; j++) {
-			total += BABYLON.Vector3.Distance(paths[i-1][j], paths[i][j]);
-			count++;
-		}
-	}
-
-	return count > 0 ? total / count : Infinity;
-}
-
-function detectStepFromIndices(indices, totalVertices) {
-	if (!indices || indices.length < 6) return null;
-
-	const stepCounts = new Map();
-
-	for (let i = 0; i < Math.min(indices.length, 300); i += 3) {
-		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
-
-		const diffs = [
-			Math.abs(a - b),
-			Math.abs(b - c),
-			Math.abs(a - c)
-		];
-
-		for (const diff of diffs) {
-			if (diff > 1) {
-				stepCounts.set(diff, (stepCounts.get(diff) || 0) + 1);
-			}
-		}
-	}
-
-	let bestStep = null;
-	let bestCount = 0;
-
-	for (const [step, count] of stepCounts) {
-		if (count > bestCount) {
-			bestCount = count;
-			bestStep = step;
-		}
-	}
-
-	if (bestStep && totalVertices % bestStep !== 0) {
-		if (totalVertices % (bestStep + 1) === 0) {
-			bestStep = bestStep + 1;
-		}
-	}
-
-	console.log("Detected step: " + bestStep);
-	return bestStep;
-}
-
-function buildPaths(vertices, gridU, gridV) {
 	const paths = [];
 	for (let i = 0; i < gridU; i++) {
 		const path = [];
@@ -1011,75 +933,37 @@ function buildPaths(vertices, gridU, gridV) {
 			paths.push(path);
 		}
 	}
+
+	if (paths.length < 2 || paths[0].length < 2) {
+		return reorganizeVerticesByPosition(vertices);
+	}
+
 	return paths;
 }
 
-function measurePathContinuity(paths) {
-	let totalDistance = 0;
-	let count = 0;
+function detectGridFromIndices(indices, totalVertices) {
+	const adjacency = new Map();
 
-	for (const path of paths) {
-		for (let i = 1; i < path.length; i++) {
-			totalDistance += BABYLON.Vector3.Distance(path[i - 1], path[i]);
-			count++;
-		}
-	}
-
-	for (let j = 0; j < paths[0].length; j++) {
-		for (let i = 1; i < paths.length; i++) {
-			totalDistance += BABYLON.Vector3.Distance(paths[i - 1][j], paths[i][j]);
-			count++;
-		}
-	}
-
-	return count > 0 ? totalDistance / count : Infinity;
-}
-
-function detectGridSizeFromIndices(indices, totalVertices) {
-	if (!indices || indices.length < 6) {
-		return Math.round(Math.sqrt(totalVertices));
-	}
-
-	const stepCounts = new Map();
-
-	for (let i = 0; i < Math.min(indices.length, 600); i += 3) {
+	for (let i = 0; i < indices.length; i += 3) {
 		const a = indices[i], b = indices[i + 1], c = indices[i + 2];
-		const sorted = [a, b, c].sort((x, y) => x - y);
-
-		const diff1 = sorted[1] - sorted[0];
-		const diff2 = sorted[2] - sorted[1];
-		const diff3 = sorted[2] - sorted[0];
-
-		if (diff1 > 1 && diff1 < totalVertices / 2) {
-			stepCounts.set(diff1, (stepCounts.get(diff1) || 0) + 1);
-		}
-		if (diff2 > 1 && diff2 < totalVertices / 2) {
-			stepCounts.set(diff2, (stepCounts.get(diff2) || 0) + 1);
-		}
-		if (diff3 > 1 && diff3 < totalVertices / 2 && diff3 !== diff1 + diff2) {
-			stepCounts.set(diff3, (stepCounts.get(diff3) || 0) + 1);
-		}
+		if (!adjacency.has(a)) adjacency.set(a, new Set());
+		if (!adjacency.has(b)) adjacency.set(b, new Set());
+		if (!adjacency.has(c)) adjacency.set(c, new Set());
+		adjacency.get(a).add(b).add(c);
+		adjacency.get(b).add(a).add(c);
+		adjacency.get(c).add(a).add(b);
 	}
 
-	let bestStep = Math.round(Math.sqrt(totalVertices));
-	let bestCount = 0;
-
-	for (const [step, count] of stepCounts) {
-		if (totalVertices % step === 0 || totalVertices % (step - 1) === 0 || totalVertices % (step + 1) === 0) {
-			if (count > bestCount) {
-				bestCount = count;
-				if (totalVertices % step === 0) {
-					bestStep = step;
-				} else if (totalVertices % (step - 1) === 0) {
-					bestStep = step - 1;
-				} else {
-					bestStep = step + 1;
-				}
+	for (let v = 2; v <= Math.sqrt(totalVertices) * 2; v++) {
+		if (totalVertices % v === 0) {
+			const u = totalVertices / v;
+			if (u >= 2 && v >= 2) {
+				return { u, v };
 			}
 		}
 	}
 
-	return bestStep;
+	return null;
 }
 
 function reorganizeVerticesByPosition(vertices) {

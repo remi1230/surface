@@ -842,7 +842,7 @@ function convertMeshToPaths(positions, indices) {
 
 	const totalVertices = vertices.length;
 
-	let gridV = detectStepFromIndices(indices);
+	let gridV = detectStepFromIndices(indices, totalVertices);
 
 	if (!gridV || totalVertices % gridV !== 0) {
 		gridV = Math.round(Math.sqrt(totalVertices));
@@ -853,26 +853,49 @@ function convertMeshToPaths(positions, indices) {
 
 	const gridU = totalVertices / gridV;
 
-	console.log("Grid from indices step: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
+	console.log("Grid: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
 
-	const paths = [];
+	const paths1 = [];
 	for (let i = 0; i < gridU; i++) {
 		const path = [];
 		for (let j = 0; j < gridV; j++) {
-			const idx = i * gridV + j;
-			if (idx < vertices.length) {
-				path.push(vertices[idx].clone());
-			}
+			path.push(vertices[i * gridV + j].clone());
 		}
-		if (path.length > 0) {
-			paths.push(path);
+		paths1.push(path);
+	}
+
+	const paths2 = [];
+	for (let j = 0; j < gridV; j++) {
+		const path = [];
+		for (let i = 0; i < gridU; i++) {
+			path.push(vertices[i * gridV + j].clone());
+		}
+		paths2.push(path);
+	}
+
+	const cont1 = measureContinuity(paths1);
+	const cont2 = measureContinuity(paths2);
+
+	console.log("Continuity: orientation1=" + cont1.toFixed(4) + ", orientation2=" + cont2.toFixed(4));
+
+	return cont1 <= cont2 ? paths1 : paths2;
+}
+
+function measureContinuity(paths) {
+	let total = 0;
+	let count = 0;
+
+	for (let i = 1; i < paths.length; i++) {
+		for (let j = 0; j < paths[i].length; j++) {
+			total += BABYLON.Vector3.Distance(paths[i-1][j], paths[i][j]);
+			count++;
 		}
 	}
 
-	return paths;
+	return count > 0 ? total / count : Infinity;
 }
 
-function detectStepFromIndices(indices) {
+function detectStepFromIndices(indices, totalVertices) {
 	if (!indices || indices.length < 6) return null;
 
 	const stepCounts = new Map();
@@ -903,7 +926,13 @@ function detectStepFromIndices(indices) {
 		}
 	}
 
-	console.log("Detected step from indices: " + bestStep + " (count: " + bestCount + ")");
+	if (bestStep && totalVertices % bestStep !== 0) {
+		if (totalVertices % (bestStep + 1) === 0) {
+			bestStep = bestStep + 1;
+		}
+	}
+
+	console.log("Detected step: " + bestStep);
 	return bestStep;
 }
 

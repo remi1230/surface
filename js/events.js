@@ -1,7 +1,10 @@
 //*****************************************************************************************************//
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
-$( document ).ready(function() {
+$( document ).ready(async function() {
+  // Attendre le chargement de la police Poppins avant de créer les contrôles GUI
+  await document.fonts.load('300 14px Poppins');
+
   add_gui_controls();
 
   glo.rightPanelsClasses.forEach(panelClass => {

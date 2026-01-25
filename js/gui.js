@@ -809,7 +809,9 @@ function add_radios(suit = false){
     for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
 
     var textBlock = header.children[1];
-    textBlock.fontSize = "17px";
+    textBlock.fontFamily = "Poppins";
+    textBlock.fontWeight = 300;
+    textBlock.fontSize = "14px";
 
     glo.radios_formes.push({button: button, header: header});
 

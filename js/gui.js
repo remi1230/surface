@@ -809,7 +809,9 @@ function add_radios(suit = false){
     for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
 
     var textBlock = header.children[1];
-    textBlock.fontSize = "17px";
+    textBlock.fontFamily = "Poppins";
+    textBlock.fontWeight = 300;
+    textBlock.fontSize = "14px";
 
     glo.radios_formes.push({button: button, header: header});
 
@@ -829,6 +831,8 @@ function add_radios(suit = false){
     });
   }
 
+  glo.radios_formes.length = 0;
+
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){
       if(!suit){
@@ -845,7 +849,7 @@ function add_radios(suit = false){
     }
   });
 
-  applyFontToRadio('Poppins', 300, false, 14);
+  //applyFontToRadio('Poppins', 300, false, 14);
   glo.first_radio = false;
 }
 

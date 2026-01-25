@@ -106,6 +106,30 @@ const combinedVertexShader = `#version 300 es
         return cos(gx) * cos(gy) * cos(gz);
     }
 
+    float ce(){
+        return cos(exp(abs(gx))) * exp(cos(abs(gy))) * exp(cos(abs(gz)));
+    }
+
+    float ce(float coeff){
+        return cos(exp(coeff*abs(gx))) * cos(exp(coeff*abs(gy))) * cos(exp(coeff*abs(gz)));
+    }
+
+    float hce(float coeff){
+        return length(
+            vec3(
+                exp(
+                    coeff*cos(abs(gx))
+                ),
+                exp(
+                    coeff*cos(abs(gy))
+                ),
+                exp(
+                    coeff*cos(abs(gz))
+                )
+            )
+        );
+    }
+
     // Fonction o() avec 4 signatures différentes
     // o(ncx, ncy, ncz) - utilise les 3 coefficients spécifiés
     float o(float ncx, float ncy, float ncz) {
@@ -767,10 +791,11 @@ const glslRegs = [
         upd: 'pow($1,$2)'
     },
     { exp: /\s/g, upd: "" },
-    { exp: /(?<!fr)a(?![\(])/g, upd: "a()" },
-    { exp: /b(?![\(])/g, upd: "b()" },
+    { exp: /a(?![\(bs])/g, upd: "a()" },
+    { exp: /b(?![\(s])/g, upd: "b()" },
     { exp: /aa(?![\(])/g, upd: "aa()" },
     { exp: /bb(?![\(])/g, upd: "bb()" },
+    { exp: /ce(?![\(])/g, upd: "ce()" },
     { exp: /(?<!d|l|p|cr|c)o(?!\()|(?<=d)o(?!t|\()|(?<=l)o(?!g|\()|(?<=c)o(?!s|\()|(?<=p)o(?!w|\()|(?<=cr)o(?!ss|\()/g, upd: "o()" },
     { exp: /c([^*\(R\)]*)R/g, upd: "cos($1R)" },
     { exp: /s([^*\(R\)]*)R/g, upd: "sin($1R)" },
@@ -820,8 +845,6 @@ const glslRegs = [
     { exp: /y([^,%*+-/NPT)])/g, upd: "y*$1" },
     { exp: /z([^,%*+-/NPT)])/g, upd: "z*$1" },
     { exp: /n([^,%*+-/d)])/g, upd: "n*$1" },
-    { exp: /alpha([^,%*+-/nt)])/g, upd: "alpha*$1" },
-    { exp: /beta([^,%*+-/nt)])/g, upd: "beta*$1" },
     { exp: /(?<!s)i([^,%*+\-\/)])/g, upd: "i*$1" },
     { exp: /j([^,%*+-/)])/g, upd: "j*$1" },
     { exp: /xN([^,%*+-/)])/g, upd: "xN*$1" },
@@ -835,37 +858,21 @@ const glslRegs = [
     { exp: /g([^,%*+-/)])/g, upd: "g*$1" },
     { exp: /([A-MXYk])([^,%*+\-\/)])/g, upd: "$1*$2" },
     { exp: /d(?!ot)([^,%*+\-\/)])/g, upd: "d*$1" },
-    { exp: /S([^,%*+-/\())])/g, upd: "S($1)" },
     { exp: /p([^,%*+-/)])/g, upd: "p*$1" },
-    { exp: /(?<!fac|frac)t([^,%*+\-/)])/g, upd: "t*$1" },
-    { exp: /rCol([^,%*+-/)])/g, upd: "rCol*$1" },
-    { exp: /gCol([^,%*+-/)])/g, upd: "gCol*$1" },
-    { exp: /bCol([^,%*+-/)])/g, upd: "bCol*$1" },
-    { exp: /mCol([^,%*+-/)])/g, upd: "mCol*$1" },
     { exp: /O([^,%*+-/)])/g, upd: "O*$1" },
     { exp: /T([^,%*+-/)])/g, upd: "T*$1" },
-    { exp: /e([^c,%*+-/)pi])/g, upd: "e*$1" },
-    { exp: /Q([^,%*+-/)])/g, upd: "Q*$1" },
-    { exp: /Z([^,%*+-/)])/g, upd: "Z*$1" },
+    { exp: /(?<!c)e([^c,%*+-/)pi])/g, upd: "e*$1" },
     { exp: /\)([^,%*+-/)'])/g, upd: ")*$1" },
     { exp: /(?<!c)(\d+)([^,%*+-/.\d)])/g, upd: "$1*$2" },
-    { exp: /u\*_mod/g, upd: "u_mod" },
-    { exp: /v\*_mod/g, upd: "v_mod" },
-    { exp: /be\*ta/g, upd: "beta" },
     { exp: /sin\*/g, upd: "sin" },
     { exp: /tan\*/g, upd: "tan" },
     { exp: /(?<!do)t\*an/g, upd: "tan" },
     { exp: /tan\*\(/g, upd: "tan(" },
     { exp: /sign\*/g, upd: "sign" },
-    { exp: /logte\*n\*/g, upd: "logten" },
-    { exp: /hy\*pot/g, upd: "hypot" },
     { exp: /fact_de\*c/g, upd: "fact_dec" },
     { exp: /p\*o/g, upd: "po" },
     { exp: /cp\*/g, upd: "cp" },
     { exp: /p\*c/g, upd: "pc" },
-    { exp: /mx\*/g, upd: "mx" },
-    { exp: /my\*/g, upd: "my" },
-    { exp: /mz\*/g, upd: "mz" },
     { exp: /e\*x/g, upd: "ex" },
     { exp: /ex\*/g, upd: "ex" },
     { exp: /exp\*/g, upd: "exp" },
@@ -879,7 +886,7 @@ const glslRegs = [
     { exp: /R/g, upd: "length(vec3(x,y,z))" },
 
     // Raccourcis pour q = h(u,v)
-    { exp: /h(?![\(])/g, upd: "length(vec2(u,v))" },
+    { exp: /h(?![\(ce])/g, upd: "length(vec2(u,v))" },
     { exp: /s([^h\(]*)h/g, upd: "sin($1length(vec2(u,v)))" },
     { exp: /c([^h\(]*)h/g, upd: "cos($1length(vec2(u,v)))" },
 ];

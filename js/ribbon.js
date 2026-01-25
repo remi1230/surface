@@ -736,6 +736,164 @@ async function exportMeshToSTL(mesh){
 	document.body.removeChild(link);
 }
 
+function importOBJMesh() {
+	const input = document.createElement('input');
+	input.type = 'file';
+	input.accept = '.obj';
+	input.style.display = 'none';
+	document.body.appendChild(input);
+
+	input.onchange = async function(event) {
+		const file = event.target.files[0];
+		if (!file) {
+			document.body.removeChild(input);
+			return;
+		}
+
+		const fileName = file.name;
+
+		try {
+			const text = await file.text();
+			const objData = parseOBJFile(text);
+
+			console.log("OBJ parsed: " + objData.vertices.length + " vertices, " + objData.faces.length + " faces");
+
+			if (objData.vertices.length === 0) {
+				console.error("No vertices found in OBJ file");
+				document.body.removeChild(input);
+				return;
+			}
+
+			const paths = buildPathsFromOBJ(objData.vertices, objData.faces);
+
+			if (paths.length === 0 || paths[0].length === 0) {
+				console.error("Could not convert mesh to valid paths");
+				document.body.removeChild(input);
+				return;
+			}
+
+			ribbonDispose();
+
+			if (typeof glo.curves === "undefined") {
+				glo.curves = {};
+			}
+			glo.curves.paths = paths;
+
+			glo.params.steps_u = paths.length - 1;
+			glo.params.steps_v = paths[0].length - 1;
+
+			await make_ribbon(true, true);
+
+			glo.ribbon.refreshBoundingInfo();
+			setTimeout(() => {
+				glo.camera.focusOn([glo.ribbon], true);
+			}, 0);
+
+			console.log("OBJ imported successfully: " + fileName);
+			console.log("Paths: " + paths.length + " x " + paths[0].length);
+
+		} catch (error) {
+			console.error("Error importing OBJ:", error);
+		}
+
+		document.body.removeChild(input);
+	};
+
+	input.click();
+}
+
+function parseOBJFile(text) {
+	const vertices = [];
+	const faces = [];
+	const lines = text.split('\n');
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (trimmed.startsWith('v ')) {
+			const parts = trimmed.split(/\s+/);
+			vertices.push(new BABYLON.Vector3(
+				parseFloat(parts[1]),
+				parseFloat(parts[2]),
+				parseFloat(parts[3])
+			));
+		} else if (trimmed.startsWith('f ')) {
+			const parts = trimmed.split(/\s+/).slice(1);
+			const faceIndices = parts.map(p => {
+				const idx = parseInt(p.split('/')[0]);
+				return idx > 0 ? idx - 1 : vertices.length + idx;
+			});
+			faces.push(faceIndices);
+		}
+	}
+
+	return { vertices, faces };
+}
+
+function buildPathsFromOBJ(vertices, faces) {
+	const totalVertices = vertices.length;
+
+	let gridV = detectGridStepFromFaces(faces, totalVertices);
+
+	if (!gridV || totalVertices % gridV !== 0) {
+		gridV = Math.round(Math.sqrt(totalVertices));
+		while (totalVertices % gridV !== 0 && gridV > 2) {
+			gridV--;
+		}
+	}
+
+	const gridU = totalVertices / gridV;
+
+	console.log("Grid: " + gridU + " x " + gridV + " (total: " + totalVertices + ")");
+
+	const paths = [];
+	for (let i = 0; i < gridU; i++) {
+		const path = [];
+		for (let j = 0; j < gridV; j++) {
+			path.push(vertices[i * gridV + j].clone());
+		}
+		paths.push(path);
+	}
+
+	return paths;
+}
+
+function detectGridStepFromFaces(faces, totalVertices) {
+	if (!faces || faces.length === 0) return null;
+
+	const stepCounts = new Map();
+
+	for (let i = 0; i < Math.min(faces.length, 200); i++) {
+		const face = faces[i];
+		for (let j = 0; j < face.length; j++) {
+			for (let k = j + 1; k < face.length; k++) {
+				const diff = Math.abs(face[j] - face[k]);
+				if (diff > 1) {
+					stepCounts.set(diff, (stepCounts.get(diff) || 0) + 1);
+				}
+			}
+		}
+	}
+
+	let bestStep = null;
+	let bestCount = 0;
+
+	for (const [step, count] of stepCounts) {
+		if (count > bestCount) {
+			bestCount = count;
+			bestStep = step;
+		}
+	}
+
+	if (bestStep && totalVertices % bestStep !== 0) {
+		if (totalVertices % (bestStep + 1) === 0) {
+			bestStep = bestStep + 1;
+		}
+	}
+
+	console.log("Detected step: " + bestStep);
+	return bestStep;
+}
+
 async function meshWithTubes(){
 	if(glo.meshWithTubes || glo.onlyTubes){
 		if(glo.onlyTubes){ ribbonDispose(); }

@@ -934,23 +934,30 @@ function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
 }
 
 function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
-  glo.allControls.haveThisClass('header').haveNotThisClass('radio').forEach(control => {
+  glo.allControls.haveThisClass('header').haveNotThisClass('radio').haveNotThisClass('title').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
+  });
+  glo.allControls.haveThisClass('title').haveNotThisClass('radio').forEach(control => {
+      applyFont(control, fontFamily, fontWeight+300, fontSizeToAdd);
   });
 }
 function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
-  glo.allControls.haveThisClass('button').forEach(control => {
+  glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
+	  //control.highlightColor = 'red';
   });
 }
-function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
+function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false, fontSize = false) {
   glo.radios_formes.forEach(radio => {
 	const textBlock = radio.header.children[1];
 	if (textBlock) {
 		textBlock.fontFamily = fontFamily;
 		textBlock.fontWeight = fontWeight;
 		if (fontSizeToAdd) {
-			textBlock.fontSize = parseFontSize(textBlock.fontSize) + fontSizeToAdd - 0 + "px";
+			textBlock.fontSize = parseFontSize(textBlock.fontSize) + fontSizeToAdd + "px";
+		}
+		if (fontSize) {
+			textBlock.fontSize = fontSize + "px";
 		}
 	}
  });
@@ -959,5 +966,5 @@ function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
 function styleUI(){		
 	applyFontToHeaders('Poppins', 300, -1);
     applyFontToButtons('Poppins', 400, -1);
-    applyFontToRadio('Poppins', 300, -1);
+    //applyFontToRadio('Poppins', 300, -1);
 }

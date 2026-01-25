@@ -1020,7 +1020,7 @@ var glo = {
 	resolutionCoeff: 1,
 	color_text_input: "rgb(255,255,245)",
 	buttons_background: "#199191",
-	buttons_color: "rgb(255,255,225)",
+	buttons_color: "#e1cdb7",
 	labelGridColor: "white",
 	buttons_radius: 6.33,
 	buttons_fontsize: "16px",

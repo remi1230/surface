@@ -368,11 +368,14 @@ function add_lines_and_dim_buttons(){
     make_planes();
   });
   add_button("but_coord", "CART", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
-  add_button("but_lines_state", "LINE", 70, 30, 10, 0, function(){
+  /*add_button("but_lines_state", "LINE", 70, 30, 10, 0, function(){
     glo.allControls.getByName("but_lines_state").textBlock.text = glo.drawType.next().value;
     if(glo.ribbon_visible){ glo.ribbon.visibility = 1; }
     else{ glo.ribbon.visibility = 0; }
     switch_lines();
+  });*/
+  add_button("but_import_obj", "IMP", 60, 30, 10, 0, function(){
+    importOBJMesh();
   });
   add_button("but_dimension", "EXP", 60, 30, 10, 0, function(){
     exportModal();
@@ -842,7 +845,7 @@ function add_radios(suit = false){
     }
   });
 
-  applyFontToRadio('Poppins', 300, -1);
+  applyFontToRadio('Poppins', 300, false, 14);
   glo.first_radio = false;
 }
 
@@ -885,7 +888,7 @@ function add_step_uv_slider(){
 }
 
 function add_color_pickers(){
-  var panelHeader    = new BABYLON.GUI.StackPanel();
+  //var panelHeader    = new BABYLON.GUI.StackPanel();
   var panelTitleUI   = new BABYLON.GUI.StackPanel();
   var panelTitleMesh = new BABYLON.GUI.StackPanel();
   var panel1         = new BABYLON.GUI.StackPanel();
@@ -899,12 +902,32 @@ function add_color_pickers(){
   var panelTitleMeshLine    = new BABYLON.GUI.StackPanel();
   var panelTitleRandom      = new BABYLON.GUI.StackPanel();
 
-  var top          = {panel1: 35, panel2: 55, panel3: 60, panelButtons: 73};
-  var options      = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
+  var top     = {panel1: 35, panel2: 55, panel3: 60, panelButtons: 73};
+  var options = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
+
+  const paramsPanels = {
+    section: {
+      title: {name: "colorHeaderPan", text: "Colors", top: 27, numUI: 'first onlyMainGui noAutoParam', fontSize: 22},
+    },
+    ui: {
+      title: {name: "colorHeaderTitleUI", text: "UI", top: 31.5, numUI: 'first onlyMainGui noAutoParam', fontSize: 20},
+    },
+    mesh: {
+      title: {name: "colorHeaderTitleMesh", text: "Mesh", top: 50.5, numUI: 'first onlyMainGui noAutoParam', fontSize: 20},
+    },
+    random: {
+      title: {name: "colorHeaderTitleRandom", text: "Random", top: 71, numUI: 'first onlyMainGui noAutoParam', fontSize: 20},
+    },
+  };
+
+  makePanelsTitles(paramsPanels);
+
+  //makePanelTitle("colorHeaderPan", "Colors", 27, 'first onlyMainGui noAutoParam', 22);
+  //makePanelTitle("colorHeaderTitleUI", "UI", 27, 'first onlyMainGui noAutoParam', 22);
   
-  parmamControl(panelHeader, 'colorHeaderPan', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 21, pL: 8, isVertical: false});
-  parmamControl(panelTitleUI, 'colorHeaderTitleUI', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 26, pL: 9.5, isVertical: false});
-  parmamControl(panelTitleMesh, 'colorHeaderTitleMesh', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 45, pL: 8.5, isVertical: false});
+  //parmamControl(panelHeader, 'colorHeaderPan', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 21, pL: 8, isVertical: false});
+  //parmamControl(panelTitleUI, 'colorHeaderTitleUI', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 26, pL: 9.5, isVertical: false});
+  //parmamControl(panelTitleMesh, 'colorHeaderTitleMesh', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: 15, t: 45, pL: 8.5, isVertical: false});
   
   const hTest = 2;
   parmamControl(panelTitleUIBg, 'colorTitleUIBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 35.5, pL: 4.875, isVertical: false});
@@ -912,7 +935,7 @@ function add_color_pickers(){
   parmamControl(panelTitleMeshBg, 'colorTitleMeshBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 2.4166, isVertical: false});
   parmamControl(panelTitleMeshDiffuse, 'colorTitleMeshDiffuse', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 8.875, isVertical: false});
   parmamControl(panelTitleMeshLine, 'colorTitleMeshLine', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 14.66, isVertical: false});
-  parmamControl(panelTitleRandom, 'colorTitleRandom', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 72, pL: 8.25, isVertical: false});
+  //parmamControl(panelTitleRandom, 'colorTitleRandom', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 72, pL: 8.25, isVertical: false});
 
   options.pL = 4.5;
   parmamControl(panel1, 'pickerColorPan1', 'panel right first noAutoParam onlyMainGui', options);
@@ -942,16 +965,16 @@ function add_color_pickers(){
     textHorizontalAlignment: BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT,
   };
 
-  var header = new BABYLON.GUI.TextBlock();
+  /*var header = new BABYLON.GUI.TextBlock();
   optionsHeader.fontSize = 24;
   paramHeader(panelHeader, header, "Colors", optionsHeader);
-  optionsHeader.fontSize = 20;
+  optionsHeader.fontSize = 20;*/
 
-  var headerUI = new BABYLON.GUI.TextBlock();
-  paramHeader(panelTitleUI, headerUI, "UI", optionsHeader);
+  //var headerUI = new BABYLON.GUI.TextBlock();
+  //paramHeader(panelTitleUI, headerUI, "UI", optionsHeader);
 
-  var headerMesh = new BABYLON.GUI.TextBlock();
-  paramHeader(panelTitleMesh, headerMesh, "Mesh", optionsHeader);
+  //var headerMesh = new BABYLON.GUI.TextBlock();
+  //paramHeader(panelTitleMesh, headerMesh, "Mesh", optionsHeader);
 
   optionsHeader.fontSize = 16;
   var headerUIBg = new BABYLON.GUI.TextBlock();
@@ -969,10 +992,10 @@ function add_color_pickers(){
   var headerMeshLine = new BABYLON.GUI.TextBlock();
   paramHeader(panelTitleMeshLine, headerMeshLine, "Lines", optionsHeader);
 
-  var headerRandomColor = new BABYLON.GUI.TextBlock();
+  /*var headerRandomColor = new BABYLON.GUI.TextBlock();
    optionsHeader.fontSize = 20;
   paramHeader(panelTitleRandom, headerRandomColor, "Random", optionsHeader);
-  optionsHeader.fontSize = 16;
+  optionsHeader.fontSize = 16;*/
 
   var picker = new BABYLON.GUI.ColorPicker();
   parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: glo.backgroundColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
@@ -1081,9 +1104,9 @@ function add_color_pickers(){
 
   panelButtons.height = '70px';
 
-  glo.advancedTexture.addControl(panelHeader);
-  glo.advancedTexture.addControl(panelTitleUI);
-  glo.advancedTexture.addControl(panelTitleMesh);
+  //glo.advancedTexture.addControl(panelHeader);
+  //glo.advancedTexture.addControl(panelTitleUI);
+  //glo.advancedTexture.addControl(panelTitleMesh);
   glo.advancedTexture.addControl(panel1);
   glo.advancedTexture.addControl(panel2);
   glo.advancedTexture.addControl(panelButtons);
@@ -1092,14 +1115,13 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelTitleMeshBg);
   glo.advancedTexture.addControl(panelTitleMeshDiffuse);
   glo.advancedTexture.addControl(panelTitleMeshLine);
-  glo.advancedTexture.addControl(panelTitleRandom);
+  //glo.advancedTexture.addControl(panelTitleRandom);
 }
 
 function makePanelTitle(name, title, t, numUI = 'eighth', fontSize = 17){
   var panelTitle = new BABYLON.GUI.StackPanel();
-  parmamControl(panelTitle, "panelShadersTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
+  parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
   panelTitle.isVertical = false;
-  glo.advancedTexture.addControl(panelTitle);
 
   var header = new BABYLON.GUI.TextBlock();
   header.text = title;
@@ -1108,15 +1130,31 @@ function makePanelTitle(name, title, t, numUI = 'eighth', fontSize = 17){
   header.height = "20px";
   header.width = "100%";
   header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  parmamControl(header, "headerShadersTitle-" + name, `header right ${numUI} noAutoParam`);
+  parmamControl(header, "headerTitle-" + name, `header title right ${numUI} noAutoParam`);
   panelTitle.addControl(header);
 
   glo.advancedTexture.addControl(panelTitle);
 }
 
+function makePanelsTitles(paramsPanels){
+  let panels = [];
+  for(const prop in paramsPanels){
+    for(const sprop in paramsPanels[prop]){
+      const params = paramsPanels[prop][sprop];
+      
+      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.fontSize);
+      if(sprop === 'ctrl'  && params){
+        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI));
+      }
+    }
+  }
+
+  return panels;
+}
+
 function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
   var panelCtrl = new BABYLON.GUI.StackPanel();
-  parmamControl(panelCtrl, 'panelShadersButtons-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
+  parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
   panelCtrl.isVertical = isVertical;
   glo.advancedTexture.addControl(panelCtrl);
 
@@ -1155,17 +1193,7 @@ function add_shaders_ctrl(){
     },
   };
 
-  let panels = [];
-  for(const prop in paramsPanels){
-    for(const sprop in paramsPanels[prop]){
-      const params = paramsPanels[prop][sprop];
-      
-      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.fontSize);
-      if(sprop === 'ctrl'  && params){
-        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI));
-      }
-    }
-  }
+  let panels = makePanelsTitles(paramsPanels);
 
   let panelButtons, panel3Buttons, panelLight, panelLightClassic, panelVideo;
 
@@ -1346,19 +1374,7 @@ function add_shaders_ctrl(){
 }
 
 function add_step_ABCD_sliders(){
-  var panelTitle = new BABYLON.GUI.StackPanel();
-  parmamControl(panelTitle, 'paramEquationsSlidersPanel', 'panel right second', {hAlign: 'right', vAlign: 'top', w: 20, t: 27});
-  glo.advancedTexture.addControl(panelTitle);
-
-  var header = new BABYLON.GUI.TextBlock();
-  header.text = "Mesh variables";
-  header.color = "white";
-  header.fontSize = 18;
-  header.height = "20px";
-  header.width = "100%";
-  header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  parmamControl(header, "headerBlendersTitle", 'header right second noAutoParam');
-  panelTitle.addControl(header);
+  makePanelTitle('paramEquationsSliders', 'Mesh variables', 26, 'second noAutoParam', 20);
 
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramEquationsSlidersPanel', 'panel right second', {hAlign: 'right', vAlign: 'top', w: 20, t: 30});
@@ -2737,32 +2753,7 @@ function add_fractalize_controls(){
   parmamControl(panelButton2, 'tenthPanelButton2', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 7, t: 81.5, pL: 0});
   glo.advancedTexture.addControl(panelButton2);
 
-  var panelTitle = new BABYLON.GUI.StackPanel();
-  parmamControl(panelTitle, 'tenthPanelTitle', 'panel right tenth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 13.25, h: 4, t: 27});
-  glo.advancedTexture.addControl(panelTitle);
-
-  function paramHeader(panel, header, text, options){
-    header.text = text;
-    header.color = "white";
-    header.height = "30px";
-    header.width = "100%";
-    header.fontSize = options.fontSize;
-    header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    parmamControl(header, options.name, 'header right tenth noAutoParam');
-    panel.addControl(header);
-  }
-
-  let optionsHeader = {
-    color: "white",
-    height: "30px",
-    width: "100%",
-    fontSize: 18,
-    textHorizontalAlignment: BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER,
-  };
-
-  var headerTitle = new BABYLON.GUI.TextBlock();
-  paramHeader(panelTitle, headerTitle, "Pseudo fractal", optionsHeader);
-
+  makePanelTitle("tenthPanelTitle", "Pseudo fractal", 27, 'tenth', 20);
 
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight, panelButt = panelButton, background = glo.controlConfig.background){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);

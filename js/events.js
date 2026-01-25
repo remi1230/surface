@@ -2,8 +2,8 @@
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
 $( document ).ready(async function() {
-  // Attendre le chargement de la police Poppins avant de créer les contrôles GUI
-  await document.fonts.load('300 14px Poppins');
+  // Attendre le chargement de toutes les polices avant de créer les contrôles GUI
+  await document.fonts.ready;
 
   add_gui_controls();
 

@@ -827,6 +827,8 @@ function add_radios(suit = false){
           radio_form.header.dispose();
         }
     });
+    // Vider le tableau pour éviter l'accumulation de radios disposés
+    glo.radios_formes.length = 0;
   }
 
   glo.formes.select.map( forme => {

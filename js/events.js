@@ -1,7 +1,16 @@
 //*****************************************************************************************************//
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
-$( document ).ready(function() {
+$( document ).ready(async function() {
+   await Promise.all([
+    document.fonts.load('100 1em Poppins'),
+    document.fonts.load('300 1em Poppins'),
+    document.fonts.load('400 1em Poppins'),
+    document.fonts.load('500 1em Poppins'),
+    document.fonts.load('600 1em Poppins'),
+    document.fonts.load('700 1em Poppins'),
+  ]);
+
   add_gui_controls();
 
   glo.rightPanelsClasses.forEach(panelClass => {

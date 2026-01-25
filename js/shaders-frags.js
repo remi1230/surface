@@ -20,7 +20,7 @@ fragmentShaders = [
     // Combinaison des deux directions
     float line = max(lineU, lineV);
     
-    vec3 col = mix(uBackgroundColor, uLineColor, line);
+    vec3 col = mix(uBackgroundColor, uLineColor, line*mix(1.0, 0.0, float(opt1)));
 
     
 `,

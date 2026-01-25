@@ -608,7 +608,7 @@ function add_inputs_equations(){
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, withEvent = true){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, withEvent = true, width = 365){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
     if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY' && parent.name !== 'panelSymmAngle'){ header.paddingLeft = "20%"; }
@@ -616,7 +616,7 @@ function add_inputs_equations(){
     parent.addControl(header);
 
     var input = new BABYLON.GUI.InputText();
-    parmamControl(input, name, classNameInput, {w: "350", fontWeight: "500", fontSize: "19", text: textField, h:25}, true);
+    parmamControl(input, name, classNameInput, {w: width, fontWeight: "500", fontSize: "19", text: textField, h:25}, true);
 
     input.inputsEquationsIndex = indexInInputsEquations;
     indexInInputsEquations++;
@@ -1281,7 +1281,7 @@ function add_shaders_ctrl(){
     // Créer un conteneur vertical pour ce slider
     var container = new BABYLON.GUI.StackPanel();
     container.isVertical = true;
-    container.width = "85%"; // Pour en mettre 2 côte à côte
+    container.width  = "85%"; // Pour en mettre 2 côte à côte
     container.height = "50%";
     
     var header = new BABYLON.GUI.TextBlock();
@@ -1290,7 +1290,7 @@ function add_shaders_ctrl(){
       color: 'white', 
       fontSize: 14, 
       h: 20, 
-      pT: 0 
+      pR: 47.5 
     }, true);
     container.addControl(header);
 
@@ -1480,9 +1480,10 @@ function add_symmetrize_sliders(){
     giveMaterialToMesh();
   }, 16);
 
-  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, fontSize = 14, toShaders = false){
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, fontSize = 14, toShaders = false, specialClass = ''){
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: fontSize, h: 20, pT: 4, }, true);
+    parmamControl(header, "header_" + name, `header right fourth noAutoParam ${specialClass}`, { text: text + ": " + val, color: 'white', fontSize: fontSize, h: 20, pT: 4, }, true);
+    //if(fontWeight){ header.fontWeight = fontWeight; }
     parent.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
@@ -1531,7 +1532,7 @@ function add_symmetrize_sliders(){
   addSlider(panel, "symmetrizeZ", "Z", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
   addSlider(panel, "symmetrizeAngle", "Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
 
-  addSlider(panelCheckB, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; }, 16);
+  addSlider(panelCheckB, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; }, 16, false, 'title');
 
   addSlider(panelScaleNorm, "scaleNorm", "Scale", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; }, 14, true);
 

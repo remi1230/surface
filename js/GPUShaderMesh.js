@@ -698,7 +698,9 @@ void main() {
 		// Configurer les uniforms
 		this.updateAllUniforms(hasDeformation);
 
+		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
 
 		// Observer pour mettre à jour la caméra
@@ -984,10 +986,12 @@ void main() {
 		// Reconfigurer les uniforms
 		this.updateAllUniforms(hasDeformation);
 
+		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
 
-		console.log('Shader de déformation mis à jour:', deformText || '(désactivé)');
+		console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
 		return true;
 	}
 

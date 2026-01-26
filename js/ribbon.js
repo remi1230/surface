@@ -230,21 +230,28 @@ async function make_ribbon(symmetrize = true, histo = true){
 
 		// Si GPUShaderMesh est activé, remplacer le ribbon par un GPUShaderMesh
 		if (glo.useGPUShaderMesh && typeof createShaderMeshFromGlo === 'function') {
+			console.log('[GPUShaderMesh] Création du mesh...');
 			// Disposer l'ancien ribbon créé par CreateRibbon
 			if (glo.ribbon) {
 				glo.ribbon.dispose();
 			}
 			// Créer le nouveau mesh avec GPUShaderMesh
 			glo.ribbon = createShaderMeshFromGlo();
+			console.log('[GPUShaderMesh] Mesh créé:', glo.ribbon);
 
 			// Appliquer la déformation si une expression existe
 			if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 				const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+				console.log('[GPUShaderMesh] Expression déformation:', deformText);
 				if (deformText && deformText.trim()) {
 					glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
+					console.log('[GPUShaderMesh] Déformation appliquée');
 				}
+			} else {
+				console.warn('[GPUShaderMesh] shaderMeshInstance non trouvé!');
 			}
 		} else {
+			console.log('[Legacy] Utilisation de giveMaterialToMesh');
 			giveMaterialToMesh();
 		}
 

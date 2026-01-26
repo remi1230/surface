@@ -12,7 +12,7 @@
 
 // ==================== GESTIONNAIRE PRINCIPAL ====================
 
-class ShaderMeshComputer {
+class GPUShaderMeshComputer {
 	constructor() {
 		this.scene = glo.scene;
 		this.engine = glo.engine;
@@ -1129,14 +1129,14 @@ let shaderMeshComputer = null;
 
 function getShaderMeshComputer() {
 	if (!shaderMeshComputer) {
-		shaderMeshComputer = new ShaderMeshComputer();
+		shaderMeshComputer = new GPUShaderMeshComputer();
 	}
 	return shaderMeshComputer;
 }
 
 // ==================== EXPORTS ====================
 
-window.ShaderMeshComputer = ShaderMeshComputer;
+window.GPUShaderMeshComputer = GPUShaderMeshComputer;
 window.ShaderMeshBase = ShaderMeshBase;
 window.ShaderMeshCartesian = ShaderMeshCartesian;
 window.ShaderMeshSpherical = ShaderMeshSpherical;

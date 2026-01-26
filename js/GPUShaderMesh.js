@@ -96,12 +96,13 @@ class ShaderMeshComputer {
 	}
 
 	/**
-	 * Crée un mesh avec uniquement les indices (i, j) comme attributs
+	 * Crée un mesh avec les indices (i, j) et les positions calculées
 	 * @param {number} stepsU
 	 * @param {number} stepsV
+	 * @param {Float32Array} positions - Positions calculées sur CPU
 	 * @returns {BABYLON.Mesh}
 	 */
-	createIndexMesh(stepsU, stepsV) {
+	createIndexMesh(stepsU, stepsV, positions) {
 		const totalVertices = (stepsU + 1) * (stepsV + 1);
 
 		// Créer les indices (i, j) pour chaque vertex
@@ -113,9 +114,6 @@ class ShaderMeshComputer {
 				indices2D[idx++] = j;
 			}
 		}
-
-		// Positions factices (seront recalculées dans le shader)
-		const positions = new Float32Array(totalVertices * 3);
 
 		// Indices de triangulation
 		const triangleIndices = [];
@@ -579,14 +577,64 @@ void main() {
 	}
 
 	/**
+	 * Calcule les paths sur CPU (pour compatibilité avec getPaths())
+	 * À surcharger dans les classes filles
+	 * @returns {Array<Array<BABYLON.Vector3>>}
+	 */
+	computePathsCPU() {
+		return [];
+	}
+
+	/**
+	 * Convertit les paths en Float32Array de positions
+	 * @param {Array<Array<BABYLON.Vector3>>} paths
+	 * @returns {Float32Array}
+	 */
+	pathsToPositions(paths) {
+		const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
+		const positions = new Float32Array(totalPoints * 3);
+
+		let idx = 0;
+		for (const path of paths) {
+			for (const point of path) {
+				positions[idx++] = point.x;
+				positions[idx++] = point.y;
+				positions[idx++] = point.z;
+			}
+		}
+
+		return positions;
+	}
+
+	/**
 	 * Crée le mesh et applique le shader
 	 */
 	create() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Créer le mesh
-		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
+		// Calculer les paths sur CPU (pour compatibilité avec getPaths())
+		this.paths = this.computePathsCPU();
+
+		// Convertir en positions
+		const positions = this.pathsToPositions(this.paths);
+
+		// Stocker dans glo.lines et glo.curves.paths pour compatibilité
+		glo.lines = this.paths;
+		if (glo.curves) {
+			glo.curves.paths = this.paths;
+		}
+
+		// Créer le mesh avec les positions calculées
+		this.mesh = this.computer.createIndexMesh(stepsU, stepsV, positions);
+
+		// Mettre à jour glo.pathsInfos pour getPaths()
+		if (typeof getPathsInfos === 'function') {
+			getPathsInfos();
+		}
+
+		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
+		this.mesh.shaderMeshInstance = this;
 
 		// Obtenir l'expression de déformation
 		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
@@ -803,6 +851,40 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 
 	/**
 	 * @override
+	 * Calcule les paths sur CPU en utilisant WebGL2MeshComputer (Transform Feedback)
+	 */
+	computePathsCPU() {
+		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
+		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+
+		// Utiliser le WebGL2MeshComputer existant
+		const webgl2Computer = getWebGL2Computer();
+
+		const positions = webgl2Computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.x || 'u',
+			exprY: this.equa.y || 'v',
+			exprZ: this.equa.z || '0',
+			exprAlpha: this.equa.alpha || '0',
+			exprBeta: this.equa.beta || '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'cartesian'
+		});
+
+		if (!positions) return [];
+
+		// Convertir en paths
+		return webgl2Computer.positionsToPaths(positions, stepsU, stepsV);
+	}
+
+	/**
+	 * @override
 	 */
 	getPositionGLSL() {
 		const glslX = this.computer.transformExpressionToGLSL(this.equa.x || 'u');
@@ -895,15 +977,17 @@ function createShaderMesh(coordsType, parametres, equa, equa2, dimOne, fractaliz
 
 /**
  * Crée un ShaderMesh à partir des paramètres globaux (glo)
+ * @returns {BABYLON.Mesh} Le mesh créé (avec shaderMeshInstance attaché)
  */
 function createShaderMeshFromGlo() {
 	const coordsType = glo.coordsType || 'cartesian';
 	const MeshClass = getShaderMeshClass(coordsType);
 
 	const shaderMesh = new MeshClass();
-	shaderMesh.create();
+	const mesh = shaderMesh.create();
 
-	return shaderMesh;
+	// Le mesh retourné a shaderMeshInstance attaché pour accéder à l'instance ShaderMesh
+	return mesh;
 }
 
 // ==================== INSTANCE GLOBALE ====================

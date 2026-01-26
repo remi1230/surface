@@ -1063,10 +1063,10 @@ function scaleVertexsDist(scale = 0.5) {
 	}
 }
 
-function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, lines = glo.curves.lineSystem, dblLines = glo.curves.lineSystemDouble){
+function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, /*lines = glo.curves.lineSystem, dblLines = glo.curves.lineSystemDouble*/){
 	mesh[transformKind][axis] = value;
-	if(lines){ lines[transformKind][axis] = value; }
-	if(dblLines){ dblLines[transformKind][axis] = value; }
+	//if(lines){ lines[transformKind][axis] = value; }
+	//if(dblLines){ dblLines[transformKind][axis] = value; }
 }
 
 function isTransformation(){

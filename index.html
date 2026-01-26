@@ -24,6 +24,8 @@
   <script src="js/glo.js" defer></script>
   <script src="js/prototypes.js" defer></script>
   <script src="js/classesGPU.js" defer></script>
+  <script src="js/classesGPUTest.js" defer></script>
+  <script src="js/GPUShaderMesh.js" defer></script>
   <script src="js/shaders-frags.js" defer></script>
   <script src="js/shaders-loader.js" defer></script>
   <script src="js/shaders-crud.js" defer></script>
@@ -72,6 +74,9 @@
                   
                   <h6 class="fonction_title"><kbd class="functions_list">b(coeff)</kbd></h6>
                   <span>hypot(cos(x), cos(y), cos(z))</span>
+
+                  <h6 class="fonction_title"><kbd class="functions_list">q(GenType, GenType, GenType)</kbd></h6>
+                  <span>mix(GenType, GenType, GenType)</span>
                 </div>
                 
                 <div class="col m6 s12">
@@ -86,6 +91,12 @@
                   
                   <h6 class="fonction_title"><kbd class="functions_list">lcr(x1, y1, z1, x2, y2, z2)</kbd></h6>
                   <span>Hypot(cross(v1, v2))</span>
+
+                  <h6 class="fonction_title"><kbd class="functions_list">r(GenType, GenType, GenType)</kbd></h6>
+                  <span>smoothstep(GenType, GenType, GenType)</span>
+
+                  <h6 class="fonction_title"><kbd class="functions_list">g(GenType, GenType)</kbd></h6>
+                  <span>step(GenType, GenType)</span>
                 </div>
               </div>
               <div class="row" ><h5>Normal deformation consists of displacing each vertex of a mesh in the direction perpendicular to its surface.</h5></div>

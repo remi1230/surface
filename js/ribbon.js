@@ -74,7 +74,12 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
     }*/
 	switch (coordTypes || glo.coordsType) {
         case 'cartesian':
-            glo[objToSet] = new CurvesCartesianGPU(parameters, f, f2, d, fractalize, onePoint);
+            //glo[objToSet] = new CurvesCartesianGPU(parameters, f, f2, d, fractalize, onePoint);
+			if(glo.ribbon){ ribbonDispose(); }
+			glo.ribbon =  createShaderMeshFromGlo();
+            //glo.ribbon = new ShaderMeshCartesian(parameters, f, f2, d, fractalize);
+			//glo.curves.paths = glo.ribbon.getPaths();
+			glo.fromShader = true;
             break;
         case 'spheric':
 			glo[objToSet] = new CurvesSphericalGPU(parameters, f, f2, d, fractalize, onePoint);
@@ -86,8 +91,6 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
             glo[objToSet] = new CurvesByCurvatureGPU(parameters, f, f2, d, fractalize, onePoint);
             break;
     }
-
-	
 }
 
 function makeOnePoint(u, v){
@@ -102,13 +105,13 @@ function makeOnePoint(u, v){
 async function make_ribbon(symmetrize = true, histo = true){
     if (glo.params.NaNToZero) { NaNToZero(); }
 
-	let isClosedArray = isClosedPaths(glo.curves.paths);
+	let isClosedArray = !glo.fromShader ? isClosedPaths(glo.curves.paths) : false;
 
 	glo.isClosedArray = isClosedArray;
 	
 	//if(glo.input_sym_r.text){ await applyDeformation(); }
     
-    let paths = glo.curves.paths;
+    let paths = !glo.fromShader ? glo.curves.paths : [1,1];
 
     if (paths.length) {
         // Si fermé, retirer le dernier path (doublon du premier)
@@ -136,23 +139,9 @@ async function make_ribbon(symmetrize = true, histo = true){
         if (glo.params.expansion) { await expanseRibbon(); }
 
         scaleVertexsDist(glo.scaleVertex);
-
-		let updateRibbon = false;
-		if (!glo.ribbon) {
-			glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-				pathArray: paths,
-				sideOrientation: 1,
-				updatable: true,
-				closeArray: false
-			}, glo.scene);
-			glo.ribbon._pathCount = paths.length;
-			glo.ribbon._pointsPerPath = paths[0].length;
-			glo.ribbon.savedRibbon = cloneRibbonDeep(glo.ribbon, "savedRibbon", glo.scene);
-			glo.ribbon.savedRibbon.isVisible = false;
-		} else {
-			if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
-				glo.exceptionCreate = false;
-				ribbonDispose();
+		if(!glo.fromShader){
+			let updateRibbon = false;
+			if (!glo.ribbon) {
 				glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
 					pathArray: paths,
 					sideOrientation: 1,
@@ -164,15 +153,29 @@ async function make_ribbon(symmetrize = true, histo = true){
 				glo.ribbon.savedRibbon = cloneRibbonDeep(glo.ribbon, "savedRibbon", glo.scene);
 				glo.ribbon.savedRibbon.isVisible = false;
 			} else {
-				updateRibbon = true;
-				if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
-				await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
-					pathArray: paths,
-					instance: glo.ribbon
-				});
+				if (glo.exceptionCreate || paths.length !== glo.ribbon._pathCount || paths[0].length !== glo.ribbon._pointsPerPath) {
+					glo.exceptionCreate = false;
+					ribbonDispose();
+					glo.ribbon = await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+						pathArray: paths,
+						sideOrientation: 1,
+						updatable: true,
+						closeArray: false
+					}, glo.scene);
+					glo.ribbon._pathCount = paths.length;
+					glo.ribbon._pointsPerPath = paths[0].length;
+					glo.ribbon.savedRibbon = cloneRibbonDeep(glo.ribbon, "savedRibbon", glo.scene);
+					glo.ribbon.savedRibbon.isVisible = false;
+				} else {
+					updateRibbon = true;
+					if(glo.params.checkerboard && !glo.ribbon.savedIndices){ glo.ribbon.savedIndices = glo.ribbon.getIndices(); }
+					await BABYLON.MeshBuilder.CreateRibbon(nameRibbon, {
+						pathArray: paths,
+						instance: glo.ribbon
+					});
+				}
 			}
 		}
-
 		//if(glo.input_sym_r.text){ await applyDeformation(true); }
 		
 		glo.ribbon.createNormals(true);
@@ -228,9 +231,11 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         glo.ribbon.resetCurveByStep();
 
-		giveMaterialToMesh();
+		if (!glo.fromShader) { giveMaterialToMesh(); }
 
         if (histo) { glo.histo.save(); }
+
+		glo.fromShader = false;
     }
 }
 
@@ -323,8 +328,8 @@ function ribbonDispose(all = true){
 }
 
 async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize', histo = true){
-	if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
-	if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
+	//if(glo.curves.lineSystem){ glo.curves.lineSystem.dispose(true); delete glo.curves.lineSystem; }
+	//if(glo.curves.lineSystemDouble){ glo.curves.lineSystemDouble.dispose(true); delete glo.curves.lineSystemDouble; }
 
 	await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); 
 }

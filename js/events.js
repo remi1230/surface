@@ -9,6 +9,13 @@ $( document ).ready(async function() {
     document.fonts.load('500 1em Poppins'),
     document.fonts.load('600 1em Poppins'),
     document.fonts.load('700 1em Poppins'),
+    document.fonts.load('200 1em Manrope'),
+    document.fonts.load('300 1em Manrope'),
+    document.fonts.load('400 1em Manrope'),
+    document.fonts.load('500 1em Manrope'),
+    document.fonts.load('600 1em Manrope'),
+    document.fonts.load('700 1em Manrope'),
+    document.fonts.load('800 1em Manrope'),
   ]);
 
   add_gui_controls();
@@ -323,7 +330,11 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "a":
-                  styleUI();
+                  const newPolice = glo.fontUIs.next().value;
+                  console.log(newPolice);
+                  applyFontToHeaders(newPolice, 300, 0);
+                  applyFontToButtons(newPolice, 500, 0);
+                  applyFontToRadio(newPolice, 300, false, 14);
 
                break;
                case "ù":

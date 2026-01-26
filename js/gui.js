@@ -391,7 +391,7 @@ function add_histo_buttons(){
   function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     designButton(button);
-    parmamControl(button, name, 'button right left noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    parmamControl(button, name, 'button right left first noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     button.fontSize = "20px";
     button.onPointerDownObservable.add(function(event) {
       if (event.buttonIndex !== 2){ eventLeft(); }
@@ -712,8 +712,8 @@ function add_inputs_equations(){
       glo.params.text_input_sym_r = text;
 
       if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
-          if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
-          if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
+          //if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
+          //if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
           await applyDeformationShader();
       }
@@ -722,8 +722,8 @@ function add_inputs_equations(){
   glo.input_sym_r.onTextPasteObservable.add(async () => {
       glo.params.text_input_sym_r = glo.input_sym_r.text;
 
-      if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
-      if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
+      //if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
+      //if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
       await applyDeformationShader();
   });
@@ -809,7 +809,8 @@ function add_radios(suit = false){
     for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
 
     var textBlock = header.children[1];
-    textBlock.fontFamily = "Poppins";
+    //textBlock.fontFamily = "Poppins";
+    textBlock.fontFamily = "Manrope";
     textBlock.fontWeight = 300;
     textBlock.fontSize = "14px";
 

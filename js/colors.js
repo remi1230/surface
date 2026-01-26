@@ -4,15 +4,23 @@ async function giveMaterialToMesh(mesh = glo.ribbon){
 		return;
 	}
 	glo.isApplyingMaterial = true;
-	
+
 	try{
+		// Si c'est un GPUShaderMesh, utiliser ses méthodes natives
+		if (mesh && mesh.shaderMeshInstance) {
+			mesh.shaderMeshInstance.updateColors();
+			mesh.shaderMeshInstance.updateLighting();
+			glo.isApplyingMaterial = false;
+			return;
+		}
+
 		if(glo.shaderRenderObserver){
 			glo.scene.onBeforeRenderObservable.remove(glo.shaderRenderObserver);
 			glo.shaderRenderObserver = null;
 		}
 
 		disposeAllMaterials();
-		
+
 		glo.ribbon.setDataShader();
 
 		// Déterminer si la déformation est active et obtenir l'expression

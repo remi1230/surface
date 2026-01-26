@@ -856,6 +856,49 @@ void main() {
 	}
 
 	/**
+	 * Met à jour les couleurs du mesh (background, lignes, éclairage)
+	 */
+	updateColors() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setVector3("meshBg", new BABYLON.Vector3(
+			glo.emissiveColor.r,
+			glo.emissiveColor.g,
+			glo.emissiveColor.b
+		));
+		this.shaderMaterial.setVector3("meshFg", new BABYLON.Vector3(
+			glo.lineColor.r,
+			glo.lineColor.g,
+			glo.lineColor.b
+		));
+	}
+
+	/**
+	 * Met à jour l'éclairage (lampe)
+	 */
+	updateLighting() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setVector3("lampPosition", new BABYLON.Vector3(
+			glo.shaders.light.direction.x,
+			glo.shaders.light.direction.y,
+			glo.shaders.light.direction.z
+		));
+		this.shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
+		this.shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
+	}
+
+	/**
+	 * Met à jour la grille (nombre de lignes)
+	 */
+	updateGrid() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setFloat("gridU", glo.params.steps_u);
+		this.shaderMaterial.setFloat("gridV", glo.params.steps_v);
+	}
+
+	/**
 	 * Active/désactive la déformation et met à jour le scale
 	 * @param {boolean} enabled - Activer la déformation
 	 * @param {number} scale - Échelle de la déformation (optionnel)

@@ -8,6 +8,19 @@ async function giveMaterialToMesh(mesh = glo.ribbon){
 	try{
 		// Si c'est un GPUShaderMesh, utiliser ses méthodes natives
 		if (mesh && mesh.shaderMeshInstance) {
+			// Si l'éditeur Monaco est ouvert et a du contenu, appliquer le fragment shader personnalisé
+			if (glo.editor && glo.editorWindow && glo.editorWindow.style.display === 'flex') {
+				const customFragment = glo.editor.getValue();
+				if (customFragment && customFragment.trim()) {
+					const success = mesh.shaderMeshInstance.updateFragmentShader(customFragment);
+					if (success) {
+						glo.isApplyingMaterial = false;
+						return;
+					}
+					// Si échec, continuer avec les méthodes natives
+				}
+			}
+			// Sinon, juste mettre à jour les couleurs et l'éclairage
 			mesh.shaderMeshInstance.updateColors();
 			mesh.shaderMeshInstance.updateLighting();
 			glo.isApplyingMaterial = false;

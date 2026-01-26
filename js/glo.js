@@ -193,7 +193,7 @@ var glo = {
 						else{
 							dimension(true);
 						}
-						viewOnAxis(sel.orient);
+						if(this.fromShader){ viewOnAxis(sel.orient); }
 					}
 				}
 				else{ sel.check = false; }

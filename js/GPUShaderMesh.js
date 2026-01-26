@@ -5,14 +5,14 @@
  * - Le mesh ne contient que les indices (i, j) comme attributs
  * - Le vertex shader calcule : positions paramétriques + normales (différences finies) + déformation
  * - Le fragment shader calcule : couleur + éclairage
- * - AUCUN transfert GPU → CPU (pas de getBufferSubData)
+ * - AUCUN transfert GPU → CPU (pas de getBufferSubData, pas de getPaths)
  *
  * GAIN DE PERFORMANCE : ~100x par rapport à l'approche Transform Feedback
  */
 
 // ==================== GESTIONNAIRE PRINCIPAL ====================
 
-class ShaderMeshComputer {
+class GPUShaderMeshComputer {
 	constructor() {
 		this.scene = glo.scene;
 		this.engine = glo.engine;
@@ -96,13 +96,13 @@ class ShaderMeshComputer {
 	}
 
 	/**
-	 * Crée un mesh avec les indices (i, j) et les positions calculées
+	 * Crée un mesh avec uniquement les indices (i, j) comme attributs
+	 * Les positions sont calculées entièrement dans le shader
 	 * @param {number} stepsU
 	 * @param {number} stepsV
-	 * @param {Float32Array} positions - Positions calculées sur CPU
 	 * @returns {BABYLON.Mesh}
 	 */
-	createIndexMesh(stepsU, stepsV, positions) {
+	createIndexMesh(stepsU, stepsV) {
 		const totalVertices = (stepsU + 1) * (stepsV + 1);
 
 		// Créer les indices (i, j) pour chaque vertex
@@ -114,6 +114,9 @@ class ShaderMeshComputer {
 				indices2D[idx++] = j;
 			}
 		}
+
+		// Positions factices (le shader calcule les vraies positions)
+		const positions = new Float32Array(totalVertices * 3);
 
 		// Indices de triangulation
 		const triangleIndices = [];
@@ -214,10 +217,17 @@ class ShaderMeshBase {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.w = w;
+		this.w = performance.now() / 1000.0;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
+
+		// Transformations additionnelles (uniforms)
+		this.flatAmount = 0.0;      // 0 = normal, 1 = complètement plat
+		this.twistAmount = 0.0;     // Angle de twist par unité de hauteur
+		this.spherifyAmount = 0.0;  // 0 = normal, 1 = sphère parfaite
+		this.waveAmplitude = 0.0;   // Amplitude des ondes
+		this.waveFrequency = 1.0;   // Fréquence des ondes
 
 		// Observer pour la caméra
 		this.cameraObserver = null;
@@ -380,6 +390,13 @@ uniform int deformationEnabled;
 uniform vec4 blendU;
 uniform vec3 blendO;
 
+// Uniforms transformations additionnelles
+uniform float flatAmount;
+uniform float twistAmount;
+uniform float spherifyAmount;
+uniform float waveAmplitude;
+uniform float waveFrequency;
+
 // Uniforms firstPoint (pour systèmes sphérique/cylindrique)
 uniform vec3 uFirstPoint;
 
@@ -419,6 +436,46 @@ vec3 computePosition(float u, float v, float i, float j) {
 	outPos = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * outPos;
 
 	return outPos;
+}
+
+// ============================================================
+// TRANSFORMATIONS ADDITIONNELLES (flat, twist, spherify, wave)
+// ============================================================
+vec3 applyTransformations(vec3 pos, float u, float v) {
+	vec3 result = pos;
+
+	// FLAT : Aplatir vers Y = 0
+	if (flatAmount > 0.0) {
+		result.y = mix(result.y, 0.0, flatAmount);
+	}
+
+	// TWIST : Rotation autour de Y proportionnelle à Y
+	if (twistAmount != 0.0) {
+		float angle = result.y * twistAmount;
+		float c = cos(angle);
+		float s = sin(angle);
+		float newX = result.x * c - result.z * s;
+		float newZ = result.x * s + result.z * c;
+		result.x = newX;
+		result.z = newZ;
+	}
+
+	// SPHERIFY : Interpolation vers une sphère
+	if (spherifyAmount > 0.0) {
+		float radius = length(result);
+		if (radius > 0.001) {
+			vec3 spherePos = normalize(result) * radius;
+			result = mix(result, spherePos, spherifyAmount);
+		}
+	}
+
+	// WAVE : Ondulation
+	if (waveAmplitude != 0.0) {
+		float wave = sin(u * waveFrequency) * cos(v * waveFrequency) * waveAmplitude;
+		result += normalize(result) * wave;
+	}
+
+	return result;
 }
 
 // ============================================================
@@ -465,10 +522,15 @@ void main() {
 	vec3 pos = computePosition(u, v, i, j);
 
 	// ============================================================
-	// ETAPE 2 : Calculer la normale par différences finies
+	// ETAPE 2 : Appliquer les transformations additionnelles
 	// ============================================================
-	vec3 posU = computePosition(u + eps, v, i, j);
-	vec3 posV = computePosition(u, v + eps, i, j);
+	pos = applyTransformations(pos, u, v);
+
+	// ============================================================
+	// ETAPE 3 : Calculer la normale par différences finies
+	// ============================================================
+	vec3 posU = applyTransformations(computePosition(u + eps, v, i, j), u + eps, v);
+	vec3 posV = applyTransformations(computePosition(u, v + eps, i, j), u, v + eps);
 
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;
@@ -480,7 +542,7 @@ void main() {
 	}
 
 	// ============================================================
-	// ETAPE 3 : Appliquer la déformation (si activée)
+	// ETAPE 4 : Appliquer la déformation (si activée)
 	// ============================================================
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
@@ -489,7 +551,7 @@ void main() {
 	}
 
 	// ============================================================
-	// ETAPE 4 : Sorties
+	// ETAPE 5 : Sorties
 	// ============================================================
 	gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
 	vWorldPosition = (world * vec4(finalPosition, 1.0)).xyz;
@@ -524,13 +586,46 @@ uniform float lampRadius;
 uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
+uniform float w;
 
-// Atténuation
+// Atténuation réaliste (loi inverse du carré avec falloff doux)
 float calcAttenuation(float dist, float radius, float intensity) {
-	float d = max(dist, 0.001);
-	float att = intensity / (d * d);
-	float falloff = 1.0 - smoothstep(0.0, radius, dist);
-	return att * falloff;
+    float d = max(dist, 0.001);
+    // Atténuation physique + falloff doux aux bords
+    float att = intensity / (d * d);
+    float falloff = 1.0 - smoothstep(0.0, radius, dist);
+    return att * falloff;
+}
+
+vec3 light(vec3 lampPos, vec3 baseColor) {
+    vec3 N = normalize(vNormal);
+    vec3 V = normalize(cameraPosition - vWorldPosition);
+    
+    // === FIX : Flip la normale si elle pointe à l'opposé de la caméra ===
+    if (dot(N, V) < 0.0) {
+        N = -N;
+    }
+
+	lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
+    
+    vec3 toLight = lampPos - vWorldPosition;
+    float dist = length(toLight);
+    vec3 L = normalize(toLight);
+    
+    float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
+    
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 diffuse = baseColor * NdotL * att;
+    
+    vec3 halfDir = normalize(L + V);
+    float NdotH = max(dot(N, halfDir), 0.0);
+    //float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    float spec = pow(NdotH, 2.0) * 4.0;
+    vec3 specular = baseColor * spec * att;
+    
+    vec3 ambient = vec3(0.05);
+    
+    return ambient + diffuse + specular;
 }
 
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
@@ -541,8 +636,10 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 		N = -N;
 	}
 
-	vec3 L = normalize(lampPosition - pos);
-	float dist = length(lampPosition - pos);
+	vec3 lampPos = vec3(lampPosition.x, lampPosition.y, lampPosition.z * 32.0);
+
+	vec3 L = normalize(lampPos - pos);
+	float dist = length(lampPos - pos);
 	float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
 
 	// Diffuse
@@ -563,75 +660,37 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 void main() {
 	vec3 color = meshBg;
 
+	float coeffLine = 4.0;
+
 	// Grille
-	float gu = fract(vUV.x * gridU);
-	float gv = fract(vUV.y * gridV);
-	float line = step(1.0 - lineWidth / gridU, gu) + step(1.0 - lineWidth / gridV, gv);
+	float gu = fract(vUV.x * gridU * 0.5);
+	float gv = fract(vUV.y * gridV * 0.5);
+	float line = step(1.0 - (lineWidth*coeffLine*4.0) / gridU, gu) + step(1.0 - (lineWidth*coeffLine) / gridV, gv);
 	color = mix(color, meshFg, min(line, 1.0));
 
 	// Éclairage
-	vec3 litColor = calculateLighting(vWorldPosition, vNormal, color);
+	//vec3 litColor = calculateLighting(vWorldPosition, vNormal, color);
+	vec3 lamp1 = light(lampPosition, color);
+	
 
-	fragColor = vec4(litColor, 1.0);
+	color*= lamp1;
+	color = color / (color + vec3(1.0));
+	color = pow(color, vec3(1.0 / 2.2));
+
+	fragColor = vec4(color, 1.0);
 }`;
 	}
 
 	/**
-	 * Calcule les paths sur CPU (pour compatibilité avec getPaths())
-	 * À surcharger dans les classes filles
-	 * @returns {Array<Array<BABYLON.Vector3>>}
-	 */
-	computePathsCPU() {
-		return [];
-	}
-
-	/**
-	 * Convertit les paths en Float32Array de positions
-	 * @param {Array<Array<BABYLON.Vector3>>} paths
-	 * @returns {Float32Array}
-	 */
-	pathsToPositions(paths) {
-		const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
-		const positions = new Float32Array(totalPoints * 3);
-
-		let idx = 0;
-		for (const path of paths) {
-			for (const point of path) {
-				positions[idx++] = point.x;
-				positions[idx++] = point.y;
-				positions[idx++] = point.z;
-			}
-		}
-
-		return positions;
-	}
-
-	/**
 	 * Crée le mesh et applique le shader
+	 * 100% GPU - aucun calcul CPU de paths
 	 */
 	create() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Calculer les paths sur CPU (pour compatibilité avec getPaths())
-		this.paths = this.computePathsCPU();
-
-		// Convertir en positions
-		const positions = this.pathsToPositions(this.paths);
-
-		// Stocker dans glo.lines et glo.curves.paths pour compatibilité
-		glo.lines = this.paths;
-		if (glo.curves) {
-			glo.curves.paths = this.paths;
-		}
-
-		// Créer le mesh avec les positions calculées
-		this.mesh = this.computer.createIndexMesh(stepsU, stepsV, positions);
-
-		// Mettre à jour glo.pathsInfos pour getPaths()
-		if (typeof getPathsInfos === 'function') {
-			getPathsInfos();
-		}
+		// Créer le mesh avec positions vides (shader calcule tout)
+		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
 
 		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
 		this.mesh.shaderMeshInstance = this;
@@ -670,6 +729,8 @@ void main() {
 					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
+					"flatAmount", "twistAmount", "spherifyAmount",
+					"waveAmplitude", "waveFrequency",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth"
@@ -677,10 +738,18 @@ void main() {
 			}
 		);
 
+		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
+				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
+				this.shaderMaterial.setFloat("w", performance.now() * 0.001);
+				this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+		});
+
 		// Configurer les uniforms
 		this.updateAllUniforms(hasDeformation);
 
+		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
 
 		// Observer pour mettre à jour la caméra
@@ -738,6 +807,16 @@ void main() {
 			this.blenderInfos.O.z
 		));
 
+		// Transformations additionnelles
+		mat.setFloat("flatAmount", this.flatAmount);
+		mat.setFloat("twistAmount", this.twistAmount);
+		mat.setFloat("spherifyAmount", this.spherifyAmount);
+		mat.setFloat("waveAmplitude", this.waveAmplitude);
+		mat.setFloat("waveFrequency", this.waveFrequency);
+
+		// Temps
+		mat.setFloat("w", performance.now() / 1000.0);
+
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
 			glo.firstPoint?.x || 1,
@@ -792,7 +871,7 @@ void main() {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.w = w;
+		this.w = performance.now() / 1000.0;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);
@@ -807,6 +886,193 @@ void main() {
 		this.shaderMaterial.setFloat("K", this.K);
 		this.shaderMaterial.setFloat("L", this.L);
 		this.shaderMaterial.setFloat("w", this.w);
+	}
+
+	/**
+	 * Met à jour le blender
+	 */
+	updateBlender() {
+		if (!this.shaderMaterial) return;
+
+		this.blenderInfos = glo.params.blender;
+
+		this.shaderMaterial.setVector4("blendU", new BABYLON.Vector4(
+			this.blenderInfos.u.x,
+			this.blenderInfos.u.y,
+			this.blenderInfos.u.z,
+			0
+		));
+		this.shaderMaterial.setVector3("blendO", new BABYLON.Vector3(
+			this.blenderInfos.O.x,
+			this.blenderInfos.O.y,
+			this.blenderInfos.O.z
+		));
+	}
+
+	/**
+	 * Met à jour les couleurs du mesh (background, lignes, éclairage)
+	 */
+	updateColors() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setVector3("meshBg", new BABYLON.Vector3(
+			glo.emissiveColor.r,
+			glo.emissiveColor.g,
+			glo.emissiveColor.b
+		));
+		this.shaderMaterial.setVector3("meshFg", new BABYLON.Vector3(
+			glo.lineColor.r,
+			glo.lineColor.g,
+			glo.lineColor.b
+		));
+	}
+
+	/**
+	 * Met à jour l'éclairage (lampe)
+	 */
+	updateLighting() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setVector3("lampPosition", new BABYLON.Vector3(
+			glo.shaders.light.direction.x,
+			glo.shaders.light.direction.y,
+			glo.shaders.light.direction.z
+		));
+		this.shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
+		this.shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
+	}
+
+	/**
+	 * Met à jour la grille (nombre de lignes)
+	 */
+	updateGrid() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setFloat("gridU", glo.params.steps_u);
+		this.shaderMaterial.setFloat("gridV", glo.params.steps_v);
+	}
+
+	/**
+	 * Active/désactive la déformation et met à jour le scale
+	 * @param {boolean} enabled - Activer la déformation
+	 * @param {number} scale - Échelle de la déformation (optionnel)
+	 */
+	setDeformation(enabled, scale = null) {
+		if (!this.shaderMaterial) return;
+
+		glo.deformationEnabled = enabled;
+		this.shaderMaterial.setInt("deformationEnabled", enabled ? 1 : 0);
+
+		if (scale !== null) {
+			glo.scaleNorm = scale;
+			this.shaderMaterial.setFloat("scaleNorm", scale);
+		}
+	}
+
+	/**
+	 * Met à jour uniquement le scale de déformation
+	 * @param {number} scale - Échelle de la déformation
+	 */
+	setDeformationScale(scale) {
+		if (!this.shaderMaterial) return;
+
+		glo.scaleNorm = scale;
+		this.shaderMaterial.setFloat("scaleNorm", scale);
+	}
+
+	/**
+	 * Met à jour l'expression de déformation (recompile le shader)
+	 * @param {string} expression - Nouvelle expression (ex: "m()", "o(2)", "a(8,8)")
+	 * @returns {boolean} true si succès, false si erreur
+	 */
+	updateDeformationExpression(expression = null) {
+		if (!this.mesh) return false;
+
+		// Récupérer l'expression
+		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const hasDeformation = deformText && deformText.trim();
+
+		// Créer les nouveaux shaders
+		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
+		const fragmentShader = this.createFragmentShader();
+
+		// Valider le nouveau shader
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) {
+			console.error('Shader de déformation invalide:', validation.error);
+			return false;
+		}
+
+		// Disposer de l'ancien matériau
+		if (this.shaderMaterial) {
+			this.shaderMaterial.dispose();
+		}
+
+		// Créer le nouveau ShaderMaterial
+		this.shaderMaterial = new BABYLON.ShaderMaterial(
+			"shaderMeshMaterial",
+			this.computer.scene,
+			{
+				vertexSource: vertexShader,
+				fragmentSource: fragmentShader
+			},
+			{
+				attributes: ["position", "aIndex"],
+				uniforms: [
+					"worldViewProjection", "world",
+					"uMinU", "uMaxU", "uStepU",
+					"uMinV", "uMaxV", "uStepV",
+					"uStepsU", "uStepsV",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
+					"w", "eps", "scaleNorm", "deformationEnabled",
+					"blendU", "blendO", "uFirstPoint",
+					"flatAmount", "twistAmount", "spherifyAmount",
+					"waveAmplitude", "waveFrequency",
+					"cameraPosition", "meshBg", "meshFg",
+					"lampPosition", "lampIntensity", "lampRadius",
+					"gridU", "gridV", "lineWidth", "w"
+				]
+			}
+		);
+
+		// Reconfigurer les uniforms
+		this.updateAllUniforms(hasDeformation);
+
+		// Rendre les deux côtés du mesh
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = 1;
+		this.mesh.material = this.shaderMaterial;
+
+		console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
+		return true;
+	}
+
+	/**
+	 * Met à jour les transformations additionnelles
+	 */
+	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {
+		if (!this.shaderMaterial) return;
+
+		if (flat !== null) {
+			this.flatAmount = flat;
+			this.shaderMaterial.setFloat("flatAmount", flat);
+		}
+		if (twist !== null) {
+			this.twistAmount = twist;
+			this.shaderMaterial.setFloat("twistAmount", twist);
+		}
+		if (spherify !== null) {
+			this.spherifyAmount = spherify;
+			this.shaderMaterial.setFloat("spherifyAmount", spherify);
+		}
+		if (waveAmp !== null) {
+			this.waveAmplitude = waveAmp;
+			this.shaderMaterial.setFloat("waveAmplitude", waveAmp);
+		}
+		if (waveFreq !== null) {
+			this.waveFrequency = waveFreq;
+			this.shaderMaterial.setFloat("waveFrequency", waveFreq);
+		}
 	}
 
 	/**
@@ -847,40 +1113,6 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cartesian';
-	}
-
-	/**
-	 * @override
-	 * Calcule les paths sur CPU en utilisant WebGL2MeshComputer (Transform Feedback)
-	 */
-	computePathsCPU() {
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
-
-		// Utiliser le WebGL2MeshComputer existant
-		const webgl2Computer = getWebGL2Computer();
-
-		const positions = webgl2Computer.compute({
-			stepsU, stepsV,
-			minU: this.min_u, stepU: this.step_u,
-			minV: this.min_v, stepV: this.step_v,
-			exprX: this.equa.x || 'u',
-			exprY: this.equa.y || 'v',
-			exprZ: this.equa.z || '0',
-			exprAlpha: this.equa.alpha || '0',
-			exprBeta: this.equa.beta || '0',
-			A: this.A, B: this.B, C: this.C, D: this.D,
-			E: this.E, F: this.F, G: this.G, H: this.H,
-			I: this.I, J: this.J, K: this.K, L: this.L,
-			w: this.w,
-			firstPoint: glo.firstPoint,
-			coordSystem: 'cartesian'
-		});
-
-		if (!positions) return [];
-
-		// Convertir en paths
-		return webgl2Computer.positionsToPaths(positions, stepsU, stepsV);
 	}
 
 	/**
@@ -996,14 +1228,14 @@ let shaderMeshComputer = null;
 
 function getShaderMeshComputer() {
 	if (!shaderMeshComputer) {
-		shaderMeshComputer = new ShaderMeshComputer();
+		shaderMeshComputer = new GPUShaderMeshComputer();
 	}
 	return shaderMeshComputer;
 }
 
 // ==================== EXPORTS ====================
 
-window.ShaderMeshComputer = ShaderMeshComputer;
+window.GPUShaderMeshComputer = GPUShaderMeshComputer;
 window.ShaderMeshBase = ShaderMeshBase;
 window.ShaderMeshCartesian = ShaderMeshCartesian;
 window.ShaderMeshSpherical = ShaderMeshSpherical;

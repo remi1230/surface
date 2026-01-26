@@ -167,7 +167,7 @@ function rotateMeshesOnZ(direction = 1){
 }
 
 function rotate_camera(){
-	if(glo.is_ribbon){
+	if(glo.ribbon){
 		const speed = glo.rotate_speed;
 		switch(glo.rotateType.current){
 			case 'alpha':

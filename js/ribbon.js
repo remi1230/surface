@@ -31,14 +31,18 @@ async function make_curves(u_params = {
 
 		makeOnlyCurves(undefined, undefined, undefined, undefined, false, fractalize);
 
-		await expendPathsByEachCenter();
-		await rotatePathsByEachCenter();
+		if(!glo.fromShader){
+			await expendPathsByEachCenter();
+			await rotatePathsByEachCenter();
 
-		await make_ribbon(true, histo);
-		glo.ribbon.refreshBoundingInfo();
-		setTimeout(() => {
-			glo.camera.focusOn([glo.ribbon], true);
-		}, 0);
+			await make_ribbon(true, histo);
+			glo.ribbon.refreshBoundingInfo();
+			setTimeout(() => {
+				glo.camera.focusOn([glo.ribbon], true);
+			}, 0);
+		}
+
+		glo.fromShader = false;
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 	}

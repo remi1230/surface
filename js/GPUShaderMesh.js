@@ -884,6 +884,71 @@ void main() {
 	}
 
 	/**
+	 * Met à jour l'expression de déformation (recompile le shader)
+	 * @param {string} expression - Nouvelle expression (ex: "m()", "o(2)", "a(8,8)")
+	 * @returns {boolean} true si succès, false si erreur
+	 */
+	updateDeformationExpression(expression = null) {
+		if (!this.mesh) return false;
+
+		// Récupérer l'expression
+		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const hasDeformation = deformText && deformText.trim();
+
+		// Créer les nouveaux shaders
+		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
+		const fragmentShader = this.createFragmentShader();
+
+		// Valider le nouveau shader
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) {
+			console.error('Shader de déformation invalide:', validation.error);
+			return false;
+		}
+
+		// Disposer de l'ancien matériau
+		if (this.shaderMaterial) {
+			this.shaderMaterial.dispose();
+		}
+
+		// Créer le nouveau ShaderMaterial
+		this.shaderMaterial = new BABYLON.ShaderMaterial(
+			"shaderMeshMaterial",
+			this.computer.scene,
+			{
+				vertexSource: vertexShader,
+				fragmentSource: fragmentShader
+			},
+			{
+				attributes: ["position", "aIndex"],
+				uniforms: [
+					"worldViewProjection", "world",
+					"uMinU", "uMaxU", "uStepU",
+					"uMinV", "uMaxV", "uStepV",
+					"uStepsU", "uStepsV",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
+					"w", "eps", "scaleNorm", "deformationEnabled",
+					"blendU", "blendO", "uFirstPoint",
+					"flatAmount", "twistAmount", "spherifyAmount",
+					"waveAmplitude", "waveFrequency",
+					"cameraPosition", "meshBg", "meshFg",
+					"lampPosition", "lampIntensity", "lampRadius",
+					"gridU", "gridV", "lineWidth"
+				]
+			}
+		);
+
+		// Reconfigurer les uniforms
+		this.updateAllUniforms(hasDeformation);
+
+		this.shaderMaterial.backFaceCulling = false;
+		this.mesh.material = this.shaderMaterial;
+
+		console.log('Shader de déformation mis à jour:', deformText || '(désactivé)');
+		return true;
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {

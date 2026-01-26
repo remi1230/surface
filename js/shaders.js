@@ -917,11 +917,10 @@ function regForGLSL(expr) {
 async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null) {
     if (!mesh) return;
 
-    // Si c'est un GPUShaderMesh, utiliser sa déformation native
+    // Si c'est un GPUShaderMesh, utiliser sa déformation native (recompile le shader)
     if (mesh.shaderMeshInstance) {
         const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
-        const hasDeformation = text && text.trim();
-        mesh.shaderMeshInstance.setDeformation(hasDeformation, glo.scaleNorm || 1.0);
+        mesh.shaderMeshInstance.updateDeformationExpression(text);
         return;
     }
 

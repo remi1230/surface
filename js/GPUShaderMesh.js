@@ -5,7 +5,7 @@
  * - Le mesh ne contient que les indices (i, j) comme attributs
  * - Le vertex shader calcule : positions paramétriques + normales (différences finies) + déformation
  * - Le fragment shader calcule : couleur + éclairage
- * - AUCUN transfert GPU → CPU (pas de getBufferSubData)
+ * - AUCUN transfert GPU → CPU (pas de getBufferSubData, pas de getPaths)
  *
  * GAIN DE PERFORMANCE : ~100x par rapport à l'approche Transform Feedback
  */
@@ -96,13 +96,13 @@ class ShaderMeshComputer {
 	}
 
 	/**
-	 * Crée un mesh avec les indices (i, j) et les positions calculées
+	 * Crée un mesh avec uniquement les indices (i, j) comme attributs
+	 * Les positions sont calculées entièrement dans le shader
 	 * @param {number} stepsU
 	 * @param {number} stepsV
-	 * @param {Float32Array} positions - Positions calculées sur CPU
 	 * @returns {BABYLON.Mesh}
 	 */
-	createIndexMesh(stepsU, stepsV, positions) {
+	createIndexMesh(stepsU, stepsV) {
 		const totalVertices = (stepsU + 1) * (stepsV + 1);
 
 		// Créer les indices (i, j) pour chaque vertex
@@ -114,6 +114,9 @@ class ShaderMeshComputer {
 				indices2D[idx++] = j;
 			}
 		}
+
+		// Positions factices (le shader calcule les vraies positions)
+		const positions = new Float32Array(totalVertices * 3);
 
 		// Indices de triangulation
 		const triangleIndices = [];
@@ -218,6 +221,13 @@ class ShaderMeshBase {
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
+
+		// Transformations additionnelles (uniforms)
+		this.flatAmount = 0.0;      // 0 = normal, 1 = complètement plat
+		this.twistAmount = 0.0;     // Angle de twist par unité de hauteur
+		this.spherifyAmount = 0.0;  // 0 = normal, 1 = sphère parfaite
+		this.waveAmplitude = 0.0;   // Amplitude des ondes
+		this.waveFrequency = 1.0;   // Fréquence des ondes
 
 		// Observer pour la caméra
 		this.cameraObserver = null;
@@ -380,6 +390,13 @@ uniform int deformationEnabled;
 uniform vec4 blendU;
 uniform vec3 blendO;
 
+// Uniforms transformations additionnelles
+uniform float flatAmount;
+uniform float twistAmount;
+uniform float spherifyAmount;
+uniform float waveAmplitude;
+uniform float waveFrequency;
+
 // Uniforms firstPoint (pour systèmes sphérique/cylindrique)
 uniform vec3 uFirstPoint;
 
@@ -419,6 +436,46 @@ vec3 computePosition(float u, float v, float i, float j) {
 	outPos = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * outPos;
 
 	return outPos;
+}
+
+// ============================================================
+// TRANSFORMATIONS ADDITIONNELLES (flat, twist, spherify, wave)
+// ============================================================
+vec3 applyTransformations(vec3 pos, float u, float v) {
+	vec3 result = pos;
+
+	// FLAT : Aplatir vers Y = 0
+	if (flatAmount > 0.0) {
+		result.y = mix(result.y, 0.0, flatAmount);
+	}
+
+	// TWIST : Rotation autour de Y proportionnelle à Y
+	if (twistAmount != 0.0) {
+		float angle = result.y * twistAmount;
+		float c = cos(angle);
+		float s = sin(angle);
+		float newX = result.x * c - result.z * s;
+		float newZ = result.x * s + result.z * c;
+		result.x = newX;
+		result.z = newZ;
+	}
+
+	// SPHERIFY : Interpolation vers une sphère
+	if (spherifyAmount > 0.0) {
+		float radius = length(result);
+		if (radius > 0.001) {
+			vec3 spherePos = normalize(result) * radius;
+			result = mix(result, spherePos, spherifyAmount);
+		}
+	}
+
+	// WAVE : Ondulation
+	if (waveAmplitude != 0.0) {
+		float wave = sin(u * waveFrequency) * cos(v * waveFrequency) * waveAmplitude;
+		result += normalize(result) * wave;
+	}
+
+	return result;
 }
 
 // ============================================================
@@ -465,10 +522,15 @@ void main() {
 	vec3 pos = computePosition(u, v, i, j);
 
 	// ============================================================
-	// ETAPE 2 : Calculer la normale par différences finies
+	// ETAPE 2 : Appliquer les transformations additionnelles
 	// ============================================================
-	vec3 posU = computePosition(u + eps, v, i, j);
-	vec3 posV = computePosition(u, v + eps, i, j);
+	pos = applyTransformations(pos, u, v);
+
+	// ============================================================
+	// ETAPE 3 : Calculer la normale par différences finies
+	// ============================================================
+	vec3 posU = applyTransformations(computePosition(u + eps, v, i, j), u + eps, v);
+	vec3 posV = applyTransformations(computePosition(u, v + eps, i, j), u, v + eps);
 
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;
@@ -480,7 +542,7 @@ void main() {
 	}
 
 	// ============================================================
-	// ETAPE 3 : Appliquer la déformation (si activée)
+	// ETAPE 4 : Appliquer la déformation (si activée)
 	// ============================================================
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
@@ -489,7 +551,7 @@ void main() {
 	}
 
 	// ============================================================
-	// ETAPE 4 : Sorties
+	// ETAPE 5 : Sorties
 	// ============================================================
 	gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
 	vWorldPosition = (world * vec4(finalPosition, 1.0)).xyz;
@@ -577,61 +639,15 @@ void main() {
 	}
 
 	/**
-	 * Calcule les paths sur CPU (pour compatibilité avec getPaths())
-	 * À surcharger dans les classes filles
-	 * @returns {Array<Array<BABYLON.Vector3>>}
-	 */
-	computePathsCPU() {
-		return [];
-	}
-
-	/**
-	 * Convertit les paths en Float32Array de positions
-	 * @param {Array<Array<BABYLON.Vector3>>} paths
-	 * @returns {Float32Array}
-	 */
-	pathsToPositions(paths) {
-		const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
-		const positions = new Float32Array(totalPoints * 3);
-
-		let idx = 0;
-		for (const path of paths) {
-			for (const point of path) {
-				positions[idx++] = point.x;
-				positions[idx++] = point.y;
-				positions[idx++] = point.z;
-			}
-		}
-
-		return positions;
-	}
-
-	/**
 	 * Crée le mesh et applique le shader
+	 * 100% GPU - aucun calcul CPU de paths
 	 */
 	create() {
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 
-		// Calculer les paths sur CPU (pour compatibilité avec getPaths())
-		this.paths = this.computePathsCPU();
-
-		// Convertir en positions
-		const positions = this.pathsToPositions(this.paths);
-
-		// Stocker dans glo.lines et glo.curves.paths pour compatibilité
-		glo.lines = this.paths;
-		if (glo.curves) {
-			glo.curves.paths = this.paths;
-		}
-
-		// Créer le mesh avec les positions calculées
-		this.mesh = this.computer.createIndexMesh(stepsU, stepsV, positions);
-
-		// Mettre à jour glo.pathsInfos pour getPaths()
-		if (typeof getPathsInfos === 'function') {
-			getPathsInfos();
-		}
+		// Créer le mesh avec positions vides (shader calcule tout)
+		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
 
 		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
 		this.mesh.shaderMeshInstance = this;
@@ -670,6 +686,8 @@ void main() {
 					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
+					"flatAmount", "twistAmount", "spherifyAmount",
+					"waveAmplitude", "waveFrequency",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth"
@@ -737,6 +755,13 @@ void main() {
 			this.blenderInfos.O.y,
 			this.blenderInfos.O.z
 		));
+
+		// Transformations additionnelles
+		mat.setFloat("flatAmount", this.flatAmount);
+		mat.setFloat("twistAmount", this.twistAmount);
+		mat.setFloat("spherifyAmount", this.spherifyAmount);
+		mat.setFloat("waveAmplitude", this.waveAmplitude);
+		mat.setFloat("waveFrequency", this.waveFrequency);
 
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
@@ -810,6 +835,55 @@ void main() {
 	}
 
 	/**
+	 * Met à jour le blender
+	 */
+	updateBlender() {
+		if (!this.shaderMaterial) return;
+
+		this.blenderInfos = glo.params.blender;
+
+		this.shaderMaterial.setVector4("blendU", new BABYLON.Vector4(
+			this.blenderInfos.u.x,
+			this.blenderInfos.u.y,
+			this.blenderInfos.u.z,
+			0
+		));
+		this.shaderMaterial.setVector3("blendO", new BABYLON.Vector3(
+			this.blenderInfos.O.x,
+			this.blenderInfos.O.y,
+			this.blenderInfos.O.z
+		));
+	}
+
+	/**
+	 * Met à jour les transformations additionnelles
+	 */
+	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {
+		if (!this.shaderMaterial) return;
+
+		if (flat !== null) {
+			this.flatAmount = flat;
+			this.shaderMaterial.setFloat("flatAmount", flat);
+		}
+		if (twist !== null) {
+			this.twistAmount = twist;
+			this.shaderMaterial.setFloat("twistAmount", twist);
+		}
+		if (spherify !== null) {
+			this.spherifyAmount = spherify;
+			this.shaderMaterial.setFloat("spherifyAmount", spherify);
+		}
+		if (waveAmp !== null) {
+			this.waveAmplitude = waveAmp;
+			this.shaderMaterial.setFloat("waveAmplitude", waveAmp);
+		}
+		if (waveFreq !== null) {
+			this.waveFrequency = waveFreq;
+			this.shaderMaterial.setFloat("waveFrequency", waveFreq);
+		}
+	}
+
+	/**
 	 * Libère les ressources
 	 */
 	dispose() {
@@ -847,40 +921,6 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cartesian';
-	}
-
-	/**
-	 * @override
-	 * Calcule les paths sur CPU en utilisant WebGL2MeshComputer (Transform Feedback)
-	 */
-	computePathsCPU() {
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
-
-		// Utiliser le WebGL2MeshComputer existant
-		const webgl2Computer = getWebGL2Computer();
-
-		const positions = webgl2Computer.compute({
-			stepsU, stepsV,
-			minU: this.min_u, stepU: this.step_u,
-			minV: this.min_v, stepV: this.step_v,
-			exprX: this.equa.x || 'u',
-			exprY: this.equa.y || 'v',
-			exprZ: this.equa.z || '0',
-			exprAlpha: this.equa.alpha || '0',
-			exprBeta: this.equa.beta || '0',
-			A: this.A, B: this.B, C: this.C, D: this.D,
-			E: this.E, F: this.F, G: this.G, H: this.H,
-			I: this.I, J: this.J, K: this.K, L: this.L,
-			w: this.w,
-			firstPoint: glo.firstPoint,
-			coordSystem: 'cartesian'
-		});
-
-		if (!positions) return [];
-
-		// Convertir en paths
-		return webgl2Computer.positionsToPaths(positions, stepsU, stepsV);
 	}
 
 	/**

@@ -1008,6 +1008,7 @@ var glo = {
 	planSize: 40,
 	scaleNorm: 1,
 	deformationEnabled: false,
+	useGPUShaderMesh: true,  // Utiliser GPUShaderMesh (100% GPU) au lieu de CreateRibbon
 	buttonBottomSize: 90,
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,

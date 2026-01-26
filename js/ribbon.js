@@ -228,7 +228,25 @@ async function make_ribbon(symmetrize = true, histo = true){
 
         glo.ribbon.resetCurveByStep();
 
-		giveMaterialToMesh();
+		// Si GPUShaderMesh est activé, remplacer le ribbon par un GPUShaderMesh
+		if (glo.useGPUShaderMesh && typeof createShaderMeshFromGlo === 'function') {
+			// Disposer l'ancien ribbon créé par CreateRibbon
+			if (glo.ribbon) {
+				glo.ribbon.dispose();
+			}
+			// Créer le nouveau mesh avec GPUShaderMesh
+			glo.ribbon = createShaderMeshFromGlo();
+
+			// Appliquer la déformation si une expression existe
+			if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+				const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+				if (deformText && deformText.trim()) {
+					glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
+				}
+			}
+		} else {
+			giveMaterialToMesh();
+		}
 
         if (histo) { glo.histo.save(); }
     }

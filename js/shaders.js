@@ -924,6 +924,12 @@ async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null
         return;
     }
 
+    // Vérifier que c'est un vrai mesh Babylon.js avec les méthodes nécessaires
+    if (typeof mesh.isVerticesDataPresent !== 'function') {
+        console.warn('applyDeformationShader: mesh invalide, ignoré');
+        return;
+    }
+
     // Récupérer l'expression de déformation
     const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
     /*if (!text || !text.trim()) {

@@ -217,7 +217,7 @@ class ShaderMeshBase {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.w = w;
+		this.w = performance.now() / 1000.0;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
@@ -229,9 +229,8 @@ class ShaderMeshBase {
 		this.waveAmplitude = 0.0;   // Amplitude des ondes
 		this.waveFrequency = 1.0;   // Fréquence des ondes
 
-		// Observers
+		// Observer pour la caméra
 		this.cameraObserver = null;
-		this.customFragmentObserver = null;  // Pour animation time quand fragment Monaco est actif
 	}
 
 	/**
@@ -587,26 +586,60 @@ uniform float lampRadius;
 uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
+uniform float w;
 
-// Atténuation
+// Atténuation réaliste (loi inverse du carré avec falloff doux)
 float calcAttenuation(float dist, float radius, float intensity) {
-	float d = max(dist, 0.001);
-	float att = intensity / (d * d);
-	float falloff = 1.0 - smoothstep(0.0, radius, dist);
-	return att * falloff;
+    float d = max(dist, 0.001);
+    // Atténuation physique + falloff doux aux bords
+    float att = intensity / (d * d);
+    float falloff = 1.0 - smoothstep(0.0, radius, dist);
+    return att * falloff;
 }
 
-vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor, bool isFrontFace) {
+vec3 light(vec3 lampPos, vec3 baseColor) {
+    vec3 N = normalize(vNormal);
+    vec3 V = normalize(cameraPosition - vWorldPosition);
+    
+    // === FIX : Flip la normale si elle pointe à l'opposé de la caméra ===
+    if (dot(N, V) < 0.0) {
+        N = -N;
+    }
+
+	lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
+    
+    vec3 toLight = lampPos - vWorldPosition;
+    float dist = length(toLight);
+    vec3 L = normalize(toLight);
+    
+    float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
+    
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 diffuse = baseColor * NdotL * att;
+    
+    vec3 halfDir = normalize(L + V);
+    float NdotH = max(dot(N, halfDir), 0.0);
+    //float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    float spec = pow(NdotH, 2.0) * 4.0;
+    vec3 specular = baseColor * spec * att;
+    
+    vec3 ambient = vec3(0.05);
+    
+    return ambient + diffuse + specular;
+}
+
+vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 	vec3 N = normalize(normal);
 	vec3 V = normalize(cameraPosition - pos);
 
-	// Flip normal for back faces (using both gl_FrontFacing and dot product as fallback)
-	if (!isFrontFace || dot(N, V) < 0.0) {
+	if (dot(N, V) < 0.0) {
 		N = -N;
 	}
 
-	vec3 L = normalize(lampPosition - pos);
-	float dist = length(lampPosition - pos);
+	vec3 lampPos = vec3(lampPosition.x, lampPosition.y, lampPosition.z * 32.0);
+
+	vec3 L = normalize(lampPos - pos);
+	float dist = length(lampPos - pos);
 	float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
 
 	// Diffuse
@@ -617,7 +650,7 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor, bool isFrontFace) 
 	float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.5;
 
 	// Ambient
-	vec3 ambient = 0.15 * baseColor;  // Augmenté pour mieux voir les faces arrière
+	vec3 ambient = 0.1 * baseColor;
 	vec3 diffuse = diff * baseColor * att;
 	vec3 specular = spec * vec3(0.3) * att;
 
@@ -627,16 +660,24 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor, bool isFrontFace) 
 void main() {
 	vec3 color = meshBg;
 
+	float coeffLine = 4.0;
+
 	// Grille
-	float gu = fract(vUV.x * gridU);
-	float gv = fract(vUV.y * gridV);
-	float line = step(1.0 - lineWidth / gridU, gu) + step(1.0 - lineWidth / gridV, gv);
+	float gu = fract(vUV.x * gridU * 0.5);
+	float gv = fract(vUV.y * gridV * 0.5);
+	float line = step(1.0 - (lineWidth*coeffLine*4.0) / gridU, gu) + step(1.0 - (lineWidth*coeffLine) / gridV, gv);
 	color = mix(color, meshFg, min(line, 1.0));
 
-	// Éclairage (avec gestion des deux faces)
-	vec3 litColor = calculateLighting(vWorldPosition, vNormal, color, gl_FrontFacing);
+	// Éclairage
+	//vec3 litColor = calculateLighting(vWorldPosition, vNormal, color);
+	vec3 lamp1 = light(lampPosition, color);
+	
 
-	fragColor = vec4(litColor, 1.0);
+	color*= lamp1;
+	color = color / (color + vec3(1.0));
+	color = pow(color, vec3(1.0 / 2.2));
+
+	fragColor = vec4(color, 1.0);
 }`;
 	}
 
@@ -697,11 +738,18 @@ void main() {
 			}
 		);
 
+		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
+				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
+				this.shaderMaterial.setFloat("w", performance.now() * 0.001);
+				this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+		});
+
 		// Configurer les uniforms
 		this.updateAllUniforms(hasDeformation);
 
 		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
 
 		// Observer pour mettre à jour la caméra
@@ -766,6 +814,9 @@ void main() {
 		mat.setFloat("waveAmplitude", this.waveAmplitude);
 		mat.setFloat("waveFrequency", this.waveFrequency);
 
+		// Temps
+		mat.setFloat("w", performance.now() / 1000.0);
+
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
 			glo.firstPoint?.x || 1,
@@ -797,39 +848,6 @@ void main() {
 		mat.setFloat("gridU", glo.params.steps_u);
 		mat.setFloat("gridV", glo.params.steps_v);
 		mat.setFloat("lineWidth", 1.0);
-
-		// Uniforms supplémentaires pour compatibilité Monaco
-		mat.setFloat("time", 0);
-		mat.setFloat("invcol", glo.shaders?.params?.invcol ? 1.0 : 0.0);
-		mat.setInt("islight", glo.shaders?.params?.islight ? 1 : 0);
-		mat.setInt("opt1", glo.shaders?.params?.opt1 ? 1 : 0);
-		mat.setInt("opt2", glo.shaders?.params?.opt2 ? 1 : 0);
-		mat.setInt("opt3", glo.shaders?.params?.opt3 ? 1 : 0);
-
-		// Bounding box pour Monaco (minpoint, maxpoint, msize)
-		if (this.mesh) {
-			this.mesh.refreshBoundingInfo();
-			const bounds = this.mesh.getBoundingInfo().boundingBox;
-			mat.setVector3("minpoint", bounds.minimumWorld);
-			mat.setVector3("maxpoint", bounds.maximumWorld);
-			mat.setVector3("msize", bounds.maximumWorld.subtract(bounds.minimumWorld));
-		} else {
-			mat.setVector3("minpoint", new BABYLON.Vector3(-1, -1, -1));
-			mat.setVector3("maxpoint", new BABYLON.Vector3(1, 1, 1));
-			mat.setVector3("msize", new BABYLON.Vector3(2, 2, 2));
-		}
-
-		// Résolution et steps
-		mat.setVector2("iResolution", new BABYLON.Vector2(glo.engine.getRenderWidth(), glo.engine.getRenderHeight()));
-		mat.setVector2("steps", new BABYLON.Vector2(this.nb_steps_u, this.nb_steps_v));
-		mat.setFloat("minU", this.min_u);
-		mat.setFloat("minV", this.min_v);
-		mat.setFloat("stepsU", this.nb_steps_u);
-		mat.setFloat("stepsV", this.nb_steps_v);
-
-		// Specular pour Monaco
-		mat.setFloat("lampSpecularPower", glo.shaders?.light?.specularPower || 32.0);
-		mat.setFloat("lampSpecularIntensity", glo.shaders?.light?.specularIntensity || 0.5);
 	}
 
 	/**
@@ -853,7 +871,7 @@ void main() {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.w = w;
+		this.w = performance.now() / 1000.0;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);
@@ -935,100 +953,6 @@ void main() {
 	}
 
 	/**
-	 * Met à jour le fragment shader avec du code personnalisé (depuis Monaco editor)
-	 * @param {string} customFragmentCode - Code fragment shader complet ou partiel
-	 * @returns {boolean} true si succès, false si erreur
-	 */
-	updateFragmentShader(customFragmentCode) {
-		if (!this.mesh || !customFragmentCode) return false;
-
-		// Récupérer l'expression de déformation actuelle (utiliser l'état actuel du flag)
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
-		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
-
-		// Créer le vertex shader avec déformation si applicable
-		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
-
-		// Utiliser le fragment shader personnalisé
-		const fragmentShader = customFragmentCode;
-
-		// Valider le fragment shader
-		const canvas = document.createElement('canvas');
-		const gl = canvas.getContext('webgl2');
-		if (gl) {
-			const shader = gl.createShader(gl.FRAGMENT_SHADER);
-			gl.shaderSource(shader, fragmentShader);
-			gl.compileShader(shader);
-			const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-			if (!success) {
-				console.error('Fragment shader invalide:', gl.getShaderInfoLog(shader));
-				gl.deleteShader(shader);
-				return false;
-			}
-			gl.deleteShader(shader);
-		}
-
-		// Disposer de l'ancien matériau
-		if (this.shaderMaterial) {
-			this.shaderMaterial.dispose();
-		}
-
-		// Créer le nouveau ShaderMaterial avec le fragment shader personnalisé
-		this.shaderMaterial = new BABYLON.ShaderMaterial(
-			"shaderMeshMaterial",
-			this.computer.scene,
-			{
-				vertexSource: vertexShader,
-				fragmentSource: fragmentShader
-			},
-			{
-				attributes: ["position", "aIndex"],
-				uniforms: [
-					"worldViewProjection", "world",
-					"uMinU", "uMaxU", "uStepU",
-					"uMinV", "uMaxV", "uStepV",
-					"uStepsU", "uStepsV",
-					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
-					"w", "eps", "scaleNorm", "deformationEnabled",
-					"blendU", "blendO", "uFirstPoint",
-					"flatAmount", "twistAmount", "spherifyAmount",
-					"waveAmplitude", "waveFrequency",
-					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius",
-					"gridU", "gridV", "lineWidth",
-					// Uniforms supplémentaires pour compatibilité Monaco
-					"time", "invcol", "islight", "opt1", "opt2", "opt3",
-					"minpoint", "maxpoint", "msize",
-					"iResolution", "steps", "minU", "minV", "stepsU", "stepsV",
-					"lampSpecularPower", "lampSpecularIntensity"
-				]
-			}
-		);
-
-		// Reconfigurer tous les uniforms (y compris Monaco)
-		this.updateAllUniforms(hasDeformation);
-
-		// Rendre les deux côtés du mesh
-		this.shaderMaterial.backFaceCulling = false;
-		this.mesh.material = this.shaderMaterial;
-
-		// Configurer l'observateur pour l'animation (time, cameraPosition)
-		if (this.customFragmentObserver) {
-			this.computer.scene.onBeforeRenderObservable.remove(this.customFragmentObserver);
-		}
-		this.customFragmentObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
-			if (this.shaderMaterial) {
-				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
-				this.shaderMaterial.setFloat("w", performance.now() * 0.001);
-				this.shaderMaterial.setVector3("cameraPosition", this.computer.scene.activeCamera.position);
-			}
-		});
-
-		console.log('[GPUShaderMesh] Fragment shader personnalisé appliqué');
-		return true;
-	}
-
-	/**
 	 * Active/désactive la déformation et met à jour le scale
 	 * @param {boolean} enabled - Activer la déformation
 	 * @param {number} scale - Échelle de la déformation (optionnel)
@@ -1068,7 +992,7 @@ void main() {
 		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim();
 
-		// Mettre à jour l'état global
+		// Synchroniser l'état global
 		glo.deformationEnabled = hasDeformation;
 
 		// Créer les nouveaux shaders
@@ -1109,7 +1033,7 @@ void main() {
 					"waveAmplitude", "waveFrequency",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
-					"gridU", "gridV", "lineWidth"
+					"gridU", "gridV", "lineWidth", "w"
 				]
 			}
 		);
@@ -1119,6 +1043,7 @@ void main() {
 
 		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = 1;
 		this.mesh.material = this.shaderMaterial;
 
 		console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
@@ -1160,10 +1085,6 @@ void main() {
 		if (this.cameraObserver) {
 			this.computer.scene.onBeforeRenderObservable.remove(this.cameraObserver);
 			this.cameraObserver = null;
-		}
-		if (this.customFragmentObserver) {
-			this.computer.scene.onBeforeRenderObservable.remove(this.customFragmentObserver);
-			this.customFragmentObserver = null;
 		}
 		if (this.shaderMaterial) {
 			this.shaderMaterial.dispose();

@@ -917,6 +917,14 @@ function regForGLSL(expr) {
 async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null) {
     if (!mesh) return;
 
+    // Si c'est un GPUShaderMesh, utiliser sa déformation native
+    if (mesh.shaderMeshInstance) {
+        const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+        const hasDeformation = text && text.trim();
+        mesh.shaderMeshInstance.setDeformation(hasDeformation, glo.scaleNorm || 1.0);
+        return;
+    }
+
     // Récupérer l'expression de déformation
     const text = deformExpression || (glo.input_sym_r ? glo.input_sym_r.text : null);
     /*if (!text || !text.trim()) {
@@ -954,6 +962,12 @@ async function applyDeformationShader(mesh = glo.ribbon, deformExpression = null
 
 // Active ou désactive la déformation
 function toggleDeformation(enabled = true) {
+    // Si c'est un GPUShaderMesh, utiliser sa méthode native
+    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+        glo.ribbon.shaderMeshInstance.setDeformation(enabled, glo.scaleNorm || 1.0);
+        return;
+    }
+
     glo.deformationEnabled = enabled;
     giveMaterialToMesh(glo.ribbon, glo.emissiveColor, glo.diffuseColor);
 }
@@ -961,6 +975,9 @@ function toggleDeformation(enabled = true) {
 // Définit les UV params (u, v) comme attribut custom du mesh
 function setUVParamsToMesh(mesh = glo.ribbon) {
     if (!mesh) return;
+
+    // GPUShaderMesh n'a pas besoin de cette fonction (UV calculés dans le shader)
+    if (mesh.shaderMeshInstance) return;
 
     const positions = mesh.savedRibbon ? mesh.savedRibbon.getVerticesData(BABYLON.VertexBuffer.PositionKind) : mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     if (!positions) return;

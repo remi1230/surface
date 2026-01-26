@@ -856,6 +856,34 @@ void main() {
 	}
 
 	/**
+	 * Active/désactive la déformation et met à jour le scale
+	 * @param {boolean} enabled - Activer la déformation
+	 * @param {number} scale - Échelle de la déformation (optionnel)
+	 */
+	setDeformation(enabled, scale = null) {
+		if (!this.shaderMaterial) return;
+
+		glo.deformationEnabled = enabled;
+		this.shaderMaterial.setInt("deformationEnabled", enabled ? 1 : 0);
+
+		if (scale !== null) {
+			glo.scaleNorm = scale;
+			this.shaderMaterial.setFloat("scaleNorm", scale);
+		}
+	}
+
+	/**
+	 * Met à jour uniquement le scale de déformation
+	 * @param {number} scale - Échelle de la déformation
+	 */
+	setDeformationScale(scale) {
+		if (!this.shaderMaterial) return;
+
+		glo.scaleNorm = scale;
+		this.shaderMaterial.setFloat("scaleNorm", scale);
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {

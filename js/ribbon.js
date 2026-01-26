@@ -100,6 +100,7 @@ function makeOnePoint(u, v){
 }
 
 async function make_ribbon(symmetrize = true, histo = true){
+    console.log('[make_ribbon] Appelé, glo.useGPUShaderMesh =', glo.useGPUShaderMesh);
     if (glo.params.NaNToZero) { NaNToZero(); }
 
 	let isClosedArray = isClosedPaths(glo.curves.paths);

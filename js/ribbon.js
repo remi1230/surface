@@ -31,14 +31,27 @@ async function make_curves(u_params = {
 
 		makeOnlyCurves(undefined, undefined, undefined, undefined, false, fractalize);
 
-		await expendPathsByEachCenter();
-		await rotatePathsByEachCenter();
+		// Si GPUShaderMesh a créé le mesh, skip make_ribbon
+		if (!glo.fromShader) {
+			await expendPathsByEachCenter();
+			await rotatePathsByEachCenter();
 
-		await make_ribbon(true, histo);
-		glo.ribbon.refreshBoundingInfo();
-		setTimeout(() => {
-			glo.camera.focusOn([glo.ribbon], true);
-		}, 0);
+			await make_ribbon(true, histo);
+			glo.ribbon.refreshBoundingInfo();
+			setTimeout(() => {
+				glo.camera.focusOn([glo.ribbon], true);
+			}, 0);
+		} else {
+			// Pour GPUShaderMesh, juste focus sur le mesh
+			if (glo.ribbon) {
+				glo.ribbon.refreshBoundingInfo();
+				setTimeout(() => {
+					glo.camera.focusOn([glo.ribbon], true);
+				}, 0);
+			}
+		}
+
+		glo.fromShader = false;
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 	}
@@ -74,7 +87,18 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
     }*/
 	switch (coordTypes || glo.coordsType) {
         case 'cartesian':
-            glo[objToSet] = new CurvesCartesianGPU(parameters, f, f2, d, fractalize, onePoint);
+			// Utiliser GPUShaderMesh pour le cartésien
+			if (glo.ribbon) { ribbonDispose(); }
+			glo.ribbon = createShaderMeshFromGlo();
+			glo.fromShader = true;
+
+			// Appliquer la déformation si une expression existe
+			if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+				const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+				if (deformText && deformText.trim()) {
+					glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
+				}
+			}
             break;
         case 'spheric':
 			glo[objToSet] = new CurvesSphericalGPU(parameters, f, f2, d, fractalize, onePoint);

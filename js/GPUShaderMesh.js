@@ -720,6 +720,22 @@ void main() {
 
 		console.log('[GPUShaderMesh.create] Material appliqué au mesh');
 
+		// Vérifier si le shader est prêt et afficher les erreurs éventuelles
+		this.shaderMaterial.onCompiled = () => {
+			console.log('[GPUShaderMesh.create] Shader compilé avec succès!');
+		};
+		this.shaderMaterial.onError = (effect, errors) => {
+			console.error('[GPUShaderMesh.create] ERREUR compilation shader:', errors);
+		};
+
+		// Forcer le log de l'état du shader après un court délai
+		setTimeout(() => {
+			console.log('[GPUShaderMesh.create] Shader isReady:', this.shaderMaterial.isReady());
+			console.log('[GPUShaderMesh.create] Mesh dans scene.meshes:', glo.scene.meshes.includes(this.mesh));
+			console.log('[GPUShaderMesh.create] Mesh.isEnabled:', this.mesh.isEnabled());
+			console.log('[GPUShaderMesh.create] Total vertices:', this.mesh.getTotalVertices());
+		}, 100);
+
 		// Observer pour mettre à jour la caméra
 		this.cameraObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
 			this.updateCamera();

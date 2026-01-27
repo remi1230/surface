@@ -43,8 +43,9 @@ async function make_curves(u_params = {
 			}, 0);
 		} else {
 			// Pour GPUShaderMesh, juste focus sur le mesh
+			// NE PAS appeler refreshBoundingInfo() car les positions CPU sont vides
+			// (la bounding box est définie manuellement dans GPUShaderMesh.create())
 			if (glo.ribbon) {
-				glo.ribbon.refreshBoundingInfo();
 				setTimeout(() => {
 					glo.camera.focusOn([glo.ribbon], true);
 				}, 0);

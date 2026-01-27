@@ -71,12 +71,14 @@ document.getElementById('resetBtn')?.addEventListener('click', () => {
 document.getElementById('compileBtn')?.addEventListener('click', () => {
    // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
     monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', []);
-    
+
     fragmentShader   = glo.editor.getValue();
     const validation = validateShader(fragmentShader);
 
     if(validation.valid){
       updateStatus(`Prêt`, false);
+      // Activer le mode Monaco quand l'utilisateur compile explicitement
+      glo.gpuShaderMonacoActive = true;
       giveMaterialToMesh();
    }
     else{

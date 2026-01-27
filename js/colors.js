@@ -6,14 +6,23 @@ async function giveMaterialToMesh(mesh = glo.ribbon){
 	glo.isApplyingMaterial = true;
 
 	try{
-		// Si c'est un GPUShaderMesh, appliquer le shader Monaco
+		// Si c'est un GPUShaderMesh
 		if (mesh && mesh.shaderMeshInstance) {
-			// Appliquer le shader Monaco complet (fragmentShader = header + body + footer)
-			const success = mesh.shaderMeshInstance.applyMonacoShader(fragmentShader);
-			if (success) {
-				console.log('[colors.js] Shader Monaco appliqué au GPUShaderMesh');
+			console.log('[colors.js] GPUShaderMesh détecté, gpuShaderMonacoActive:', glo.gpuShaderMonacoActive);
+			// Seulement appliquer Monaco si le mode Monaco est explicitement actif
+			if (glo.gpuShaderMonacoActive && typeof window.fragmentShader !== 'undefined' && window.fragmentShader) {
+				console.log('[colors.js] Application du shader Monaco');
+				const success = mesh.shaderMeshInstance.applyMonacoShader(window.fragmentShader);
+				if (success) {
+					console.log('[colors.js] Shader Monaco appliqué avec succès');
+				} else {
+					console.log('[colors.js] Échec application Monaco, fallback sur updateColors/updateLighting');
+					mesh.shaderMeshInstance.updateColors();
+					mesh.shaderMeshInstance.updateLighting();
+				}
 			} else {
-				// Fallback : juste mettre à jour les couleurs
+				// Monaco non actif, juste mettre à jour les couleurs et l'éclairage
+				console.log('[colors.js] Monaco non actif, updateColors/updateLighting seulement');
 				mesh.shaderMeshInstance.updateColors();
 				mesh.shaderMeshInstance.updateLighting();
 			}

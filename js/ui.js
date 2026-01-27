@@ -95,6 +95,8 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
+      // Activer le mode Monaco quand l'utilisateur change de shader
+      glo.gpuShaderMonacoActive = true;
       giveMaterialToMesh();
 }
 

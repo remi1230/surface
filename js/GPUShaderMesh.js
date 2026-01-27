@@ -689,11 +689,14 @@ void main() {
 	 * 100% GPU - aucun calcul CPU de paths
 	 */
 	create() {
+		console.log('[GPUShaderMesh.create] Début création mesh');
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+		console.log('[GPUShaderMesh.create] Steps:', stepsU, stepsV);
 
 		// Créer le mesh avec positions vides (shader calcule tout)
 		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
+		console.log('[GPUShaderMesh.create] Mesh créé:', this.mesh);
 
 		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
 		this.mesh.shaderMeshInstance = this;
@@ -701,18 +704,21 @@ void main() {
 		// Obtenir l'expression de déformation
 		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+		console.log('[GPUShaderMesh.create] Déformation:', hasDeformation, deformText);
 
 		// Créer les shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
 		const builtInFragmentShader = this.createFragmentShader();
+		console.log('[GPUShaderMesh.create] Shaders créés (built-in fragment)');
 
 		// Valider le shader
 		const validation = this.computer.validateShader(vertexShader);
 		if (!validation.valid) {
-			console.error('Shader invalide:', validation.error);
+			console.error('[GPUShaderMesh.create] Shader invalide:', validation.error);
 			console.error('Source:', vertexShader);
 			return null;
 		}
+		console.log('[GPUShaderMesh.create] Vertex shader validé');
 
 		// Créer le ShaderMaterial
 		this.shaderMaterial = new BABYLON.ShaderMaterial(
@@ -740,6 +746,7 @@ void main() {
 				]
 			}
 		);
+		console.log('[GPUShaderMesh.create] ShaderMaterial créé');
 
 		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
 				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
@@ -749,11 +756,13 @@ void main() {
 
 		// Configurer les uniforms
 		this.updateAllUniforms(hasDeformation);
+		console.log('[GPUShaderMesh.create] Uniforms configurés, meshBg:', glo.emissiveColor, 'meshFg:', glo.lineColor);
 
 		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
+		console.log('[GPUShaderMesh.create] Material appliqué au mesh');
 
 		// Observer pour mettre à jour la caméra
 		this.cameraObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
@@ -762,11 +771,15 @@ void main() {
 
 		// Si Monaco était actif globalement, réappliquer le shader Monaco
 		// Note: window.fragmentShader est la variable globale du shader Monaco
+		console.log('[GPUShaderMesh.create] Monaco check - gpuShaderMonacoActive:', glo.gpuShaderMonacoActive, 'fragmentShader défini:', typeof window.fragmentShader !== 'undefined');
 		if (glo.gpuShaderMonacoActive && typeof window.fragmentShader !== 'undefined') {
-			console.log('[GPUShaderMesh] Réapplication automatique du shader Monaco');
+			console.log('[GPUShaderMesh.create] Réapplication automatique du shader Monaco');
 			this.applyMonacoShader(window.fragmentShader);
+		} else {
+			console.log('[GPUShaderMesh.create] Utilisation du shader built-in (pas de Monaco)');
 		}
 
+		console.log('[GPUShaderMesh.create] Création terminée');
 		return this.mesh;
 	}
 

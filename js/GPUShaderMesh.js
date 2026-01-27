@@ -704,7 +704,7 @@ void main() {
 
 		// Créer les shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
-		const fragmentShader = this.createFragmentShader();
+		const builtInFragmentShader = this.createFragmentShader();
 
 		// Valider le shader
 		const validation = this.computer.validateShader(vertexShader);
@@ -720,7 +720,7 @@ void main() {
 			this.computer.scene,
 			{
 				vertexSource: vertexShader,
-				fragmentSource: fragmentShader
+				fragmentSource: builtInFragmentShader
 			},
 			{
 				attributes: ["position", "aIndex"],
@@ -761,9 +761,10 @@ void main() {
 		});
 
 		// Si Monaco était actif globalement, réappliquer le shader Monaco
-		if (glo.gpuShaderMonacoActive && typeof fragmentShader !== 'undefined') {
+		// Note: window.fragmentShader est la variable globale du shader Monaco
+		if (glo.gpuShaderMonacoActive && typeof window.fragmentShader !== 'undefined') {
 			console.log('[GPUShaderMesh] Réapplication automatique du shader Monaco');
-			this.applyMonacoShader(fragmentShader);
+			this.applyMonacoShader(window.fragmentShader);
 		}
 
 		return this.mesh;
@@ -1006,7 +1007,7 @@ void main() {
 
 		// Créer les nouveaux shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
-		const fragmentShader = this.createFragmentShader();
+		const builtInFragmentShader = this.createFragmentShader();
 
 		// Valider le nouveau shader
 		const validation = this.computer.validateShader(vertexShader);
@@ -1026,7 +1027,7 @@ void main() {
 			this.computer.scene,
 			{
 				vertexSource: vertexShader,
-				fragmentSource: fragmentShader
+				fragmentSource: builtInFragmentShader
 			},
 			{
 				attributes: ["position", "aIndex"],

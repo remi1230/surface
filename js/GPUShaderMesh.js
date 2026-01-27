@@ -626,6 +626,9 @@ void main() {
 	 */
 	create() {
 		console.log('[GPUShaderMesh.create] Début création mesh');
+		console.log('[GPUShaderMesh.create] UV Range - U:', this.min_u, 'to', this.max_u, 'step:', this.step_u);
+		console.log('[GPUShaderMesh.create] UV Range - V:', this.min_v, 'to', this.max_v, 'step:', this.step_v);
+		console.log('[GPUShaderMesh.create] uvInfos:', this.uvInfos);
 		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 		console.log('[GPUShaderMesh.create] Steps:', stepsU, stepsV);
@@ -1253,11 +1256,13 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	 * @override
 	 */
 	getPositionGLSL() {
+		console.log('[ShaderMeshCartesian] Équations source:', this.equa);
 		const glslX = this.computer.transformExpressionToGLSL(this.equa.x || 'u');
 		const glslY = this.computer.transformExpressionToGLSL(this.equa.y || 'v');
 		const glslZ = this.computer.transformExpressionToGLSL(this.equa.z || '0.0');
 		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
 		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		console.log('[ShaderMeshCartesian] GLSL généré - X:', glslX, 'Y:', glslY, 'Z:', glslZ);
 
 		return `
 	// Coordonnées cartésiennes

@@ -100,9 +100,10 @@ class GPUShaderMeshComputer {
 	 * Les positions sont calculées entièrement dans le shader
 	 * @param {number} stepsU
 	 * @param {number} stepsV
+	 * @param {Float32Array} positions - Positions des vertices
 	 * @returns {BABYLON.Mesh}
 	 */
-	createIndexMesh(stepsU, stepsV) {
+	createIndexMesh(stepsU, stepsV, positions) {
 		const totalVertices = (stepsU + 1) * (stepsV + 1);
 
 		// Créer les indices (i, j) pour chaque vertex
@@ -114,9 +115,6 @@ class GPUShaderMeshComputer {
 				indices2D[idx++] = j;
 			}
 		}
-
-		// Positions factices (le shader calcule les vraies positions)
-		const positions = new Float32Array(totalVertices * 3);
 
 		// Indices de triangulation
 		const triangleIndices = [];
@@ -358,6 +356,36 @@ float g(float edge, float x) { return step(edge, x); }
 	 */
 	getPositionGLSL() {
 		return 'outPos = vec3(0.0);';
+	}
+
+	/**
+	 * Calcule les paths sur CPU (pour compatibilité)
+	 * À surcharger dans les classes filles
+	 * @returns {Array<Array<BABYLON.Vector3>>}
+	 */
+	computePathsCPU() {
+		return [];
+	}
+
+	/**
+	 * Convertit les paths en Float32Array de positions
+	 * @param {Array<Array<BABYLON.Vector3>>} paths
+	 * @returns {Float32Array}
+	 */
+	pathsToPositions(paths) {
+		const totalPoints = paths.reduce((sum, path) => sum + path.length, 0);
+		const positions = new Float32Array(totalPoints * 3);
+
+		let idx = 0;
+		for (const path of paths) {
+			for (const point of path) {
+				positions[idx++] = point.x;
+				positions[idx++] = point.y;
+				positions[idx++] = point.z;
+			}
+		}
+
+		return positions;
 	}
 
 	/**
@@ -633,8 +661,22 @@ void main() {
 		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
 		console.log('[GPUShaderMesh.create] Steps:', stepsU, stepsV);
 
-		// Créer le mesh avec positions vides (shader calcule tout)
-		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
+		// Calculer les paths sur CPU (pour compatibilité avec getPaths() et Babylon.js)
+		this.paths = this.computePathsCPU();
+		console.log('[GPUShaderMesh.create] Paths calculés:', this.paths.length, 'paths');
+
+		// Convertir en positions
+		const positions = this.pathsToPositions(this.paths);
+		console.log('[GPUShaderMesh.create] Positions:', positions.length / 3, 'vertices');
+
+		// Stocker dans glo.lines et glo.curves.paths pour compatibilité
+		glo.lines = this.paths;
+		if (glo.curves) {
+			glo.curves.paths = this.paths;
+		}
+
+		// Créer le mesh avec les positions calculées
+		this.mesh = this.computer.createIndexMesh(stepsU, stepsV, positions);
 		console.log('[GPUShaderMesh.create] Mesh créé:', this.mesh);
 
 		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
@@ -701,22 +743,6 @@ void main() {
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
-
-		// IMPORTANT: Désactiver le frustum culling car les positions CPU sont vides
-		// (les vraies positions sont calculées dans le GPU)
-		this.mesh.alwaysSelectAsActiveMesh = true;
-
-		// Définir une bounding box approximative basée sur les paramètres UV
-		const scale = Math.max(
-			Math.abs(this.min_u), Math.abs(this.max_u),
-			Math.abs(this.min_v), Math.abs(this.max_v),
-			1.0
-		) * 3.0;  // facteur de sécurité pour le tore
-		this.mesh.setBoundingInfo(new BABYLON.BoundingInfo(
-			new BABYLON.Vector3(-scale, -scale, -scale),
-			new BABYLON.Vector3(scale, scale, scale)
-		));
-		console.log('[GPUShaderMesh.create] Frustum culling désactivé, bounding box définie:', scale);
 
 		console.log('[GPUShaderMesh.create] Material appliqué au mesh');
 
@@ -1326,6 +1352,39 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 
 	outPos = vec3(px, py, pz);
 `;
+	}
+
+	/**
+	 * @override - Calcule les positions sur CPU via WebGL2Computer
+	 */
+	computePathsCPU() {
+		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
+		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+
+		// Utiliser le WebGL2MeshComputer existant
+		const webgl2Computer = getWebGL2Computer();
+
+		const positions = webgl2Computer.compute({
+			stepsU, stepsV,
+			minU: this.min_u, stepU: this.step_u,
+			minV: this.min_v, stepV: this.step_v,
+			exprX: this.equa.x || 'u',
+			exprY: this.equa.y || 'v',
+			exprZ: this.equa.z || '0',
+			exprAlpha: this.equa.alpha || '0',
+			exprBeta: this.equa.beta || '0',
+			A: this.A, B: this.B, C: this.C, D: this.D,
+			E: this.E, F: this.F, G: this.G, H: this.H,
+			I: this.I, J: this.J, K: this.K, L: this.L,
+			w: this.w,
+			firstPoint: glo.firstPoint,
+			coordSystem: 'cartesian'
+		});
+
+		if (!positions) return [];
+
+		// Convertir en paths
+		return webgl2Computer.positionsToPaths(positions, stepsU, stepsV);
 	}
 }
 

@@ -233,6 +233,7 @@ class ShaderMeshBase {
 		this.cameraObserver = null;
 		this.monacoObserver = null;  // Pour animation Monaco (time, camera)
 		this.usingMonacoShader = false;  // Flag pour savoir si Monaco est actif
+		this.currentMonacoShader = null;  // Stocke le shader Monaco actuel pour réapplication
 	}
 
 	/**
@@ -759,6 +760,12 @@ void main() {
 			this.updateCamera();
 		});
 
+		// Si Monaco était actif globalement, réappliquer le shader Monaco
+		if (glo.gpuShaderMonacoActive && typeof fragmentShader !== 'undefined') {
+			console.log('[GPUShaderMesh] Réapplication automatique du shader Monaco');
+			this.applyMonacoShader(fragmentShader);
+		}
+
 		return this.mesh;
 	}
 
@@ -1048,6 +1055,12 @@ void main() {
 		this.shaderMaterial.sideOrientation = 1;
 		this.mesh.material = this.shaderMaterial;
 
+		// Si Monaco était actif, réappliquer le shader Monaco
+		if (this.usingMonacoShader && this.currentMonacoShader) {
+			console.log('[GPUShaderMesh] Réapplication du shader Monaco après mise à jour déformation');
+			return this.applyMonacoShader(this.currentMonacoShader);
+		}
+
 		console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
 		return true;
 	}
@@ -1083,6 +1096,9 @@ void main() {
 			}
 			gl.deleteShader(shader);
 		}
+
+		// Stocker le shader Monaco pour réapplication ultérieure
+		this.currentMonacoShader = monacoFragmentShader;
 
 		// Disposer de l'ancien matériau
 		if (this.shaderMaterial) {
@@ -1150,8 +1166,9 @@ void main() {
 			}
 		});
 
-		// Marquer qu'on utilise Monaco
+		// Marquer qu'on utilise Monaco (local et global)
 		this.usingMonacoShader = true;
+		glo.gpuShaderMonacoActive = true;
 
 		console.log('[GPUShaderMesh] Shader Monaco appliqué avec succès');
 		return true;
@@ -1165,19 +1182,21 @@ void main() {
 
 		const mat = this.shaderMaterial;
 
-		// Bounding box
-		if (this.mesh) {
-			this.mesh.refreshBoundingInfo();
-			const bounds = this.mesh.getBoundingInfo().boundingBox;
-			mat.setVector3("minpoint", bounds.minimumWorld);
-			mat.setVector3("maxpoint", bounds.maximumWorld);
-			const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
-			mat.setVector3("msize", size);
-		} else {
-			mat.setVector3("minpoint", new BABYLON.Vector3(-1, -1, -1));
-			mat.setVector3("maxpoint", new BABYLON.Vector3(1, 1, 1));
-			mat.setVector3("msize", new BABYLON.Vector3(2, 2, 2));
-		}
+		// Bounding box - estimé depuis les paramètres UV car les positions CPU sont vides
+		// (les vraies positions sont calculées dans le GPU)
+		const scale = Math.max(
+			Math.abs(this.min_u), Math.abs(this.max_u),
+			Math.abs(this.min_v), Math.abs(this.max_v),
+			1.0  // minimum de 1 pour éviter division par zéro
+		) * 1.5;  // facteur de sécurité
+
+		const minpoint = new BABYLON.Vector3(-scale, -scale, -scale);
+		const maxpoint = new BABYLON.Vector3(scale, scale, scale);
+		const msize = new BABYLON.Vector3(scale * 2, scale * 2, scale * 2);
+
+		mat.setVector3("minpoint", minpoint);
+		mat.setVector3("maxpoint", maxpoint);
+		mat.setVector3("msize", msize);
 
 		// Résolution
 		mat.setVector2("iResolution", new BABYLON.Vector2(

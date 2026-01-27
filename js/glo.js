@@ -1009,6 +1009,7 @@ var glo = {
 	scaleNorm: 1,
 	deformationEnabled: false,
 	useGPUShaderMesh: true,  // Utiliser GPUShaderMesh (100% GPU) au lieu de CreateRibbon
+	gpuShaderMonacoActive: false,  // Monaco shader actif sur GPUShaderMesh?
 	buttonBottomSize: 90,
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,

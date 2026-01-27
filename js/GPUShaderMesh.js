@@ -591,96 +591,32 @@ uniform float gridV;
 uniform float lineWidth;
 uniform float w;
 
-// Atténuation réaliste (loi inverse du carré avec falloff doux)
-float calcAttenuation(float dist, float radius, float intensity) {
-    float d = max(dist, 0.001);
-    // Atténuation physique + falloff doux aux bords
-    float att = intensity / (d * d);
-    float falloff = 1.0 - smoothstep(0.0, radius, dist);
-    return att * falloff;
-}
+void main() {
+	// Couleur de base
+	vec3 color = meshBg;
 
-vec3 light(vec3 lampPos, vec3 baseColor) {
-    vec3 N = normalize(vNormal);
-    vec3 V = normalize(cameraPosition - vWorldPosition);
-    
-    // === FIX : Flip la normale si elle pointe à l'opposé de la caméra ===
-    if (dot(N, V) < 0.0) {
-        N = -N;
-    }
+	// Grille simple
+	float gu = fract(vUV.x * gridU * 0.5);
+	float gv = fract(vUV.y * gridV * 0.5);
+	float line = step(0.95, gu) + step(0.95, gv);
+	color = mix(color, meshFg, min(line, 1.0));
 
-	lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
-    
-    vec3 toLight = lampPos - vWorldPosition;
-    float dist = length(toLight);
-    vec3 L = normalize(toLight);
-    
-    float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
-    
-    float NdotL = max(dot(N, L), 0.0);
-    vec3 diffuse = baseColor * NdotL * att;
-    
-    vec3 halfDir = normalize(L + V);
-    float NdotH = max(dot(N, halfDir), 0.0);
-    //float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
-    float spec = pow(NdotH, 2.0) * 4.0;
-    vec3 specular = baseColor * spec * att;
-    
-    vec3 ambient = vec3(0.05);
-    
-    return ambient + diffuse + specular;
-}
+	// Éclairage simple basé sur la normale
+	vec3 N = normalize(vNormal);
+	vec3 V = normalize(cameraPosition - vWorldPosition);
 
-vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
-	vec3 N = normalize(normal);
-	vec3 V = normalize(cameraPosition - pos);
-
+	// Flip normale si nécessaire
 	if (dot(N, V) < 0.0) {
 		N = -N;
 	}
 
-	vec3 lampPos = vec3(lampPosition.x, lampPosition.y, lampPosition.z * 32.0);
+	// Lumière directionnelle simple depuis la caméra
+	float diffuse = max(dot(N, V), 0.0);
 
-	vec3 L = normalize(lampPos - pos);
-	float dist = length(lampPos - pos);
-	float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
+	// Ambient + diffuse
+	vec3 finalColor = color * (0.3 + 0.7 * diffuse);
 
-	// Diffuse
-	float diff = max(dot(N, L), 0.0);
-
-	// Specular (Blinn-Phong)
-	vec3 H = normalize(L + V);
-	float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.5;
-
-	// Ambient
-	vec3 ambient = 0.1 * baseColor;
-	vec3 diffuse = diff * baseColor * att;
-	vec3 specular = spec * vec3(0.3) * att;
-
-	return ambient + diffuse + specular;
-}
-
-void main() {
-	vec3 color = meshBg;
-
-	float coeffLine = 4.0;
-
-	// Grille
-	float gu = fract(vUV.x * gridU * 0.5);
-	float gv = fract(vUV.y * gridV * 0.5);
-	float line = step(1.0 - (lineWidth*coeffLine*4.0) / gridU, gu) + step(1.0 - (lineWidth*coeffLine) / gridV, gv);
-	color = mix(color, meshFg, min(line, 1.0));
-
-	// Éclairage
-	//vec3 litColor = calculateLighting(vWorldPosition, vNormal, color);
-	vec3 lamp1 = light(lampPosition, color);
-	
-
-	color*= lamp1;
-	color = color / (color + vec3(1.0));
-	color = pow(color, vec3(1.0 / 2.2));
-
-	fragColor = vec4(color, 1.0);
+	fragColor = vec4(finalColor, 1.0);
 }`;
 	}
 

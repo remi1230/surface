@@ -1374,6 +1374,12 @@ function createShaderMeshFromGlo() {
 	const shaderMesh = new MeshClass();
 	const mesh = shaderMesh.create();
 
+	console.log('[createShaderMeshFromGlo] shaderMesh instance:', shaderMesh);
+	console.log('[createShaderMeshFromGlo] mesh retourné:', mesh);
+	console.log('[createShaderMeshFromGlo] mesh.shaderMeshInstance:', mesh?.shaderMeshInstance);
+	console.log('[createShaderMeshFromGlo] shaderMesh.mesh:', shaderMesh.mesh);
+	console.log('[createShaderMeshFromGlo] mesh === shaderMesh.mesh:', mesh === shaderMesh.mesh);
+
 	// Le mesh retourné a shaderMeshInstance attaché pour accéder à l'instance ShaderMesh
 	return mesh;
 }

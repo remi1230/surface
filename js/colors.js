@@ -6,12 +6,18 @@ async function giveMaterialToMesh(mesh = glo.ribbon){
 	glo.isApplyingMaterial = true;
 
 	try{
-		// Si c'est un GPUShaderMesh, utiliser ses méthodes natives
+		// Si c'est un GPUShaderMesh, appliquer le shader Monaco
 		if (mesh && mesh.shaderMeshInstance) {
-			mesh.shaderMeshInstance.updateColors();
-			mesh.shaderMeshInstance.updateLighting();
+			// Appliquer le shader Monaco complet (fragmentShader = header + body + footer)
+			const success = mesh.shaderMeshInstance.applyMonacoShader(fragmentShader);
+			if (success) {
+				console.log('[colors.js] Shader Monaco appliqué au GPUShaderMesh');
+			} else {
+				// Fallback : juste mettre à jour les couleurs
+				mesh.shaderMeshInstance.updateColors();
+				mesh.shaderMeshInstance.updateLighting();
+			}
 			glo.isApplyingMaterial = false;
-			
 			return;
 		}
 

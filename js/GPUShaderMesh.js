@@ -229,8 +229,10 @@ class ShaderMeshBase {
 		this.waveAmplitude = 0.0;   // Amplitude des ondes
 		this.waveFrequency = 1.0;   // Fréquence des ondes
 
-		// Observer pour la caméra
+		// Observers
 		this.cameraObserver = null;
+		this.monacoObserver = null;  // Pour animation Monaco (time, camera)
+		this.usingMonacoShader = false;  // Flag pour savoir si Monaco est actif
 	}
 
 	/**
@@ -1051,6 +1053,161 @@ void main() {
 	}
 
 	/**
+	 * Applique un shader Monaco (fragment shader complet) au GPUShaderMesh
+	 * @param {string} monacoFragmentShader - Code fragment shader complet de Monaco
+	 * @returns {boolean} true si succès, false si erreur
+	 */
+	applyMonacoShader(monacoFragmentShader) {
+		if (!this.mesh || !monacoFragmentShader) return false;
+
+		// Récupérer l'état de déformation actuel
+		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+
+		// Créer le vertex shader (garde les positions/normales GPU)
+		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
+
+		// Valider le fragment shader Monaco
+		const canvas = document.createElement('canvas');
+		const gl = canvas.getContext('webgl2');
+		if (gl) {
+			const shader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(shader, monacoFragmentShader);
+			gl.compileShader(shader);
+			const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+			if (!success) {
+				const error = gl.getShaderInfoLog(shader);
+				console.error('[GPUShaderMesh] Fragment shader Monaco invalide:', error);
+				gl.deleteShader(shader);
+				return false;
+			}
+			gl.deleteShader(shader);
+		}
+
+		// Disposer de l'ancien matériau
+		if (this.shaderMaterial) {
+			this.shaderMaterial.dispose();
+		}
+
+		// Supprimer l'ancien observer si existant
+		if (this.monacoObserver) {
+			this.computer.scene.onBeforeRenderObservable.remove(this.monacoObserver);
+			this.monacoObserver = null;
+		}
+
+		// Créer le nouveau ShaderMaterial avec le fragment Monaco
+		this.shaderMaterial = new BABYLON.ShaderMaterial(
+			"gpuShaderMeshMonaco",
+			this.computer.scene,
+			{
+				vertexSource: vertexShader,
+				fragmentSource: monacoFragmentShader
+			},
+			{
+				attributes: ["position", "aIndex"],
+				uniforms: [
+					// Uniforms du vertex shader GPUShaderMesh
+					"worldViewProjection", "world",
+					"uMinU", "uMaxU", "uStepU",
+					"uMinV", "uMaxV", "uStepV",
+					"uStepsU", "uStepsV",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
+					"w", "eps", "scaleNorm", "deformationEnabled",
+					"blendU", "blendO", "uFirstPoint",
+					"flatAmount", "twistAmount", "spherifyAmount",
+					"waveAmplitude", "waveFrequency",
+					// Uniforms du fragment shader Monaco
+					"time", "cameraPosition",
+					"minpoint", "maxpoint", "msize",
+					"iResolution", "gridU", "gridV",
+					"lineWidth", "invcol",
+					"islight", "opt1", "opt2", "opt3",
+					"minU", "minV", "stepsU", "stepsV", "steps",
+					"meshBg", "meshFg",
+					"lampPosition", "lampIntensity", "lampRadius",
+					"lampSpecularPower", "lampSpecularIntensity"
+				]
+			}
+		);
+
+		// Configurer les uniforms de base
+		this.updateAllUniforms(hasDeformation);
+
+		// Configurer les uniforms spécifiques Monaco
+		this.updateMonacoUniforms();
+
+		// Rendre les deux côtés du mesh
+		this.shaderMaterial.backFaceCulling = false;
+		this.mesh.material = this.shaderMaterial;
+
+		// Observer pour mettre à jour time, camera, et bounding box
+		this.monacoObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
+			if (this.shaderMaterial) {
+				const t = performance.now() * 0.001;
+				this.shaderMaterial.setFloat("time", t);
+				this.shaderMaterial.setFloat("w", t);
+				this.shaderMaterial.setVector3("cameraPosition", this.computer.scene.activeCamera.position);
+			}
+		});
+
+		// Marquer qu'on utilise Monaco
+		this.usingMonacoShader = true;
+
+		console.log('[GPUShaderMesh] Shader Monaco appliqué avec succès');
+		return true;
+	}
+
+	/**
+	 * Met à jour les uniforms spécifiques à Monaco (minpoint, maxpoint, etc.)
+	 */
+	updateMonacoUniforms() {
+		if (!this.shaderMaterial) return;
+
+		const mat = this.shaderMaterial;
+
+		// Bounding box
+		if (this.mesh) {
+			this.mesh.refreshBoundingInfo();
+			const bounds = this.mesh.getBoundingInfo().boundingBox;
+			mat.setVector3("minpoint", bounds.minimumWorld);
+			mat.setVector3("maxpoint", bounds.maximumWorld);
+			const size = bounds.maximumWorld.subtract(bounds.minimumWorld);
+			mat.setVector3("msize", size);
+		} else {
+			mat.setVector3("minpoint", new BABYLON.Vector3(-1, -1, -1));
+			mat.setVector3("maxpoint", new BABYLON.Vector3(1, 1, 1));
+			mat.setVector3("msize", new BABYLON.Vector3(2, 2, 2));
+		}
+
+		// Résolution
+		mat.setVector2("iResolution", new BABYLON.Vector2(
+			glo.engine.getRenderWidth(),
+			glo.engine.getRenderHeight()
+		));
+
+		// Steps
+		mat.setFloat("stepsU", this.nb_steps_u);
+		mat.setFloat("stepsV", this.nb_steps_v);
+		mat.setVector2("steps", new BABYLON.Vector2(this.nb_steps_u, this.nb_steps_v));
+		mat.setFloat("minU", this.min_u);
+		mat.setFloat("minV", this.min_v);
+
+		// Options Monaco
+		mat.setFloat("invcol", glo.shaders?.params?.invcol ? 1.0 : 0.0);
+		mat.setInt("islight", glo.shaders?.params?.islight ? 1 : 0);
+		mat.setInt("opt1", glo.shaders?.params?.opt1 ? 1 : 0);
+		mat.setInt("opt2", glo.shaders?.params?.opt2 ? 1 : 0);
+		mat.setInt("opt3", glo.shaders?.params?.opt3 ? 1 : 0);
+
+		// Specular
+		mat.setFloat("lampSpecularPower", glo.shaders?.light?.specularPower || 32.0);
+		mat.setFloat("lampSpecularIntensity", glo.shaders?.light?.specularIntensity || 0.5);
+
+		// Temps initial
+		mat.setFloat("time", performance.now() * 0.001);
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {
@@ -1086,6 +1243,11 @@ void main() {
 			this.computer.scene.onBeforeRenderObservable.remove(this.cameraObserver);
 			this.cameraObserver = null;
 		}
+		if (this.monacoObserver) {
+			this.computer.scene.onBeforeRenderObservable.remove(this.monacoObserver);
+			this.monacoObserver = null;
+		}
+		this.usingMonacoShader = false;
 		if (this.shaderMaterial) {
 			this.shaderMaterial.dispose();
 			this.shaderMaterial = null;

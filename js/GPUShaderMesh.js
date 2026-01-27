@@ -701,6 +701,23 @@ void main() {
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
+
+		// IMPORTANT: Désactiver le frustum culling car les positions CPU sont vides
+		// (les vraies positions sont calculées dans le GPU)
+		this.mesh.alwaysSelectAsActiveMesh = true;
+
+		// Définir une bounding box approximative basée sur les paramètres UV
+		const scale = Math.max(
+			Math.abs(this.min_u), Math.abs(this.max_u),
+			Math.abs(this.min_v), Math.abs(this.max_v),
+			1.0
+		) * 3.0;  // facteur de sécurité pour le tore
+		this.mesh.setBoundingInfo(new BABYLON.BoundingInfo(
+			new BABYLON.Vector3(-scale, -scale, -scale),
+			new BABYLON.Vector3(scale, scale, scale)
+		));
+		console.log('[GPUShaderMesh.create] Frustum culling désactivé, bounding box définie:', scale);
+
 		console.log('[GPUShaderMesh.create] Material appliqué au mesh');
 
 		// Observer pour mettre à jour la caméra

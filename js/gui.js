@@ -1257,7 +1257,8 @@ function add_shaders_ctrl(){
       if(!glo.rightButton){
         header.text = text + ": " + value.toFixed(decimalPrecision);
         event(value);
-        giveMaterialToMesh();
+        //giveMaterialToMesh();
+        remakeRibbon();
       }
       glo.rightButton = false;
     });
@@ -1268,7 +1269,8 @@ function add_shaders_ctrl(){
         slider.value = slider.startValue;
 
         event(slider.value);
-        giveMaterialToMesh();
+        //giveMaterialToMesh();
+        remakeRibbon();
       }
     });
 

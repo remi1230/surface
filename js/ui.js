@@ -95,7 +95,8 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-      giveMaterialToMesh();
+      //giveMaterialToMesh();
+      remakeRibbon();
 }
 
 function switchSymmetrizeOrder(normalSens = true){
@@ -964,10 +965,7 @@ function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false, f
 }
 
 function styleUI(){		
-	/*applyFontToHeaders('Poppins', 300, -1);
-    applyFontToButtons('Poppins', 400, -1);*/
-	applyFontToHeaders('Manrope', 300, -1);
-    applyFontToButtons('Manrope', 500, -1);
-	
+	applyFontToHeaders('Poppins', 300, -1);
+    applyFontToButtons('Poppins', 400, -1);
     //applyFontToRadio('Poppins', 300, -1);
 }

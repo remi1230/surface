@@ -7,13 +7,13 @@ async function giveMaterialToMesh(mesh = glo.ribbon){
 
 	try{
 		// Si c'est un GPUShaderMesh, utiliser ses méthodes natives
-		if (mesh && mesh.shaderMeshInstance) {
+		/*if (mesh && mesh.shaderMeshInstance) {
 			mesh.shaderMeshInstance.updateColors();
 			mesh.shaderMeshInstance.updateLighting();
 			glo.isApplyingMaterial = false;
 			
 			return;
-		}
+		}*/
 
 		if(glo.shaderRenderObserver){
 			glo.scene.onBeforeRenderObservable.remove(glo.shaderRenderObserver);

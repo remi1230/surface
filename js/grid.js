@@ -366,11 +366,11 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	if(!options.beta && options.beta !== 0){ options.beta = -PI/4; }
 	if(!options.distance && options.distance !== 0){ options.distance = 60; }
 
-	const distForOne = 15; 
+	/*const distForOne = 15; 
 	const extendSize = glo.ribbon ? glo.ribbon.getBoundingInfo().boundingBox.extendSize : {x: distForOne, y: distForOne, z: distForOne};
 	const coeff      = h(extendSize.x, extendSize.y, extendSize.z);
 
-	options.distance = 3 * coeff * (glo.ribbon ? glo.ribbon.gridScaleValue : 1);
+	options.distance = 3 * coeff * (glo.ribbon ? glo.ribbon.gridScaleValue : 1);*/
 
 	switch(options.axis){
 		case "X":{

@@ -1,28 +1,13 @@
 fragmentShaders = [
 `
-   //Lines
-    float uLineWidth      = A * 0.05 / 36.0;
-    float uLineSpacing    = 12.0 / C;
-    vec3 uBackgroundColor = meshBg;
-    vec3 uLineColor       = meshFg;
+   //Simple
+    float coeffLine = 4.0;
 
-    float maxU = -minU;
-    float maxV = -minV;
-    vec2 uv = vUV/ uLineSpacing;
-    
-    // Distance au bord de chaque cellule (0 au centre, 0.5 aux bords)
-    vec2 grid = abs(fract(0.5*B*uv) - 0.0);
-    
-    // Lignes avec antialiasing
-    float lineU = 1.0 - step(uLineWidth, grid.x);
-    float lineV = 1.0 - step(uLineWidth*0.5, grid.y);
-    
-    // Combinaison des deux directions
-    float line = max(lineU, lineV);
-    
-    vec3 col = mix(uBackgroundColor, uLineColor, line*mix(1.0, 0.0, float(opt1)));
-
-    
+	// Grille
+	float gu = fract(vUV.x * gridU * 0.5);
+	float gv = fract(vUV.y * gridV * 0.5);
+	float line = step(1.0 - (lineWidth*coeffLine*4.0) / gridU, gu) + step(1.0 - (lineWidth*coeffLine) / gridV, gv);
+	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `
     //Norm&Pos
@@ -34,9 +19,10 @@ fragmentShaders = [
     vec3 col3 = 1.0 - mix(col1, col2, dot(col1,col2));
     vec3 col4 = 1.0 - mix(col1, col2, cross(col1,col2));
 
-    vec3 col;
-    if(opt1 == 1) col = mix(col3, col4, Ts(1.0));
-    else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
+    col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
+
+    //if(opt1 == 1) col = mix(col3, col4, Ts(1.0));
+    //else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 `,
 `
     //CosPos
@@ -46,22 +32,22 @@ fragmentShaders = [
     float val   = o(o(pos, c), m(pos, c), hc(pos, c));
     vec3 valCol = cpalette(val, palette(val));
 
-    vec3 col = vec3(val > 0.0 ? valCol : 1.0-valCol);
+    col = vec3(val > 0.0 ? valCol : 1.0-valCol);
 
 `,
 `
     //Npos
-    vec3 col = 1.0 - palette(8.0*length(npos()));
+    col = 1.0 - palette(8.0*length(npos()));
 `,
 `
     //Normal
-    vec3 col = vNormal;
+    col = vNormal;
 
     
 `,
 `   
     //RotTile
-    vec3 col  = vec3(0.0); 
+    col  = vec3(0.0); 
     vec3 col1 = col;
     vec3 col2 = col;
 
@@ -76,7 +62,7 @@ fragmentShaders = [
     float row = floor(hexUV.y);
 
     vec2 cell = fract(hexUV) - 0.5;
-    vec3 col = vec3(0.0);
+    col = vec3(0.0);
 
     float d = sdHexagon(cell, 5.0/12.0);
     col = vec3(smoothstep(0.042, 0.0, abs(d))); // contour
@@ -96,7 +82,7 @@ fragmentShaders = [
     float rad = 0.5;
     float thickness = 0.14;
 
-    vec3 col   = vec3(truchet(uv, index, rad, thickness));
+    col   = vec3(truchet(uv, index, rad, thickness));
     float lCol = length(col);
 
     float c      = 0.0625*time+4.0*length(npos());
@@ -129,7 +115,7 @@ fragmentShaders = [
     vec3 col1 = palette(valCol-index);
     vec3 col2 = rainbow(valCol+index);
 
-    vec3 col = mix((0.66+Tc(0.33))*col1, (0.33+Ts(0.42))*col2, cross(col1, col2));
+    col = mix((0.66+Tc(0.33))*col1, (0.33+Ts(0.42))*col2, cross(col1, col2));
     
     if(length(col) > 1.0){
         col /= 1.414;
@@ -156,7 +142,7 @@ fragmentShaders = [
     float minBrightness = 0.333;
     m_dist = minBrightness + (1.0 - minBrightness) * m_dist;
 
-    vec3 col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
+    col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
 
 
 `

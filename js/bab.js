@@ -27,6 +27,8 @@ Player.prototype = {
     this.camera.upperAlphaLimit = null;
     this.camera.lowerBetaLimit = null;
     this.camera.upperBetaLimit = Math.PI;
+    this.camera.wheelPrecision = 32;
+    this.camera.inertia        = 0.933;
 
     this.camera.start.alpha   = this.camera.alpha;
     this.camera.start.beta    = this.camera.beta;

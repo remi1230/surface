@@ -14,8 +14,10 @@
 
 class GPUShaderMeshComputer {
 	constructor() {
-		this.scene = glo.scene;
+		this.scene  = glo.scene;
 		this.engine = glo.engine;
+		this.canvas = document.createElement('canvas');
+		this.gl     = this.canvas.getContext('webgl2');
 	}
 
 	/**
@@ -152,19 +154,17 @@ class GPUShaderMeshComputer {
 	 * @returns {{valid: boolean, error: string|null}}
 	 */
 	validateShader(shaderSource) {
-		const canvas = document.createElement('canvas');
-		const gl = canvas.getContext('webgl2');
-		if (!gl) return { valid: false, error: 'WebGL2 non supporté' };
+		//const canvas = document.createElement('canvas');
+		//const gl = canvas.getContext('webgl2');
+		if (!this.gl) return { valid: false, error: 'WebGL2 non supporté' };
 
-		const shader = gl.createShader(gl.VERTEX_SHADER);
-		gl.shaderSource(shader, shaderSource);
-		gl.compileShader(shader);
+		const shader = this.gl.createShader(this.gl.VERTEX_SHADER);
+		this.gl.shaderSource(shader, shaderSource);
+		this.gl.compileShader(shader);
+		const success = this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS);
+		const error = success ? null : this.gl.getShaderInfoLog(shader);
 
-		const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
-		const error = success ? null : gl.getShaderInfoLog(shader);
-
-		gl.deleteShader(shader);
-
+		this.gl.deleteShader(shader);
 		return { valid: success, error };
 	}
 }
@@ -210,13 +210,22 @@ class ShaderMeshBase {
 		// Détection U/V dans les équations
 		this.uvInfos = isUV();
 
+		// Flags
+		this.invcol  = glo.shaders.params.invcol ? 1.0 : 0.0;
+		this.islight = glo.shaders.params.islight ? 1.0 : 0.0;
+
 		// Paramètres UI
-		this.A = glo.params.A; this.B = glo.params.B;
-		this.C = glo.params.C; this.D = glo.params.D;
+		this.A = glo.shaders.uservars.A; this.B = glo.shaders.uservars.B;
+		this.C = glo.shaders.uservars.C; this.D = glo.shaders.uservars.D;
 		this.E = glo.params.E; this.F = glo.params.F;
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
+
+		this.opt1 = glo.shaderOpt.opt1 ? 1.0 : 0;
+		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0;
+		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0;
+
 		this.w = performance.now() / 1000.0;
 
 		// Blender
@@ -583,10 +592,19 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform float lampIntensity;
 uniform float lampRadius;
+uniform float invcol;
 uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
 uniform float w;
+uniform float islight;
+uniform float opt1;
+uniform float opt2;
+uniform float opt3;
+uniform float A;
+uniform float B;
+uniform float C;
+uniform float D;
 
 #define time w
 
@@ -630,31 +648,6 @@ vec3 blinnPhong(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 lightColor, float
 // Optionnel : effet de scintillement subtil (lampe qui "vit")
 float flicker(float t) {
     return 1.0 + 0.02 * sin(t * 15.0) * sin(t * 23.0 + 1.5);
-}
-
-vec3 lightOld(vec3 lampPos, vec3 albedo) {
-    vec3 N = normalize(vNormal);
-    vec3 V = normalize(cameraPosition - vWorldPosition);
-    
-    if (dot(N, V) < 0.0) {
-        N = -N;
-    }
-    
-    vec3 toLight = lampPos - vWorldPosition;
-    float dist = length(toLight);
-    vec3 L = normalize(toLight);
-    
-    float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
-    float NdotL = max(dot(N, L), 0.0);
-    
-    // Éclairage qui ajoute du relief sans assombrir
-    float shade = 0.5 + 0.5 * NdotL * att;
-    
-    vec3 halfDir = normalize(L + V);
-    float NdotH = max(dot(N, halfDir), 0.0);
-    float spec = pow(NdotH, SPECULAR_POWER) * SPECULAR_INTENSITY * att;
-    
-    return albedo * shade + vec3(spec * 0.2);
 }
 
 vec3 light(vec3 lampPos) {
@@ -1032,13 +1025,16 @@ void main() {
 
 	${mainFrag}
 
-	// Éclairage
-	vec3 lamp1 = light(lampPosition, col);
-	
+	// Inversion des couleurs si bouton INV actif
+	col = mix(col, vec3(1.0)-col, invcol);
 
-	col*= lamp1;
-	col = col / (col + vec3(1.0));
-	col = pow(col, vec3(1.0 / 2.2));
+	// Éclairage
+	if(islight == 1.0){
+		vec3 lamp1 = light(lampPosition, col);
+		col*= lamp1;
+		col = col / (col + vec3(1.0));
+		col = pow(col, vec3(1.0 / 2.2));
+	}
 
 	fragColor = vec4(col, 1.0);
 }`;
@@ -1069,8 +1065,8 @@ void main() {
 		// Valider le shader
 		const validation = this.computer.validateShader(vertexShader);
 		if (!validation.valid) {
-			console.error('Shader invalide:', validation.error);
-			console.error('Source:', vertexShader);
+			//console.error('Shader invalide:', validation.error);
+			//console.error('Source:', vertexShader);
 			return null;
 		}
 
@@ -1096,7 +1092,7 @@ void main() {
 					"waveAmplitude", "waveFrequency",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
-					"gridU", "gridV", "lineWidth"
+					"gridU", "gridV", "lineWidth", "invcol", "islight"
 				]
 			}
 		);
@@ -1139,6 +1135,9 @@ void main() {
 		mat.setFloat("uStepsU", this.nb_steps_u);
 		mat.setFloat("uStepsV", this.nb_steps_v);
 
+		mat.setFloat("invcol", this.invcol ? 1.0 : 0.0);
+		mat.setFloat("islight", this.islight ? 1.0 : 0.0);
+
 		mat.setFloat("A", this.A);
 		mat.setFloat("B", this.B);
 		mat.setFloat("C", this.C);
@@ -1152,6 +1151,9 @@ void main() {
 		mat.setFloat("K", this.K);
 		mat.setFloat("L", this.L);
 		mat.setFloat("w", this.w);
+		mat.setFloat("opt1", this.opt1);
+		mat.setFloat("opt2", this.opt2);
+		mat.setFloat("opt3", this.opt3);
 
 		mat.setFloat("eps", 0.001);
 		mat.setFloat("scaleNorm", glo.scaleNorm || 1.0);
@@ -1316,6 +1318,15 @@ void main() {
 	}
 
 	/**
+	 * Met à jour un paramètre float
+	 */
+	updateFloatParam(param, value) {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setFloat(param, value);
+	}
+
+	/**
 	 * Active/désactive la déformation et met à jour le scale
 	 * @param {boolean} enabled - Activer la déformation
 	 * @param {number} scale - Échelle de la déformation (optionnel)
@@ -1362,7 +1373,7 @@ void main() {
 		// Valider le nouveau shader
 		const validation = this.computer.validateShader(vertexShader);
 		if (!validation.valid) {
-			console.error('Shader de déformation invalide:', validation.error);
+			//console.error('Shader de déformation invalide:', validation.error);
 			return false;
 		}
 
@@ -1406,7 +1417,7 @@ void main() {
 		this.shaderMaterial.sideOrientation = 1;
 		this.mesh.material = this.shaderMaterial;
 
-		console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
+		//console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
 		return true;
 	}
 

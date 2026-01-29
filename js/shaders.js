@@ -302,10 +302,10 @@ uniform float C;
 uniform float D;
 uniform float lineWidth;
 uniform float invcol;
-uniform int islight;
-uniform int opt1;
-uniform int opt2;
-uniform int opt3;
+uniform float islight;
+uniform float opt1;
+uniform float opt2;
+uniform float opt3;
 uniform float minU;
 uniform float minV;
 uniform float stepsU;
@@ -388,7 +388,7 @@ vec3 lightOld(vec3 lampPos, vec3 albedo) {
     return albedo * shade + vec3(spec * 0.2);
 }
 
-vec3 light(vec3 lampPos) {
+vec3 light(vec3 lampPos, vec3 baseColor) {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(cameraPosition - vWorldPosition);
     
@@ -396,20 +396,23 @@ vec3 light(vec3 lampPos) {
     if (dot(N, V) < 0.0) {
         N = -N;
     }
+
+	lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
     
     vec3 toLight = lampPos - vWorldPosition;
     float dist = length(toLight);
     vec3 L = normalize(toLight);
     
-    float att = calcAttenuation(dist, lampRadius, lampIntensity*200.0);
+    float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
     
     float NdotL = max(dot(N, L), 0.0);
-    vec3 diffuse = LAMP_COLOR * NdotL * att;
+    vec3 diffuse = baseColor * NdotL * att;
     
     vec3 halfDir = normalize(L + V);
     float NdotH = max(dot(N, halfDir), 0.0);
-    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
-    vec3 specular = LAMP_COLOR * spec * att;
+    //float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    float spec = pow(NdotH, 2.0) * 4.0;
+    vec3 specular = baseColor * spec * att;
     
     vec3 ambient = vec3(0.05);
     
@@ -697,21 +700,25 @@ float hc(float x, float y, float z, float coeff){
 }
 
 
-void main(){`;
+void main(){
+    vec3 col = meshBg;
+`;
 
 
 
 fragmentShaderFooter = `
-    col = mix(col, vec3(1.0)-col, invcol);
+    // Inversion des couleurs si bouton INV actif
+	col = mix(col, vec3(1.0)-col, invcol);
 
-    if(islight == 1){
-        vec3 lamp1 = light(vec3(lampPosition.x*20.0, lampPosition.y*20.0, lampPosition.z*30.0));
-        col*= lamp1;
-        col = col / (col + vec3(1.0));
-        col = pow(col, vec3(1.0 / 2.2));
-    }
-    
-    fragColor = vec4(col, 1.0);
+	// Éclairage si bouton avec une lampe actif
+	if(islight == 1.0){
+		vec3 lamp1 = light(lampPosition, col);
+		col*= lamp1;
+		col = col / (col + vec3(1.0));
+		col = pow(col, vec3(1.0 / 2.2));
+	}
+
+	fragColor = vec4(col, 1.0);
 }
 `;
 

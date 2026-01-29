@@ -91,15 +91,15 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
 			// Utiliser GPUShaderMesh pour le cartésien
 			if (glo.ribbon) { ribbonDispose(); }
 			const meshResult = createShaderMeshFromGlo();
-			console.log('[makeOnlyCurves] meshResult:', meshResult);
+			/*console.log('[makeOnlyCurves] meshResult:', meshResult);
 			console.log('[makeOnlyCurves] meshResult type:', typeof meshResult);
 			console.log('[makeOnlyCurves] meshResult constructor:', meshResult?.constructor?.name);
 			console.log('[makeOnlyCurves] meshResult.isVisible:', meshResult?.isVisible);
-			console.log('[makeOnlyCurves] meshResult.material:', meshResult?.material);
+			console.log('[makeOnlyCurves] meshResult.material:', meshResult?.material);*/
 			//glo.ribbon      = meshResult.shaderMeshInstance;
 			glo.ribbon = meshResult;
 			//glo.ribbon.mesh = meshResult;
-			console.log('[makeOnlyCurves] glo.ribbon après assignation:', glo.ribbon);
+			//console.log('[makeOnlyCurves] glo.ribbon après assignation:', glo.ribbon);
 			glo.fromShader = true;
 
 			// Appliquer la déformation si une expression existe

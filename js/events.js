@@ -84,7 +84,13 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
 
     if(validation.valid){
       updateStatus(`Prêt`, false);
-      giveMaterialToMesh();
+      const startTag = "vec3 col = meshBg;";
+      const endTag = "// Inversion";
+      const startIndex = fragmentShader.indexOf(startTag);
+      const endIndex   = fragmentShader.indexOf(endTag);
+      const finalCode  = fragmentShader.slice(startIndex + startTag.length, endIndex).trim();
+      fragmentShaders[glo.numShaderSelect] = finalCode;
+      remakeRibbon();
    }
     else{
       console.log('Erreur de compilation:', validation.error);
@@ -167,12 +173,17 @@ document.getElementById('toggleFullscreen')?.addEventListener('click', function(
    }
 });
 
+const updShaderOpt = (param, value) => {
+   glo.shaderOpt[param] = value;
+   glo.ribbon.shaderMeshInstance.updateFloatParam(param, value ? 1.0 : 0.0);
+}
+
 const shaderOpt1 = getById("shaderOpt1");
 const shaderOpt2 = getById("shaderOpt2");
 const shaderOpt3 = getById("shaderOpt3");
-shaderOpt1.addEventListener("change", () => { glo.shaderOpt.opt1 = shaderOpt1.checked; giveMaterialToMesh(); });
-shaderOpt2.addEventListener("change", () => { glo.shaderOpt.opt2 = shaderOpt2.checked; giveMaterialToMesh(); });
-shaderOpt3.addEventListener("change", () => { glo.shaderOpt.opt3 = shaderOpt3.checked; giveMaterialToMesh(); });
+shaderOpt1.addEventListener("change", () => { updShaderOpt('opt1', shaderOpt1.checked); });
+shaderOpt2.addEventListener("change", () => { updShaderOpt('opt2', shaderOpt2.checked); });
+shaderOpt3.addEventListener("change", () => { updShaderOpt('opt3', shaderOpt3.checked); });
 
 document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
@@ -225,11 +236,11 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "+":
-                  glo.camera.radius/=2;
+                  glo.camera.radius/=1.125;
 
                   break;
                case "-":
-                  glo.camera.radius*=2;
+                  glo.camera.radius*=1.125;
 
                   break;
                case "7":

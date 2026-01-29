@@ -19,17 +19,17 @@ fragmentShaders = [
     vec3 col3 = 1.0 - mix(col1, col2, dot(col1,col2));
     vec3 col4 = 1.0 - mix(col1, col2, cross(col1,col2));
 
-    col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
+    //col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 
-    //if(opt1 == 1) col = mix(col3, col4, Ts(1.0));
-    //else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
+    if(opt1 == 1.0) col = mix(col3, col4, Ts(1.0));
+    else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 `,
 `
     //CosPos
     vec3 pos = npos();
 
-    float c     = A;
-    float val   = o(o(pos, c), m(pos, c), hc(pos, c));
+    float c     = A / 2.0;
+    float val   = opt1 == 1.0 ? m(o(pos, c), m(pos, c), hc(pos, c)) : o(o(pos, c), m(pos, c), hc(pos, c));
     vec3 valCol = cpalette(val, palette(val));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);
@@ -58,7 +58,7 @@ fragmentShaders = [
 `,
 `   
     //Hexagone
-    vec2 hexUV = vec2(vUV.x*0.5, vUV.y) * 24.0;
+    vec2 hexUV = vec2(vUV.x, vUV.y*0.5) * 24.0;
     float row = floor(hexUV.y);
 
     vec2 cell = fract(hexUV) - 0.5;

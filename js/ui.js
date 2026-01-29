@@ -697,7 +697,52 @@ function reg_inv(f, toInv_1, toInv_2){
 	return f;
 }
 
-function getFixedExportBounds(mesh, scene, margin = 20) {
+function getFixedExportBounds(mesh, scene, margin = 20, correction = 1) {
+    const engine = scene.getEngine();
+    const camera = scene.activeCamera;
+    
+    const boundingInfo = mesh.getBoundingInfo();
+    const center = boundingInfo.boundingBox.centerWorld;
+    const radius = boundingInfo.boundingSphere.radiusWorld;
+    
+    const viewport = camera.viewport.toGlobal(
+        engine.getRenderWidth(),
+        engine.getRenderHeight()
+    );
+    
+    // Projette le centre
+    const screenCenter = BABYLON.Vector3.Project(
+        center,
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
+        viewport
+    );
+    
+    // Projette un point à distance radius (perpendiculaire à la vue)
+    const right = camera.getDirection(BABYLON.Axis.X).normalize();
+    const pointAtRadius = center.add(right.scale(radius));
+    
+    const screenEdge = BABYLON.Vector3.Project(
+        pointAtRadius,
+        BABYLON.Matrix.Identity(),
+        scene.getTransformMatrix(),
+        viewport
+    );
+    
+    const screenRadius = Math.abs(screenEdge.x - screenCenter.x);
+    
+	const coeff = glo.videoBoxRange * 24 * correction; // Pour un peu plus d'espace
+    const size  = screenRadius * coeff + margin * coeff;
+	
+    return {
+        x: Math.max(0, screenCenter.x - size / 2),
+        y: Math.max(0, screenCenter.y - size / 2),
+        width: size,
+        height: size
+    };
+}
+
+function getFixedExportBoundsOld(mesh, scene, margin = 20) {
     const engine = scene.getEngine();
     const camera = scene.activeCamera;
     
@@ -756,7 +801,7 @@ function createMeshRecorder(mesh, scene, fps = 60) {
     return {
         start() {
 			glo.engine.setHardwareScalingLevel(1/2);
-            bounds = getFixedExportBounds(mesh, scene);
+            bounds = getFixedExportBounds(mesh, scene, 20, 2);
             captureCanvas.width = bounds.width;
             captureCanvas.height = bounds.height;
             

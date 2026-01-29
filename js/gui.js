@@ -1054,14 +1054,14 @@ function add_color_pickers(){
     if(ribbonToColorize) ribbonToColorize.material.emissiveColor = value;
     glo.emissiveColor = value;
 
-    giveMaterialToMesh();
+    glo.ribbon.shaderMeshInstance.updateColors();
   });
 
   var picker4 = new BABYLON.GUI.ColorPicker();
   parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker4.onValueChangedObservable.add(function(value) {
       glo.lineColor = value;
-      giveMaterialToMesh();
+      glo.ribbon.shaderMeshInstance.updateColors();
   });
 
   var picker5 = new BABYLON.GUI.ColorPicker();
@@ -1218,7 +1218,7 @@ function add_shaders_ctrl(){
   add_button(panelButtons, "openShaderEditorButton", "Editor", "20%", 30, 0, 10, 0, async function(){
       glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
       if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
-      giveMaterialToMesh();
+      //giveMaterialToMesh();
   }, false, 'fourth noAutoParam');
   /*add_button(panelButtons, "colorizeShaderEditorButton", "Color", "20%", 30, 0, 10, 0, async function(){
       glo.shaderMaterial = !glo.shaderMaterial;
@@ -1230,11 +1230,12 @@ function add_shaders_ctrl(){
   }, function(){ switchShader(false); }, false, 'fourth noAutoParam');
   add_button(panelButtons, "invcolShaderEditorButton", "Inv", "20%", 30, 0, 10, 0, async function(){
       glo.shaders.params.invcol = !glo.shaders.params.invcol;
-      giveMaterialToMesh();
+      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
   }, false, 'fourth noAutoParam');
   add_button(panelButtons, "shaderLightButton", "💡", "20%", 30, 0, 10, 0, async function(){
       glo.shaders.params.islight = !glo.shaders.params.islight;
-      giveMaterialToMesh();
+      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
+      //giveMaterialToMesh();
   }, false, 'fourth noAutoParam');
   add_button(panelVideo, "videoButton", "►", "13.75%", 30, 0, 0, 0, async function(){
       switchRecordingVideo();
@@ -1257,8 +1258,7 @@ function add_shaders_ctrl(){
       if(!glo.rightButton){
         header.text = text + ": " + value.toFixed(decimalPrecision);
         event(value);
-        //giveMaterialToMesh();
-        remakeRibbon();
+        glo.ribbon.shaderMeshInstance.updateLighting();
       }
       glo.rightButton = false;
     });
@@ -1269,8 +1269,7 @@ function add_shaders_ctrl(){
         slider.value = slider.startValue;
 
         event(slider.value);
-        //giveMaterialToMesh();
-        remakeRibbon();
+        glo.ribbon.shaderMeshInstance.updateLighting();
       }
     });
 
@@ -1410,9 +1409,6 @@ function add_step_ABCD_sliders(){
       if(numUI !== 'third'){
         await remakeRibbon();
       }
-      else{
-        giveMaterialToMesh();
-      }
       
       slider.lastValue = value;
     });
@@ -1436,10 +1432,18 @@ function add_step_ABCD_sliders(){
   addSlider(panel, "K", "K", 1, 1, -12, 12, 0.1, function(value){ glo.params.K = value; });
   addSlider(panel, "L", "L", 1, 0, -36, 36, 1, function(value){ glo.params.L = value; });
   addSlider(panel, "M", "M", 64, 0, -360, 360, 1, function(value){ glo.params.M = value; });
-  addSlider(panelShadersVariables, "shadersVariables-A", "A", 64, 0, -360, 360, 1, function(value){ glo.shaders.uservars.A = value; }, 'third');
-  addSlider(panelShadersVariables, "shadersVariables-B", "B", 64, 0, -360, 360, 1, function(value){ glo.shaders.uservars.B = value; }, 'third');
-  addSlider(panelShadersVariables, "shadersVariables-C", "C", 12, 1, -36, 36, 0.1, function(value){ glo.shaders.uservars.C = value; }, 'third');
-  addSlider(panelShadersVariables, "shadersVariables-D", "D", 0, 2, -1, 1, 0.01, function(value){ glo.shaders.uservars.D = value; }, 'third');
+  addSlider(panelShadersVariables, "shadersVariables-A", "A", 64, 0, -360, 360, 1, function(value){ glo.shaders.uservars.A = value; 
+    glo.ribbon.shaderMeshInstance.updateFloatParam("A", value);
+  }, 'third');
+  addSlider(panelShadersVariables, "shadersVariables-B", "B", 64, 0, -360, 360, 1, function(value){ glo.shaders.uservars.B = value; 
+    glo.ribbon.shaderMeshInstance.updateFloatParam("B", value);
+  }, 'third');
+  addSlider(panelShadersVariables, "shadersVariables-C", "C", 12, 1, -36, 36, 0.1, function(value){ glo.shaders.uservars.C = value; 
+    glo.ribbon.shaderMeshInstance.updateFloatParam("C", value);
+  }, 'third');
+  addSlider(panelShadersVariables, "shadersVariables-D", "D", 0, 2, -1, 1, 0.01, function(value){ glo.shaders.uservars.D = value; 
+    glo.ribbon.shaderMeshInstance.updateFloatParam("D", value);
+  }, 'third');
 }
 
 function add_symmetrize_sliders(){
@@ -1657,9 +1661,11 @@ function add_blender_sliders(){
 
     function updateShaderUniforms(){
       if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
-        remakeRibbon();
+        //remakeRibbon();
+        glo.ribbon.shaderMeshInstance.updateBlender()
       } else {
-        applyDeformationShader();
+        remakeRibbon();
+        //applyDeformationShader();
       }
     }
 

@@ -283,32 +283,49 @@ mat3 rotateAxis(vec3 axis, float angle) {
 // Variables globales pour les fonctions de déformation
 float gx, gy, gz, gu, gv;
 
+
 // Fonctions de déformation m()
 float m(float ncx, float ncy, float ncz) {
-	return cos(ncx * gx) * cos(ncy * gy) * cos(ncz * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(ncx * gx * deformCoeff1) * cos(ncy * gy * deformCoeff1) * cos(ncz * gz * deformCoeff1);
 }
 float m(float ncx, float ncy) {
-	return cos(ncx * gx) * cos(ncy * gy) * cos(ncy * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(ncx * gx * deformCoeff1) * cos(ncy * gy * deformCoeff1) * cos(ncy * gz * deformCoeff1);
 }
 float m(float ncx) {
-	return cos(ncx * gx) * cos(ncx * gy) * cos(ncx * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(ncx * gx * deformCoeff1) * cos(ncx * gy * deformCoeff1) * cos(ncx * gz * deformCoeff1);
 }
 float m() {
-	return cos(gx) * cos(gy) * cos(gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(gx * deformCoeff1) * cos(gy * deformCoeff1) * cos(gz * deformCoeff1);
 }
 
 // Fonctions de déformation o()
 float o(float ncx, float ncy, float ncz) {
-	return cos(ncx * gx) + cos(ncy * gy) + cos(ncz * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*(cos(ncx * gx * deformCoeff1) + cos(ncy * gy * deformCoeff1) + cos(ncz * gz * deformCoeff1));
 }
 float o(float ncx, float ncy) {
-	return cos(ncx * gx) + cos(ncy * gy) + cos(ncy * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return cos(ncx * gx * deformCoeff1) + cos(ncy * gy * deformCoeff1) + cos(ncy * gz * deformCoeff1);
 }
 float o(float ncx) {
-	return cos(ncx * gx) + cos(ncx * gy) + cos(ncx * gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*(cos(ncx * gx * deformCoeff1) + cos(ncx * gy * deformCoeff1) + cos(ncx * gz * deformCoeff1));
 }
 float o() {
-	return cos(gx) + cos(gy) + cos(gz);
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*(cos(gx * deformCoeff1) + cos(gy * deformCoeff1) + cos(gz * deformCoeff1));
 }
 
 // Fonctions de déformation b()
@@ -1363,11 +1380,11 @@ void main() {
 		if (!this.mesh) return false;
 
 		// Récupérer l'expression
-		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const deformText     = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim();
 
 		// Créer les nouveaux shaders
-		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
+		const vertexShader   = this.createVertexShader(hasDeformation ? deformText : null);
 		const fragmentShader = this.createFragmentShader();
 
 		// Valider le nouveau shader
@@ -1415,7 +1432,7 @@ void main() {
 		// Rendre les deux côtés du mesh
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = 1;
-		this.mesh.material = this.shaderMaterial;
+		this.mesh.material                  = this.shaderMaterial;
 
 		//console.log('[GPUShaderMesh] Shader de déformation mis à jour:', deformText || '(désactivé)');
 		return true;

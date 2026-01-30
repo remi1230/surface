@@ -109,6 +109,7 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
 					glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
 				}
 			}
+			if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
             break;
         case 'spheric':
 			glo[objToSet] = new CurvesSphericalGPU(parameters, f, f2, d, fractalize, onePoint);

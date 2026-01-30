@@ -562,6 +562,7 @@ function gui_resize(){
 
 function changeResolution(change = 'increase'){
 	const coeff = change === 'increase' ? 2 : 0.5;
+	glo.resolutionCoeff *= coeff;
 
 	glo.slider_nb_steps_u.maximum*=coeff;
 	glo.slider_nb_steps_v.maximum*=coeff;

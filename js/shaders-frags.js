@@ -1,12 +1,12 @@
 fragmentShaders = [
 `
    //Simple
-    float coeffLine = 4.0;
+    float coeffLine = C/3.0;
 
 	// Grille
-	float gu = fract(vUV.x * gridU * 0.5);
-	float gv = fract(vUV.y * gridV * 0.5);
-	float line = step(1.0 - (lineWidth*coeffLine*4.0) / gridU, gu) + step(1.0 - (lineWidth*coeffLine) / gridV, gv);
+	float gu = fract(vUV.x * A);
+	float gv = fract(vUV.y * B * 0.5);
+	float line = step(1.0 - (lineWidth*coeffLine) / A, gu) + step(1.0 - (lineWidth*coeffLine*2.0) / B, gv);
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `
@@ -64,7 +64,7 @@ fragmentShaders = [
     vec2 cell = fract(hexUV) - 0.5;
     col = vec3(0.0);
 
-    float d = sdHexagon(cell, 5.0/12.0);
+    float d = sdHexagon(cell, 5.666/12.0);
     col = vec3(smoothstep(0.042, 0.0, abs(d))); // contour
     
     if(col == vec3(0.0)){
@@ -73,7 +73,7 @@ fragmentShaders = [
 `,
 `   
     //Truchet
-    vec2 scale  = vec2(16.0, 32.0);
+    vec2 scale  = vec2(48.0, 24.0);
     vec2 cell   = floor(vUV * scale);
     vec2 uv     = fract(vUV*scale)-0.5;
     float d     = length(uv);
@@ -102,7 +102,7 @@ fragmentShaders = [
 `
     // FractUV
     float scale = 24.0;
-    float ratio = 0.5;
+    float ratio = 2.0;
 
     vec2 uv     = vec2(vUV.x*ratio,vUV.y)*scale; 
     vec2 cellUv = fract(uv)-0.5;
@@ -131,7 +131,7 @@ fragmentShaders = [
     vec3 color = vec3(.0);
 
     // Scale
-    vec2 scale = vec2(32., 64.);
+    vec2 scale = vec2(64., 32.);
     st *= scale;
 
     vec2 i_st = floor(st);

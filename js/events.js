@@ -402,12 +402,10 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case 'u':
-                  glo.resolutionCoeff *= 2;
                   changeResolution('increase');
 
                   break;
                case 'j':
-                  glo.resolutionCoeff /= 2;
                   changeResolution('decrease');
 
                   break;

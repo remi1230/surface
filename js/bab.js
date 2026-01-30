@@ -44,10 +44,10 @@ Arena = function(game) {
   var scene = game.scene;
   var light = new BABYLON.HemisphericLight(
     "light1",
-    new BABYLON.Vector3(-0.4, -0.4, 0.0),
+    new BABYLON.Vector3(-0.4, -0.4, 0.8),
     scene
   );
-  light.intensity = 0.7;
+  light.intensity = 1.0;
 
   glo.light = light;
 };
@@ -86,14 +86,14 @@ Game = function(canvasId) {
         if (glo.rotateType != 'none') { rotate_camera(); }
         if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
         
-        if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
+        /*if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
             lastDeformTime = now;
             w+=wstep;
             // Lancer la déformation de manière non-bloquante
             requestAnimationFrame(() => {
                 remakeRibbon();
             });
-        }
+        }*/
         _this.scene.render();
     });
   });

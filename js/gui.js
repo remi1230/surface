@@ -259,12 +259,13 @@ function add_axis_and_rot_buttons(){
   panel.isVertical = false;
   glo.advancedTexture.addControl(panel);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, event){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     parmamControl(button, name, 'button right first', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     designButton(button);
-    button.onPointerUpObservable.add(function() {
-      event();
+    button.onPointerUpObservable.add(function(event) {
+      if (event.buttonIndex !== 2){ eventLeft(); }
+      else{ eventRight(); }
     });
     panel.addControl(button);
   }
@@ -329,9 +330,12 @@ function add_axis_and_rot_buttons(){
   panel.addControl(button1);
   glo.fullScreenButton = button1;
 
-  add_button("but_box", "BOX", 70, 100/3, 10, 0, function(){
-    glo.ribbon.showBoundingBox = !glo.ribbon.showBoundingBox;
-    glo.params.showBoundingBox = !glo.params.showBoundingBox;
+  add_button("but_resolution", "Rx1", 70, 100/3, 10, 0, function(){
+    changeResolution('increase');
+    glo.allControls.getByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
+  }, function(){
+    changeResolution('decrease');
+    glo.allControls.getByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   });
 }
 function add_lines_and_dim_buttons(){
@@ -357,11 +361,15 @@ function add_lines_and_dim_buttons(){
     panel.addControl(button);
   }
 
-  add_button("but_grid", "GRID", 60, 30, 0, 0, function(){
+  add_button("but_grid", "GRID", 60, 30, 0, 0, async function(){
     glo.grid_visible = !glo.grid_visible;
-    if(glo.first_axis_visible){ showAxis(glo.axis_size, 1); glo.first_axis_visible = false; glo.axis_visible = true; }
-    if(glo.first_grid_visible){ showGrid(20, 20, 20, 1); glo.first_grid_visible = false; glo.grid_visible = true; }
-    else{ switch_grid(); }
+    glo.axis_visible = !glo.axis_visible;
+    
+    if(!glo.grid_visible){ switch_grid(); showAxis(glo.axis_size, 0); return; }
+
+    showAxis(glo.axis_size, 1);
+    const gridScale = glo.params.gridScaleValue;
+    showGrid(gridScale, gridScale, gridScale, 1); glo.first_grid_visible = false;
   });
   add_button("but_plan", "PLAN", 60, 30, 10, 0, function(){
     glo.planes_visible = !glo.planes_visible;
@@ -715,7 +723,8 @@ function add_inputs_equations(){
           //if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
           //if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
-          await applyDeformationShader();
+          //await applyDeformationShader();
+          glo.ribbon.shaderMeshInstance.updateDeformationExpression();
       }
   });
 
@@ -725,7 +734,7 @@ function add_inputs_equations(){
       //if(glo.curves.lineSystem)       glo.curves.lineSystem.visibility       = glo.input_sym_r.text ? false : true;
       //if(glo.curves.lineSystemDouble) glo.curves.lineSystemDouble.visibility = glo.input_sym_r.text ? false : true;
 
-      await applyDeformationShader();
+      glo.ribbon.shaderMeshInstance.updateDeformationExpression();
   });
 }
 
@@ -1180,17 +1189,13 @@ function add_shaders_ctrl(){
       title:{ name: "Lighting", text: "Lighting", top: 25.5, numUI: 'eighth', fontSize: 20},
       ctrl: { name: "Lighting", top: 31.5, paddingLeft: 9.25, isVertical: false, height: 5 }
     },
-    shadersTitle: {
-      title:{ name: "shadersTitle", text: "Shaders", top: 30},
-      ctrl: false
-    },
     light: {
       title: false,
-      ctrl: { name: "LightSliders", top: 33.5, paddingLeft: 0.0, isVertical: true, height: 32 }
+      ctrl: { name: "LightSliders", top: 30, paddingLeft: 0.0, isVertical: true, height: 32 }
     },
-    classicTitle: {
-      title:{ name: "classicTitle", text: "Classic", top: 65},
-      ctrl: { name: "LightClassicSliders", top: 68.5, paddingLeft: 0.0, isVertical: true, height: 20 }
+    grid: {
+      title:{ name: "GridParams", text: "Grid", top: 60.5, numUI: 'eighth', fontSize: 20},
+      ctrl: { name: "gridParamsSliders", top: 63, paddingLeft: 0.0, isVertical: true, height: 32 }
     },
     video: {
       title: {name: "Video", text: "Video", top: 66, numUI: 'fourth noAutoParam' },
@@ -1200,9 +1205,9 @@ function add_shaders_ctrl(){
 
   let panels = makePanelsTitles(paramsPanels);
 
-  let panelButtons, panel3Buttons, panelLight, panelLightClassic, panelVideo;
+  let panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo;
 
-  [panelButtons, panel3Buttons, panelLight, panelLightClassic,panelVideo] = panels;
+  [panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo] = panels;
 
   function add_button(panel, name, text, width, height, paddingTop, paddingLeft, paddingRight, eventLeft, eventRight, numUI = 'eighth noAutoParam'){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
@@ -1360,17 +1365,10 @@ function add_shaders_ctrl(){
   addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){
     glo.shaders.light.specular.power = value;
   });
-  addSlider(panelLightClassic, "lightIntensity", "Intensity", glo.light.intensity, 2, 0, 2, 0.01, async function(value){
-    glo.light.intensity = value;
-  }, 'header right eighth');
-  addSlider(panelLightClassic, "lightDirectionX", "Direction X", glo.light.direction.x, 2, -PI, PI, 0.01, async function(value){
-    glo.light.direction.set(value, glo.light.direction.y, glo.light.direction.z);
-  }, 'header right eighth');
-  addSlider(panelLightClassic, "lightDirectionY", "Direction Y", glo.light.direction.y, 2, -PI, PI, 0.01, async function(value){
-    glo.light.direction.set(glo.light.direction.x, value, glo.light.direction.z);
-  }, 'header right eighth');
-  addSlider(panelLightClassic, "lightDirectionZ", "Direction Z", glo.light.direction.z, 2, -PI, PI, 0.01, async function(value){
-    glo.light.direction.set(glo.light.direction.x, glo.light.direction.y, value);
+  addSlider(panelGrid, "gridScaleSlider", "Grid Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
+    glo.params.gridScaleValue = value;
+    showGrid(value, value, value, 1);
+    //showAxis(value, 1);
   });
 
   addHorizontalSlider(panelVideo, "videoBoxRange", "Box range", glo.videoBoxRange, 2, 0, 2.375, 0.01, async function(value){
@@ -1509,9 +1507,6 @@ function add_symmetrize_sliders(){
           glo.justSymmetrized = true;
           await remakeRibbon();
         }
-        else{
-          debouncedGiveMaterial(); 
-        }
     });
     
     slider.onPointerClickObservable.add(function (e) {
@@ -1541,7 +1536,10 @@ function add_symmetrize_sliders(){
 
   addSlider(panelCheckB, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; }, 16, false, 'title');
 
-  addSlider(panelScaleNorm, "scaleNorm", "Scale", 1, 2, -24, 24, 0.01, function(value){ glo.scaleNorm = value; }, 14, true);
+  addSlider(panelScaleNorm, "scaleNorm", "Scale", 1, 2, -24, 24, 0.01, function(value){
+    glo.scaleNorm = value;
+    glo.ribbon.shaderMeshInstance.setDeformationScale(value);
+  }, 14, true);
 
   add_button("centerLocal", "⊕ on origin", 100, 30, 0, 0, 0, function(){
     glo.params.centerIsLocal = !glo.params.centerIsLocal;
@@ -2424,7 +2422,7 @@ function add_transformation_sliders(){
     axes.forEach(function(axis){
       transformMesh('scaling', axis, value);
     });
-    applyTransformations();
+    //applyTransformations();
   });
   
   addXYZSlider(panel, "rotation", "Rotation", 0, 3, -2*PI, 2*PI, PI/180, function(value, axes){ 

@@ -106,7 +106,7 @@ var showAxis = function(size, visibility = 0) {
     ], glo.scene);
   glo.axisX.color = new BABYLON.Color3(1, 0, 0);
   glo.axisX.isPickable = false;
-  var xChar = makeTextPlane("X", "red", size / 10);
+  var xChar = makeTextPlane("X", "red", 1.5);
   xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
   xChar.isPickable = false;
 
@@ -120,7 +120,7 @@ var showAxis = function(size, visibility = 0) {
       ], glo.scene);
   glo.axisY.color = new BABYLON.Color3(0, 1, 0);
   glo.axisY.isPickable = false;
-  var yChar = makeTextPlane("Y", "green", size / 10);
+  var yChar = makeTextPlane("Y", "green", 1.5);
   yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
   yChar.isPickable = false;
 
@@ -134,7 +134,7 @@ var showAxis = function(size, visibility = 0) {
       ], glo.scene);
   glo.axisZ.color = new BABYLON.Color3(0, 0, 1);
   glo.axisZ.isPickable = false;
-  var zChar = makeTextPlane("Z", "blue", size / 10);
+  var zChar = makeTextPlane("Z", "blue", 1.5);
   zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
   zChar.isPickable = false;
 
@@ -297,7 +297,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		line.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_line.x, pivot_translation_line.y, pivot_translation_line.z));
 
 		function makeAxisChar(posChar, isOrtho){
-			var axisChar = makeTextPlane(ind, "black", size / 20, axis, isOrtho);
+			var axisChar = makeTextPlane(ind, "black", 10, axis, isOrtho);
 			axisChar.position = new BABYLON.Vector3(posChar.x, posChar.y, posChar.z);
 			var pivot_translation_axisChar = axisChar.position.subtract(BABYLON.Vector3.Zero());
 			axisChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_axisChar.x, pivot_translation_axisChar.y, pivot_translation_axisChar.z));
@@ -398,14 +398,12 @@ function switch_grid(grid_visible = glo.grid_visible){
 		});
 		if(!glo.axis_visible){
 			switch_axis(true);
-			glo.axis_visible = true;
 		}
 	}
 	else{
 		glo.controls_grid.forEach(ctrl => { ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 0; } );
 		
 		switch_axis(false);
-		glo.axis_visible = false;
 	}
 }
 

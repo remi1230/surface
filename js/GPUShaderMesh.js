@@ -169,6 +169,14 @@ class GPUShaderMeshComputer {
 		// Ajouter l'attribut personnalisé aIndex
 		mesh.setVerticesData("aIndex", indices2D, false, 2);
 
+		// Forcer la bounding box centrée à l'origine (le buffer position
+		// contient des indices de symétrie, pas des positions réelles)
+		const big = 1000;
+		mesh.setBoundingInfo(new BABYLON.BoundingInfo(
+			new BABYLON.Vector3(-big, -big, -big),
+			new BABYLON.Vector3(big, big, big)
+		));
+
 		return mesh;
 	}
 

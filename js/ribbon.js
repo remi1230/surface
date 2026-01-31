@@ -55,6 +55,16 @@ async function make_curves(u_params = {
 		glo.fromShader = false;
 
 		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
+
+		const form = glo.formes.getFormSelect().form;
+		if(form.orient.offset){
+			const offset = form.orient.offset;
+			glo.scene.onAfterRenderObservable.addOnce(() => {
+				glo.ribbon.position.x += offset.x || 0;
+				glo.ribbon.position.y += offset.y || 0;
+				glo.ribbon.position.z += offset.z || 0;
+			});
+		}
 	}
 }
 
@@ -86,43 +96,20 @@ function makeOnlyCurves(parameters, f, f2, d, coordTypes = false, fractalize = f
             glo[objToSet] = new CurvesByCurvature(parameters, f, f2, d, fractalize, onePoint);
             break;
     }*/
-	switch (coordTypes || glo.coordsType) {
-        case 'cartesian':
-			// Utiliser GPUShaderMesh pour le cartésien
-			if (glo.ribbon) { ribbonDispose(); }
-			const meshResult = createShaderMeshFromGlo();
-			/*console.log('[makeOnlyCurves] meshResult:', meshResult);
-			console.log('[makeOnlyCurves] meshResult type:', typeof meshResult);
-			console.log('[makeOnlyCurves] meshResult constructor:', meshResult?.constructor?.name);
-			console.log('[makeOnlyCurves] meshResult.isVisible:', meshResult?.isVisible);
-			console.log('[makeOnlyCurves] meshResult.material:', meshResult?.material);*/
-			//glo.ribbon      = meshResult.shaderMeshInstance;
-			glo.ribbon = meshResult;
-			//glo.ribbon.mesh = meshResult;
-			//console.log('[makeOnlyCurves] glo.ribbon après assignation:', glo.ribbon);
-			glo.fromShader = true;
+	// Utiliser GPUShaderMesh
+	if (glo.ribbon) { ribbonDispose(); }
+	const meshResult = createShaderMeshFromGlo();
+	glo.ribbon = meshResult;
+	glo.fromShader = true;
 
-			// Appliquer la déformation si une expression existe
-			if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-				const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
-				if (deformText && deformText.trim()) {
-					glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
-				}
-			}
-			if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
-            break;
-        case 'spheric':
-			glo[objToSet] = new CurvesSphericalGPU(parameters, f, f2, d, fractalize, onePoint);
-			break;
-        case 'cylindrical':
-            glo[objToSet] = new CurvesCylindricalGPU(parameters, f, f2, d, fractalize, onePoint);
-            break;
-        case 'curvature':
-            glo[objToSet] = new CurvesByCurvatureGPU(parameters, f, f2, d, fractalize, onePoint);
-            break;
-    }
-
-	
+	// Appliquer la déformation si une expression existe
+	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		if (deformText && deformText.trim()) {
+			glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
+		}
+	}
+	if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 }
 
 function makeOnePoint(u, v){

@@ -1529,10 +1529,15 @@ function add_symmetrize_sliders(){
     panelButton.addControl(button);
   }
 
-  addSlider(panel, "symmetrizeX", "X", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeX = value; });
-  addSlider(panel, "symmetrizeY", "Y", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeY = value; });
-  addSlider(panel, "symmetrizeZ", "Z", 1, 0, 1, 24, 1, function(value){ glo.params.symmetrizeZ = value; });
-  addSlider(panel, "symmetrizeAngle", "Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){ glo.params.symmetrizeAngle = value; });
+  addSlider(panel, "symmetrizeX", "X", 1, 0, 1, 48, 1, function(value){ glo.params.symmetrizeX = value; });
+  addSlider(panel, "symmetrizeY", "Y", 1, 0, 1, 48, 1, function(value){ glo.params.symmetrizeY = value; });
+  addSlider(panel, "symmetrizeZ", "Z", 1, 0, 1, 48, 1, function(value){ glo.params.symmetrizeZ = value; });
+  addSlider(panel, "symmetrizeAngle", "Angle", 3.14, 2, PI/16, 4*PI, PI/16, function(value){
+    glo.params.symmetrizeAngle = value;
+    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("uSymAngle", value);
+    }
+  }, 14, true);
 
   addSlider(panelCheckB, "checkerboard", "Checkerboard", 0, 0, 0, 24, 1, function(value){ glo.params.checkerboard = value; glo.exceptionCreate = true; }, 16, false, 'title');
 

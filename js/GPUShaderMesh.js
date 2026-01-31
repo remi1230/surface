@@ -105,32 +105,56 @@ class GPUShaderMeshComputer {
 	 * @returns {BABYLON.Mesh}
 	 */
 	createIndexMesh(stepsU, stepsV) {
-		const totalVertices = (stepsU + 1) * (stepsV + 1);
+		// Paramètres de symétrie
+		const symX = glo.params.symmetrizeX || 1;
+		const symY = glo.params.symmetrizeY || 1;
+		const symZ = glo.params.symmetrizeZ || 1;
+		const symCount = symX * symY * symZ;
 
-		// Créer les indices (i, j) pour chaque vertex
+		const baseVertices = (stepsU + 1) * (stepsV + 1);
+		const totalVertices = baseVertices * symCount;
+
+		// Créer les indices (i, j) et positions (sx, sy, sz) pour chaque vertex
 		const indices2D = new Float32Array(totalVertices * 2);
-		let idx = 0;
-		for (let i = 0; i <= stepsU; i++) {
-			for (let j = 0; j <= stepsV; j++) {
-				indices2D[idx++] = i;
-				indices2D[idx++] = j;
+		const positions = new Float32Array(totalVertices * 3);
+
+		let idxA = 0;
+		let idxP = 0;
+		let vertexOffset = 0;
+
+		for (let sx = 0; sx < symX; sx++) {
+			for (let sy = 0; sy < symY; sy++) {
+				for (let sz = 0; sz < symZ; sz++) {
+					for (let i = 0; i <= stepsU; i++) {
+						for (let j = 0; j <= stepsV; j++) {
+							// aIndex : mêmes (i, j) pour chaque copie
+							indices2D[idxA++] = i;
+							indices2D[idxA++] = j;
+							// position : encode l'opération de symétrie (sx, sy, sz)
+							positions[idxP++] = sx;
+							positions[idxP++] = sy;
+							positions[idxP++] = sz;
+						}
+					}
+					vertexOffset++;
+				}
 			}
 		}
 
-		// Positions factices (le shader calcule les vraies positions)
-		const positions = new Float32Array(totalVertices * 3);
-
-		// Indices de triangulation
+		// Indices de triangulation (dupliqués pour chaque copie de symétrie)
 		const triangleIndices = [];
-		for (let i = 0; i < stepsU; i++) {
-			for (let j = 0; j < stepsV; j++) {
-				const idx00 = i * (stepsV + 1) + j;
-				const idx10 = (i + 1) * (stepsV + 1) + j;
-				const idx01 = i * (stepsV + 1) + (j + 1);
-				const idx11 = (i + 1) * (stepsV + 1) + (j + 1);
+		for (let copy = 0; copy < symCount; copy++) {
+			const offset = copy * baseVertices;
+			for (let i = 0; i < stepsU; i++) {
+				for (let j = 0; j < stepsV; j++) {
+					const idx00 = offset + i * (stepsV + 1) + j;
+					const idx10 = offset + (i + 1) * (stepsV + 1) + j;
+					const idx01 = offset + i * (stepsV + 1) + (j + 1);
+					const idx11 = offset + (i + 1) * (stepsV + 1) + (j + 1);
 
-				triangleIndices.push(idx00, idx10, idx01);
-				triangleIndices.push(idx01, idx10, idx11);
+					triangleIndices.push(idx00, idx10, idx01);
+					triangleIndices.push(idx01, idx10, idx11);
+				}
 			}
 		}
 
@@ -144,6 +168,14 @@ class GPUShaderMeshComputer {
 
 		// Ajouter l'attribut personnalisé aIndex
 		mesh.setVerticesData("aIndex", indices2D, false, 2);
+
+		// Forcer la bounding box centrée à l'origine (le buffer position
+		// contient des indices de symétrie, pas des positions réelles)
+		const big = 1000;
+		mesh.setBoundingInfo(new BABYLON.BoundingInfo(
+			new BABYLON.Vector3(-big, -big, -big),
+			new BABYLON.Vector3(big, big, big)
+		));
 
 		return mesh;
 	}
@@ -426,6 +458,11 @@ uniform float waveFrequency;
 // Uniforms firstPoint (pour systèmes sphérique/cylindrique)
 uniform vec3 uFirstPoint;
 
+// Uniforms symétrie
+uniform float uSymX, uSymY, uSymZ;
+uniform float uSymAngle;
+uniform vec3 uSymOrder;
+
 // Varyings vers le fragment shader
 out vec3 vPosition;
 out vec3 vWorldPosition;
@@ -462,6 +499,35 @@ vec3 computePosition(float u, float v, float i, float j) {
 	outPos = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * outPos;
 
 	return outPos;
+}
+
+// ============================================================
+// SYMÉTRISATION : rotation des copies selon les axes
+// ============================================================
+vec3 applySymmetry(vec3 pos) {
+	float sx = position.x;
+	float sy = position.y;
+	float sz = position.z;
+
+	// Angles de décalage pour chaque axe
+	float angleX = (uSymX > 1.0) ? sx * (uSymAngle / uSymX) : 0.0;
+	float angleY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
+	float angleZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
+
+	// Appliquer les rotations dans l'ordre défini par uSymOrder
+	// uSymOrder.xyz encode l'ordre : 0.0=X, 1.0=Y, 2.0=Z
+	for (int step = 0; step < 3; step++) {
+		float axis = (step == 0) ? uSymOrder.x : (step == 1) ? uSymOrder.y : uSymOrder.z;
+		if (axis < 0.5) {
+			pos = rotateAxis(vec3(1.0, 0.0, 0.0), angleX) * pos;
+		} else if (axis < 1.5) {
+			pos = rotateAxis(vec3(0.0, 1.0, 0.0), angleY) * pos;
+		} else {
+			pos = rotateAxis(vec3(0.0, 0.0, 1.0), angleZ) * pos;
+		}
+	}
+
+	return pos;
 }
 
 // ============================================================
@@ -553,10 +619,15 @@ void main() {
 	pos = applyTransformations(pos, u, v);
 
 	// ============================================================
+	// ETAPE 2b : Appliquer la symétrisation (rotation des copies)
+	// ============================================================
+	pos = applySymmetry(pos);
+
+	// ============================================================
 	// ETAPE 3 : Calculer la normale par différences finies
 	// ============================================================
-	vec3 posU = applyTransformations(computePosition(u + eps, v, i, j), u + eps, v);
-	vec3 posV = applyTransformations(computePosition(u, v + eps, i, j), u, v + eps);
+	vec3 posU = applySymmetry(applyTransformations(computePosition(u + eps, v, i, j), u + eps, v));
+	vec3 posV = applySymmetry(applyTransformations(computePosition(u, v + eps, i, j), u, v + eps));
 
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;
@@ -1107,6 +1178,7 @@ void main() {
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
 					"waveAmplitude", "waveFrequency",
+					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
@@ -1195,6 +1267,19 @@ void main() {
 		mat.setFloat("spherifyAmount", this.spherifyAmount);
 		mat.setFloat("waveAmplitude", this.waveAmplitude);
 		mat.setFloat("waveFrequency", this.waveFrequency);
+
+		// Symétrie
+		mat.setFloat("uSymX", glo.params.symmetrizeX || 1);
+		mat.setFloat("uSymY", glo.params.symmetrizeY || 1);
+		mat.setFloat("uSymZ", glo.params.symmetrizeZ || 1);
+		mat.setFloat("uSymAngle", glo.params.symmetrizeAngle || Math.PI);
+		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
+		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
+		mat.setVector3("uSymOrder", new BABYLON.Vector3(
+			axisMap[orderStr[0]] ?? 0.0,
+			axisMap[orderStr[1]] ?? 1.0,
+			axisMap[orderStr[2]] ?? 2.0
+		));
 
 		// Temps
 		mat.setFloat("w", performance.now() / 1000.0);
@@ -1551,28 +1636,148 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 // ==================== SYSTEME SPHERIQUE (à implémenter) ====================
 
 class ShaderMeshSpherical extends ShaderMeshBase {
-	constructor(parametres, equa, equa2, dimOne, fractalize) {
+	/**
+	 * Coordonnées sphériques : R = rayon, ROT Z = alpha, ROT Y = beta
+	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 */
+	constructor(parametres = {
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+	}, equa = {
+		r: glo.params.text_input_x,         // R
+		alpha: glo.params.text_input_y,      // ROT Z
+		beta: glo.params.text_input_z,       // ROT Y
+		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
+		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'spheric';
 	}
 
+	/**
+	 * @override
+	 */
 	getPositionGLSL() {
-		// TODO: Implémenter le système sphérique
-		return 'outPos = vec3(0.0);';
+		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
+		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
+		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+
+		return `
+	// Coordonnées sphériques
+	float sphR = ${glslR};
+	float sphAlpha = ${glslAlpha};
+	float sphBeta = ${glslBeta};
+
+	// Point de départ : uFirstPoint * R
+	vec3 pt = uFirstPoint * sphR;
+
+	// Rotation Y (beta) puis Z (alpha)
+	pt = rotateAxis(vec3(0.0, 1.0, 0.0), sphBeta) * pt;
+	pt = rotateAxis(vec3(0.0, 0.0, 1.0), sphAlpha) * pt;
+
+	float px = pt.x;
+	float py = pt.y;
+	float pz = pt.z;
+
+	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	float alpha = ${glslAlpha2};
+	float beta = ${glslBeta2};
+
+	if (alpha != 0.0 || beta != 0.0) {
+		float cosA = cos(alpha);
+		float sinA = sin(alpha);
+		float cosB = cos(beta);
+		float sinB = sin(beta);
+
+		// Rotation Y (beta2) puis Z (alpha2)
+		float x1 = px * cosB - pz * sinB;
+		float z1 = px * sinB + pz * cosB;
+		float x2 = x1 * cosA - py * sinA;
+		float y2 = x1 * sinA + py * cosA;
+
+		px = x2;
+		py = y2;
+		pz = z1;
+	}
+
+	outPos = vec3(px, py, pz);
+`;
 	}
 }
 
 // ==================== SYSTEME CYLINDRIQUE (à implémenter) ====================
 
 class ShaderMeshCylindrical extends ShaderMeshBase {
-	constructor(parametres, equa, equa2, dimOne, fractalize) {
+	/**
+	 * Coordonnées cylindriques : R = rayon, ROT Z = alpha, Z = hauteur (beta)
+	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 */
+	constructor(parametres = {
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+	}, equa = {
+		r: glo.params.text_input_x,         // R
+		alpha: glo.params.text_input_y,      // ROT Z
+		beta: glo.params.text_input_z,       // Z (hauteur)
+		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
+		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cylindrical';
 	}
 
+	/**
+	 * @override
+	 */
 	getPositionGLSL() {
-		// TODO: Implémenter le système cylindrique
-		return 'outPos = vec3(0.0);';
+		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
+		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
+		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+
+		return `
+	// Coordonnées cylindriques
+	float cylR = ${glslR};
+	float cylAlpha = ${glslAlpha};
+	float cylHeight = ${glslBeta};
+
+	// Point de départ : uFirstPoint * R
+	vec3 pt = uFirstPoint * cylR;
+
+	// Rotation Z (alpha) uniquement
+	pt = rotateAxis(vec3(0.0, 0.0, 1.0), cylAlpha) * pt;
+
+	// Hauteur = beta
+	float px = pt.x;
+	float py = pt.y;
+	float pz = cylHeight;
+
+	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	float alpha = ${glslAlpha2};
+	float beta = ${glslBeta2};
+
+	if (alpha != 0.0 || beta != 0.0) {
+		float cosA = cos(alpha);
+		float sinA = sin(alpha);
+		float cosB = cos(beta);
+		float sinB = sin(beta);
+
+		// Rotation Y (beta2) puis Z (alpha2)
+		float x1 = px * cosB - pz * sinB;
+		float z1 = px * sinB + pz * cosB;
+		float x2 = x1 * cosA - py * sinA;
+		float y2 = x1 * sinA + py * cosA;
+
+		px = x2;
+		py = y2;
+		pz = z1;
+	}
+
+	outPos = vec3(px, py, pz);
+`;
 	}
 }
 

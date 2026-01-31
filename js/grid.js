@@ -366,12 +366,6 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	if(!options.beta && options.beta !== 0){ options.beta = -PI/4; }
 	if(!options.distance && options.distance !== 0){ options.distance = 60; }
 
-	/*const distForOne = 15; 
-	const extendSize = glo.ribbon ? glo.ribbon.getBoundingInfo().boundingBox.extendSize : {x: distForOne, y: distForOne, z: distForOne};
-	const coeff      = h(extendSize.x, extendSize.y, extendSize.z);
-
-	options.distance = 3 * coeff * (glo.ribbon ? glo.ribbon.gridScaleValue : 1);*/
-
 	switch(options.axis){
 		case "X":{
 			viewOnX(options.direction, options.alpha, PI/2 + options.beta);
@@ -387,6 +381,15 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 		}
 	}
 	glo.camera.radius = options.distance;
+
+	/*if(options.offset){
+		const offset = options.offset;
+		glo.scene.onAfterRenderObservable.addOnce(() => {
+			glo.ribbon.position.x += offset.x || 0;
+			glo.ribbon.position.y += offset.y || 0;
+			glo.ribbon.position.z += offset.z || 0;
+		});
+	}*/
 }
 
 function switch_grid(grid_visible = glo.grid_visible){

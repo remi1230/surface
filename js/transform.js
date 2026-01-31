@@ -1064,9 +1064,10 @@ function scaleVertexsDist(scale = 0.5) {
 }
 
 function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, /*lines = glo.curves.lineSystem, dblLines = glo.curves.lineSystemDouble*/){
+	/*if (transformKind === 'position') {
+        console.trace("transformMesh position", axis, "=", value);
+    }*/
 	mesh[transformKind][axis] = value;
-	//if(lines){ lines[transformKind][axis] = value; }
-	//if(dblLines){ dblLines[transformKind][axis] = value; }
 }
 
 function isTransformation(){

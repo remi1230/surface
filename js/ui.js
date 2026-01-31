@@ -104,7 +104,18 @@ function switchSymmetrizeOrder(normalSens = true){
 
 	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "S order : " + glo.symmetrizeOrder.toUpperCase();
 
-	remakeRibbon();
+	// Mettre à jour l'uniform uSymOrder directement si le shader mesh existe
+	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
+		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
+		glo.ribbon.shaderMeshInstance.shaderMaterial.setVector3("uSymOrder", new BABYLON.Vector3(
+			axisMap[orderStr[0]] ?? 0.0,
+			axisMap[orderStr[1]] ?? 1.0,
+			axisMap[orderStr[2]] ?? 2.0
+		));
+	} else {
+		remakeRibbon();
+	}
 }
 
 function switchRightPanel(normalSens = true){

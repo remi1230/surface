@@ -1636,28 +1636,148 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 // ==================== SYSTEME SPHERIQUE (à implémenter) ====================
 
 class ShaderMeshSpherical extends ShaderMeshBase {
-	constructor(parametres, equa, equa2, dimOne, fractalize) {
+	/**
+	 * Coordonnées sphériques : R = rayon, ROT Z = alpha, ROT Y = beta
+	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 */
+	constructor(parametres = {
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+	}, equa = {
+		r: glo.params.text_input_x,         // R
+		alpha: glo.params.text_input_y,      // ROT Z
+		beta: glo.params.text_input_z,       // ROT Y
+		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
+		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'spheric';
 	}
 
+	/**
+	 * @override
+	 */
 	getPositionGLSL() {
-		// TODO: Implémenter le système sphérique
-		return 'outPos = vec3(0.0);';
+		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
+		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
+		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+
+		return `
+	// Coordonnées sphériques
+	float sphR = ${glslR};
+	float sphAlpha = ${glslAlpha};
+	float sphBeta = ${glslBeta};
+
+	// Point de départ : uFirstPoint * R
+	vec3 pt = uFirstPoint * sphR;
+
+	// Rotation Y (beta) puis Z (alpha)
+	pt = rotateAxis(vec3(0.0, 1.0, 0.0), sphBeta) * pt;
+	pt = rotateAxis(vec3(0.0, 0.0, 1.0), sphAlpha) * pt;
+
+	float px = pt.x;
+	float py = pt.y;
+	float pz = pt.z;
+
+	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	float alpha = ${glslAlpha2};
+	float beta = ${glslBeta2};
+
+	if (alpha != 0.0 || beta != 0.0) {
+		float cosA = cos(alpha);
+		float sinA = sin(alpha);
+		float cosB = cos(beta);
+		float sinB = sin(beta);
+
+		// Rotation Y (beta2) puis Z (alpha2)
+		float x1 = px * cosB - pz * sinB;
+		float z1 = px * sinB + pz * cosB;
+		float x2 = x1 * cosA - py * sinA;
+		float y2 = x1 * sinA + py * cosA;
+
+		px = x2;
+		py = y2;
+		pz = z1;
+	}
+
+	outPos = vec3(px, py, pz);
+`;
 	}
 }
 
 // ==================== SYSTEME CYLINDRIQUE (à implémenter) ====================
 
 class ShaderMeshCylindrical extends ShaderMeshBase {
-	constructor(parametres, equa, equa2, dimOne, fractalize) {
+	/**
+	 * Coordonnées cylindriques : R = rayon, ROT Z = alpha, Z = hauteur (beta)
+	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 */
+	constructor(parametres = {
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+	}, equa = {
+		r: glo.params.text_input_x,         // R
+		alpha: glo.params.text_input_y,      // ROT Z
+		beta: glo.params.text_input_z,       // Z (hauteur)
+		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
+		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cylindrical';
 	}
 
+	/**
+	 * @override
+	 */
 	getPositionGLSL() {
-		// TODO: Implémenter le système cylindrique
-		return 'outPos = vec3(0.0);';
+		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
+		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
+		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+
+		return `
+	// Coordonnées cylindriques
+	float cylR = ${glslR};
+	float cylAlpha = ${glslAlpha};
+	float cylHeight = ${glslBeta};
+
+	// Point de départ : uFirstPoint * R
+	vec3 pt = uFirstPoint * cylR;
+
+	// Rotation Z (alpha) uniquement
+	pt = rotateAxis(vec3(0.0, 0.0, 1.0), cylAlpha) * pt;
+
+	// Hauteur = beta
+	float px = pt.x;
+	float py = pt.y;
+	float pz = cylHeight;
+
+	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	float alpha = ${glslAlpha2};
+	float beta = ${glslBeta2};
+
+	if (alpha != 0.0 || beta != 0.0) {
+		float cosA = cos(alpha);
+		float sinA = sin(alpha);
+		float cosB = cos(beta);
+		float sinB = sin(beta);
+
+		// Rotation Y (beta2) puis Z (alpha2)
+		float x1 = px * cosB - pz * sinB;
+		float z1 = px * sinB + pz * cosB;
+		float x2 = x1 * cosA - py * sinA;
+		float y2 = x1 * sinA + py * cosA;
+
+		px = x2;
+		py = y2;
+		pz = z1;
+	}
+
+	outPos = vec3(px, py, pz);
+`;
 	}
 }
 

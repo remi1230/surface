@@ -30,6 +30,16 @@ class GPUShaderMeshComputer {
 
 		let result = expr;
 
+		// Substituer X et Y par les expressions Eval X et Eval Y
+		const evalX = glo.params.text_input_eval_x;
+		const evalY = glo.params.text_input_eval_y;
+		if (evalX && evalX.trim() !== '') {
+			result = result.replace(/\bX\b/g, '(' + evalX + ')');
+		}
+		if (evalY && evalY.trim() !== '') {
+			result = result.replace(/\bY\b/g, '(' + evalY + ')');
+		}
+
 		// Appliquer d'abord les regex de glo.regs
 		for (const reg of glo.regs) {
 			result = result.replace(reg.exp, reg.upd);

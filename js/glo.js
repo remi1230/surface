@@ -805,6 +805,7 @@ var glo = {
 		text_input_color_z: "",
 		text_input_color_alpha: "",
 		text_input_color_beta: "",
+		text_input_eval_x: "",
 		text_input_eval_y: "",
 		symmetrizeX: 0,
 		symmetrizeY: 0,

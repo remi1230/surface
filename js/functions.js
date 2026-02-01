@@ -3,14 +3,14 @@ function addCommonTools(obj){
 	obj.ep = 0.0000001;
 	obj.mu = glo.params.u + 1;
 
-	obj.cos    = Math.cos; obj.sin = Math.sin; obj.tan = Math.tan;  obj.atan = Math.atan; obj.atantwo = Math.atan2;
+	obj.cos    = Math.cos;
+	obj.sin    = Math.sin; obj.tan = Math.tan;  obj.atan = Math.atan; obj.atantwo = Math.atan2;
 	obj.cosh   = Math.cosh; obj.sinh = Math.sinh; obj.tanh = Math.tanh;  obj.atanh = Math.atanh;
 	obj.c 	   = obj.cos; obj.s = obj.sin;
 	obj.abs    = Math.abs;
 	obj.a 	   = Math.abs;
 	obj.ceil   = Math.ceil;
 	obj.exp    = Math.exp;
-	//obj.e 	   = Math.exp;
 	obj.hypot  = Math.hypot;
 	obj.log    = Math.log;
 	obj.l      = Math.log;
@@ -20,11 +20,6 @@ function addCommonTools(obj){
 	obj.sign   = Math.sign;
 	obj.si     = Math.sign;
 	obj.sq     = Math.sqrt;
-
-	obj.cp = function(val, coeff = 1){ return cos(coeff*PI*val); };
-	obj.sp = function(val, coeff = 1){ return sin(coeff*PI*val); };
-	obj.ch = function(val1, val2, val3 = 0, coeff = 1){ return cos(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
-	obj.sh = function(val1, val2, val3 = 0, coeff = 1){ return sin(h(coeff*PI*val1, coeff*PI*val2, coeff*PI*val3)); };
 
 	obj.fact = function fact(n){
 		n = parseInt(Math.abs(n));

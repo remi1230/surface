@@ -29,22 +29,6 @@ async function whellSwitchForm(){
 	}
 }
 
-function switchEqSphericToCylindrical(){
-	var r = glo.input_x.text;
-	var alpha = glo.input_y.text;
-	var beta = glo.input_z.text;
-
-	glo.input_x.text = r + "sin(" + alpha + ")";
-	glo.input_y.text = beta;
-	glo.input_z.text = r + "cos(" + alpha + ")";
-
-	glo.params.text_input_x = glo.input_x.text;
-	glo.params.text_input_y = glo.input_y.text;
-	glo.params.text_input_z = glo.input_z.text;
-
-	switchCoords();
-}
-
 async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
 	let newOrient = '';
 
@@ -70,21 +54,6 @@ function switchCoords(normalSens = true){
 	glo.formesSuit = false;
 }
 
-async function switchColorByCurve(normalSens = true){
-	genInTwoWays(glo.colorByCurves, 'colorByCurve', normalSens);	
-}
-
-async function switchFractalOrient(normalSens = true){
-	genInTwoWays(glo.fractalizeOrients, 'fractalizeOrient', normalSens);
-
-	const newOrient = glo.fractalizeOrient;
-
-	const orient = newOrient ? `Rot ${newOrient.x ? 'X' : ''}${newOrient.y ? 'Y' : ''}${newOrient.z ? 'Z' : ''}` : 'No Rot';
-
-	glo.allControls.getByName("fractalizeRotActive").textBlock.text = orient;
-    await remakeRibbon('fractalize');
-}
-
 function switchShader(normalSens = true, edit = glo.editor){
 	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
       fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
@@ -95,7 +64,6 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-      //giveMaterialToMesh();
       remakeRibbon();
 }
 
@@ -129,14 +97,6 @@ function toggleRightPanels(rightPanelToShowClass, toShow = true){
 		.filter(rightPanelClass => toShow ? (rightPanelClass !== rightPanelToShowClass) : (1 === 1))
 		.forEach(rightPanelClass => toggleGuiControlsByClass(false, rightPanelClass));
 	if(toShow){ toggleGuiControlsByClass(true, rightPanelToShowClass); }
-}
-
-function scaleSlidersUV(coeff){
-	if(typeof(glo.scaleSlidersUV) == "undefined"){ glo.scaleSlidersUV = 1; }
-	glo.scaleSlidersUV *= coeff;
-
-	glo.slider_u.maximum *= coeff;
-	glo.slider_v.maximum *= coeff;
 }
 
 function switchWritingType(long){
@@ -249,13 +209,6 @@ function slidersAnim(name, speed = 1, dir = 1){
 	valToAdd = ((slider.maximum - slider.minimum) / 720) * speed;
 	if(speed == 0){ valToAdd = 1; }
 	slider.value += valToAdd * dir;
-}
-
-function sliders_animations(){
-	if(glo.guiAnims.sliderU){ slidersAnim('u'); }
-	if(glo.guiAnims.sliderV){ slidersAnim('v'); }
-	if(glo.guiAnims.stepU){ slidersAnim('stepU', 0); }
-	if(glo.guiAnims.stepV){ slidersAnim('stepV', 0); }
 }
 
 function startAnim(duration, nb_turns){
@@ -417,24 +370,6 @@ function change_slider_uv(){
 	else{ glo.slider_u.value -= 0.0000001; }
 }
 
-function resetInputsRibbonEquations(){
-	var prsNorm = glo.params.normale;
-	glo.input_x.text = prsNorm.text_input_x; glo.input_y.text = prsNorm.text_input_y; glo.input_z.text = prsNorm.text_input_z;
-	glo.input_alpha.text = prsNorm.text_input_alpha; glo.input_beta.text = prsNorm.text_input_beta;
-}
-function restoreInputsRibbonEquations(){
-	var prs = glo.params;
-	glo.input_x.text = prs.text_input_x; glo.input_y.text = prs.text_input_y; glo.input_z.text = prs.text_input_z;
-	glo.input_alpha.text = prs.text_input_alpha; glo.input_beta.text = prs.text_input_beta;
-}
-
-function reset_camera(){
-	var radius = glo.camera.radius;
-	glo.camera.setTarget(new BABYLON.Vector3(glo.ribbon.position.x, glo.ribbon.position.y, glo.ribbon.position.z));
-	glo.camera.setPosition(new BABYLON.Vector3(glo.ribbon.position.x, glo.ribbon.position.y, glo.ribbon.position.z - 12));
-	glo.camera.radius = radius;
-}
-
 function firstInputToOthers(){
 	const val = glo.input_x.text;
 
@@ -509,37 +444,12 @@ function param_special_controls(){
 
 	glo.allControls.haveTheseClasses('header', 'right', 'seventh', 'noAutoParam').map(header => {header.height = '25px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'eighth', 'noAutoParam').map(header => {header.height = '23px'; });
-	//glo.allControls.haveTheseClasses('header', 'right', 'nineth', 'noAutoParam').map(header => {header.height = '23px'; });
-	//glo.allControls.haveTheseClasses('header', 'right', 'fifth', 'noAutoParam').map(header => {header.height = '24.5px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'fourth', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'sixth', 'noAutoParam').map(header => {header.height = '24px'; });
-	//glo.allControls.haveTheseClasses('header', 'right', 'third', 'noAutoParam').map(header => {header.height = '24px'; });
 	glo.allControls.haveTheseClasses('header', 'right', 'second', 'noAutoParam').map(header => {header.height = '25px'; });
 
 	glo.allControls.getByName('header_inputRSymmetrize').fontSize = '14px';
 	glo.allControls.getByName('header_inputRSymmetrize').color    = 'white';
-}
-
-function hdMax(){
-	glo.HDstepUV = !glo.HDstepUV;
-
-	if(glo.HDstepUV){
-		glo.stepUVSave = {stepU: glo.slider_nb_steps_u.value, stepV: glo.slider_nb_steps_v.value,
-						stepUMax: glo.slider_nb_steps_u.maximum, stepVMax: glo.slider_nb_steps_v.maximum};
-
-		glo.slider_nb_steps_u.maximum = 1524;
-		glo.slider_nb_steps_v.maximum = 1524;
-
-		glo.slider_nb_steps_u.value = 712;
-		glo.slider_nb_steps_v.value = 712;
-
-	}
-	else{
-		glo.slider_nb_steps_u.maximum = glo.stepUVSave.stepUMax;
-		glo.slider_nb_steps_v.maximum = glo.stepUVSave.stepVMax;
-		glo.slider_nb_steps_u.value   = glo.stepUVSave.stepU;
-		glo.slider_nb_steps_v.value   = glo.stepUVSave.stepV;
-	}
 }
 
 function paramRadios(){
@@ -549,13 +459,6 @@ function paramRadios(){
 	glo.allControls.haveTheseClasses('radio', 'left', 'first').haveNotThisClass('header').map(radio => {
 		for(const prop in glo.theme.radio.button){ radio[prop] = glo.theme.radio.button[prop]; }
 	});
-}
-
-function camToOrigin(){
-	glo.camera.alpha = glo.camera.start.alpha;
-	glo.camera.beta  = glo.camera.start.beta;
-	glo.camera.setPosition(glo.camera.start.pos.clone());
-	glo.camera.setTarget(glo.camera.start.target.clone());
 }
 
 function gui_resize(){
@@ -588,11 +491,10 @@ function changeResolution(change = 'increase'){
 	}
 }
 
-function uvToXy(remake = true){
+function uvToXy(){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 
-	["x", "y", "z", "suit_x", "suit_y", "suit_z", "alpha", "beta", "suit_alpha", "suit_beta",
-	 "suit_theta", "sym_r"].forEach(nameInput =>  {
+	["x", "y", "z", "alpha", "beta", "sym_r"].forEach(nameInput =>  {
 		regs.forEach(reg => {
 			glo[`input_${nameInput}`].text = glo[`input_${nameInput}`].text.replace(reg.exp, reg.upd);
 		});
@@ -602,20 +504,10 @@ function uvToXy(remake = true){
 	 if(!glo.input_eval_x.text && !glo.input_eval_y.text){
 		glo.input_eval_x.text = 'u';
 		glo.input_eval_y.text = 'v';
+
+		glo.params.text_input_eval_x = 'u';
+		glo.params.text_input_eval_y = 'v';
 	 }
-
-	 if(remake){ remakeRibbon(); }
-}
-
-function regSave(f) {
-	console.log("//**************************************//");
-	console.log("TEST REG FUNCTION");
-    for (var prop in f) {
-        f[prop] = regOne(f[prop]);
-		console.log("");
-    }
-	console.log("//**************************************//");
-    return f;
 }
 
 function reg(f) {
@@ -626,30 +518,6 @@ function reg(f) {
 	glo.formule.push(f);
 
     return f;
-}
-
-function regOneSave(expReg) {
-	if (expReg == "'") {
-		expReg = "0";
-	}
-	else if(expReg) {
-		expReg = expReg.toString();
-		//expReg = expReg.replace(/\s/g, "");
-
-		console.log("_________________________________________________");
-		console.log("TEST ONE STR : " + expReg);
-		for (let i = 0; i < glo.regs.length; i++) { 
-			console.log("Reg.exp : " + glo.regs[i].exp + "    Reg.upd : " + glo.regs[i].upd); 
-			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
-			console.log("Str trans : " + expReg);
-			console.log("---------------------------------------------");
-			console.log("");
-		}
-		console.log("_________________________________________________");
-		console.log("");
-		console.log("");
-	}
-    return expReg;
 }
 
 function regOneTest(expReg) {
@@ -710,90 +578,16 @@ function reg_inv(f, toInv_1, toInv_2){
 }
 
 function getFixedExportBounds(mesh, scene, margin = 20, correction = 1) {
-    const engine = scene.getEngine();
-    const camera = scene.activeCamera;
-    
-    const boundingInfo = mesh.getBoundingInfo();
-    const center = boundingInfo.boundingBox.centerWorld;
-    const radius = boundingInfo.boundingSphere.radiusWorld;
-    
-    const viewport = camera.viewport.toGlobal(
-        engine.getRenderWidth(),
-        engine.getRenderHeight()
-    );
-    
-    // Projette le centre
-    const screenCenter = BABYLON.Vector3.Project(
-        center,
-        BABYLON.Matrix.Identity(),
-        scene.getTransformMatrix(),
-        viewport
-    );
-    
-    // Projette un point à distance radius (perpendiculaire à la vue)
-    const right = camera.getDirection(BABYLON.Axis.X).normalize();
-    const pointAtRadius = center.add(right.scale(radius));
-    
-    const screenEdge = BABYLON.Vector3.Project(
-        pointAtRadius,
-        BABYLON.Matrix.Identity(),
-        scene.getTransformMatrix(),
-        viewport
-    );
-    
-    const screenRadius = Math.abs(screenEdge.x - screenCenter.x);
-    
-	const coeff = glo.videoBoxRange * 24 * correction; // Pour un peu plus d'espace
-    const size  = screenRadius * coeff + margin * coeff;
-	
-    return {
-        x: Math.max(0, screenCenter.x - size / 2),
-        y: Math.max(0, screenCenter.y - size / 2),
-        width: size,
-        height: size
-    };
-}
+    const w = glo.canvas.width;
+    const h = glo.canvas.height;
 
-function getFixedExportBoundsOld(mesh, scene, margin = 20) {
-    const engine = scene.getEngine();
-    const camera = scene.activeCamera;
-    
-    const boundingInfo = mesh.getBoundingInfo();
-    const center = boundingInfo.boundingBox.centerWorld;
-    const radius = boundingInfo.boundingSphere.radiusWorld;
-    
-    const viewport = camera.viewport.toGlobal(
-        engine.getRenderWidth(),
-        engine.getRenderHeight()
-    );
-    
-    // Projette le centre
-    const screenCenter = BABYLON.Vector3.Project(
-        center,
-        BABYLON.Matrix.Identity(),
-        scene.getTransformMatrix(),
-        viewport
-    );
-    
-    // Projette un point à distance radius (perpendiculaire à la vue)
-    const right = camera.getDirection(BABYLON.Axis.X).normalize();
-    const pointAtRadius = center.add(right.scale(radius));
-    
-    const screenEdge = BABYLON.Vector3.Project(
-        pointAtRadius,
-        BABYLON.Matrix.Identity(),
-        scene.getTransformMatrix(),
-        viewport
-    );
-    
-    const screenRadius = Math.abs(screenEdge.x - screenCenter.x);
-    
-	const coeff = glo.videoBoxRange; // Pour un peu plus d'espace
-    const size  = screenRadius * coeff + margin * coeff;
-	
+    const coeff = glo.videoBoxRange * correction;
+    const baseSize = Math.min(w, h);
+    const size = baseSize * coeff + margin * coeff;
+
     return {
-        x: Math.max(0, screenCenter.x - size / 2),
-        y: Math.max(0, screenCenter.y - size / 2),
+        x: w / 2 - size / 2,
+        y: h / 2 - size / 2,
         width: size,
         height: size
     };
@@ -801,92 +595,107 @@ function getFixedExportBoundsOld(mesh, scene, margin = 20) {
 
 function createMeshRecorder(mesh, scene, fps = 60) {
     const sourceCanvas = glo.engine.getRenderingCanvas();
-    
     const captureCanvas = document.createElement('canvas');
     const ctx = captureCanvas.getContext('2d');
-    
-    let mediaRecorder = null;  // Renommé pour clarifier
-    let chunks = [];           // Déclaré ici, pas dans start()
+
+    let mediaRecorder = null;
+    let chunks = [];
     let observer = null;
     let bounds = null;
-    
-    return {
-        start() {
-			glo.engine.setHardwareScalingLevel(1/2);
-            bounds = getFixedExportBounds(mesh, scene, 20, 2);
-            captureCanvas.width = bounds.width;
-            captureCanvas.height = bounds.height;
-            
+
+    function computeBounds() {
+        const sw = sourceCanvas.width;
+        const sh = sourceCanvas.height;
+
+        const coeff = glo.videoBoxRange;
+        const baseSize = Math.min(sw, sh);
+        const size = baseSize * coeff + 20 * coeff;
+
+        return {
+            x: Math.max(0, sw / 2 - size / 2),
+            y: Math.max(0, sh / 2 - size / 2),
+            width: Math.min(size, sw),
+            height: Math.min(size, sh)
+        };
+    }
+
+    function startRecording() {
+        bounds = computeBounds();
+        captureCanvas.width = bounds.width;
+        captureCanvas.height = bounds.height;
+
+        chunks = [];
+
+        let mimeType;
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+            mimeType = 'video/webm;codecs=h264';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+            mimeType = 'video/webm;codecs=vp9';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+            mimeType = 'video/webm';
+        } else {
+            mimeType = 'video/mp4';
+        }
+
+        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+        const stream = captureCanvas.captureStream(fps);
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType,
+            videoBitsPerSecond: 15000000
+        });
+
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = () => {
+            if (chunks.length === 0) return;
+            const blob = new Blob(chunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mesh-${Date.now()}.${extension}`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        mediaRecorder.onerror = e => console.error('Recorder error:', e);
+
+        observer = scene.onAfterRenderObservable.add(() => {
             ctx.drawImage(
                 sourceCanvas,
                 bounds.x, bounds.y, bounds.width, bounds.height,
                 0, 0, captureCanvas.width, captureCanvas.height
             );
-            
-            chunks = [];
-            
-            const stream = captureCanvas.captureStream(fps);
+        });
 
-			let recordedMimeType;
-			if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-				recordedMimeType = 'video/webm;codecs=h264';
-			} else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-				recordedMimeType = 'video/webm;codecs=vp9';
-			} else if(MediaRecorder.isTypeSupported('video/webm')) {
-				recordedMimeType = 'video/webm';
-			} else {
-				recordedMimeType = 'video/mp4';
-			} 
-            
-            mediaRecorder = new MediaRecorder(stream, {
-                mimeType: recordedMimeType,
-                videoBitsPerSecond: 15000000
-            });
-            
-            mediaRecorder.ondataavailable = e => {
-                if (e.data.size > 0) {
-                    chunks.push(e.data);
-                }
-            };
+        mediaRecorder.start(1000);
+    }
 
-			const extension = recordedMimeType.includes('mp4') ? 'mp4' : 'webm';
-            
-            mediaRecorder.onstop = () => {
-                if (chunks.length === 0) {
-                    return;
-                }
-                const blob = new Blob(chunks, { type: recordedMimeType });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `mesh-${Date.now()}.${extension}`;
-                a.click();
-                URL.revokeObjectURL(url);
-            };
-            
-            mediaRecorder.onerror = e => console.error('Recorder error:', e);
-            
-            observer = scene.onAfterRenderObservable.add(() => {
-                ctx.drawImage(
-                    sourceCanvas,
-                    bounds.x, bounds.y, bounds.width, bounds.height,
-                    0, 0, captureCanvas.width, captureCanvas.height
-                );
+    return {
+        start() {
+            glo.engine.setHardwareScalingLevel(1 / 2);
+
+            // Attendre 2 frames pour que le resize soit stabilisé
+            scene.onAfterRenderObservable.addOnce(() => {
+                scene.onAfterRenderObservable.addOnce(() => {
+                    startRecording();
+                });
             });
-            
-            mediaRecorder.start(1000);
         },
-        
+
         stop() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
-                scene.onAfterRenderObservable.remove(observer);
-                observer = null;
-
-				glo.engine.setHardwareScalingLevel(1);
+                if (observer) {
+                    scene.onAfterRenderObservable.remove(observer);
+                    observer = null;
+                }
+                glo.engine.setHardwareScalingLevel(1);
             }
         },
-        
+
         get isRecording() {
             return mediaRecorder?.state === 'recording';
         }
@@ -946,29 +755,6 @@ function switchRecordingVideo(){
 	}
 }
 
-function isWInMeshEquations(){
-	glo.withTime = [
-		glo.params.text_input_x,
-		glo.params.text_input_y,
-		glo.params.text_input_z,
-		glo.params.text_input_alpha,
-		glo.params.text_input_beta,
-	].some(exp => exp.includes('w'));
-}
-
-function isBlender(){
-	for(prop in glo.params.blender){
-		if(glo.params.blender[prop] !== 'force'){
-			for(sprop in glo.params.blender[prop]) {
-				if(glo.params.blender[prop][sprop] !== 0){
-					return true;
-				}
-			}
-		}
-	}
-	return false;
-}
-
 function parseFontSize(fontSize) {
     if (typeof fontSize === 'number') return fontSize;
     return parseFloat(fontSize) || 0;
@@ -1002,7 +788,6 @@ function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false)
 function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
-	  //control.highlightColor = 'red';
   });
 }
 function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false, fontSize = false) {
@@ -1024,5 +809,4 @@ function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false, f
 function styleUI(){		
 	applyFontToHeaders('Poppins', 300, -1);
     applyFontToButtons('Poppins', 400, -1);
-    //applyFontToRadio('Poppins', 300, -1);
 }

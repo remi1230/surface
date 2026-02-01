@@ -121,7 +121,6 @@ var glo = {
 					glo.nameRadioToHisto = 'Radio ' + sel.text;
 					if(draw){
 						glo.HDstepUV = false;
-						if(glo.normalMode){ resetInputsRibbonEquations(); }
 
 						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
@@ -161,8 +160,8 @@ var glo = {
 						if(glo.slider_u.maximum < 2*Math.PI){ glo.slider_u.maximum = 2*Math.PI; }
 						if(glo.slider_v.maximum < 2*Math.PI){ glo.slider_v.maximum = 2*Math.PI; }
 
-						glo.params.steps_u = !glo.meshWithTubes ? sel.nb_steps_u : round(sel.nb_steps_u/4, 0);
-						glo.params.steps_v = !glo.meshWithTubes ? sel.nb_steps_v : round(sel.nb_steps_v/4, 0);
+						glo.params.steps_u = sel.nb_steps_u;
+						glo.params.steps_v = sel.nb_steps_v;
 
 						glo.params.steps_u *= glo.resolutionCoeff;
 						glo.params.steps_v *= glo.resolutionCoeff;
@@ -545,7 +544,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'eleventh'];
 	  //var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
 	  while(true){
 			index++;
@@ -805,6 +804,7 @@ var glo = {
 		text_input_color_z: "",
 		text_input_color_alpha: "",
 		text_input_color_beta: "",
+		text_input_eval_x: "",
 		text_input_eval_y: "",
 		symmetrizeX: 0,
 		symmetrizeY: 0,
@@ -1078,7 +1078,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'eleventh'],
 	//rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
 	controlConfig:{
 		background: '#199191',

@@ -85,22 +85,10 @@ Game = function(canvasId) {
 
         if (glo.rotateType != 'none') { rotate_camera(); }
         if (glo.anim_construct_mesh && !glo.end_loop) { glo.ribbon.animConstructMesh(); }
-        
-        /*if (glo.withTime && now - lastDeformTime > DEFORM_INTERVAL) {
-            lastDeformTime = now;
-            w+=wstep;
-            // Lancer la déformation de manière non-bloquante
-            requestAnimationFrame(() => {
-                remakeRibbon();
-            });
-        }*/
+
         _this.scene.render();
     });
   });
-
-  /**window.addEventListener("resize", function() {
-    glo.engine.resize();
-  }, false);*/
 };
 
 Game.prototype = {

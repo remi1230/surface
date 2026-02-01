@@ -199,11 +199,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
       if(e.ctrlKey){
          switch (key) {
             case "q": 
-               glo.withTime = !glo.withTime;
-               w = 0;
-            break;
-            case "x": case "y": case "z":
-               negativeMeshGeometry(key);
+               //FREE
             break;
          }
       }
@@ -346,7 +342,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                break;
                case "ù":
-                  hdMax();
+                  //FREE
                   
                   break;
                case "'":
@@ -527,7 +523,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "3":
-                  doubleResolution();
+                  //FREE
 
                   break;
                case "4":
@@ -615,22 +611,19 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                break;
                case "i":
-                  inverseMeshGeometry();
+                  //FREE
 
                break;
                case "x":
-                  glo.cutRibbon.x = !glo.cutRibbon.x ? 1 : 0;
-                  cutsRibbon();
+                  //FREE
 
                break;
                case "y":
-                  glo.cutRibbon.y = !glo.cutRibbon.y ? 1 : 0;
-                  cutsRibbon();
+                  //FREE
 
                break;
                case "z":
-                  glo.cutRibbon.z = !glo.cutRibbon.z ? 1 : 0;
-                  cutsRibbon();
+                  //FREE
 
                break;
                case "t":
@@ -705,14 +698,12 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                break;
             case "S":
             case "s":
-               glo.params.distDel*=2;
-               if(isDel()){ remakeRibbon(); }
+               //FREE
 
                break;
             case "T":
             case "t":
-               glo.params.distDel/=2;
-               if(isDel()){ remakeRibbon(); }
+               //FREE
                
                break;
             case "E":
@@ -788,20 +779,15 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
             break;
             case "?":
-               glo.meshWithTubes = !glo.meshWithTubes;
-               remakeRibbon();
+            //FREE
 
                break;
             case ".":
-            glo.meshWithTubes = true;
-            glo.tubes.radius /= glo.tubes.coeffRadiusVariation;
-            make_ribbon();
+            //FREE
 
                break;
             case "§":
-            glo.meshWithTubes = true;
-            glo.tubes.radius *= glo.tubes.coeffRadiusVariation;
-            make_ribbon();
+            //FREE
 
                break;
             case "PageUp":

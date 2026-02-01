@@ -470,6 +470,7 @@ uniform vec3 uFirstPoint;
 uniform float uSymX, uSymY, uSymZ;
 uniform float uSymAngle;
 uniform vec3 uSymOrder;
+uniform vec3 uSymCenter;
 
 // Varyings vers le fragment shader
 out vec3 vPosition;
@@ -522,6 +523,9 @@ vec3 applySymmetry(vec3 pos) {
 	float angleY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
 	float angleZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
 
+	// Translater vers le centre de symétrie
+	pos -= uSymCenter;
+
 	// Appliquer les rotations dans l'ordre défini par uSymOrder
 	// uSymOrder.xyz encode l'ordre : 0.0=X, 1.0=Y, 2.0=Z
 	for (int step = 0; step < 3; step++) {
@@ -534,6 +538,9 @@ vec3 applySymmetry(vec3 pos) {
 			pos = rotateAxis(vec3(0.0, 0.0, 1.0), angleZ) * pos;
 		}
 	}
+
+	// Translater depuis le centre de symétrie
+	pos += uSymCenter;
 
 	return pos;
 }
@@ -1212,7 +1219,7 @@ void main() {
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
-					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder",
+					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
@@ -1317,6 +1324,11 @@ void main() {
 			axisMap[orderStr[0]] ?? 0.0,
 			axisMap[orderStr[1]] ?? 1.0,
 			axisMap[orderStr[2]] ?? 2.0
+		));
+		mat.setVector3("uSymCenter", new BABYLON.Vector3(
+			glo.centerSymmetry.x || 0,
+			glo.centerSymmetry.y || 0,
+			glo.centerSymmetry.z || 0
 		));
 
 		// Temps
@@ -1458,6 +1470,19 @@ void main() {
 	}
 
 	/**
+	 * Met à jour le centre de symétrie
+	 */
+	updateSymmetryCenter() {
+		if (!this.shaderMaterial) return;
+
+		this.shaderMaterial.setVector3("uSymCenter", new BABYLON.Vector3(
+			glo.centerSymmetry.x || 0,
+			glo.centerSymmetry.y || 0,
+			glo.centerSymmetry.z || 0
+		));
+	}
+
+	/**
 	 * Met à jour un paramètre float
 	 */
 	updateFloatParam(param, value) {
@@ -1542,6 +1567,7 @@ void main() {
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
+					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth", "w"

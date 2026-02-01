@@ -2450,11 +2450,13 @@ function add_transformation_sliders(){
     });
   });
   
-  addXYZSlider(panel, "cSymmetry", "Center Symmetry", 0, 1, -24, 24, .1, function(value, axes){ 
+  addXYZSlider(panel, "cSymmetry", "Center Symmetry", 0, 1, -24, 24, .1, function(value, axes){
     axes.forEach(function(axis){
       glo.centerSymmetry[axis] = value;
     });
-    remakeRibbon();
+    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      glo.ribbon.shaderMeshInstance.updateSymmetryCenter();
+    }
   });
   
   addSlider(panel, "scaleVertex", "Scale Vertex", 1, 2, -24, 24, .1, function(value){ 

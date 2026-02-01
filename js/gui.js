@@ -2678,24 +2678,21 @@ function add_ninethPanel_controls(){
       checked.forEach(function(axis){
         setMainValue(axis, value);
       });
-      
-      remakeRibbon();
     });
 
     sliderMain.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
         glo.rightButton = true;
         var checked = getCheckedAxes();
-        
+
         checked.forEach(function(axis){
           setMainValue(axis, sliderMain.startValue);
         });
-        
+
         sliderMain.value = sliderMain.startValue;
         var axisLabel = checked.length === 1 ? " " + currentAxis.toUpperCase() : "";
         headerMain.text = textMain + axisLabel + ": " + sliderMain.startValue.toFixed(decimalPrecision);
-        
-        remakeRibbon();
+
         glo.rightButton = false;
       }
     });
@@ -2711,24 +2708,21 @@ function add_ninethPanel_controls(){
       checked.forEach(function(axis){
         setSecondaryValue(axis, value);
       });
-      
-      remakeRibbon();
     });
 
     sliderSecondary.onPointerClickObservable.add(function (e) {
       if(e.buttonIndex == 2){
         glo.rightButton = true;
         var checked = getCheckedAxes();
-        
+
         checked.forEach(function(axis){
           setSecondaryValue(axis, sliderSecondary.startValue);
         });
-        
+
         sliderSecondary.value = sliderSecondary.startValue;
         var axisLabel = checked.length === 1 ? " " + currentAxis.toUpperCase() : "";
         headerSecondary.text = textSecondary + axisLabel + ": " + sliderSecondary.startValue.toFixed(decimalPrecision);
-        
-        remakeRibbon();
+
         glo.rightButton = false;
       }
     });
@@ -2751,9 +2745,15 @@ function add_ninethPanel_controls(){
     -8, 8, .1,   // Min, max, step secondaire
     // Getters
     function(axis){ return glo.params.functionIt.norm[axis]; },
-    function(axis, value){ glo.params.functionIt.norm[axis] = value; },
+    function(axis, value){
+      glo.params.functionIt.norm[axis] = value;
+      if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.setNormUniform("normVal" + axis.toUpperCase(), value);
+    },
     function(axis){ return glo.params.functionIt.norm['n' + axis]; },
-    function(axis, value){ glo.params.functionIt.norm['n' + axis] = value; }
+    function(axis, value){
+      glo.params.functionIt.norm['n' + axis] = value;
+      if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.setNormUniform("normCoeff" + axis.toUpperCase(), value);
+    }
   );
 
   addSlider(panel, "invPtsPowCoeff", "Inv Pts", 1.00, 2, 0, 8, .01, function(value){ glo.params.invPtsPowCoeff = value; remakeRibbon(); });

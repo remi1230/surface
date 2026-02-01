@@ -267,8 +267,14 @@ class ShaderMeshBase {
 		this.flatAmount = 0.0;      // 0 = normal, 1 = complètement plat
 		this.twistAmount = 0.0;     // Angle de twist par unité de hauteur
 		this.spherifyAmount = 0.0;  // 0 = normal, 1 = sphère parfaite
-		this.waveAmplitude = 0.0;   // Amplitude des ondes
-		this.waveFrequency = 1.0;   // Fréquence des ondes
+		// Norm deformation parameters (read from glo.params.functionIt.norm)
+		const norm = glo.params.functionIt.norm;
+		this.normValX = norm.x;
+		this.normCoeffX = norm.nx;
+		this.normValY = norm.y;
+		this.normCoeffY = norm.ny;
+		this.normValZ = norm.z;
+		this.normCoeffZ = norm.nz;
 
 		// Observer pour la caméra
 		this.cameraObserver = null;
@@ -452,8 +458,10 @@ uniform vec3 blendO;
 uniform float flatAmount;
 uniform float twistAmount;
 uniform float spherifyAmount;
-uniform float waveAmplitude;
-uniform float waveFrequency;
+// Norm deformation uniforms
+uniform float normValX, normCoeffX;
+uniform float normValY, normCoeffY;
+uniform float normValZ, normCoeffZ;
 
 // Uniforms firstPoint (pour systèmes sphérique/cylindrique)
 uniform vec3 uFirstPoint;
@@ -561,13 +569,34 @@ vec3 applyTransformations(vec3 pos, float u, float v) {
 		}
 	}
 
-	// WAVE : Ondulation
-	if (waveAmplitude != 0.0) {
-		float wave = sin(u * waveFrequency) * cos(v * waveFrequency) * waveAmplitude;
-		result += normalize(result) * wave;
+	return result;
+}
+
+// ============================================================
+// DÉFORMATION PAR NORMALES (cos le long de la normale)
+// Reproduit le comportement CPU de drawSliderNormalEquations
+// ============================================================
+vec3 applyNormDeformation(vec3 pos, vec3 normal) {
+	float xN = normal.x;
+	float yN = normal.y;
+	float zN = normal.z;
+
+	vec3 displacement = vec3(0.0);
+
+	if (normValX != 0.0) {
+		float cosToAdd = cos(normValX * xN) * normCoeffX;
+		displacement += cosToAdd * normal;
+	}
+	if (normValY != 0.0) {
+		float cosToAdd = cos(normValY * yN) * normCoeffY;
+		displacement += cosToAdd * normal;
+	}
+	if (normValZ != 0.0) {
+		float cosToAdd = cos(normValZ * zN) * normCoeffZ;
+		displacement += cosToAdd * normal;
 	}
 
-	return result;
+	return pos + displacement;
 }
 
 // ============================================================
@@ -637,6 +666,11 @@ void main() {
 	if (length(normal) < 0.001 || any(isnan(normal)) || any(isinf(normal))) {
 		normal = vec3(0.0, 1.0, 0.0);
 	}
+
+	// ============================================================
+	// ETAPE 3b : Déformation par normales (cos along normal)
+	// ============================================================
+	pos = applyNormDeformation(pos, normal);
 
 	// ============================================================
 	// ETAPE 4 : Appliquer la déformation (si activée)
@@ -1177,7 +1211,7 @@ void main() {
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
-					"waveAmplitude", "waveFrequency",
+					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
@@ -1265,8 +1299,12 @@ void main() {
 		mat.setFloat("flatAmount", this.flatAmount);
 		mat.setFloat("twistAmount", this.twistAmount);
 		mat.setFloat("spherifyAmount", this.spherifyAmount);
-		mat.setFloat("waveAmplitude", this.waveAmplitude);
-		mat.setFloat("waveFrequency", this.waveFrequency);
+		mat.setFloat("normValX", this.normValX);
+		mat.setFloat("normCoeffX", this.normCoeffX);
+		mat.setFloat("normValY", this.normValY);
+		mat.setFloat("normCoeffY", this.normCoeffY);
+		mat.setFloat("normValZ", this.normValZ);
+		mat.setFloat("normCoeffZ", this.normCoeffZ);
 
 		// Symétrie
 		mat.setFloat("uSymX", glo.params.symmetrizeX || 1);
@@ -1503,7 +1541,7 @@ void main() {
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
-					"waveAmplitude", "waveFrequency",
+					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth", "w"
@@ -1526,7 +1564,7 @@ void main() {
 	/**
 	 * Met à jour les transformations additionnelles
 	 */
-	updateTransformations(flat = null, twist = null, spherify = null, waveAmp = null, waveFreq = null) {
+	updateTransformations(flat = null, twist = null, spherify = null) {
 		if (!this.shaderMaterial) return;
 
 		if (flat !== null) {
@@ -1541,14 +1579,17 @@ void main() {
 			this.spherifyAmount = spherify;
 			this.shaderMaterial.setFloat("spherifyAmount", spherify);
 		}
-		if (waveAmp !== null) {
-			this.waveAmplitude = waveAmp;
-			this.shaderMaterial.setFloat("waveAmplitude", waveAmp);
-		}
-		if (waveFreq !== null) {
-			this.waveFrequency = waveFreq;
-			this.shaderMaterial.setFloat("waveFrequency", waveFreq);
-		}
+	}
+
+	/**
+	 * Met à jour un uniform de déformation par normale
+	 * @param {string} uniformName - ex: "normValX", "normCoeffX"
+	 * @param {number} value
+	 */
+	setNormUniform(uniformName, value) {
+		if (!this.shaderMaterial) return;
+		this[uniformName] = value;
+		this.shaderMaterial.setFloat(uniformName, value);
 	}
 
 	/**

@@ -677,7 +677,7 @@ void main() {
 	// ============================================================
 	// ETAPE 2 : Appliquer les transformations additionnelles
 	// ============================================================
-	pos = applyTransformations(pos, u, v);
+	//pos = applyTransformations(pos, u, v);
 
 	// ============================================================
 	// ETAPE 2b : Appliquer la symétrisation (rotation des copies)
@@ -687,8 +687,10 @@ void main() {
 	// ============================================================
 	// ETAPE 3 : Calculer la normale par différences finies
 	// ============================================================
-	vec3 posU = applySymmetry(applyTransformations(computePosition(u + eps, v, i, j), u + eps, v));
-	vec3 posV = applySymmetry(applyTransformations(computePosition(u, v + eps, i, j), u, v + eps));
+	//vec3 posU = applySymmetry(applyTransformations(computePosition(u + eps, v, i, j), u + eps, v));
+	//vec3 posV = applySymmetry(applyTransformations(computePosition(u, v + eps, i, j), u, v + eps))
+	vec3 posU = applySymmetry(computePosition(u + eps, v, i, j));
+	vec3 posV = applySymmetry(computePosition(u, v + eps, i, j));
 
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;

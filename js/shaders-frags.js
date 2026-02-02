@@ -154,181 +154,97 @@ fragmentShaders = [
 
 
 
-fragmentShaderHeader = `#version 300 es  
-precision highp float;
-
-// Varyings reçus du vertex shader
-in vec3 vPosition;
-in vec3 vWorldPosition;
-in vec3 vNormal;
-in vec2 vUV;
-in vec2 vUVParams;
-
-// Sortie du fragment shader
-out vec4 fragColor;
-
-// Uniforms personnalisés
-uniform float time;
-uniform vec3 cameraPosition;
-uniform vec3 minpoint;
-uniform vec3 maxpoint;
-uniform vec3 msize;
-uniform vec2 iResolution;
-uniform float gridU;
-uniform float gridV;
-uniform float A;
-uniform float B;
-uniform float C;
-uniform float D;
-uniform float lineWidth;
-uniform float invcol;
-uniform float islight;
-uniform float opt1;
-uniform float opt2;
-uniform float opt3;
-uniform float minU;
-uniform float minV;
-uniform float stepsU;
-uniform float stepsV;
-uniform vec2 steps;
-uniform vec3 meshBg;
-uniform vec3 meshFg;
-uniform vec3 lampPosition;
-uniform float lampIntensity;
-uniform float lampRadius;
-uniform float lampSpecularPower;
-uniform float lampSpecularIntensity;
-
-vec3 npos(){ return ((vPosition-minpoint)/(maxpoint-minpoint)) - 0.5; }
+/**
+ * Source unique des fonctions utilitaires GLSL partagées
+ * entre GPUShaderMesh.js (createFragmentShader) et fragmentShaderHeader (éditeur Monaco).
+ */
+function getFragmentUtilsGLSL() {
+return `
+vec3 npos(){ return normalize(vPosition); }
 
 float Ts(float c){ return 0.4999999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.4999999*cos(c*time)+0.5; }
 
 // Couleurs
-const vec3 LAMP_COLOR = vec3(0.5, 0.5, 0.5);      // Blanc chaud
-const vec3 AMBIENT_COLOR = vec3(0.05, 0.05, 0.08); // Ambient bleuté froid
-const vec3 BASE_COLOR = vec3(0.5, 0.5, 0.5);      // Couleur de base du matériau
+const vec3 LAMP_COLOR = vec3(0.5, 0.5, 0.5);
+const vec3 AMBIENT_COLOR = vec3(0.05, 0.05, 0.08);
+const vec3 BASE_COLOR = vec3(0.5, 0.5, 0.5);
 
 // Paramètres d'éclairage
-const float LAMP_RADIUS = 100.0;        // Distance max d'influence
-const float SPECULAR_POWER = 32.0;     // Dureté du spéculaire
+const float LAMP_RADIUS = 100.0;
+const float SPECULAR_POWER = 32.0;
 const float SPECULAR_INTENSITY = 0.5;
 
-// Atténuation réaliste (loi inverse du carré avec falloff doux)
 float calcAttenuation(float dist, float radius, float intensity) {
     float d = max(dist, 0.001);
-    // Atténuation physique + falloff doux aux bords
     float att = intensity / (d * d);
     float falloff = 1.0 - smoothstep(0.0, radius, dist);
     return att * falloff;
 }
 
-// Calcul Blinn-Phong
 vec3 blinnPhong(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 lightColor, float attenuation) {
-    // Diffuse (Lambert)
     float NdotL = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = BASE_COLOR * lightColor * NdotL * attenuation;
-    
-    // Specular (Blinn-Phong)
+
     vec3 halfDir = normalize(lightDir + viewDir);
     float NdotH = max(dot(normal, halfDir), 0.0);
     float spec = pow(NdotH, SPECULAR_POWER) * SPECULAR_INTENSITY;
     vec3 specular = lightColor * spec * attenuation;
-    
+
     return diffuse + specular;
 }
 
-// Optionnel : effet de scintillement subtil (lampe qui "vit")
 float flicker(float t) {
     return 1.0 + 0.02 * sin(t * 15.0) * sin(t * 23.0 + 1.5);
-}
-
-vec3 lightOld(vec3 lampPos, vec3 albedo) {
-    vec3 N = normalize(vNormal);
-    vec3 V = normalize(cameraPosition - vWorldPosition);
-    
-    if (dot(N, V) < 0.0) {
-        N = -N;
-    }
-    
-    vec3 toLight = lampPos - vWorldPosition;
-    float dist = length(toLight);
-    vec3 L = normalize(toLight);
-    
-    float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
-    float NdotL = max(dot(N, L), 0.0);
-    
-    // Éclairage qui ajoute du relief sans assombrir
-    float shade = 0.5 + 0.5 * NdotL * att;
-    
-    vec3 halfDir = normalize(L + V);
-    float NdotH = max(dot(N, halfDir), 0.0);
-    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity * att;
-    
-    return albedo * shade + vec3(spec * 0.2);
 }
 
 vec3 light(vec3 lampPos, vec3 baseColor) {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(cameraPosition - vWorldPosition);
-    
-    // === FIX : Flip la normale si elle pointe à l'opposé de la caméra ===
+
     if (dot(N, V) < 0.0) {
         N = -N;
     }
 
-	lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
-    
+    lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
+
     vec3 toLight = lampPos - vWorldPosition;
     float dist = length(toLight);
     vec3 L = normalize(toLight);
-    
+
     float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
-    
+
     float NdotL = max(dot(N, L), 0.0);
     vec3 diffuse = baseColor * NdotL * att;
-    
+
     vec3 halfDir = normalize(L + V);
     float NdotH = max(dot(N, halfDir), 0.0);
-    //float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
     float spec = pow(NdotH, 2.0) * 4.0;
     vec3 specular = baseColor * spec * att;
-    
+
     vec3 ambient = vec3(0.05);
-    
+
     return ambient + diffuse + specular;
 }
 
 float cpow(float val, float p) {
     return sign(val) * pow(abs(val), p);
 }
-
-// Version vec2 avec exposants vec2
 vec2 cpow(vec2 val, vec2 p) {
     return sign(val) * pow(abs(val), p);
 }
-
-// Version vec2 avec exposant scalaire (bonus)
 vec2 cpow(vec2 val, float p) {
     return sign(val) * pow(abs(val), vec2(p));
 }
-
-// Version vec3 avec exposants vec3
 vec3 cpow(vec3 val, vec3 p) {
     return sign(val) * pow(abs(val), p);
 }
-
-// Version vec3 avec exposant scalaire (bonus)
 vec3 cpow(vec3 val, float p) {
     return sign(val) * pow(abs(val), vec3(p));
 }
-
-// Version vec4 avec exposants vec4
 vec4 cpow(vec4 val, vec4 p) {
     return sign(val) * pow(abs(val), p);
 }
-
-// Version vec4 avec exposant scalaire (bonus)
 vec4 cpow(vec4 val, float p) {
     return sign(val) * pow(abs(val), vec4(p));
 }
@@ -341,16 +257,15 @@ vec3 rainbow(float t) {
 }
 
 vec3 palette(float t) {
-    vec3 a = vec3(0.5, 0.5, 0.5);  // Offset
-    vec3 b = vec3(0.5, 0.5, 0.5);  // Amplitude
-    vec3 c = vec3(1.0, 1.0, 1.0);  // Fréquence
-    vec3 d = vec3(0.263, 0.416, 0.557); // Phase
-    
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.263, 0.416, 0.557);
+
     return a + b * cos(6.28318 * (c * t + d));
 }
 
 vec3 heatmap(float t) {
-    // Bleu → Cyan → Vert → Jaune → Rouge
     vec3 cold = vec3(0.0, 0.0, 1.0);
     vec3 hot = vec3(1.0, 0.0, 0.0);
     return mix(cold, hot, t);
@@ -399,11 +314,11 @@ vec3 rotateTilePattern(vec2 _st, float coeff){
 }
 
 vec3 cpalette(float t, vec3 phase) {
-vec3 a = vec3(0.5, 0.5, 0.5);  // Offset
-vec3 b = vec3(0.5, 0.5, 0.5);  // Amplitude
-vec3 c = vec3(1.0, 1.0, 1.0);  // Fréquence
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
 
-return a + b * cos(6.28318 * (c * t + phase));
+    return a + b * cos(6.28318 * (c * t + phase));
 }
 
 vec2 random2( vec2 p ) {
@@ -418,12 +333,12 @@ float noise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
     f = f * f * (3.0 - 2.0 * f);
-    
+
     float a = hash21(i);
     float b = hash21(i + vec2(1.0, 0.0));
     float c = hash21(i + vec2(0.0, 1.0));
     float d = hash21(i + vec2(1.0, 1.0));
-    
+
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
@@ -431,7 +346,7 @@ float fbm(vec2 p) {
     float value = 0.0;
     float amplitude = 0.5;
     float frequency = 1.0;
-    
+
     for(int i = 0; i < 5; i++) {
         value += amplitude * noise(p * frequency);
         frequency *= 2.0;
@@ -442,32 +357,30 @@ float fbm(vec2 p) {
 
 vec3 fbmLiquidEffect(vec2 uv) {
     float t = time * 0.3;
-    
-    // Mouvement fluide
+
     vec2 flow = vec2(
         fbm(uv * 2.0 + vec2(t, 0.0)),
         fbm(uv * 2.0 + vec2(0.0, t))
     );
-    
+
     vec2 distorted = uv + flow * 0.3;
     float n = fbm(distorted * 3.0 + time * 0.2);
-    
+
     float liquid = smoothstep(0.4, 0.6, n);
-    
+
     vec3 color = mix(
         vec3(0.0, 0.3, 0.6),
         vec3(0.2, 0.8, 1.0),
         liquid
     );
-    
-    // Reflets
+
     color += vec3(pow(n, 4.0) * 2.0);
-    
+
     return color;
 }
 
 float sdHexagon(vec2 p, float r) {
-    const vec3 k = vec3(-0.866025404, 0.5, 0.577350269); // cos(60°), sin(60°), tan(30°)
+    const vec3 k = vec3(-0.866025404, 0.5, 0.577350269);
     p = abs(p);
     p -= 2.0 * min(dot(k.xy, p), 0.0) * k.xy;
     p -= vec2(clamp(p.x, -k.z * r, k.z * r), r);
@@ -479,14 +392,11 @@ float sdCircle(vec2 p, vec2 center, float r) {
 }
 
 vec3 checkerboard(float x, float y, vec3 bg, vec3 fg, float coeff, float offsetX, float offsetY){
-    // Calcul de la position dans la grille
     float gridX = floor(mod(coeff * x + offsetX, 0.0));
     float gridY = floor(mod(coeff * y + offsetY, 0.0));
-    
-    // Pattern de damier : (x + y) % 2 pour alterner
+
     float pattern = mod(gridX + gridY, 2.0);
-    
-    // Mix entre bg et fg selon le pattern
+
     return mix(bg, fg, pattern);
 }
 
@@ -496,17 +406,14 @@ float voronoi(vec2 i_st, vec2 f_st, vec2 scale){
     for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
             vec2 neighbor = vec2(float(x), float(y));
-            
-            // Position du voisin dans la grille
+
             vec2 neighborCell = i_st + neighbor;
-            
-            // WRAPPING sur U (axe X) - périodicité sur 16 cellules
+
             vec2 wrappedCell = vec2(
                 mod(neighborCell.x, scale.x),
                 mod(neighborCell.y, scale.y)
             );
-            
-            // Random basé sur la cellule wrappée
+
             vec2 point = random2(wrappedCell);
 
             point = 0.5 + 0.5 * sin(time + 6.2831 * point);
@@ -532,7 +439,7 @@ float truchet(vec2 uv, float index, float rad, float thickness){
 
     float dist1 = sdCircle(uv, center1, rad);
     float dist2 = sdCircle(uv, center2, rad);
-    
+
     float arc1 = 1.0 - smoothstep(0.0, 0.02, abs(dist1) - thickness);
     float arc2 = 1.0 - smoothstep(0.0, 0.02, abs(dist2) - thickness);
     float pattern = max(arc1, arc2);
@@ -548,7 +455,7 @@ float m(vec3 p, float coeff){
 }
 float m(float x, float y, float z){
     return cos(x) * cos(y) * cos(z);
-}    
+}
 float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
@@ -579,6 +486,69 @@ float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
+vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
+    vec3 N = normalize(normal);
+    vec3 V = normalize(cameraPosition - pos);
+
+    if (dot(N, V) < 0.0) {
+        N = -N;
+    }
+
+    vec3 lampPos = vec3(lampPosition.x, lampPosition.y, lampPosition.z * 32.0);
+
+    vec3 L = normalize(lampPos - pos);
+    float dist = length(lampPos - pos);
+    float att = calcAttenuation(dist, lampRadius, lampIntensity * 200.0);
+
+    float diff = max(dot(N, L), 0.0);
+
+    vec3 H = normalize(L + V);
+    float spec = pow(max(dot(N, H), 0.0), 32.0) * 0.5;
+
+    vec3 ambient = 0.1 * baseColor;
+    vec3 diffuse = diff * baseColor * att;
+    vec3 specular = spec * vec3(0.3) * att;
+
+    return ambient + diffuse + specular;
+}
+`;
+}
+
+fragmentShaderHeader = `#version 300 es
+precision highp float;
+
+// Varyings reçus du vertex shader
+in vec3 vPosition;
+in vec3 vWorldPosition;
+in vec3 vNormal;
+in vec2 vUV;
+in vec2 vUVParams;
+
+// Sortie du fragment shader
+out vec4 fragColor;
+
+// Uniforms personnalisés
+uniform float time;
+uniform vec3 cameraPosition;
+uniform float gridU;
+uniform float gridV;
+uniform float A;
+uniform float B;
+uniform float C;
+uniform float D;
+uniform float lineWidth;
+uniform float invcol;
+uniform float islight;
+uniform float opt1;
+uniform float opt2;
+uniform float opt3;
+uniform vec3 meshBg;
+uniform vec3 meshFg;
+uniform vec3 lampPosition;
+uniform float lampIntensity;
+uniform float lampRadius;
+
+${getFragmentUtilsGLSL()}
 
 void main(){
     vec3 col = meshBg;
@@ -604,7 +574,13 @@ glo.numShaderMove = glo.numShaderMove();
 
 fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
-function validateShader(shaderCode) {
+/**
+ * Valide un shader GLSL (vertex ou fragment)
+ * @param {string} shaderCode - Code source GLSL
+ * @param {string} type - 'vertex' ou 'fragment' (défaut: 'fragment')
+ * @returns {{valid: boolean, error: string|null}}
+ */
+function validateShader(shaderCode, type = 'fragment') {
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
 
@@ -612,7 +588,8 @@ function validateShader(shaderCode) {
         return { valid: false, error: 'WebGL non supporté' };
     }
 
-    const shader = gl.createShader(gl.FRAGMENT_SHADER);
+    const glType = type === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;
+    const shader = gl.createShader(glType);
     gl.shaderSource(shader, shaderCode);
     gl.compileShader(shader);
 

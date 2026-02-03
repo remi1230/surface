@@ -544,7 +544,7 @@ var glo = {
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
-	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'eleventh'];
+	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'];
 	  //var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
 	  while(true){
 			index++;
@@ -865,11 +865,11 @@ var glo = {
 				},
 			norm:{
 				x:  0,
-				nx: 1,
+				nx: 0.3,
 				y:  0,
-				ny: 1,
+				ny: 0.3,
 				z:  0,
-				nz: 1,
+				nz: 0.3,
 			}
 		},
 		fractalize:{
@@ -1078,7 +1078,7 @@ var glo = {
 	pathsInfos: {u: 0, v: 0},
 	equationsParamSliders: [],
 	radios_formes: [],
-	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'third', 'eleventh'],
+	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'],
 	//rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
 	controlConfig:{
 		background: '#199191',

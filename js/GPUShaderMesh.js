@@ -258,7 +258,7 @@ class ShaderMeshBase {
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0;
 		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0;
 
-		this.w = performance.now() / 1000.0;
+		this.w = performance.now() * 0.001;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
@@ -512,8 +512,8 @@ vec3 computePosition(float u, float v, float i, float j) {
 	${this.getPositionGLSL()}
 
 	// Appliquer le blender
-	float R = length(outPos);
-	float O = R > 0.0001 ? asin(outPos.y / R) : 0.0;
+	float xzLen = length(outPos.xz);
+    float O = atan(outPos.y, xzLen);
 
 	outPos = rotateAxis(vec3(1.0, 0.0, 0.0), blendU.x * u) * outPos;
 	outPos = rotateAxis(vec3(0.0, 1.0, 0.0), blendU.y * u) * outPos;
@@ -947,7 +947,7 @@ void main() {
 		));
 
 		// Temps
-		mat.setFloat("w", performance.now() / 1000.0);
+		mat.setFloat("w", performance.now() * 0.001);
 
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
@@ -1003,7 +1003,7 @@ void main() {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.w = performance.now() / 1000.0;
+		this.w = performance.now() * 0.01;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);

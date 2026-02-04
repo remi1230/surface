@@ -32,7 +32,6 @@ $( document ).ready(async function() {
   glo.formes.setFormeSelect(...glo.formes.selected);
   //special_randomize_colors_app(true);
   startAnim(20, 1);
-  initDataModal();
   getPathsInfos();
   otherDesigns();
   paramRadios();
@@ -62,13 +61,6 @@ $("#renderCanvas").on('pointermove', function(e){
     glo.n++;
     glo.scene.stopAllAnimations();
     if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
-});
-
-document.getElementById('dataTable').addEventListener("click", function(ev){
-   if(parseInt(ev.target.parentElement.childNodes[5])){
-      showVertex(parseInt(ev.target.parentElement.childNodes[5].innerText), parseInt(ev.target.parentElement.childNodes[6].innerText),
-      parseInt(ev.target.parentElement.childNodes[7].innerText));
-   }
 });
 
 document.getElementById('resetBtn')?.addEventListener('click', () => {
@@ -211,7 +203,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "r":
-                  glo.ribbon.resetCurveByStep();
+                  //FREE
 
                   break;
                case "w":
@@ -330,11 +322,11 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "f":
-                  glo.ribbon.delLastPathIndices();
+                  //FREE
 
                   break;
                case "q":
-                  glo.ribbon.switchPaths();
+                  //FREE
 
                   break;
                case "a":
@@ -573,7 +565,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   //FREE
                   break;
                case "g":
-                  toggleDataTable();
+                  //FREE
 
                   break;
                case "PageUp":
@@ -669,13 +661,11 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                remakeRibbon();
 
                break;
-            /*case "z":
+            case "z":
             case "Z":
-               glo.noLinkToZero = !glo.noLinkToZero;
-               if(!glo.normalMode){ make_curves(); }
-               else{ glo.fromSlider = true; make_curves(); glo.fromSlider = false; drawNormalEquations(); }
+               //FREE
 
-               break;*/
+               break;
             case "x":
             case "X":
                fibonacciSphereRibbon();
@@ -688,7 +678,7 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                break;
             case "z":
             case "Z":
-               cubeRibbon();
+               //FREE
 
                break;
             case "H":

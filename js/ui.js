@@ -291,60 +291,33 @@ function isInputsEquationsSameAsRadioCheck(){
 function switchDrawCoordsType(update_slider_uv = true){
 	if(update_slider_uv){ change_slider_uv(); }
 	switch (glo.coordsType) {
-		case 'spheric':
-			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Rot Z');
-			changeHeaderText('header_inputZ', 'Rot Y');
-			changeHeaderText('header_inputAlpha', 'R (Q)');
-			changeHeaderText('header_inputBeta', 'W');
-
-			glo.allControls.getByName("but_coord").textBlock.text = "SPHE"; 
-			break;
-		case 'quaternion':
-			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Axis X');
-			changeHeaderText('header_inputZ', 'Axis Y');
-			changeHeaderText('header_inputAlpha', 'Axis Z');
-			changeHeaderText('header_inputBeta', 'W');
-
-			glo.allControls.getByName("but_coord").textBlock.text = "QUAC"; 
-			break;
-		case 'quaternionRotAxis':
-			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Axis Rot Y');
-			changeHeaderText('header_inputZ', 'Axis Rot Z');
-			changeHeaderText('header_inputAlpha', 'W');
-			changeHeaderText('header_inputBeta', 'ROT Y');
-
-			glo.allControls.getByName("but_coord").textBlock.text = "QUAR"; 
-			break;
-		case 'cylindrical':
-			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Rot Z');
-			changeHeaderText('header_inputZ', 'Z');
-			changeHeaderText('header_inputAlpha', 'R (Q)');
-			changeHeaderText('header_inputBeta', 'W');
-
-			glo.allControls.getByName("but_coord").textBlock.text = "CYL"; 
-			break;
-		case 'curvature':
-			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Alpha');
-			changeHeaderText('header_inputZ', 'Beta');
-			changeHeaderText('header_inputAlpha', 'R (Q)');
-			changeHeaderText('header_inputBeta', 'W');
-
-			glo.allControls.getByName("but_coord").textBlock.text = "CURV"; 
-			break;
 		case 'cartesian':
 			changeHeaderText('header_inputX', 'X');
 			changeHeaderText('header_inputY', 'Y');
 			changeHeaderText('header_inputZ', 'Z');
-			changeHeaderText('header_inputAlpha', 'R');
-			changeHeaderText('header_inputBeta', 'W');
+			changeHeaderText('header_inputAlpha', 'Rot Z');
+			changeHeaderText('header_inputBeta', 'Rot Y');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "CART"; 
-			break;
+		break;
+		case 'spheric':
+			changeHeaderText('header_inputX', 'R');
+			changeHeaderText('header_inputY', 'Rot Z');
+			changeHeaderText('header_inputZ', 'Rot Y');
+			changeHeaderText('header_inputAlpha', 'Rot2 Y');
+			changeHeaderText('header_inputBeta', 'Rot2 Z');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "SPHE"; 
+		break;
+		case 'cylindrical':
+			changeHeaderText('header_inputX', 'R');
+			changeHeaderText('header_inputY', 'Rot Z');
+			changeHeaderText('header_inputZ', 'Z');
+			changeHeaderText('header_inputAlpha', 'Rot2 Z');
+			changeHeaderText('header_inputBeta', 'Rot Y');
+
+			glo.allControls.getByName("but_coord").textBlock.text = "CYL"; 
+		break;
 	}
 }
 
@@ -577,11 +550,11 @@ function reg_inv(f, toInv_1, toInv_2){
 	return f;
 }
 
-function getFixedExportBounds(mesh, scene, margin = 20, correction = 1) {
+function getFixedExportBounds(margin = 20, correction = 1) {
     const w = glo.canvas.width;
     const h = glo.canvas.height;
 
-    const coeff = glo.videoBoxRange * correction;
+    const coeff = 0.5 * glo.videoBoxRange * correction;
     const baseSize = Math.min(w, h);
     const size = baseSize * coeff + margin * coeff;
 
@@ -607,7 +580,7 @@ function createMeshRecorder(mesh, scene, fps = 60) {
         const sw = sourceCanvas.width;
         const sh = sourceCanvas.height;
 
-        const coeff = glo.videoBoxRange;
+        const coeff = 0.5 * glo.videoBoxRange;
         const baseSize = Math.min(sw, sh);
         const size = baseSize * coeff + 20 * coeff;
 
@@ -707,7 +680,7 @@ function updateVideoCropBox() {
     glo.videoCropBox.dispose();
   }
   
-  const bounds = getFixedExportBounds(glo.ribbon, glo.scene, 20);
+  const bounds = getFixedExportBounds();
   const canvas = glo.engine.getRenderingCanvas();
   
   if (!glo.videoCropBoxGUI) {

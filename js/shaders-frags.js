@@ -581,8 +581,7 @@ fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + f
  * @returns {{valid: boolean, error: string|null}}
  */
 function validateShader(shaderCode, type = 'fragment') {
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    const gl = glo.gl;
 
     if (!gl) {
         return { valid: false, error: 'WebGL non supporté' };

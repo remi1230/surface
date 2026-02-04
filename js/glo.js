@@ -36,6 +36,7 @@ const Z = (1+Math.sqrt(5))*0.5;
 const Q = Math.SQRT2;
 var glo = {
 	canvas: getById('renderCanvas'),
+	canvasTest: document.createElement('canvas'),
 	formes:{
 		selected:['Torus', 'cartesian'],
 		select:[
@@ -450,7 +451,7 @@ var glo = {
 	},
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
-		const coordinates = ['spheric', 'cylindrical', 'curvature', 'cartesian'];
+		const coordinates = ['spheric', 'cylindrical', 'cartesian'];
 		while (true) {
 			for (const coord of coordinates) {
 				this.coordsType = coord;
@@ -1097,6 +1098,8 @@ var glo = {
 	lineStep: {},
 	linesStep: [],
 };
+
+glo.gl = glo.canvasTest.getContext('webgl2') || glo.canvasTest.getContext('webgl');
 
 glo.meshChannel.onmessage = (event) => {
 	const { action, rotType } = event.data;

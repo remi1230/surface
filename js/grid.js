@@ -481,35 +481,3 @@ function switch_axis(axis_visible = glo.axis_visible){
 		glo.planes_axis.map(plane_axis => { plane_axis.isVisible = 0; } );
 	}
 }
-
-function gridScale(mesh = glo.ribbon) {
-	const scale = mesh.gridScale();
-
-	const moyPos    = mesh.moyPos();
-	const newMoyPos = new BABYLON.Vector3(moyPos.x * scale, moyPos.y * scale, moyPos.z * scale);
-	const moveVect  = new BABYLON.Vector3(newMoyPos.x - moyPos.x, newMoyPos.y - moyPos.y, newMoyPos.z - moyPos.z);
-
-	transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystem, false);
-	transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystem, false);
-	transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystem, false);
-
-	if (glo.params.doubleLineSystem) {
-		transformMesh('scaling', 'x', scale, mesh, glo.curves.lineSystemDouble, false);
-		transformMesh('scaling', 'y', scale, mesh, glo.curves.lineSystemDouble, false);
-		transformMesh('scaling', 'z', scale, mesh, glo.curves.lineSystemDouble, false);
-	}
-
-	mesh.position.x -= moveVect.x;
-	mesh.position.y -= moveVect.y;
-	mesh.position.z -= moveVect.z;
-
-	glo.curves.lineSystem.position.x -= moveVect.x;
-	glo.curves.lineSystem.position.y -= moveVect.y;
-	glo.curves.lineSystem.position.z -= moveVect.z;
-
-	if (glo.params.doubleLineSystem) {
-		glo.curves.lineSystemDouble.position.x -= moveVect.x;
-		glo.curves.lineSystemDouble.position.y -= moveVect.y;
-		glo.curves.lineSystemDouble.position.z -= moveVect.z;
-	}
-}

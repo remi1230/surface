@@ -15,10 +15,6 @@ function initExportModal(){
     });
 }
 
-function stopPropagationEvent(event) {
-    event.stopPropagation();
-}
-
 const extraireTexteEtNombre = (chaine) => {
     const resultat = chaine.match(/^(.*?)(\d+)?$/);
     return {
@@ -206,125 +202,6 @@ async function exportMesh(exportFormat) {
     $('#exportModal').modal('close');
 
     return false;
-}
-
-function toggleDataTable(){
-	dataTableBody.innerHTML = '';
-
-	const coeff = (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	              (glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) * (glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
-
-
-	let vertices = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind);
-
-	const uStep   = (glo.params.u*2) / glo.params.steps_u;
-	const vStep   = (glo.params.v*2) / glo.params.steps_v;
-
-	const uFirst = -round(0.5 * uStep * glo.params.steps_u, 2);
-	const vFirst = -round(0.5 * vStep * glo.params.steps_v, 2);
-
-	const maxStepU = (glo.params.steps_u + 1 ) * coeff;
-
-	const UV = isUV();
-
-	const datas = [];
-	let n       = 0;
-	if(UV.isU && UV.isV){
-		for(let stepU = 0; stepU < maxStepU; stepU++){
-			const u = round(uFirst + (stepU*uStep), 2);
-			for(let stepV = 0; stepV <= glo.params.steps_v; stepV++){
-				const v = round(vFirst + (stepV*vStep), 2);
-				const x = round(vertices[n*3], 2);
-				const y = round(vertices[n*3 + 1], 2);
-				const z = round(vertices[n*3 + 2], 2);
-
-				datas.push([stepU, stepV, n, u, v, x, y, z]);
-				n++;
-			}
-		}
-	}
-	else if(UV.isU){
-		for(let stepU = 0; stepU < maxStepU; stepU++){
-			const u = round(uFirst + (stepU*uStep), 2);
-			const v = 'none';
-			const x = round(vertices[n*3], 2);
-			const y = round(vertices[n*3 + 1], 2);
-			const z = round(vertices[n*3 + 2], 2);
-
-			datas.push([stepU, n, 'none', u, v, x, y, z]);
-			n++;
-		}
-	}
-	else if(UV.isV){
-		for(let stepV = 0; stepV <= glo.params.steps_v * coeff; stepV++){
-			const u = 'none';
-			const v = round(vFirst + (stepV*vStep), 2);
-			const x = round(vertices[n*3], 2);
-			const y = round(vertices[n*3 + 1], 2);
-			const z = round(vertices[n*3 + 2], 2);
-
-			datas.push(['none', n, stepV, u, v, x, y, z]);
-			n++;
-		}
-	}
-	else{
-		datas.push([stepU, stepV, n, 'none', 'none', 'none', 'none', 'none']);
-	}
-
-	datas.forEach(datasTr => {
-		let tr = document.createElement('tr');
-		datasTr.forEach(dataTd => {
-			let td 		= document.createElement('td');
-			const tdTxt = document.createTextNode(dataTd);
-
-			td.appendChild(tdTxt);
-			tr.appendChild(td);
-		});
-		dataTableBody.appendChild(tr);
-	});
-	$('#dataModal').modal('open');
-}
-
-function filterTable() {
-	const inputs = document.querySelectorAll('thead input');
-	const table  = document.getElementById("dataTable");
-	const rows   = table.querySelectorAll("tbody tr");
-
-	rows.forEach(row => {
-		let shouldShow = true;
-
-		// Loop through each input filter and check the corresponding cell
-		inputs.forEach((input, index) => {
-		const filter = input.value.trim();  // Exact match, don't change case
-		const cell = row.getElementsByTagName("td")[index];
-
-		if (cell) {
-			const cellValue = cell.textContent.trim() || cell.innerText.trim();
-
-			// If a filter is present, check for exact match
-			if (filter !== "" && cellValue !== filter) {
-				shouldShow = false;
-			}
-		}
-		});
-
-		// Show or hide the row based on whether all filters match
-		row.style.display = shouldShow ? "" : "none";
-	});
-}
-
-function initDataModal(){
-	$('#dataModal').modal({
-		onCloseEnd: function() {
-			if(glo.sphereToShowVertex){ 
-				glo.sphereToShowVertex.dispose(); 
-				glo.sphereToShowVertex = null; 
-			} 
-		},
-		onOpenEnd: function() {
-			$('#dataModal').css('opacity', $('#dataModalOpacity').val());
-		}
-	 });
 }
 
 require.config({ 

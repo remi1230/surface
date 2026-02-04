@@ -105,3 +105,21 @@ Game.prototype = {
 };
 
 g = new Game('renderCanvas');
+
+function rotate_camera(){
+	if(glo.ribbon){
+		const speed = glo.rotate_speed;
+		switch(glo.rotateType.current){
+			case 'alpha':
+				glo.camera.alpha += speed;
+			break;
+			case 'beta':
+				glo.camera.beta += speed;
+			break;
+			case 'teta':
+				glo.camera.alpha += speed;
+				glo.camera.beta += speed;
+			break;
+		}
+	}
+}

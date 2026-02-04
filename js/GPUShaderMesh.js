@@ -636,8 +636,8 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	gu = u; gv = v;
 
 	float R = length(pos);
-	float O = R > 0.0001 ? asin(y / R) : 0.0;
-	float T = atan(z, x);
+	float xzLen = length(pos.xz);
+    float O = atan(pos.y, xzLen);
 
 	float i = aIndex.x;
 	float j = aIndex.y;

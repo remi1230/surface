@@ -685,10 +685,21 @@ void main() {
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;
 
-	vec3 normal = normalize(cross(tangentU, tangentV));
+	vec3 crossProd = cross(tangentU, tangentV);
+	float crossLen = length(crossProd);
 
-	if (length(normal) < 0.001 || any(isnan(normal)) || any(isinf(normal))) {
-		normal = vec3(0.0, 1.0, 0.0);
+	vec3 normal;
+	if (crossLen > 0.000001) {
+		normal = crossProd / crossLen;
+	} else {
+		// At degenerate points (e.g. poles), use radial direction as fallback
+		float posLen = length(pos);
+		normal = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
+	}
+
+	if (any(isnan(normal)) || any(isinf(normal))) {
+		float posLen = length(pos);
+		normal = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
 	}
 
 	// ============================================================

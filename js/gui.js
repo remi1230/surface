@@ -504,7 +504,7 @@ function add_uv_sliders(){
       }
 
       glo['params'][gloPropToModify] = value;
-      await remakeRibbon();
+      if(!glo.skipRebuild){ await remakeRibbon(); }
 
       header.text = headerText + " : " + min + " — " + max;
     });
@@ -819,7 +819,7 @@ function add_step_uv_slider(){
       value = parseInt(value);
       glo['params'][gloPropToModify] = value;
       getPathsInfos();
-      await remakeRibbon();
+      if(!glo.skipRebuild){ await remakeRibbon(); }
 
       header.text = headerText + " : " + value;
     });

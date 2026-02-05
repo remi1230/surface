@@ -168,10 +168,12 @@ var glo = {
 						glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
 						glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
 
+						glo.skipRebuild = true;
 						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
 						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;
 						glo.slider_v.value = sel.vdef; glo.slider_v.startValue = sel.vdef;
+						glo.skipRebuild = false;
 
 						if(!glo.dim_one){
 							if(glo.params.uvToXy){ uvToXy(false); }
@@ -846,6 +848,7 @@ var glo = {
 	numRibbon: 0,
 	scaleVertex: 1,
 	fullScreen: false,
+	skipRebuild: false,
 	gui_visible: true,
 	gui_suit_visible: false,
 	all_visible: true,

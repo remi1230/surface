@@ -119,7 +119,6 @@ var glo = {
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
-					glo.nameRadioToHisto = 'Radio ' + sel.text;
 					if(draw){
 						glo.HDstepUV = false;
 
@@ -127,7 +126,6 @@ var glo = {
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
 						var ftheta = typeof(sel.theta) != "undefined" ? ftheta = sel.theta : ftheta = "";
 
-						glo.fromHisto = true;
 						glo.params.text_input_x = sel.fx;
 						glo.params.text_input_y = sel.fy;
 						glo.params.text_input_z = sel.fz;
@@ -174,17 +172,14 @@ var glo = {
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
 						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;
 						glo.slider_v.value = sel.vdef; glo.slider_v.startValue = sel.vdef;
-						glo.fromHisto = false;
 
-						glo.toHisto = true;
 						if(!glo.dim_one){
 							if(glo.params.uvToXy){ uvToXy(false); }
-							const fractalize = glo.params.fractalize;
 							if(!glo.normalMode){
-								await make_curves(undefined, undefined, undefined, undefined, fractalize.actived);
+								await make_curves();
 							}
 							else{
-								glo.fromSlider = true; await make_curves(undefined, undefined, undefined, undefined, fractalize.actived);
+								glo.fromSlider = true; await make_curves();
 								glo.fromSlider = false; drawNormalEquations();
 							}
 						}
@@ -579,163 +574,6 @@ var glo = {
 	    yield index;
 	  }
 	},
-	histo: {
-		init: function(){ this.content[0].params = deepCopy(glo.params); },
-		content: [],
-		index_go: 0,
-		save: function(){
-			if(glo.toHisto && !glo.fromHisto){
-				var prs = deepCopy(glo.params);
-				var f = {
-					x: glo.input_x.text,
-					y: glo.input_y.text,
-					z: glo.input_z.text,
-					alpha: glo.input_alpha.text,
-					beta: glo.input_beta.text,
-				};
-				var toInsert = {
-					params: prs,
-					f: f,
-					coordsType: glo.coordsType,
-					u: glo.params.u,
-					v: glo.params.v,
-					steps_u: glo.params.steps_u,
-					steps_v: glo.params.steps_v,
-					steps_umax: glo.slider_nb_steps_u.maximum,
-					steps_vmax: glo.slider_nb_steps_v.maximum,
-					umax: glo.slider_u.maximum,
-					vmax: glo.slider_v.maximum,
-					nameRadioToHisto: glo.nameRadioToHisto,
-				};
-
-				const contentLength = this.content.length;
-
-				if(contentLength){
-					var lastContent = this.content[contentLength - 1 - this.index_go];
-					var toHisto     = false;
-					for(var prop in f){
-						if(f[prop] != lastContent.f[prop]){ toHisto = true; }
-					}
-					for(var prop in toInsert){
-						if(prop != "f" && prop != "nameRadioToHisto"){
-							if(toInsert[prop] != lastContent[prop]){ toHisto = true; }
-						}
-					}
-					if(toInsert.nameRadioToHisto != lastContent["nameRadioToHisto"] && toInsert.nameRadioToHisto != ""){ toHisto = true; }
-					if(toHisto){
-						this.content.splice(contentLength - this.index_go, 0, toInsert);
-						glo.nameRadioToHisto == '';
-					}
-				}
-				else{
-					this.content.push(toInsert);
-				}
-			}
-		},
-		go: function(direction){
-			var contentLength = this.content.length;
-			var good = true;
-
-			if(!isNaN(direction)){
-				if(direction == -1){
-					this.index_go++;
-					if(this.index_go > contentLength - 1){ this.index_go = contentLength - 1; good = false; }
-				}
-				else{
-					this.index_go--;
-					if(this.index_go < 0){ this.index_go = 0; good = false; }
-				}
-			}
-			else{
-				this.index_go = direction === 'start' ? contentLength - 1 : 0;
-			}
-
-			if(good){
-				var fromHistoSave = glo.fromHisto;
-				var toHistoSave = glo.toHisto;
-				glo.fromHisto = true;
-				glo.toHisto = false;
-				var content = this.content[contentLength - 1 - this.index_go];
-				var x = content.f.x;
-				var y = content.f.y;
-				var z = content.f.z;
-				var alpha = content.f.alpha;
-				var beta = content.f.beta;
-
-				glo.params = deepCopy(content.params);
-
-				glo.input_x.text = x;
-				glo.input_y.text = y;
-				glo.input_z.text = z;
-				glo.input_alpha.text = alpha;
-				glo.input_beta.text = beta;
-				glo.slider_nb_steps_u.maximum = content.steps_umax;
-				glo.slider_nb_steps_v.maximum = content.steps_vmax;
-				glo.slider_u.maximum = content.umax;
-				glo.slider_v.maximum = content.vmax;
-				glo.slider_u.value = content.u;
-				glo.slider_v.value = content.v;
-				glo.slider_nb_steps_u.value = content.steps_u;
-				glo.slider_nb_steps_v.value = content.steps_v;
-
-				if(glo.coordsType != content.coordsType){
-					glo.coordsType = content.coordsType;
-					this.setGoodCoords(glo.coordsType);
-				}
-
-				if(content.nameRadioToHisto != ''){ glo.radios_formes.setCheckByName(content.nameRadioToHisto); }
-
-				glo.fromHisto = fromHistoSave;
-				glo.toHisto   = toHistoSave;
-
-				remakeRibbon(glo.params.fractalize.actived, false);
-			}
-		},
-		goBack: function(){
-			if(this.content.length > 0){
-				this.go(-1);
-			}
-		},
-		goTo: function(){
-			if(this.content.length > 0){
-				this.go(1);
-			}
-		},
-		make: function(number){
-			var content = this.content[number];
-			var x = content.f.x;
-			var y = content.f.y;
-			var z = content.f.z;
-			var alpha = content.f.alpha;
-			var beta = content.f.beta;
-
-			glo.input_x.text = x; glo.input_y.text = y; glo.input_z.text = z;
-			glo.params.text_input_x = x; glo.params.text_input_y = y; glo.params.text_input_z = z;
-			glo.input_alpha = alpha; glo.input_beta = beta;
-			glo.params.text_input_alpha = alpha; glo.params.text_input_beta = beta;
-
-			if(glo.coordsType != content.coordsType){
-				glo.coordsType = content.coordsType;
-				this.setGoodCoords(glo.coordsType);
-			}
-
-			glo.slider_nb_steps_u.maximum = content.steps_umax;
-			glo.slider_nb_steps_v.maximum = content.steps_vmax;
-			glo.slider_u.maximum = content.umax;
-			glo.slider_v.maximum = content.vmax;
-			glo.slider_u.value = content.u;
-			glo.slider_v.value = content.v;
-			glo.slider_nb_steps_u.value = content.steps_u;
-			glo.slider_nb_steps_v.value = content.steps_v;
-			
-			make_curves();
-		},
-		setGoodCoords: function(coordsType){
-			while(coordsType != glo.coordinatesType.next().value){}
-			switchDrawCoordsType(false);
-      add_radios();
-		},
-	},
 	coeff_gui_resize: {
 		width_1920: 1.125,
 		width_1600: 1,
@@ -873,38 +711,6 @@ var glo = {
 				nz: 0.3,
 			}
 		},
-		fractalize:{
-			actived: false,
-			refractalize: false,
-			scaleToDistPath: false,
-			lineOnNewMeshes: true,
-			scale: {
-				all: 1,
-				x: 1,
-				y: 1,
-				z: 1,
-			},
-			scalePow: 2,
-			steps:{
-				u: 12,
-				v: 12,
-			},
-			rot:{
-				x: 0,
-				y: 0,
-				z: 0,
-			},
-			scalePart:{
-				successive: 1,
-				ortho: 1,
-			},
-			fractalized:{
-				steps:{
-					u: 12,
-					v: 12,
-				}
-			}
-		},
 		invPos: {x: false, y: false, z: false},
 		quaternionByRotR: false,
 		wOnXYZ: true,
@@ -1003,7 +809,6 @@ var glo = {
 	ribbon_alpha: 1,
 	rot_z: 0,
 	rotateType: 'none',
-	nameRadioToHisto: '',
 	axis_size: 6,
 	planSize: 8,
 	scaleNorm: 1,
@@ -1043,7 +848,6 @@ var glo = {
 	fullScreen: false,
 	gui_visible: true,
 	gui_suit_visible: false,
-	fromHisto: false,
 	all_visible: true,
 	ribbon_visible: true,
 	coloredRibbon: false,

@@ -33,7 +33,7 @@ function add_gui_controls(){
   add_radios();
 
   add_step_uv_slider();
-  add_histo_buttons();
+  add_switchForm_buttons();
   add_views_buttons();
 
   add_color_pickers();
@@ -382,27 +382,33 @@ function add_lines_and_dim_buttons(){
     exportModal();
   });
 }
-function add_histo_buttons(){
+function add_switchForm_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 5.66, t: -1, };
-  parmamControl(panel, 'panelHistoButton', 'panel right left noAutoParam', options);
+  parmamControl(panel, 'panelswitchFormButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
 
-  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight){
+  function add_button(name, text, width, height, paddingLeft, paddingRight, eventLeft){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     designButton(button);
     parmamControl(button, name, 'button right left first noAutoParam', {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
     button.fontSize = "20px";
     button.onPointerDownObservable.add(function(event) {
-      if (event.buttonIndex !== 2){ eventLeft(); }
-      else{ eventRight(); }
+      eventLeft();
     });
     panel.addControl(button);
   }
 
-  add_button("but_goBack", "<", 80, 30, 10, 0, function(){glo.histo.goBack();}, function(){glo.histo.go('start');});
-  add_button("but_goTo", ">", 80, 30, 10, 0, function(){glo.histo.goTo();}, function(){glo.histo.go('end');});
+  function switchRadios(down = true){
+    glo.formesSuit = down;
+    add_radios(true);
+    paramRadios();
+  }
+  
+
+  add_button("but_goBack", "<", 80, 30, 10, 0, function(){switchRadios(false);});
+  add_button("but_goTo", ">", 80, 30, 10, 0, function(){switchRadios(true)});
 }
 
 function add_views_buttons(){
@@ -498,9 +504,7 @@ function add_uv_sliders(){
       }
 
       glo['params'][gloPropToModify] = value;
-      if(!glo.fromHisto){
-        await remakeRibbon();
-      }
+      await remakeRibbon();
 
       header.text = headerText + " : " + min + " — " + max;
     });
@@ -554,8 +558,6 @@ function add_inputs_equations(){
 
   var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 83, pR: 1};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
-
-  panel.onWheelObservable.add(function (e) {var val = e.y < 0 ? glo.histo.goTo() : glo.histo.goBack(); });
 
   makePanelTitle("macrosVariables", "Macros variables", 25.5, "sixth noAutoParam", 18);
 
@@ -693,7 +695,6 @@ function add_radios(suit = false){
     panel.onWheelObservable.add(async function(event){
       glo.whellSwitchFormDown = event.y > 0 ? true : false;
       await whellSwitchForm();
-      //glo.histo.save();
     });
     var options = {hAlign: 'left', vAlign: 'top', w: 20, t: top_panel, pL: 1};
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
@@ -726,10 +727,9 @@ function add_radios(suit = false){
     // Ajout du gestionnaire pour les clics gauche et droit
     button.onPointerClickObservable.add(async function(e) {
       // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
-      if (e.buttonIndex === 0 && !glo.fromHisto) {
+      if (e.buttonIndex === 0) {
 
         await glo.formes.setFormeSelect(text, glo.coordsType);
-        //glo.histo.save();
 
         // button.onPointerClickObservable.remove(this);
       }
@@ -819,9 +819,7 @@ function add_step_uv_slider(){
       value = parseInt(value);
       glo['params'][gloPropToModify] = value;
       getPathsInfos();
-      if(!glo.fromHisto){
-        await remakeRibbon();
-      }
+      await remakeRibbon();
 
       header.text = headerText + " : " + value;
     });
@@ -1303,10 +1301,6 @@ function add_step_ABCD_sliders(){
       glo.sliderGainSign = glo.sliderGain > 0 ? 1: -1;
       event(value);
       header.text = text + ": " + value.toFixed(decimalPrecision);
-      
-      if(numUI !== 'third'){
-        await remakeRibbon();
-      }
       
       slider.lastValue = value;
     });
@@ -2310,9 +2304,6 @@ function toggle_gui_controls_for_switch(state){
 }
 function toggle_gui_controls_suit(state){
   glo.allControls.haveThisClass('second').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
-}
-function toggle_gui_controls_third(state){
-  glo.allControls.haveThisClass('third').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }
 function toggleGuiControlsByClass(state, theClass){
   glo.allControls.haveThisClass(theClass).map(ct => { ct.isVisible = state; ct.isEnabled = state; });

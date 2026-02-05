@@ -1,53 +1,23 @@
 //*****************************************************************************************************//
 //********************************************MAIN FUNCTIONS*******************************************//
 //*****************************************************************************************************//
-async function make_curves(u_params = {
-	min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u,
-}, v_params = {
-	min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v,
-},
- equations = {
-	fx: glo.params.text_input_x,
-	fy: glo.params.text_input_y,
-	fz: glo.params.text_input_z,
-	falpha: glo.params.text_input_alpha,
-	fbeta: glo.params.text_input_beta,
-	fSuitAlpha: glo.params.text_input_suit_alpha,
-	fSuitBeta: glo.params.text_input_suit_beta,
-	fSuitTheta: glo.params.text_input_suit_theta,
-	fSuitX: glo.params.text_input_suit_x,
-	fSuitY: glo.params.text_input_suit_y,
-	fSuitZ: glo.params.text_input_suit_z,
-	fevalX: glo.params.text_input_eval_x,
-	fevalY: glo.params.text_input_eval_y,
-}, dim_one = glo.dim_one, fractalize = false, histo = true){
+async function make_curves(){
+	if(typeof(glo.curves) != "undefined"){
+		glo.curves = {}; delete glo.curves;
+	}
 
-	var good = test_equations(equations, dim_one);
-	if(good){
-		if(typeof(glo.curves) != "undefined"){
-			glo.curves = {}; delete glo.curves;
-		}
+	makeOnlyCurves();
 
-		makeOnlyCurves();
+	if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 
-		// Si GPUShaderMesh a créé le mesh, skip make_ribbon
-		if (glo.ribbon) {
-			setTimeout(() => {
-				glo.camera.focusOn([glo.ribbon], true);
-			}, 0);
-		}
-
-		if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
-
-		const form = glo.formes.getFormSelect().form;
-		if(form.orient.offset){
-			const offset = form.orient.offset;
-			glo.scene.onAfterRenderObservable.addOnce(() => {
-				glo.ribbon.position.x += offset.x || 0;
-				glo.ribbon.position.y += offset.y || 0;
-				glo.ribbon.position.z += offset.z || 0;
-			});
-		}
+	const form = glo.formes.getFormSelect().form;
+	if(form.orient.offset){
+		const offset = form.orient.offset;
+		glo.scene.onAfterRenderObservable.addOnce(() => {
+			glo.ribbon.position.x += offset.x || 0;
+			glo.ribbon.position.y += offset.y || 0;
+			glo.ribbon.position.z += offset.z || 0;
+		});
 	}
 }
 
@@ -55,9 +25,8 @@ function makeOnlyCurves() {
 	glo.formule = [];
 
 	// Utiliser GPUShaderMesh
-	if (glo.ribbon) { ribbonDispose(); }
 	const meshResult = createShaderMeshFromGlo();
-	glo.ribbon = meshResult;
+	glo.ribbon = meshResult ? meshResult : glo.ribbon;
 	glo.fromShader = true;
 
 	// Appliquer la déformation si une expression existe
@@ -82,8 +51,8 @@ function ribbonDispose(all = true){
 	}
 }
 
-async function remakeRibbon(fractalize = !glo.params.fractalize.actived ? false : 'fractalize', histo = true){
-	await make_curves(undefined, undefined, undefined, undefined, fractalize, histo); 
+async function remakeRibbon(){
+	await make_curves(); 
 }
 
 function getPathsInfos(){
@@ -299,7 +268,6 @@ function makeRndSurface(){
 	glo.params.text_input_z = rndSurface(3); glo.input_z.text = glo.params.text_input_z;
 
 	make_curves();
-	glo.histo.save();
 }
 
 function isUV(){

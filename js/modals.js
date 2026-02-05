@@ -73,15 +73,13 @@ function download_JSON_mesh(event){
 				var formName = glo.params.formName;
 				if(glo.coordsType != glo.params.coordsType){
 				glo.coordsType = glo.params.coordsType;
-				glo.histo.setGoodCoords(glo.coordsType);
 				}
-				glo.fromHisto = !sameAsRadioCheck;
+
 				glo.radios_formes.setCheckByName("Radio " + formName);
 				glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
-				glo.fromHisto = false;
+
 				if(!sameAsRadioCheck){
 					make_curves();
-					glo.histo.save();
 				}
 			break;
 			case 'obj':

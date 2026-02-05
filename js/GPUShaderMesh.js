@@ -825,19 +825,9 @@ void main() {
 	 * 100% GPU - aucun calcul CPU de paths
 	 */
 	create() {
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
-
-		// Créer le mesh avec positions vides (shader calcule tout)
-		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
-
-		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
-		this.mesh.shaderMeshInstance = this;
-
 		// Obtenir l'expression de déformation
 		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
-
 		// Créer les shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
 		const fragmentShader = this.createFragmentShader();
@@ -849,6 +839,17 @@ void main() {
 			//console.error('Source:', vertexShader);
 			return null;
 		}
+
+		if (glo.ribbon) { ribbonDispose(); }
+
+		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
+		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+
+		// Créer le mesh avec positions vides (shader calcule tout)
+		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
+
+		// Attacher l'instance shaderMesh au mesh pour accès ultérieur
+		this.mesh.shaderMeshInstance = this;
 
 		// Créer le ShaderMaterial
 		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);

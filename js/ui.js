@@ -233,6 +233,7 @@ var afterAnimation = function() {
 };
 
 function paramsToControls(){
+	glo.skipRebuild = true;
 	glo.allControls.getByName('u').value = glo.params.u;
 	glo.allControls.getByName('v').value = glo.params.v;
 	glo.allControls.getByName('stepU').value = glo.params.steps_u;
@@ -269,6 +270,7 @@ function paramsToControls(){
 	glo.allControls.getByName('inputColorZ').text = glo.params.text_input_color_z;
 	glo.allControls.getByName('inputColorAlpha').text = glo.params.text_input_color_alpha;
 	glo.allControls.getByName('inputColorBeta').text = glo.params.text_input_color_beta;
+	glo.skipRebuild = false;
 }
 
 function isInputsEquationsSameAsRadioCheck(){
@@ -447,15 +449,18 @@ function changeResolution(change = 'increase'){
 	const coeff = change === 'increase' ? 2 : 0.5;
 	glo.resolutionCoeff *= coeff;
 
+	glo.skipRebuild = true;
 	glo.slider_nb_steps_u.maximum*=coeff;
 	glo.slider_nb_steps_v.maximum*=coeff;
 
 	if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
 		glo.slider_nb_steps_u.value*=coeff;
 		glo.slider_nb_steps_v.value*=coeff;
+		glo.skipRebuild = false;
 
 		remakeRibbon();
 	}
+	else{ glo.skipRebuild = false; }
 }
 
 function uvToXy(){

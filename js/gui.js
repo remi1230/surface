@@ -504,7 +504,7 @@ function add_uv_sliders(){
       }
 
       glo['params'][gloPropToModify] = value;
-      await remakeRibbon();
+      if(!glo.skipRebuild){ await remakeRibbon(); }
 
       header.text = headerText + " : " + min + " — " + max;
     });
@@ -716,14 +716,6 @@ function add_radios(suit = false){
       button.isChecked = true;
     }
 
-    if(glo.formeToFractalize && text === glo.formeToFractalize.text && typeCoords === glo.formeToFractalize.typeCoords){
-      button.color = 'red';
-    }
-
-    if(glo.formeToFractalize && text === glo.formeToFractalize.text && typeCoords === glo.formeToFractalize.typeCoords){
-      button.color = 'red';
-    }
-
     // Ajout du gestionnaire pour les clics gauche et droit
     button.onPointerClickObservable.add(async function(e) {
       // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
@@ -732,22 +724,6 @@ function add_radios(suit = false){
         await glo.formes.setFormeSelect(text, glo.coordsType);
 
         // button.onPointerClickObservable.remove(this);
-      }
-
-      if (e.buttonIndex === 2) {
-        glo.formeToFractalize = glo.formes.getFormByName(text, glo.coordsType);
-        glo.radios_formes.getByName('Radio-' + glo.formes.getFormSelect().form.text).button.isChecked = true;
-        
-        // Mettre à jour la couleur des boutons radio
-        glo.radios_formes.forEach(radioForme => {
-          radioForme.button.color = glo.theme.radio.text.color;
-        });
-        glo.radios_formes.getByName('Radio-' + text).button.color = 'red';
-
-        // Si la fractalisation est activée, exécuter la logique
-        if (glo.params.fractalize.actived) {
-          await remakeRibbon();
-        }
       }
     });
 
@@ -819,7 +795,7 @@ function add_step_uv_slider(){
       value = parseInt(value);
       glo['params'][gloPropToModify] = value;
       getPathsInfos();
-      await remakeRibbon();
+      if(!glo.skipRebuild){ await remakeRibbon(); }
 
       header.text = headerText + " : " + value;
     });

@@ -149,6 +149,8 @@ var glo = {
 							}
 						}
 
+						glo.skipRebuild = true;
+
 						glo.slider_nb_steps_u.maximum = sel.nb_steps_u * 2;
 						glo.slider_nb_steps_v.maximum = sel.nb_steps_v * 2;
 						glo.slider_u.maximum          = sel.udef * 2;
@@ -172,6 +174,7 @@ var glo = {
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
 						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;
 						glo.slider_v.value = sel.vdef; glo.slider_v.startValue = sel.vdef;
+						glo.skipRebuild = false;
 
 						if(!glo.dim_one){
 							if(glo.params.uvToXy){ uvToXy(false); }
@@ -846,6 +849,7 @@ var glo = {
 	numRibbon: 0,
 	scaleVertex: 1,
 	fullScreen: false,
+	skipRebuild: false,
 	gui_visible: true,
 	gui_suit_visible: false,
 	all_visible: true,

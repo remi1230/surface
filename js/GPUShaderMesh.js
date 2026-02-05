@@ -253,6 +253,7 @@ class ShaderMeshBase {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
+		this.M = glo.params.M;
 
 		this.opt1 = glo.shaderOpt.opt1 ? 1.0 : 0;
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0;
@@ -459,7 +460,7 @@ uniform mat4 world;
 uniform float uMinU, uMaxU, uStepU;
 uniform float uMinV, uMaxV, uStepV;
 uniform float uStepsU, uStepsV;
-uniform float A, B, C, D, E, F, G, H, I, J, K, L;
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
 uniform float w;
 uniform float eps;
 uniform float scaleNorm;
@@ -685,17 +686,7 @@ void main() {
 	vec3 tangentU = (posU - pos) / eps;
 	vec3 tangentV = (posV - pos) / eps;
 
-	vec3 crossProd = cross(tangentU, tangentV);
-	float crossLen = length(crossProd);
-
-	vec3 normal;
-	if (crossLen > 0.000001) {
-		normal = crossProd / crossLen;
-	} else {
-		// At degenerate points (e.g. poles), use radial direction as fallback
-		float posLen = length(pos);
-		normal = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
-	}
+	vec3 normal = normalize(cross(tangentU, tangentV));
 
 	if (any(isnan(normal)) || any(isinf(normal))) {
 		float posLen = length(pos);
@@ -806,7 +797,7 @@ void main() {
 					"uMinU", "uMaxU", "uStepU",
 					"uMinV", "uMaxV", "uStepV",
 					"uStepsU", "uStepsV",
-					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
@@ -907,6 +898,7 @@ void main() {
 		mat.setFloat("J", this.J);
 		mat.setFloat("K", this.K);
 		mat.setFloat("L", this.L);
+		mat.setFloat("M", this.M);
 		mat.setFloat("w", this.w);
 		mat.setFloat("opt1", this.opt1);
 		mat.setFloat("opt2", this.opt2);
@@ -1015,6 +1007,7 @@ void main() {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
+		this.K = glo.params.K; this.M = glo.params.M;
 		this.w = performance.now() * 0.01;
 
 		this.shaderMaterial.setFloat("A", this.A);
@@ -1029,6 +1022,7 @@ void main() {
 		this.shaderMaterial.setFloat("J", this.J);
 		this.shaderMaterial.setFloat("K", this.K);
 		this.shaderMaterial.setFloat("L", this.L);
+		this.shaderMaterial.setFloat("M", this.M);
 		this.shaderMaterial.setFloat("w", this.w);
 	}
 

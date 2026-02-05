@@ -449,17 +449,18 @@ function changeResolution(change = 'increase'){
 	const coeff = change === 'increase' ? 2 : 0.5;
 	glo.resolutionCoeff *= coeff;
 
+	glo.skipRebuild = true;
 	glo.slider_nb_steps_u.maximum*=coeff;
 	glo.slider_nb_steps_v.maximum*=coeff;
 
 	if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
-		glo.skipRebuild = true;
 		glo.slider_nb_steps_u.value*=coeff;
 		glo.slider_nb_steps_v.value*=coeff;
 		glo.skipRebuild = false;
 
 		remakeRibbon();
 	}
+	else{ glo.skipRebuild = false; }
 }
 
 function uvToXy(){

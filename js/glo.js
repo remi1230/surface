@@ -149,6 +149,8 @@ var glo = {
 							}
 						}
 
+						glo.skipRebuild = true;
+
 						glo.slider_nb_steps_u.maximum = sel.nb_steps_u * 2;
 						glo.slider_nb_steps_v.maximum = sel.nb_steps_v * 2;
 						glo.slider_u.maximum          = sel.udef * 2;
@@ -168,7 +170,6 @@ var glo = {
 						glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
 						glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
 
-						glo.skipRebuild = true;
 						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
 						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;

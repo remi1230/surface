@@ -64,7 +64,12 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-      remakeRibbon();
+	  // Mettre à jour uniquement le fragment shader sans reconstruire le mesh
+	  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+		glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
+	  } else {
+		remakeRibbon();
+	  }
 }
 
 function switchSymmetrizeOrder(normalSens = true){

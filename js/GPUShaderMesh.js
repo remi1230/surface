@@ -1194,6 +1194,39 @@ void main() {
 	}
 
 	/**
+	 * Met à jour uniquement le fragment shader (couleur) sans reconstruire le mesh ni le vertex shader.
+	 * Réutilise le vertex shader courant, le mesh d'indices, et les observers existants.
+	 * @param {string} mainFrag - Le corps du fragment shader (contenu de fragmentShaders[n])
+	 * @returns {boolean} true si succès
+	 */
+	updateFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
+		if (!this.mesh || !this.shaderMaterial) return false;
+
+		// Reconstruire le vertex shader identique (même expression de déformation)
+		const deformText = this._lastDeformExpression;
+		const vertexShader = this.createVertexShader(deformText || null);
+
+		// Construire le nouveau fragment shader
+		const fragmentShader = this.createFragmentShader(mainFrag);
+
+		// Disposer de l'ancien matériau
+		this.shaderMaterial.dispose();
+
+		// Créer le nouveau ShaderMaterial (WebGL exige de re-linker vertex+fragment)
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+
+		// Reconfigurer tous les uniforms sur le nouveau matériau
+		this.updateAllUniforms(this._deformationActive);
+
+		// Propriétés de rendu
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
+		this.mesh.material = this.shaderMaterial;
+
+		return true;
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null) {

@@ -61,7 +61,23 @@ function getPathsInfos(){
 }
 
 async function exportMeshToSTL(mesh){
-	let stlString = BABYLON.STLExport.CreateSTL([mesh], true, true);
+	let meshForSTL = mesh;
+
+	// Si c'est un shader mesh, extraire les positions réelles du GPU
+	if (mesh.shaderMeshInstance) {
+		meshForSTL = mesh.shaderMeshInstance.createExportMesh();
+		if (!meshForSTL) {
+			console.error('[STL Export] Impossible d\'extraire les positions du shader mesh');
+			return;
+		}
+	}
+
+	let stlString = BABYLON.STLExport.CreateSTL([meshForSTL], true, true);
+
+	// Nettoyer le mesh temporaire d'export
+	if (meshForSTL !== mesh) {
+		meshForSTL.dispose();
+	}
 
 	let blob = new Blob([stlString], { type: 'text/plain' });
 	let link = document.createElement('a');

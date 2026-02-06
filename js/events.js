@@ -82,7 +82,7 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
       const endIndex   = fragmentShader.indexOf(endTag);
       const finalCode  = fragmentShader.slice(startIndex + startTag.length, endIndex).trim();
       fragmentShaders[glo.numShaderSelect] = finalCode;
-      remakeRibbon();
+      glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
    }
     else{
       console.log('Erreur de compilation:', validation.error);

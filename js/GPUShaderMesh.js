@@ -119,8 +119,27 @@ class GPUShaderMeshComputer {
 		const symX = glo.params.symmetrizeX || 1;
 		const symY = glo.params.symmetrizeY || 1;
 		const symZ = glo.params.symmetrizeZ || 1;
-		const symCount = symX * symY * symZ;
+		const additive = glo.addSymmetry;
 
+		// Générer la liste des copies de symétrie (sx, sy, sz)
+		let symCopies;
+		if (additive) {
+			// Mode additif : axes indépendants
+			// Copie originale (0,0,0) + copies pures sur chaque axe
+			symCopies = [[0, 0, 0]];
+			for (let sx = 1; sx < symX; sx++) symCopies.push([sx, 0, 0]);
+			for (let sy = 1; sy < symY; sy++) symCopies.push([0, sy, 0]);
+			for (let sz = 1; sz < symZ; sz++) symCopies.push([0, 0, sz]);
+		} else {
+			// Mode multiplicatif : produit cartésien
+			symCopies = [];
+			for (let sx = 0; sx < symX; sx++)
+				for (let sy = 0; sy < symY; sy++)
+					for (let sz = 0; sz < symZ; sz++)
+						symCopies.push([sx, sy, sz]);
+		}
+
+		const symCount = symCopies.length;
 		const baseVertices = (stepsU + 1) * (stepsV + 1);
 		const totalVertices = baseVertices * symCount;
 
@@ -130,23 +149,16 @@ class GPUShaderMeshComputer {
 
 		let idxA = 0;
 		let idxP = 0;
-		let vertexOffset = 0;
 
-		for (let sx = 0; sx < symX; sx++) {
-			for (let sy = 0; sy < symY; sy++) {
-				for (let sz = 0; sz < symZ; sz++) {
-					for (let i = 0; i <= stepsU; i++) {
-						for (let j = 0; j <= stepsV; j++) {
-							// aIndex : mêmes (i, j) pour chaque copie
-							indices2D[idxA++] = i;
-							indices2D[idxA++] = j;
-							// position : encode l'opération de symétrie (sx, sy, sz)
-							positions[idxP++] = sx;
-							positions[idxP++] = sy;
-							positions[idxP++] = sz;
-						}
-					}
-					vertexOffset++;
+		for (let c = 0; c < symCount; c++) {
+			const [sx, sy, sz] = symCopies[c];
+			for (let i = 0; i <= stepsU; i++) {
+				for (let j = 0; j <= stepsV; j++) {
+					indices2D[idxA++] = i;
+					indices2D[idxA++] = j;
+					positions[idxP++] = sx;
+					positions[idxP++] = sy;
+					positions[idxP++] = sz;
 				}
 			}
 		}
@@ -220,6 +232,7 @@ class ShaderMeshBase {
 		this.mesh = null;
 		this.shaderMaterial = null;
 		this.coordSystem = 'cartesian';
+		this._importedMode = false;
 
 		// Traiter les équations
 		this.equa = equa;
@@ -528,22 +541,22 @@ vec3 computePosition(float u, float v, float i, float j) {
 
 // ============================================================
 // SYMÉTRISATION : rotation des copies selon les axes
+// En mode additif, les copies sont générées indépendamment par axe
+// (géré par createIndexMesh), mais la rotation est la même.
 // ============================================================
 vec3 applySymmetry(vec3 pos) {
 	float sx = position.x;
 	float sy = position.y;
 	float sz = position.z;
 
-	// Angles de décalage pour chaque axe
+	// Angles de décalage pour chaque axe (0 si sx/sy/sz = 0)
 	float angleX = (uSymX > 1.0) ? sx * (uSymAngle / uSymX) : 0.0;
 	float angleY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
 	float angleZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
 
-	// Translater vers le centre de symétrie
 	pos -= uSymCenter;
 
 	// Appliquer les rotations dans l'ordre défini par uSymOrder
-	// uSymOrder.xyz encode l'ordre : 0.0=X, 1.0=Y, 2.0=Z
 	for (int step = 0; step < 3; step++) {
 		float axis = (step == 0) ? uSymOrder.x : (step == 1) ? uSymOrder.y : uSymOrder.z;
 		if (axis < 0.5) {
@@ -555,7 +568,6 @@ vec3 applySymmetry(vec3 pos) {
 		}
 	}
 
-	// Translater depuis le centre de symétrie
 	pos += uSymCenter;
 
 	return pos;
@@ -791,7 +803,7 @@ void main() {
 				fragmentSource: fragmentShader
 			},
 			{
-				attributes: ["position", "aIndex"],
+				attributes: ["position", "normal", "aIndex"],
 				uniforms: [
 					"worldViewProjection", "world",
 					"uMinU", "uMaxU", "uStepU",
@@ -1154,6 +1166,11 @@ void main() {
 	updateDeformationExpression(expression = null) {
 		if (!this.mesh) return false;
 
+		// En mode importé, déléguer au vertex shader import
+		if (this._importedMode) {
+			return this.updateImportDeformationExpression(expression);
+		}
+
 		// Récupérer l'expression
 		const deformText     = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim();
@@ -1194,6 +1211,42 @@ void main() {
 	}
 
 	/**
+	 * Met à jour uniquement le fragment shader (couleur) sans reconstruire le mesh ni le vertex shader.
+	 * Réutilise le vertex shader courant, le mesh d'indices, et les observers existants.
+	 * @param {string} mainFrag - Le corps du fragment shader (contenu de fragmentShaders[n])
+	 * @returns {boolean} true si succès
+	 */
+	updateFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
+		if (!this.mesh || !this.shaderMaterial) return false;
+
+		// Reconstruire le vertex shader identique (même expression de déformation)
+		// Utiliser le vertex shader import si on est en mode importé
+		const deformText = this._lastDeformExpression;
+		const vertexShader = this._importedMode
+			? this.createImportVertexShader(deformText || null)
+			: this.createVertexShader(deformText || null);
+
+		// Construire le nouveau fragment shader
+		const fragmentShader = this.createFragmentShader(mainFrag);
+
+		// Disposer de l'ancien matériau
+		this.shaderMaterial.dispose();
+
+		// Créer le nouveau ShaderMaterial (WebGL exige de re-linker vertex+fragment)
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+
+		// Reconfigurer tous les uniforms sur le nouveau matériau
+		this.updateAllUniforms(this._deformationActive);
+
+		// Propriétés de rendu
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
+		this.mesh.material = this.shaderMaterial;
+
+		return true;
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null) {
@@ -1224,6 +1277,284 @@ void main() {
 		this.shaderMaterial.setFloat(uniformName, value);
 	}
 
+	// ==================== IMPORT : MESH OBJ AVEC SHADERS DE COULEUR ET DÉFORMATION ====================
+
+	/**
+	 * Génère un vertex shader adapté à un mesh importé (positions réelles en attribut).
+	 * La géométrie est fixe : pas de computePosition, pas de blender, pas de symétrie.
+	 * Applique : normales par attribut, applyNormDeformation, computeDeformation, fragment shaders.
+	 */
+	createImportVertexShader(deformExpression = null) {
+		const glslDeform = deformExpression
+			? this.computer.transformExpressionToGLSL(deformExpression)
+			: '0.0';
+
+		return `#version 300 es
+precision highp float;
+
+// Attributs : positions et normales réelles du mesh importé
+in vec3 position;
+in vec3 normal;
+in vec2 aIndex;
+
+// Uniforms matrices
+uniform mat4 worldViewProjection;
+uniform mat4 world;
+
+// Uniforms paramètres
+uniform float uMinU, uMaxU, uStepU;
+uniform float uMinV, uMaxV, uStepV;
+uniform float uStepsU, uStepsV;
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float w;
+uniform float eps;
+uniform float scaleNorm;
+uniform int deformationEnabled;
+
+// Uniforms blender (déclarés pour compatibilité mais non utilisés en mode import)
+uniform vec4 blendU;
+uniform vec3 blendO;
+
+// Uniforms transformations additionnelles
+uniform float flatAmount;
+uniform float twistAmount;
+uniform float spherifyAmount;
+// Norm deformation uniforms
+uniform float normValX, normCoeffX;
+uniform float normValY, normCoeffY;
+uniform float normValZ, normCoeffZ;
+
+// Uniforms firstPoint (déclaré pour compatibilité)
+uniform vec3 uFirstPoint;
+
+// Uniforms symétrie (déclarés pour compatibilité)
+uniform float uSymX, uSymY, uSymZ;
+uniform float uSymAngle;
+uniform vec3 uSymOrder;
+uniform vec3 uSymCenter;
+
+// Varyings vers le fragment shader
+out vec3 vPosition;
+out vec3 vWorldPosition;
+out vec3 vNormal;
+out vec2 vUV;
+out vec2 vUVParams;
+
+${this.getUtilityFunctionsGLSL()}
+
+// ============================================================
+// DÉFORMATION PAR NORMALES (cos le long de la normale)
+// ============================================================
+vec3 applyNormDeformation(vec3 pos, vec3 norm) {
+	float xN = norm.x;
+	float yN = norm.y;
+	float zN = norm.z;
+
+	vec3 displacement = vec3(0.0);
+
+	if (normValX != 0.0) {
+		displacement += cos(normValX * xN) * normCoeffX * norm;
+	}
+	if (normValY != 0.0) {
+		displacement += cos(normValY * yN) * normCoeffY * norm;
+	}
+	if (normValZ != 0.0) {
+		displacement += cos(normValZ * zN) * normCoeffZ * norm;
+	}
+
+	return pos + displacement;
+}
+
+// ============================================================
+// FONCTION DE DÉFORMATION
+// ============================================================
+float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
+	float x = pos.x;
+	float y = pos.y;
+	float z = pos.z;
+	float xN = norm.x;
+	float yN = norm.y;
+	float zN = norm.z;
+
+	gx = x; gy = y; gz = z;
+	gu = u; gv = v;
+
+	float R = length(pos);
+	float xzLen = length(pos.xz);
+	float O = atan(pos.y, xzLen);
+
+	float i = aIndex.x;
+	float j = aIndex.y;
+	float n = i * uStepsV + j;
+	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
+	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
+	float p = k < 0.0 ? -u : u;
+	float t = d < 0.0 ? -v : v;
+
+	float g = xN * yN * zN;
+
+	return ${glslDeform};
+}
+
+void main() {
+	float i = aIndex.x;
+	float j = aIndex.y;
+
+	// Dériver u, v à partir des indices de grille
+	float u = uMinU + i * uStepU;
+	float v = uMinV + j * uStepV;
+
+	// Position et normale directement depuis les attributs
+	vec3 pos = position;
+	vec3 norm = normalize(normal);
+
+	if (any(isnan(norm)) || any(isinf(norm))) {
+		float posLen = length(pos);
+		norm = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
+	}
+
+	// Déformation par normales (cos along normal)
+	pos = applyNormDeformation(pos, norm);
+
+	// Déformation par expression (si activée)
+	vec3 finalPosition = pos;
+	if (deformationEnabled == 1) {
+		float deform = computeDeformation(u, v, pos, norm) * scaleNorm;
+		finalPosition = pos + norm * deform;
+	}
+
+	// Sorties
+	gl_Position = worldViewProjection * vec4(finalPosition, 1.0);
+	vWorldPosition = (world * vec4(finalPosition, 1.0)).xyz;
+	vPosition = finalPosition;
+	vNormal = normalize((world * vec4(norm, 0.0)).xyz);
+	vUV = vec2(i / max(uStepsU, 1.0), j / max(uStepsV, 1.0));
+	vUVParams = vec2(u, v);
+}`;
+	}
+
+	/**
+	 * Crée un shader mesh à partir d'un mesh importé (OBJ).
+	 * Le mesh importé fournit les positions/normales/indices réels.
+	 * Les shaders de couleur (fragment) et de déformation s'appliquent dessus.
+	 *
+	 * @param {Float32Array} positions - Positions des vertices (x,y,z,x,y,z,...)
+	 * @param {Float32Array} normals - Normales des vertices
+	 * @param {Uint32Array|Int32Array|Array} indices - Indices de triangulation
+	 * @param {number} stepsU - Nombre de pas en U (colonnes de la grille)
+	 * @param {number} stepsV - Nombre de pas en V (lignes de la grille)
+	 * @returns {BABYLON.Mesh|null}
+	 */
+	createFromImportedMesh(positions, normals, indices, stepsU, stepsV) {
+		// Sauvegarder l'état importé
+		this._importedMode = true;
+
+		// Obtenir l'expression de déformation éventuelle
+		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
+
+		// Générer les shaders (vertex adapté import + fragment normal)
+		const vertexShader = this.createImportVertexShader(hasDeformation ? deformText : null);
+		const fragmentShader = this.createFragmentShader();
+
+		// Valider le vertex shader
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) {
+			console.error('[Import] Vertex shader invalide:', validation.error);
+			return null;
+		}
+
+		if (glo.ribbon) { ribbonDispose(); }
+
+		// Mettre à jour les paramètres de grille
+		this.nb_steps_u = stepsU;
+		this.nb_steps_v = stepsV;
+		this.step_u = (this.max_u - this.min_u) / Math.max(this.nb_steps_u, 1);
+		this.step_v = (this.max_v - this.min_v) / Math.max(this.nb_steps_v, 1);
+
+		// Créer le mesh Babylon avec les vraies positions
+		this.mesh = new BABYLON.Mesh("importedShaderMesh", this.computer.scene);
+
+		const vertexData = new BABYLON.VertexData();
+		vertexData.positions = positions;
+		vertexData.normals = normals;
+		vertexData.indices = indices;
+		vertexData.applyToMesh(this.mesh, true);
+
+		// Ajouter l'attribut aIndex (indices de grille i,j) pour les fonctions de déformation
+		const numVertices = positions.length / 3;
+		const aIndexData = new Float32Array(numVertices * 2);
+		for (let idx = 0; idx < numVertices; idx++) {
+			const i = Math.floor(idx / (stepsV + 1));
+			const j = idx % (stepsV + 1);
+			aIndexData[idx * 2] = i;
+			aIndexData[idx * 2 + 1] = j;
+		}
+		this.mesh.setVerticesData("aIndex", aIndexData, false, 2);
+
+		// Attacher l'instance
+		this.mesh.shaderMeshInstance = this;
+
+		// Créer le ShaderMaterial
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+
+		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
+			this.shaderMaterial.setFloat("time", performance.now() * 0.001);
+			this.shaderMaterial.setFloat("w", performance.now() * 0.001);
+			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+		});
+
+		// Configurer les uniforms
+		this.updateAllUniforms(hasDeformation);
+
+		// Propriétés de rendu
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
+		this.mesh.material = this.shaderMaterial;
+
+		// Observer caméra
+		this.cameraObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
+			this.updateCamera();
+		});
+
+		return this.mesh;
+	}
+
+	/**
+	 * Met à jour l'expression de déformation pour un mesh importé.
+	 * Recompile le vertex shader import (pas le vertex shader paramétrique).
+	 */
+	updateImportDeformationExpression(expression = null) {
+		if (!this.mesh || !this._importedMode) return false;
+
+		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const hasDeformation = deformText && deformText.trim();
+
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
+
+		const vertexShader = this.createImportVertexShader(hasDeformation ? deformText : null);
+		const fragmentShader = this.createFragmentShader();
+
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) return false;
+
+		if (this.shaderMaterial) {
+			this.shaderMaterial.dispose();
+		}
+
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+		this.updateAllUniforms(hasDeformation);
+
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = 1;
+		this.mesh.material = this.shaderMaterial;
+
+		return true;
+	}
+
 	// ==================== EXPORT : EXTRACTION DES POSITIONS VIA TRANSFORM FEEDBACK ====================
 
 	/**
@@ -1245,7 +1576,9 @@ void main() {
 		const deformText = this._lastDeformExpression
 			|| (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim() && this._deformationActive;
-		const vertexSource = this.createVertexShader(hasDeformation ? deformText : null);
+		const vertexSource = this._importedMode
+			? this.createImportVertexShader(hasDeformation ? deformText : null)
+			: this.createVertexShader(hasDeformation ? deformText : null);
 
 		// Fragment shader minimal (requis par WebGL2 même avec RASTERIZER_DISCARD)
 		const fragmentSource = `#version 300 es
@@ -1318,6 +1651,20 @@ void main() { fragColor = vec4(0.0); }`;
 			gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 		}
 
+		// Buffer normal (nécessaire en mode import, ignoré sinon via getAttribLocation = -1)
+		let normalBuf = null;
+		const normalData = this.mesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		if (normalData) {
+			normalBuf = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, normalBuf);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normalData), gl.STATIC_DRAW);
+			const normalLoc = gl.getAttribLocation(program, 'normal');
+			if (normalLoc >= 0) {
+				gl.enableVertexAttribArray(normalLoc);
+				gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
+			}
+		}
+
 		// --- 6. Configurer les uniforms ---
 		this._setTFUniforms(gl, program, hasDeformation);
 
@@ -1360,6 +1707,7 @@ void main() { fragColor = vec4(0.0); }`;
 		gl.deleteBuffer(tfNormBuf);
 		gl.deleteBuffer(aIndexBuf);
 		gl.deleteBuffer(posBuf);
+		if (normalBuf) gl.deleteBuffer(normalBuf);
 		gl.deleteVertexArray(vao);
 		gl.deleteShader(vs);
 		gl.deleteShader(fs);

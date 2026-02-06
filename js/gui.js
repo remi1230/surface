@@ -700,7 +700,7 @@ function add_radios(suit = false){
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
     glo.advancedTexture.addControl(panel);
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, 'header left first', {text: "Forms :"});
+    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :"});
     panel.addControl(header);
   }
 
@@ -994,6 +994,7 @@ function add_color_pickers(){
 
   add_button(panelButtons, "resetColorButton", "Reset", "25%", 30, 0, 10, 0, async function(){
       intiColorUI();
+      styleUI(0);
   }, function(){});
 
   panel1.addControl(picker);
@@ -1026,7 +1027,7 @@ function makePanelTitle(name, title, t, numUI = 'eighth', fontSize = 17){
   header.height = "20px";
   header.width = "100%";
   header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  parmamControl(header, "headerTitle-" + name, `header title right ${numUI} noAutoParam`);
+  parmamControl(header, "headerTitle-" + name, `title header title right ${numUI} noAutoParam`);
   panelTitle.addControl(header);
 
   glo.advancedTexture.addControl(panelTitle);
@@ -1402,12 +1403,6 @@ function add_symmetrize_sliders(){
     glo.scaleNorm = value;
     glo.ribbon.shaderMeshInstance.setDeformationScale(value);
   }, 14, true);
-
-  add_button("centerLocal", "⊕ on origin", 100, 30, 0, 0, 0, function(){
-    glo.params.centerIsLocal = !glo.params.centerIsLocal;
-    glo.allControls.getByName('centerLocal').textBlock.text = glo.params.centerIsLocal ? "⊕ on mesh" : "⊕ on origin";
-    remakeRibbon();
-  });
   
   add_button("symmetrizeOrder", "S order : XYZ", 100, 30, 0, 10, 0, 
     function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });

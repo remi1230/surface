@@ -64,7 +64,12 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-      remakeRibbon();
+	  // Mettre à jour uniquement le fragment shader sans reconstruire le mesh
+	  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+		glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
+	  } else {
+		remakeRibbon();
+	  }
 }
 
 function switchSymmetrizeOrder(normalSens = true){
@@ -388,7 +393,7 @@ function param_special_controls(){
 	glo.allControls.getByName('symmetrizeAdding').paddingLeft = '10px';
 
 	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').height      = '40px';
-	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').paddingLeft = '5px';
+	glo.allControls.getByName('paramSymmetrizeSlidersPanelButton').paddingLeft = '65px';
 
 	for(i = 1; i < 8; i++){ glo.allControls.getByName(`panelButtonEleventh${i}`).isVertical = false; }
 
@@ -453,14 +458,11 @@ function changeResolution(change = 'increase'){
 	glo.slider_nb_steps_u.maximum*=coeff;
 	glo.slider_nb_steps_v.maximum*=coeff;
 
-	if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
-		glo.slider_nb_steps_u.value*=coeff;
-		glo.slider_nb_steps_v.value*=coeff;
-		glo.skipRebuild = false;
+	glo.slider_nb_steps_u.value*=coeff;
+	glo.slider_nb_steps_v.value*=coeff;
+	glo.skipRebuild = false;
 
-		remakeRibbon();
-	}
-	else{ glo.skipRebuild = false; }
+	remakeRibbon();
 }
 
 function uvToXy(){
@@ -762,23 +764,24 @@ function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false)
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
   });
 }
-function applyFontToRadio(fontFamily, fontWeight = 400, fontSizeToAdd = false, fontSize = false) {
-  glo.radios_formes.forEach(radio => {
-	const textBlock = radio.header.children[1];
-	if (textBlock) {
-		textBlock.fontFamily = fontFamily;
-		textBlock.fontWeight = fontWeight;
-		if (fontSizeToAdd) {
-			textBlock.fontSize = parseFontSize(textBlock.fontSize) + fontSizeToAdd + "px";
-		}
-		if (fontSize) {
-			textBlock.fontSize = fontSize + "px";
-		}
-	}
- });
+function applyFontToInputs(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
+  glo.allControls.haveThisClass('input').forEach(control => {
+      applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
+  });
+}
+function applyFontStyleToTitle(fontWeight = 600) {
+	glo.allControls.haveThisClass('header').haveNotThisClass('title').forEach(control => {
+	  control.color = glo.theme.header.text.color;
+  });
+  glo.allControls.haveThisClass('title').forEach(control => {
+      control.fontWeight = fontWeight;
+	  control.color = glo.theme.header.title.color;
+  });
 }
 
-function styleUI(){		
-	applyFontToHeaders('Poppins', 300, -1);
-    applyFontToButtons('Poppins', 400, -1);
+function styleUI(fontSizeToAdd = -1){		
+	applyFontToHeaders('Poppins', 300, fontSizeToAdd);
+    applyFontToButtons('Poppins', 400, fontSizeToAdd);
+    applyFontToInputs('Inter', 400, fontSizeToAdd);
+    applyFontStyleToTitle();
 }

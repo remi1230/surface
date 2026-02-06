@@ -486,6 +486,7 @@ uniform vec3 uFirstPoint;
 // Uniforms symétrie
 uniform float uSymX, uSymY, uSymZ;
 uniform float uSymAngle;
+uniform int uSymAdditive;
 uniform vec3 uSymOrder;
 uniform vec3 uSymCenter;
 
@@ -528,35 +529,49 @@ vec3 computePosition(float u, float v, float i, float j) {
 }
 
 // ============================================================
-// SYMÉTRISATION : rotation des copies selon les axes
+// SYMÉTRISATION : rotation (multiplicative) ou translation (additive)
 // ============================================================
 vec3 applySymmetry(vec3 pos) {
 	float sx = position.x;
 	float sy = position.y;
 	float sz = position.z;
 
-	// Angles de décalage pour chaque axe
-	float angleX = (uSymX > 1.0) ? sx * (uSymAngle / uSymX) : 0.0;
-	float angleY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
-	float angleZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
-
-	// Translater vers le centre de symétrie
 	pos -= uSymCenter;
 
-	// Appliquer les rotations dans l'ordre défini par uSymOrder
-	// uSymOrder.xyz encode l'ordre : 0.0=X, 1.0=Y, 2.0=Z
-	for (int step = 0; step < 3; step++) {
-		float axis = (step == 0) ? uSymOrder.x : (step == 1) ? uSymOrder.y : uSymOrder.z;
-		if (axis < 0.5) {
-			pos = rotateAxis(vec3(1.0, 0.0, 0.0), angleX) * pos;
-		} else if (axis < 1.5) {
-			pos = rotateAxis(vec3(0.0, 1.0, 0.0), angleY) * pos;
-		} else {
-			pos = rotateAxis(vec3(0.0, 0.0, 1.0), angleZ) * pos;
+	if (uSymAdditive == 1) {
+		// Mode additif : translation le long des axes
+		float offsetX = (uSymX > 1.0) ? sx * (uSymAngle / uSymX) : 0.0;
+		float offsetY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
+		float offsetZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
+
+		for (int step = 0; step < 3; step++) {
+			float axis = (step == 0) ? uSymOrder.x : (step == 1) ? uSymOrder.y : uSymOrder.z;
+			if (axis < 0.5) {
+				pos.x += offsetX;
+			} else if (axis < 1.5) {
+				pos.y += offsetY;
+			} else {
+				pos.z += offsetZ;
+			}
+		}
+	} else {
+		// Mode multiplicatif : rotation autour des axes
+		float angleX = (uSymX > 1.0) ? sx * (uSymAngle / uSymX) : 0.0;
+		float angleY = (uSymY > 1.0) ? sy * (uSymAngle / uSymY) : 0.0;
+		float angleZ = (uSymZ > 1.0) ? sz * (uSymAngle / uSymZ) : 0.0;
+
+		for (int step = 0; step < 3; step++) {
+			float axis = (step == 0) ? uSymOrder.x : (step == 1) ? uSymOrder.y : uSymOrder.z;
+			if (axis < 0.5) {
+				pos = rotateAxis(vec3(1.0, 0.0, 0.0), angleX) * pos;
+			} else if (axis < 1.5) {
+				pos = rotateAxis(vec3(0.0, 1.0, 0.0), angleY) * pos;
+			} else {
+				pos = rotateAxis(vec3(0.0, 0.0, 1.0), angleZ) * pos;
+			}
 		}
 	}
 
-	// Translater depuis le centre de symétrie
 	pos += uSymCenter;
 
 	return pos;
@@ -803,7 +818,7 @@ void main() {
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
-					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
+					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymAdditive", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius",
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
@@ -943,6 +958,7 @@ void main() {
 		mat.setFloat("uSymY", glo.params.symmetrizeY || 1);
 		mat.setFloat("uSymZ", glo.params.symmetrizeZ || 1);
 		mat.setFloat("uSymAngle", glo.params.symmetrizeAngle || Math.PI);
+		mat.setInt("uSymAdditive", glo.addSymmetry ? 1 : 0);
 		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
 		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
 		mat.setVector3("uSymOrder", new BABYLON.Vector3(
@@ -1319,6 +1335,7 @@ uniform vec3 uFirstPoint;
 // Uniforms symétrie (déclarés pour compatibilité)
 uniform float uSymX, uSymY, uSymZ;
 uniform float uSymAngle;
+uniform int uSymAdditive;
 uniform vec3 uSymOrder;
 uniform vec3 uSymCenter;
 
@@ -1776,6 +1793,7 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('uSymY', glo.params.symmetrizeY || 1);
 		setF('uSymZ', glo.params.symmetrizeZ || 1);
 		setF('uSymAngle', glo.params.symmetrizeAngle || Math.PI);
+		setI('uSymAdditive', glo.addSymmetry ? 1 : 0);
 		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
 		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
 		setV3('uSymOrder',

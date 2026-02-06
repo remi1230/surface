@@ -1415,11 +1415,7 @@ function add_symmetrize_sliders(){
     add_button("symmetrizeAdding", "S add : OUI", 100, 30, 0, 0, 0, function(value){
     glo.addSymmetry = !glo.addSymmetry;
     glo.allControls.getByName('symmetrizeAdding').textBlock.text = "S add : " + (glo.addSymmetry ? 'OUI' : 'NON');
-    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-      glo.ribbon.shaderMeshInstance.shaderMaterial.setInt("uSymAdditive", glo.addSymmetry ? 1 : 0);
-    } else {
-      remakeRibbon();
-    }
+    remakeRibbon();
   }, function(value){ });
 }
 

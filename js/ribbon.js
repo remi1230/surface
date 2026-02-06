@@ -390,7 +390,14 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 }
 
 function countSyms(){
-	return (glo.params.symmetrizeX ? glo.params.symmetrizeX : 1) *
-	(glo.params.symmetrizeY ? glo.params.symmetrizeY : 1) *
-	(glo.params.symmetrizeZ ? glo.params.symmetrizeZ : 1);
+	const symX = glo.params.symmetrizeX || 1;
+	const symY = glo.params.symmetrizeY || 1;
+	const symZ = glo.params.symmetrizeZ || 1;
+
+	if (glo.addSymmetry) {
+		// Mode additif : 1 original + copies indépendantes par axe
+		return 1 + Math.max(symX - 1, 0) + Math.max(symY - 1, 0) + Math.max(symZ - 1, 0);
+	}
+	// Mode multiplicatif : produit cartésien
+	return symX * symY * symZ;
 }

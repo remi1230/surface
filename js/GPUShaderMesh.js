@@ -819,6 +819,11 @@ void main() {
 		// Obtenir l'expression de déformation
 		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+
+		// Sauvegarder l'état de déformation sur l'instance pour l'export
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
+
 		// Créer les shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
 		const fragmentShader = this.createFragmentShader();
@@ -1121,6 +1126,7 @@ void main() {
 		if (!this.shaderMaterial) return;
 
 		glo.deformationEnabled = enabled;
+		this._deformationActive = enabled;
 		this.shaderMaterial.setInt("deformationEnabled", enabled ? 1 : 0);
 
 		if (scale !== null) {
@@ -1151,6 +1157,10 @@ void main() {
 		// Récupérer l'expression
 		const deformText     = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim();
+
+		// Sauvegarder l'état de déformation sur l'instance pour l'export
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
 
 		// Créer les nouveaux shaders
 		const vertexShader   = this.createVertexShader(hasDeformation ? deformText : null);
@@ -1230,8 +1240,11 @@ void main() {
 		if (!gl) return null;
 
 		// --- 1. Générer les sources shader ---
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
-		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+		// Utiliser l'état de déformation stocké sur l'instance (fiable)
+		// plutôt que glo.deformationEnabled (peut être désynchronisé)
+		const deformText = this._lastDeformExpression
+			|| (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const hasDeformation = deformText && deformText.trim() && this._deformationActive;
 		const vertexSource = this.createVertexShader(hasDeformation ? deformText : null);
 
 		// Fragment shader minimal (requis par WebGL2 même avec RASTERIZER_DISCARD)

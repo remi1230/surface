@@ -131,15 +131,26 @@ async function exportMesh(exportFormat) {
         window.URL.revokeObjectURL(objectUrl);
     }
 
-    await glo.ribbon.bakeCurrentTransformIntoVertices();
+    // Pour les shader meshes, extraire les positions réelles du GPU via Transform Feedback
+    let exportMeshRef = null;
+    if (glo.fromShader && glo.ribbon && glo.ribbon.shaderMeshInstance && exportFormat !== "json") {
+        exportMeshRef = glo.ribbon.shaderMeshInstance.createExportMesh();
+        if (!exportMeshRef) {
+            console.error('[Export] Impossible d\'extraire les positions du shader mesh');
+            return false;
+        }
+    }
+
+    const meshToExport = exportMeshRef || glo.ribbon;
+    await meshToExport.bakeCurrentTransformIntoVertices();
 
     let strMesh;
     if (exportFormat !== "json") {
         if (exportFormat === "babylon") {
-            strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(glo.ribbon));
+            strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(meshToExport));
         } else if (exportFormat === "obj") {
             if (!glo.lineSystem) {
-                strMesh = BABYLON.OBJExport.OBJ([glo.ribbon]);
+                strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
             } else {
                 let meshesToExport = [];
                 glo.lines.forEach(line => {
@@ -195,6 +206,11 @@ async function exportMesh(exportFormat) {
 
     // Déclencher le téléchargement en cliquant sur le lien caché
     $("#downloadLink")[0].click();
+
+    // Nettoyer le mesh temporaire d'export (si créé via Transform Feedback)
+    if (exportMeshRef) {
+        exportMeshRef.dispose();
+    }
 
     // Fermer le modal
     $('#exportModal').modal('close');

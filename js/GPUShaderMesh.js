@@ -819,6 +819,11 @@ void main() {
 		// Obtenir l'expression de déformation
 		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
+
+		// Sauvegarder l'état de déformation sur l'instance pour l'export
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
+
 		// Créer les shaders
 		const vertexShader = this.createVertexShader(hasDeformation ? deformText : null);
 		const fragmentShader = this.createFragmentShader();
@@ -1121,6 +1126,7 @@ void main() {
 		if (!this.shaderMaterial) return;
 
 		glo.deformationEnabled = enabled;
+		this._deformationActive = enabled;
 		this.shaderMaterial.setInt("deformationEnabled", enabled ? 1 : 0);
 
 		if (scale !== null) {
@@ -1151,6 +1157,10 @@ void main() {
 		// Récupérer l'expression
 		const deformText     = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
 		const hasDeformation = deformText && deformText.trim();
+
+		// Sauvegarder l'état de déformation sur l'instance pour l'export
+		this._lastDeformExpression = hasDeformation ? deformText : null;
+		this._deformationActive = !!hasDeformation;
 
 		// Créer les nouveaux shaders
 		const vertexShader   = this.createVertexShader(hasDeformation ? deformText : null);
@@ -1212,6 +1222,261 @@ void main() {
 		if (!this.shaderMaterial) return;
 		this[uniformName] = value;
 		this.shaderMaterial.setFloat(uniformName, value);
+	}
+
+	// ==================== EXPORT : EXTRACTION DES POSITIONS VIA TRANSFORM FEEDBACK ====================
+
+	/**
+	 * Extrait les positions et normales des vertices depuis le GPU via Transform Feedback.
+	 * Opération ponctuelle pour l'export (STL, OBJ…) — ne modifie pas le pipeline de rendu normal.
+	 * Utilise le contexte WebGL2 séparé (this.computer.gl) pour ne pas interférer avec Babylon.
+	 *
+	 * @returns {{positions: Float32Array, normals: Float32Array, indices: Uint32Array}|null}
+	 */
+	extractPositionsForExport() {
+		if (!this.mesh || !this.shaderMaterial) return null;
+
+		const gl = this.computer.gl;
+		if (!gl) return null;
+
+		// --- 1. Générer les sources shader ---
+		// Utiliser l'état de déformation stocké sur l'instance (fiable)
+		// plutôt que glo.deformationEnabled (peut être désynchronisé)
+		const deformText = this._lastDeformExpression
+			|| (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const hasDeformation = deformText && deformText.trim() && this._deformationActive;
+		const vertexSource = this.createVertexShader(hasDeformation ? deformText : null);
+
+		// Fragment shader minimal (requis par WebGL2 même avec RASTERIZER_DISCARD)
+		const fragmentSource = `#version 300 es
+precision highp float;
+out vec4 fragColor;
+void main() { fragColor = vec4(0.0); }`;
+
+		// --- 2. Compiler les shaders ---
+		const vs = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vs, vertexSource);
+		gl.compileShader(vs);
+		if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+			console.error('[Export] Vertex shader compilation error:', gl.getShaderInfoLog(vs));
+			gl.deleteShader(vs);
+			return null;
+		}
+
+		const fs = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fs, fragmentSource);
+		gl.compileShader(fs);
+		if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
+			console.error('[Export] Fragment shader compilation error:', gl.getShaderInfoLog(fs));
+			gl.deleteShader(vs);
+			gl.deleteShader(fs);
+			return null;
+		}
+
+		// --- 3. Créer le programme avec Transform Feedback ---
+		const program = gl.createProgram();
+		gl.attachShader(program, vs);
+		gl.attachShader(program, fs);
+		gl.transformFeedbackVaryings(program, ['vPosition', 'vNormal'], gl.SEPARATE_ATTRIBS);
+		gl.linkProgram(program);
+
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			console.error('[Export] Program link error:', gl.getProgramInfoLog(program));
+			gl.deleteShader(vs);
+			gl.deleteShader(fs);
+			gl.deleteProgram(program);
+			return null;
+		}
+
+		gl.useProgram(program);
+
+		// --- 4. Récupérer les données d'attributs depuis le mesh Babylon ---
+		const aIndexData = new Float32Array(this.mesh.getVerticesData('aIndex'));
+		const positionData = new Float32Array(this.mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind));
+		const indexData = this.mesh.getIndices();
+		const numVertices = aIndexData.length / 2;
+
+		// --- 5. Créer un VAO et les buffers d'attributs ---
+		const vao = gl.createVertexArray();
+		gl.bindVertexArray(vao);
+
+		const aIndexBuf = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, aIndexBuf);
+		gl.bufferData(gl.ARRAY_BUFFER, aIndexData, gl.STATIC_DRAW);
+		const aIndexLoc = gl.getAttribLocation(program, 'aIndex');
+		if (aIndexLoc >= 0) {
+			gl.enableVertexAttribArray(aIndexLoc);
+			gl.vertexAttribPointer(aIndexLoc, 2, gl.FLOAT, false, 0, 0);
+		}
+
+		const posBuf = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+		gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
+		const posLoc = gl.getAttribLocation(program, 'position');
+		if (posLoc >= 0) {
+			gl.enableVertexAttribArray(posLoc);
+			gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+		}
+
+		// --- 6. Configurer les uniforms ---
+		this._setTFUniforms(gl, program, hasDeformation);
+
+		// --- 7. Créer les buffers de Transform Feedback ---
+		const tfPosBuf = gl.createBuffer();
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfPosBuf);
+		gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, numVertices * 3 * 4, gl.STATIC_READ);
+
+		const tfNormBuf = gl.createBuffer();
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfNormBuf);
+		gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, numVertices * 3 * 4, gl.STATIC_READ);
+
+		// --- 8. Exécuter le Transform Feedback ---
+		const tf = gl.createTransformFeedback();
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfPosBuf);
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfNormBuf);
+
+		gl.enable(gl.RASTERIZER_DISCARD);
+		gl.beginTransformFeedback(gl.POINTS);
+		gl.drawArrays(gl.POINTS, 0, numVertices);
+		gl.endTransformFeedback();
+		gl.disable(gl.RASTERIZER_DISCARD);
+
+		// --- 9. Lire les résultats ---
+		const positions = new Float32Array(numVertices * 3);
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfPosBuf);
+		gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positions);
+
+		const normals = new Float32Array(numVertices * 3);
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfNormBuf);
+		gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, normals);
+
+		// --- 10. Nettoyage complet ---
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+		gl.bindVertexArray(null);
+		gl.useProgram(null);
+		gl.deleteTransformFeedback(tf);
+		gl.deleteBuffer(tfPosBuf);
+		gl.deleteBuffer(tfNormBuf);
+		gl.deleteBuffer(aIndexBuf);
+		gl.deleteBuffer(posBuf);
+		gl.deleteVertexArray(vao);
+		gl.deleteShader(vs);
+		gl.deleteShader(fs);
+		gl.deleteProgram(program);
+
+		return { positions, normals, indices: new Uint32Array(indexData) };
+	}
+
+	/**
+	 * Configure tous les uniforms pour le programme Transform Feedback.
+	 * Réplique updateAllUniforms() avec des appels WebGL2 bruts.
+	 * @private
+	 */
+	_setTFUniforms(gl, program, deformationEnabled) {
+		const loc = (name) => gl.getUniformLocation(program, name);
+
+		const setF = (name, v) => { const l = loc(name); if (l) gl.uniform1f(l, v); };
+		const setI = (name, v) => { const l = loc(name); if (l) gl.uniform1i(l, v); };
+		const setV3 = (name, x, y, z) => { const l = loc(name); if (l) gl.uniform3f(l, x, y, z); };
+		const setV4 = (name, x, y, z, w) => { const l = loc(name); if (l) gl.uniform4f(l, x, y, z, w); };
+		const setM4 = (name, vals) => { const l = loc(name); if (l) gl.uniformMatrix4fv(l, false, vals); };
+
+		// Matrices identité (on veut les positions en espace objet)
+		const identity = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+		setM4('worldViewProjection', identity);
+		setM4('world', identity);
+
+		// Paramètres de grille
+		setF('uMinU', this.min_u);
+		setF('uMaxU', this.max_u);
+		setF('uStepU', this.step_u);
+		setF('uMinV', this.min_v);
+		setF('uMaxV', this.max_v);
+		setF('uStepV', this.step_v);
+		setF('uStepsU', this.nb_steps_u);
+		setF('uStepsV', this.nb_steps_v);
+
+		// Variables utilisateur
+		setF('A', glo.shaders.uservars.A);
+		setF('B', glo.shaders.uservars.B);
+		setF('C', glo.shaders.uservars.C);
+		setF('D', glo.shaders.uservars.D);
+		setF('E', glo.params.E);
+		setF('F', glo.params.F);
+		setF('G', glo.params.G);
+		setF('H', glo.params.H);
+		setF('I', glo.params.I);
+		setF('J', glo.params.J);
+		setF('K', glo.params.K);
+		setF('L', glo.params.L);
+		setF('M', glo.params.M);
+
+		// Temps et epsilon
+		setF('w', performance.now() * 0.001);
+		setF('eps', 0.001);
+		setF('scaleNorm', glo.scaleNorm || 1.0);
+		setI('deformationEnabled', deformationEnabled ? 1 : 0);
+
+		// Blender
+		const bl = glo.params.blender;
+		setV4('blendU', bl.u.x, bl.u.y, bl.u.z, 0);
+		setV3('blendO', bl.O.x, bl.O.y, bl.O.z);
+
+		// Transformations additionnelles
+		setF('flatAmount', this.flatAmount);
+		setF('twistAmount', this.twistAmount);
+		setF('spherifyAmount', this.spherifyAmount);
+		setF('normValX', this.normValX);
+		setF('normCoeffX', this.normCoeffX);
+		setF('normValY', this.normValY);
+		setF('normCoeffY', this.normCoeffY);
+		setF('normValZ', this.normValZ);
+		setF('normCoeffZ', this.normCoeffZ);
+
+		// Symétrie
+		setF('uSymX', glo.params.symmetrizeX || 1);
+		setF('uSymY', glo.params.symmetrizeY || 1);
+		setF('uSymZ', glo.params.symmetrizeZ || 1);
+		setF('uSymAngle', glo.params.symmetrizeAngle || Math.PI);
+		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
+		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
+		setV3('uSymOrder',
+			axisMap[orderStr[0]] ?? 0.0,
+			axisMap[orderStr[1]] ?? 1.0,
+			axisMap[orderStr[2]] ?? 2.0
+		);
+		setV3('uSymCenter',
+			glo.centerSymmetry.x || 0,
+			glo.centerSymmetry.y || 0,
+			glo.centerSymmetry.z || 0
+		);
+
+		// FirstPoint
+		setV3('uFirstPoint',
+			glo.firstPoint?.x || 1,
+			glo.firstPoint?.y || 0,
+			glo.firstPoint?.z || 0
+		);
+	}
+
+	/**
+	 * Crée un mesh Babylon.js temporaire avec les positions réelles calculées par le GPU.
+	 * Utilisé pour l'export (STL, OBJ, etc.).
+	 * @returns {BABYLON.Mesh|null}
+	 */
+	createExportMesh() {
+		const data = this.extractPositionsForExport();
+		if (!data) return null;
+
+		const mesh = new BABYLON.Mesh('exportMesh', this.computer.scene);
+		const vertexData = new BABYLON.VertexData();
+		vertexData.positions = data.positions;
+		vertexData.normals = data.normals;
+		vertexData.indices = data.indices;
+		vertexData.applyToMesh(mesh);
+
+		return mesh;
 	}
 
 	/**

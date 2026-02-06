@@ -29,7 +29,7 @@ fragmentShaders = [
     vec3 pos = npos();
 
     float c     = A / 2.0;
-    float val   = opt1 == 1.0 ? m(o(pos, c), m(pos, c), hc(pos, c)) : o(o(pos, c), m(pos, c), hc(pos, c));
+    float val   = opt1 == 1.0 ? m(o(pos, c), o(pos, c), hc(pos, c)) : o(o(pos, c), m(pos, c), hc(pos, c));
     vec3 valCol = cpalette(val, palette(val));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);

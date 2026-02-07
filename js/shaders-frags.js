@@ -579,18 +579,9 @@ fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + f
 normalShaders = [
 `
 	// Default
-	if (normValX != 0.0) {
-		float cosToAdd = cos(normValX * xN) * normCoeffX;
-		displacement += cosToAdd * normal;
-	}
-	if (normValY != 0.0) {
-		float cosToAdd = cos(normValY * yN) * normCoeffY;
-		displacement += cosToAdd * normal;
-	}
-	if (normValZ != 0.0) {
-		float cosToAdd = cos(normValZ * zN) * normCoeffZ;
-		displacement += cosToAdd * normal;
-	}
+	displacement += cos(normValX * xN) * normCoeffX * normal;
+	displacement += cos(normValY * yN) * normCoeffY * normal;
+	displacement += cos(normValZ * zN) * normCoeffZ * normal;
 `
 ];
 

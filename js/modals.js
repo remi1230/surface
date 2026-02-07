@@ -102,7 +102,7 @@ function download_JSON_mesh(event){
 					let meshImport = meshes[1];
 
 					glo.ribbon = meshImport;
-					giveMaterialToMesh();
+					// TODO: apply shader material to imported mesh via GPUShaderMesh
 
 					glo.curves.path = turnVerticesDatasToPaths();
 					glo.curves.lineSystem.dispose();

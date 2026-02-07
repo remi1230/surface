@@ -419,10 +419,9 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   break;
                case ")":
                   glo.editorGeometryIsOpened = !glo.editorGeometryIsOpened;
-      
+
                   if (glo.editorGeometryIsOpened) {
                      openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, combinedVertexShader, getById('editor-geometry-container'));
-                     giveMaterialToMesh();
                      
                   } else {
                      glo.editorWindowGeometry.style.display = 'none';
@@ -593,13 +592,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   glo.shaders.params.islight = !glo.shaders.params.islight;
                   glo.light.direction.z = glo.shaders.params.islight ? 0.5 : 0;
                   glo.allControls.getByName("lightDirectionZ").value = glo.light.direction.z;
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
+                  }
 
                   break;
                case "5":
                   e.preventDefault();
                   e.stopPropagation();
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.updateFragmentShader();
+                  }
 
                   break;
                case "6":
@@ -607,21 +610,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   e.stopPropagation();
                   glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
                   if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
-                  giveMaterialToMesh();
 
                   break;
                case "7":
                   glo.shaders.params.invcol = !glo.shaders.params.invcol;
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+                  }
 
                   break;
                case "8":
-                  glo.numShaderSelect = glo.numShaderMove.next().value;
-                  fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
-
-                  if(glo.editor){ glo.editor.setValue(fragmentShader); }
-
-                  giveMaterialToMesh();
+                  switchShader();
 
                   break;
                case "0":

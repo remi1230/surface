@@ -534,8 +534,8 @@ const ShaderCRUDNormal = {
 
         const fullCode = glo.editorNormal.getValue();
 
-        const startTag = 'vec3 displacement = vec3(0.0);';
-        const endTag = 'return pos + displacement;';
+        const startTag = 'float result = 0.0;';
+        const endTag = 'return result;';
         const startIndex = fullCode.indexOf(startTag);
         const endIndex = fullCode.indexOf(endTag);
 
@@ -555,7 +555,7 @@ const ShaderCRUDNormal = {
 
         const newCode = `
 	// ${shaderName}
-	displacement = normal * sin(length(pos) * 10.0) * 0.1;
+	result = sin(x * 5.0) * cos(z * 5.0) * 0.3;
 `;
 
         this.populateSelect();

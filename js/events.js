@@ -182,9 +182,9 @@ document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
 
    const fullCode = glo.editorNormal.getValue();
 
-   // Extraire le code entre les marqueurs
-   const startTag = 'vec3 displacement = vec3(0.0);';
-   const endTag = 'return pos + displacement;';
+   // Extraire le code entre les marqueurs de computeDeformation
+   const startTag = 'float result = 0.0;';
+   const endTag = 'return result;';
    const startIndex = fullCode.indexOf(startTag);
    const endIndex = fullCode.indexOf(endTag);
 
@@ -198,22 +198,13 @@ document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
    // Sauvegarder dans le tableau
    normalShaders[glo.numNormalShaderSelect] = normCode;
 
-   // Tenter de recompiler le vertex shader
+   // Tenter de recompiler le vertex shader via updateNormDeformGLSL
    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-      const success = glo.ribbon.shaderMeshInstance.updateNormShader(normCode);
-      if (success) {
+      const result = glo.ribbon.shaderMeshInstance.updateNormDeformGLSL(normCode);
+      if (result.success) {
          updateStatus('Prêt', false, statusEl);
       } else {
-         updateStatus('Erreur de compilation du vertex shader', true, statusEl);
-
-         // Afficher un toast d'erreur
-         if (typeof M !== 'undefined') {
-            M.toast({
-               html: '❌ Erreur de compilation du shader normal',
-               classes: 'red darken-2',
-               displayLength: 5000
-            });
-         }
+         updateStatus('Erreur: ' + (result.error || 'compilation'), true, statusEl);
       }
    } else {
       updateStatus('Prêt (pas de mesh actif)', false, statusEl);

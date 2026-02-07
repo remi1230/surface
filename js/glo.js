@@ -22,6 +22,9 @@ let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
 let fragmentShaders = [];
 
+let normalShader, normalShaderHeader, normalShaderFooter;
+let normalShaders = [];
+
 let g     = 0;
 let w     = 0;
 let wstep = 0.008;
@@ -809,8 +812,12 @@ var glo = {
 	shaderMaterial: true,
     shaderColor:true,
 	editorWindow: getById('shaderEditor'),
+	editorWindowNormal: getById('shaderEditorNormal'),
 	editorWindowGeometry: getById('shaderEditorGeometry'),
 	editor: null,
+	editorNormal: null,
+	editorNormalIsOpened: false,
+	numNormalShaderSelect: 0,
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},

@@ -167,6 +167,76 @@ shaderOpt1.addEventListener("change", () => { updShaderOpt('opt1', shaderOpt1.ch
 shaderOpt2.addEventListener("change", () => { updShaderOpt('opt2', shaderOpt2.checked); });
 shaderOpt3.addEventListener("change", () => { updShaderOpt('opt3', shaderOpt3.checked); });
 
+// ==================== NORMAL SHADER EDITOR EVENTS ====================
+
+// Reset du temps pour l'éditeur normal
+document.getElementById('resetBtnNormal')?.addEventListener('click', () => {
+   w = 0;
+});
+
+// Compiler le shader normal
+document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
+   const statusEl = document.getElementById('editorStatusNormal');
+
+   if (!glo.editorNormal) return;
+
+   const fullCode = glo.editorNormal.getValue();
+
+   // Extraire le code entre les marqueurs de computeDeformation
+   const startTag = 'float result = 0.0;';
+   const endTag = 'return result;';
+   const startIndex = fullCode.indexOf(startTag);
+   const endIndex = fullCode.indexOf(endTag);
+
+   if (startIndex === -1 || endIndex === -1) {
+      updateStatus('Erreur: marqueurs manquants', true, statusEl);
+      return;
+   }
+
+   const normCode = fullCode.slice(startIndex + startTag.length, endIndex);
+
+   // Sauvegarder dans le tableau
+   normalShaders[glo.numNormalShaderSelect] = normCode;
+
+   // Tenter de recompiler le vertex shader via updateNormDeformGLSL
+   if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      const result = glo.ribbon.shaderMeshInstance.updateNormDeformGLSL(normCode);
+      if (result.success) {
+         updateStatus('Prêt', false, statusEl);
+      } else {
+         updateStatus('Erreur: ' + (result.error || 'compilation'), true, statusEl);
+      }
+   } else {
+      updateStatus('Prêt (pas de mesh actif)', false, statusEl);
+   }
+});
+
+// Fermer l'éditeur normal
+document.getElementById('closeEditorNormal')?.addEventListener('click', () => {
+   glo.editorNormalIsOpened = false;
+   glo.editorWindowNormal.style.display = 'none';
+});
+
+// Plein écran éditeur normal
+let isFullscreenNormal = false;
+document.getElementById('toggleFullscreenNormal')?.addEventListener('click', function() {
+   const icon = this.querySelector('i');
+
+   if (!isFullscreenNormal) {
+      glo.editorWindowNormal.classList.add('fullscreen');
+      icon.textContent = 'fullscreen_exit';
+      isFullscreenNormal = true;
+   } else {
+      glo.editorWindowNormal.classList.remove('fullscreen');
+      icon.textContent = 'fullscreen';
+      isFullscreenNormal = false;
+   }
+
+   if (glo.editorNormal) {
+      setTimeout(() => glo.editorNormal.layout(), 100);
+   }
+});
+
 document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 
@@ -340,10 +410,9 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   break;
                case ")":
                   glo.editorGeometryIsOpened = !glo.editorGeometryIsOpened;
-      
+
                   if (glo.editorGeometryIsOpened) {
                      openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, combinedVertexShader, getById('editor-geometry-container'));
-                     giveMaterialToMesh();
                      
                   } else {
                      glo.editorWindowGeometry.style.display = 'none';
@@ -514,13 +583,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   glo.shaders.params.islight = !glo.shaders.params.islight;
                   glo.light.direction.z = glo.shaders.params.islight ? 0.5 : 0;
                   glo.allControls.getByName("lightDirectionZ").value = glo.light.direction.z;
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
+                  }
 
                   break;
                case "5":
                   e.preventDefault();
                   e.stopPropagation();
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.updateFragmentShader();
+                  }
 
                   break;
                case "6":
@@ -528,21 +601,17 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
                   e.stopPropagation();
                   glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
                   if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
-                  giveMaterialToMesh();
 
                   break;
                case "7":
                   glo.shaders.params.invcol = !glo.shaders.params.invcol;
-                  giveMaterialToMesh();
+                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+                  }
 
                   break;
                case "8":
-                  glo.numShaderSelect = glo.numShaderMove.next().value;
-                  fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
-
-                  if(glo.editor){ glo.editor.setValue(fragmentShader); }
-
-                  giveMaterialToMesh();
+                  switchShader();
 
                   break;
                case "0":
@@ -550,7 +619,13 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "9":
-                  //FREE
+                  e.preventDefault();
+                  e.stopPropagation();
+                  glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
+                  if(glo.editorWindowNormal.style.display === 'flex'){
+                     normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+                     openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
+                  }
 
                   break;
                case "!":

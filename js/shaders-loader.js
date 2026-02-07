@@ -88,7 +88,7 @@ const ShaderLoader = {
         const shaders = [];
 
         // Extraire le contenu du tableau fragmentShaders = [...]
-        const match = content.match(/fragmentShaders\s*=\s*\[([\s\S]*)\];/);
+        const match = content.match(/fragmentShaders\s*=\s*\[([\s\S]*?)\];/);
 
         if (!match) {
             console.error('Format de fichier invalide');

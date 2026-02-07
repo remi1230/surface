@@ -1061,7 +1061,7 @@ function add_shaders_ctrl(){
   const paramsPanels = {
     shaders: {
       title: {name: "Shaders", text: "Shaders", top: 25.5, numUI: 'fourth noAutoParam'},
-      ctrl: { name: "Shaders", top: 28.5, paddingLeft: 3.25, isVertical: false, height: 5, numUI: 'fourth noAutoParam'}
+      ctrl: { name: "Shaders", top: 28.5, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam'}
     },
     normEquation: {
       title: {name: "normalDeformation", text: "Normal Deformation", top: 75, numUI: 'fourth noAutoParam'},
@@ -1104,18 +1104,25 @@ function add_shaders_ctrl(){
     panel.addControl(button);
   }
 
-  add_button(panelButtons, "openShaderEditorButton", "Editor", "20%", 30, 0, 10, 0, async function(){
+  add_button(panelButtons, "openShaderEditorButton", "Color", "17.5%", 30, 0, 10, 0, async function(){
       glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
       if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
   }, false, 'fourth noAutoParam');
-  add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, function(){
+  add_button(panelButtons, "openNormalEditorButton", "Norm", "17.5%", 30, 0, 10, 0, async function(){
+      glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
+      if(glo.editorWindowNormal.style.display === 'flex'){
+          normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+          openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
+      }
+  }, false, 'fourth noAutoParam');
+  add_button(panelButtons, "nextShaderEditorButton", "Next", "17.5%", 30, 0, 10, 0, function(){
       switchShader();
   }, function(){ switchShader(false); }, false, 'fourth noAutoParam');
-  add_button(panelButtons, "invcolShaderEditorButton", "Inv", "20%", 30, 0, 10, 0, async function(){
+  add_button(panelButtons, "invcolShaderEditorButton", "Inv", "17.5%", 30, 0, 10, 0, async function(){
       glo.shaders.params.invcol = !glo.shaders.params.invcol;
       glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
   }, false, 'fourth noAutoParam');
-  add_button(panelButtons, "shaderLightButton", "💡", "20%", 30, 0, 10, 0, async function(){
+  add_button(panelButtons, "shaderLightButton", "💡", "17.5%", 30, 0, 10, 0, async function(){
       glo.shaders.params.islight = !glo.shaders.params.islight;
       glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
   }, false, 'fourth noAutoParam');

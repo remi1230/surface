@@ -574,6 +574,53 @@ glo.numShaderMove = glo.numShaderMove();
 
 fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
+// ==================== NORMAL DEFORMATION SHADERS ====================
+// Le code éditable est injecté dans computeDeformation() et doit affecter float result.
+// result est ensuite appliqué comme : finalPosition = pos + normal * result * scaleNorm
+
+normalShaders = [
+`
+	// Default - déformation le long de la normale
+	// Variables : x, y, z, xN, yN, zN, u, v, R, O, i, j, n, k, d, p, t, g
+	// Fonctions : m(), o(p), b(p,q), a(p,q), sin, cos, length...
+	result = 0.0;
+`
+];
+
+normalShaderHeader = `float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
+	float x = pos.x;
+	float y = pos.y;
+	float z = pos.z;
+	float xN = norm.x;
+	float yN = norm.y;
+	float zN = norm.z;
+
+	gx = x; gy = y; gz = z;
+	gu = u; gv = v;
+
+	float R = length(pos);
+	float xzLen = length(pos.xz);
+	float O = atan(pos.y, xzLen);
+
+	float i = aIndex.x;
+	float j = aIndex.y;
+	float n = i * uStepsV + j;
+	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
+	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
+	float p = k < 0.0 ? -u : u;
+	float t = d < 0.0 ? -v : v;
+
+	float g = xN * yN * zN;
+
+	float result = 0.0;
+`;
+
+normalShaderFooter = `
+	return result;
+}`;
+
+normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+
 /**
  * Valide un shader GLSL (vertex ou fragment)
  * @param {string} shaderCode - Code source GLSL

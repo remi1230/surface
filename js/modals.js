@@ -102,7 +102,7 @@ function download_JSON_mesh(event){
 					let meshImport = meshes[1];
 
 					glo.ribbon = meshImport;
-					giveMaterialToMesh();
+					// TODO: apply shader material to imported mesh via GPUShaderMesh
 
 					glo.curves.path = turnVerticesDatasToPaths();
 					glo.curves.lineSystem.dispose();
@@ -224,11 +224,11 @@ require.config({
     } 
 });
 
-function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container')){
+function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')){
 	editWindow.style.display = 'flex';
-        
+
 	if (!target[key]) {
-		initMonacoEditor(editorContainer, target, key, shaderFragmentSource);
+		initMonacoEditor(editorContainer, target, key, shaderFragmentSource, compileBtnId, statusEl);
 	} else {
 		target[key].layout();
 		target[key].focus();
@@ -277,44 +277,44 @@ function makeDraggable(editWindow = glo.editorWindow) {
 }
 
 // Fonction pour redimensionner la fenêtre
-function makeResizable(editWindow = glo.editorWindow) {
+function makeResizable(editWindow = glo.editorWindow, target = glo, key = 'editor') {
     const handles = editWindow.querySelectorAll('.resize-handle');
-    
+
     handles.forEach(handle => {
         handle.addEventListener('mousedown', initResize);
     });
-    
+
     let isResizing = false;
     let currentHandle = null;
     let startX, startY, startWidth, startHeight, startLeft, startTop;
-    
+
     function initResize(e) {
         if (isFullscreen) return;
-        
+
         isResizing = true;
         currentHandle = e.target;
         startX = e.clientX;
         startY = e.clientY;
-        
+
         const rect = editWindow.getBoundingClientRect();
         startWidth = rect.width;
         startHeight = rect.height;
         startLeft = rect.left;
         startTop = rect.top;
-        
+
         document.addEventListener('mousemove', resize);
         document.addEventListener('mouseup', stopResize);
         e.preventDefault();
     }
-    
-    function resize(e, target = glo, key = 'editor', editWindow = glo.editorWindow) {
+
+    function resize(e) {
         if (!isResizing) return;
-        
+
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
-        
+
         const className = currentHandle.className;
-        
+
         if (className.includes('resize-handle-e')) {
             editWindow.style.width = Math.max(400, startWidth + dx) + 'px';
         }
@@ -331,12 +331,12 @@ function makeResizable(editWindow = glo.editorWindow) {
             editWindow.style.height = newHeight + 'px';
             editWindow.style.top = (startTop + startHeight - newHeight) + 'px';
         }
-        
+
         if (target[key]) {
             target[key].layout();
         }
     }
-    
+
     function stopResize() {
         isResizing = false;
         document.removeEventListener('mousemove', resize);
@@ -346,14 +346,16 @@ function makeResizable(editWindow = glo.editorWindow) {
 
 // Rendre déplaçable
 makeDraggable();
+makeDraggable(glo.editorWindowNormal);
 
 // Rendre redimensionnable
 makeResizable();
+makeResizable(glo.editorWindowNormal, glo, 'editorNormal');
 
-function initMonacoEditor(container = document.getElementById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader) {
+function initMonacoEditor(container = document.getElementById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader, compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')) {
     require(['vs/editor/editor.main'], function() {
         monaco.languages.register({ id: 'glsl' });
-        
+
         monaco.languages.setMonarchTokensProvider('glsl', {
             keywords: [
                 'attribute', 'const', 'uniform', 'varying',
@@ -402,14 +404,14 @@ function initMonacoEditor(container = document.getElementById('editor-container'
             insertSpaces: true,
             wordWrap: 'on'
         });
-        
+
         // Action Ctrl+S pour compiler
         target[key].addAction({
             id: 'compile-shader',
             label: 'Compiler le shader',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
             run: function() {
-                document.getElementById('compileBtn')?.click();
+                document.getElementById(compileBtnId)?.click();
             }
         });
 
@@ -423,8 +425,8 @@ function initMonacoEditor(container = document.getElementById('editor-container'
                 ed.trigger('keyboard', 'editor.action.copyLinesDownAction', null);
             }
         });
-        
-        updateStatus('Prêt');
+
+        updateStatus('Prêt', false, statusEl);
     });
 }
 

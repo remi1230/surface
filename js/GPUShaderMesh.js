@@ -233,6 +233,7 @@ class ShaderMeshBase {
 		this.shaderMaterial = null;
 		this.coordSystem = 'cartesian';
 		this._importedMode = false;
+		this._normEditorCode = null;
 
 		// Traiter les équations
 		this.equa = equa;
@@ -457,9 +458,14 @@ float g(float edge, float x) { return step(edge, x); }
 	 * Génère le vertex shader complet
 	 */
 	createVertexShader(deformExpression = null) {
-		const glslDeform = deformExpression
-			? this.computer.transformExpressionToGLSL(deformExpression)
-			: '0.0';
+		let glslDeformBlock;
+		if (this._normEditorCode) {
+			glslDeformBlock = `float result = 0.0;\n${this._normEditorCode}\nreturn result;`;
+		} else if (deformExpression) {
+			glslDeformBlock = `return ${this.computer.transformExpressionToGLSL(deformExpression)};`;
+		} else {
+			glslDeformBlock = 'return 0.0;';
+		}
 
 		return `#version 300 es
 precision highp float;
@@ -611,8 +617,7 @@ vec3 applyTransformations(vec3 pos, float u, float v) {
 }
 
 // ============================================================
-// DÉFORMATION PAR NORMALES (cos le long de la normale)
-// Reproduit le comportement CPU de drawSliderNormalEquations
+// DÉFORMATION PAR NORMALES (ondes de surface via sliders Norm/n)
 // ============================================================
 vec3 applyNormDeformation(vec3 pos, vec3 normal) {
 	float xN = normal.x;
@@ -638,7 +643,7 @@ vec3 applyNormDeformation(vec3 pos, vec3 normal) {
 }
 
 // ============================================================
-// FONCTION DE DÉFORMATION
+// FONCTION DE DÉFORMATION (éditable via l'éditeur de shader normal)
 // ============================================================
 float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float x = pos.x;
@@ -665,7 +670,7 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 
 	float g = xN * yN * zN;
 
-	return ${glslDeform};
+	${glslDeformBlock}
 }
 
 void main() {
@@ -709,12 +714,12 @@ void main() {
 	}
 
 	// ============================================================
-	// ETAPE 3b : Déformation par normales (cos along normal)
+	// ETAPE 3b : Déformation par normales (ondes de surface via sliders)
 	// ============================================================
 	pos = applyNormDeformation(pos, normal);
 
 	// ============================================================
-	// ETAPE 4 : Appliquer la déformation (si activée)
+	// ETAPE 4 : Appliquer la déformation le long de la normale (si activée)
 	// ============================================================
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
@@ -1175,6 +1180,9 @@ void main() {
 	updateDeformationExpression(expression = null) {
 		if (!this.mesh) return false;
 
+		// L'input Equation écrase le code éditeur
+		this._normEditorCode = null;
+
 		// En mode importé, déléguer au vertex shader import
 		if (this._importedMode) {
 			return this.updateImportDeformationExpression(expression);
@@ -1256,6 +1264,45 @@ void main() {
 	}
 
 	/**
+	 * Met à jour la déformation par GLSL brut (depuis l'éditeur normal).
+	 * Le code est injecté dans computeDeformation et doit affecter float result.
+	 * @param {string} glslCode - Code GLSL (ex: "result = sin(x*5.0)*0.3;")
+	 * @returns {boolean} true si succès
+	 */
+	updateNormDeformGLSL(glslCode) {
+		if (!this.mesh || !this.shaderMaterial) return false;
+
+		// Stocker le code éditeur (écrase l'expression Equation)
+		this._normEditorCode = glslCode;
+		this._lastDeformExpression = null;
+		this._deformationActive = true;
+
+		// Reconstruire le vertex shader avec le code éditeur
+		const vertexShader = this._importedMode
+			? this.createImportVertexShader(null)
+			: this.createVertexShader(null);
+
+		const fragmentShader = this.createFragmentShader();
+
+		// Valider le vertex shader
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) {
+			return { success: false, error: validation.error };
+		}
+
+		// Disposer de l'ancien matériau et recréer
+		this.shaderMaterial.dispose();
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+		this.updateAllUniforms(true);
+
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
+		this.mesh.material = this.shaderMaterial;
+
+		return { success: true };
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null) {
@@ -1294,9 +1341,14 @@ void main() {
 	 * Applique : normales par attribut, applyNormDeformation, computeDeformation, fragment shaders.
 	 */
 	createImportVertexShader(deformExpression = null) {
-		const glslDeform = deformExpression
-			? this.computer.transformExpressionToGLSL(deformExpression)
-			: '0.0';
+		let glslDeformBlock;
+		if (this._normEditorCode) {
+			glslDeformBlock = `float result = 0.0;\n${this._normEditorCode}\nreturn result;`;
+		} else if (deformExpression) {
+			glslDeformBlock = `return ${this.computer.transformExpressionToGLSL(deformExpression)};`;
+		} else {
+			glslDeformBlock = 'return 0.0;';
+		}
 
 		return `#version 300 es
 precision highp float;
@@ -1352,7 +1404,7 @@ out vec2 vUVParams;
 ${this.getUtilityFunctionsGLSL()}
 
 // ============================================================
-// DÉFORMATION PAR NORMALES (cos le long de la normale)
+// DÉFORMATION PAR NORMALES (ondes de surface via sliders Norm/n)
 // ============================================================
 vec3 applyNormDeformation(vec3 pos, vec3 norm) {
 	float xN = norm.x;
@@ -1375,7 +1427,7 @@ vec3 applyNormDeformation(vec3 pos, vec3 norm) {
 }
 
 // ============================================================
-// FONCTION DE DÉFORMATION
+// FONCTION DE DÉFORMATION (éditable via l'éditeur de shader normal)
 // ============================================================
 float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float x = pos.x;
@@ -1402,7 +1454,7 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 
 	float g = xN * yN * zN;
 
-	return ${glslDeform};
+	${glslDeformBlock}
 }
 
 void main() {
@@ -1422,10 +1474,10 @@ void main() {
 		norm = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
 	}
 
-	// Déformation par normales (cos along normal)
+	// Déformation par normales (ondes de surface via sliders)
 	pos = applyNormDeformation(pos, norm);
 
-	// Déformation par expression (si activée)
+	// Déformation le long de la normale (si activée)
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
 		float deform = computeDeformation(u, v, pos, norm) * scaleNorm;

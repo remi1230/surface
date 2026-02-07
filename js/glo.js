@@ -781,10 +781,10 @@ var glo = {
 			numshader: 0,
 		},
 		uservars: {
-			A: 64,
-			B: 64,
-			C: 12,
-			D: 0,
+			P: 64,
+			Q: 64,
+			S: 12,
+			T: 0,
 		},
 		light:{
 			direction: {x: -0.4, y: -0.4, z: 0.8},

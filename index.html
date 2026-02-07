@@ -239,11 +239,11 @@
       <div class="resize-handle resize-handle-sw"></div>
   </div>
 
-  <div id="shaderEditorGeometry" class="shader-editor-window" style="display: none;">
+  <div id="shaderEditorNormal" class="shader-editor-window" style="display: none;">
       <div class="editor-header">
           <span class="editor-title">
               <i class="material-icons">code</i>
-              Éditeur de Shader GLSL - Géométrie
+              Éditeur de Shader GLSL - Normal déformation
           </span>
           <div class="editor-controls">
               <a href="#!" class="btn-floating btn-small waves-effect waves-light blue" id="toggleFullscreen" title="Plein écran">
@@ -258,62 +258,62 @@
       <!-- Barre de gestion CRUD des shaders -->
       <div class="shader-crud-bar">
           <div class="shader-select-wrapper">
-              <select id="shaderSelectGeometry" class="browser-default">
+              <select id="shaderSelectNormal" class="browser-default">
                   <option value="0">Shader 0</option>
               </select>
-              <span id="storageIndicatorGeometry" class="storage-indicator" title="Source des shaders"></span>
+              <span id="storageIndicatorNormal" class="storage-indicator" title="Source des shaders"></span>
           </div>
           <div>
             <div>
-              <span id="optShaderTitleGeometry">Opt 1,2,3</span>
+              <span id="optShaderTitleNormal">Opt 1,2,3</span>
             </div>
             <div class="checkboxesHorizontalContainer">
               <label class="checkbox">
-                <input type="checkbox" id="shaderOpt1Geometry" data-numopt="1" name="shaderOpts">
+                <input type="checkbox" id="shaderOpt1Normal" data-numopt="1" name="shaderOpts">
                 <span class="checkmark"></span>
               </label>
               <label class="checkbox">
-                <input type="checkbox" id="shaderOpt2Geometry" data-numopt="2" name="shaderOpts">
+                <input type="checkbox" id="shaderOpt2Normal" data-numopt="2" name="shaderOpts">
                 <span class="checkmark"></span>
               </label>
               <label class="checkbox">
-                <input type="checkbox" id="shaderOpt3Geometry" data-numopt="3" name="shaderOpts">
+                <input type="checkbox" id="shaderOpt3Normal" data-numopt="3" name="shaderOpts">
                 <span class="checkmark"></span>
               </label>
             </div>
           </div>
           <div class="shader-crud-buttons">
-              <a href="#!" class="btn-small waves-effect waves-light teal" id="newShaderBtnGeometry" title="Nouveau shader">
+              <a href="#!" class="btn-small waves-effect waves-light teal" id="newShaderBtnNormal" title="Nouveau shader">
                   <i class="material-icons">add</i>
               </a>
-              <a href="#!" class="btn-small waves-effect waves-light blue" id="saveShaderBtnGeometry" title="Sauvegarder">
+              <a href="#!" class="btn-small waves-effect waves-light blue" id="saveShaderBtnNormal" title="Sauvegarder">
                   <i class="material-icons">save</i>
               </a>
-              <a href="#!" class="btn-small waves-effect waves-light red" id="deleteShaderBtnGeometry" title="Supprimer">
+              <a href="#!" class="btn-small waves-effect waves-light red" id="deleteShaderBtnNormal" title="Supprimer">
                   <i class="material-icons">delete</i>
               </a>
-              <a href="#!" class="btn-small waves-effect waves-light orange" id="exportShadersBtnGeometry" title="Exporter tous les shaders">
+              <a href="#!" class="btn-small waves-effect waves-light orange" id="exportShadersBtnNormal" title="Exporter tous les shaders">
                   <i class="material-icons">file_download</i>
               </a>
-              <a href="#!" class="btn-small waves-effect waves-light purple" id="importShadersBtnGeometry" title="Importer des shaders">
+              <a href="#!" class="btn-small waves-effect waves-light purple" id="importShadersBtnNormal" title="Importer des shaders">
                   <i class="material-icons">file_upload</i>
               </a>
-              <input type="file" id="importShadersFileGeometry" accept=".js" style="display: none;">
+              <input type="file" id="importShadersFileNormal" accept=".js" style="display: none;">
           </div>
       </div>
 
       <div class="editor-body">
-          <div id="editor-geometry-container"></div>
+          <div id="editor-Normal-container"></div>
       </div>
 
       <div class="editor-footer">
-          <a href="#!" class="waves-effect waves-yellow btn-flat" id="resetBtnGeometry">
+          <a href="#!" class="waves-effect waves-yellow btn-flat" id="resetBtnNormal">
               <i class="material-icons left">refresh</i>Réinitialiser
           </a>
-          <a href="#!" class="waves-effect waves-green btn green" id="compileBtnGeometry">
+          <a href="#!" class="waves-effect waves-green btn green" id="compileBtnNormal">
               <i class="material-icons left">build</i>Compiler
           </a>
-          <span class="editor-status" id="editorStatusGeometry"></span>
+          <span class="editor-status" id="editorStatusNormal"></span>
       </div>
       
       <!-- Poignées de redimensionnement -->

@@ -260,17 +260,20 @@ class ShaderMeshBase {
 		this.islight = glo.shaders.params.islight ? 1.0 : 0.0;
 
 		// Paramètres UI
-		this.A = glo.shaders.uservars.A; this.B = glo.shaders.uservars.B;
-		this.C = glo.shaders.uservars.C; this.D = glo.shaders.uservars.D;
+		this.A = glo.params.A; this.B = glo.params.B;
+		this.C = glo.params.C; this.D = glo.params.D;
 		this.E = glo.params.E; this.F = glo.params.F;
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
 		this.M = glo.params.M;
 
-		this.opt1 = glo.shaderOpt.opt1 ? 1.0 : 0;
-		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0;
-		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0;
+		this.P = glo.shaders.uservars.P; this.Q = glo.shaders.uservars.Q;
+		this.S = glo.shaders.uservars.S; this.T = glo.shaders.uservars.T;
+
+		this.opt1 = glo.shaderOpt.opt1 ? 1.0 : 0.0;
+		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0.0;
+		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0.0;
 
 		this.w = performance.now() * 0.001;
 
@@ -473,7 +476,7 @@ uniform mat4 world;
 uniform float uMinU, uMaxU, uStepU;
 uniform float uMinV, uMaxV, uStepV;
 uniform float uStepsU, uStepsV;
-uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M, P, Q, S, T;
 uniform float w;
 uniform float eps;
 uniform float scaleNorm;
@@ -761,10 +764,10 @@ uniform float islight;
 uniform float opt1;
 uniform float opt2;
 uniform float opt3;
-uniform float A;
-uniform float B;
-uniform float C;
-uniform float D;
+uniform float P;
+uniform float Q;
+uniform float S;
+uniform float T;
 
 #define time w
 
@@ -809,7 +812,7 @@ void main() {
 					"uMinU", "uMaxU", "uStepU",
 					"uMinV", "uMaxV", "uStepV",
 					"uStepsU", "uStepsV",
-					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "P", "Q", "S", "T",
 					"w", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
@@ -916,6 +919,10 @@ void main() {
 		mat.setFloat("K", this.K);
 		mat.setFloat("L", this.L);
 		mat.setFloat("M", this.M);
+		mat.setFloat("P", this.P);
+		mat.setFloat("Q", this.Q);
+		mat.setFloat("S", this.S);
+		mat.setFloat("T", this.T);
 		mat.setFloat("w", this.w);
 		mat.setFloat("opt1", this.opt1);
 		mat.setFloat("opt2", this.opt2);
@@ -1025,7 +1032,7 @@ void main() {
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
 		this.K = glo.params.K; this.M = glo.params.M;
-		this.w = performance.now() * 0.01;
+		//this.w = performance.now() * 0.01;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);
@@ -1125,6 +1132,8 @@ void main() {
 	 */
 	updateFloatParam(param, value) {
 		if (!this.shaderMaterial) return;
+
+		if(typeof this[param] !== 'undefined'){ this[param] = value; }
 
 		this.shaderMaterial.setFloat(param, value);
 	}
@@ -1746,10 +1755,10 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('uStepsV', this.nb_steps_v);
 
 		// Variables utilisateur
-		setF('A', glo.shaders.uservars.A);
-		setF('B', glo.shaders.uservars.B);
-		setF('C', glo.shaders.uservars.C);
-		setF('D', glo.shaders.uservars.D);
+		setF('A', params.A);
+		setF('B', params.B);
+		setF('C', glo.params.C);
+		setF('D', glo.params.D);
 		setF('E', glo.params.E);
 		setF('F', glo.params.F);
 		setF('G', glo.params.G);

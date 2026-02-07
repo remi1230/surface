@@ -30,7 +30,6 @@ $( document ).ready(async function() {
   $('.modal').not('#exportModal').modal();
   $('select').formSelect();
   glo.formes.setFormeSelect(...glo.formes.selected);
-  //special_randomize_colors_app(true);
   startAnim(20, 1);
   getPathsInfos();
   otherDesigns();
@@ -46,15 +45,6 @@ $("#univers_div").mouseleave(function(){
 });
 $("#univers_div").click(function(){
 	glo.modalOpen = false;
-});
-
-document.addEventListener("fullscreenchange", function( event ) {
-    if (!document.fullscreen ) {
-      glo.fullScreen = false;
-      $("#renderCanvas").attr("height", glo.canvasHeight);
-      $("#renderCanvas").attr("width", glo.canvasWidth);
-      glo.fullScreenButton.textBlock.text = "↗ S";
-    }
 });
 
 $("#renderCanvas").on('pointermove', function(e){

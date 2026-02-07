@@ -1,12 +1,12 @@
 fragmentShaders = [
 `
    //Line
-    float coeffLine = C/3.0;
+    float coeffLine = S/3.0;
 
 	// Grille
-	float gu = fract(vUV.x * A);
-	float gv = fract(vUV.y * B * 0.5);
-	float line = step(1.0 - (lineWidth*coeffLine) / A, gu) + step(1.0 - (lineWidth*coeffLine*2.0) / B, gv);
+	float gu = fract(vUV.x * P);
+	float gv = fract(vUV.y * Q * 0.5);
+	float line = step(1.0 - (lineWidth*coeffLine) / P, gu) + step(1.0 - (lineWidth*coeffLine*2.0) / Q, gv);
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `
@@ -28,7 +28,7 @@ fragmentShaders = [
     //CosPos
     vec3 pos = npos();
 
-    float c     = A / 2.0;
+    float c     = P / 2.0;
     float val   = opt1 == 1.0 ? m(o(pos, c), o(pos, c), hc(pos, c)) : o(o(pos, c), m(pos, c), hc(pos, c));
     vec3 valCol = cpalette(val, palette(val));
 
@@ -532,10 +532,10 @@ uniform float time;
 uniform vec3 cameraPosition;
 uniform float gridU;
 uniform float gridV;
-uniform float A;
-uniform float B;
-uniform float C;
-uniform float D;
+uniform float P;
+uniform float Q;
+uniform float S;
+uniform float T;
 uniform float lineWidth;
 uniform float invcol;
 uniform float islight;

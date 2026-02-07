@@ -1108,6 +1108,13 @@ function add_shaders_ctrl(){
       glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
       if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
   }, false, 'fourth noAutoParam');
+  add_button(panelButtons, "openNormalEditorButton", "Normal", "20%", 30, 0, 10, 0, async function(){
+      glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
+      if(glo.editorWindowNormal.style.display === 'flex'){
+          normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+          openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
+      }
+  }, false, 'fourth noAutoParam');
   add_button(panelButtons, "nextShaderEditorButton", "Next", "20%", 30, 0, 10, 0, function(){
       switchShader();
   }, function(){ switchShader(false); }, false, 'fourth noAutoParam');

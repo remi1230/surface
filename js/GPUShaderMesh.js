@@ -611,8 +611,7 @@ vec3 applyTransformations(vec3 pos, float u, float v) {
 }
 
 // ============================================================
-// DÉFORMATION PAR NORMALES (cos le long de la normale)
-// Reproduit le comportement CPU de drawSliderNormalEquations
+// DÉFORMATION PAR NORMALES (éditable via l'éditeur de shader normal)
 // ============================================================
 vec3 applyNormDeformation(vec3 pos, vec3 normal) {
 	float xN = normal.x;
@@ -621,18 +620,7 @@ vec3 applyNormDeformation(vec3 pos, vec3 normal) {
 
 	vec3 displacement = vec3(0.0);
 
-	if (normValX != 0.0) {
-		float cosToAdd = cos(normValX * xN) * normCoeffX;
-		displacement += cosToAdd * normal;
-	}
-	if (normValY != 0.0) {
-		float cosToAdd = cos(normValY * yN) * normCoeffY;
-		displacement += cosToAdd * normal;
-	}
-	if (normValZ != 0.0) {
-		float cosToAdd = cos(normValZ * zN) * normCoeffZ;
-		displacement += cosToAdd * normal;
-	}
+	${normalShaders[glo.numNormalShaderSelect] || normalShaders[0]}
 
 	return pos + displacement;
 }
@@ -1256,6 +1244,46 @@ void main() {
 	}
 
 	/**
+	 * Met à jour le shader de déformation par normales (recompile vertex + fragment).
+	 * @param {string} mainNorm - Le corps de la fonction applyNormDeformation (contenu de normalShaders[n])
+	 * @returns {boolean} true si succès
+	 */
+	updateNormShader(mainNorm = normalShaders[glo.numNormalShaderSelect]) {
+		if (!this.mesh || !this.shaderMaterial) return false;
+
+		// Reconstruire le vertex shader avec la nouvelle déformation par normales
+		const deformText = this._lastDeformExpression;
+		const vertexShader = this._importedMode
+			? this.createImportVertexShader(deformText || null)
+			: this.createVertexShader(deformText || null);
+
+		// Construire le fragment shader identique
+		const fragmentShader = this.createFragmentShader();
+
+		// Valider le vertex shader complet
+		const validation = this.computer.validateShader(vertexShader);
+		if (!validation.valid) {
+			return false;
+		}
+
+		// Disposer de l'ancien matériau
+		this.shaderMaterial.dispose();
+
+		// Créer le nouveau ShaderMaterial
+		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
+
+		// Reconfigurer tous les uniforms
+		this.updateAllUniforms(this._deformationActive);
+
+		// Propriétés de rendu
+		this.shaderMaterial.backFaceCulling = false;
+		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
+		this.mesh.material = this.shaderMaterial;
+
+		return true;
+	}
+
+	/**
 	 * Met à jour les transformations additionnelles
 	 */
 	updateTransformations(flat = null, twist = null, spherify = null) {
@@ -1352,24 +1380,16 @@ out vec2 vUVParams;
 ${this.getUtilityFunctionsGLSL()}
 
 // ============================================================
-// DÉFORMATION PAR NORMALES (cos le long de la normale)
+// DÉFORMATION PAR NORMALES (éditable via l'éditeur de shader normal)
 // ============================================================
-vec3 applyNormDeformation(vec3 pos, vec3 norm) {
-	float xN = norm.x;
-	float yN = norm.y;
-	float zN = norm.z;
+vec3 applyNormDeformation(vec3 pos, vec3 normal) {
+	float xN = normal.x;
+	float yN = normal.y;
+	float zN = normal.z;
 
 	vec3 displacement = vec3(0.0);
 
-	if (normValX != 0.0) {
-		displacement += cos(normValX * xN) * normCoeffX * norm;
-	}
-	if (normValY != 0.0) {
-		displacement += cos(normValY * yN) * normCoeffY * norm;
-	}
-	if (normValZ != 0.0) {
-		displacement += cos(normValZ * zN) * normCoeffZ * norm;
-	}
+	${normalShaders[glo.numNormalShaderSelect] || normalShaders[0]}
 
 	return pos + displacement;
 }

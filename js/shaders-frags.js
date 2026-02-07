@@ -574,6 +574,40 @@ glo.numShaderMove = glo.numShaderMove();
 
 fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
+// ==================== NORMAL DEFORMATION SHADERS ====================
+
+normalShaders = [
+`
+	// Default
+	if (normValX != 0.0) {
+		float cosToAdd = cos(normValX * xN) * normCoeffX;
+		displacement += cosToAdd * normal;
+	}
+	if (normValY != 0.0) {
+		float cosToAdd = cos(normValY * yN) * normCoeffY;
+		displacement += cosToAdd * normal;
+	}
+	if (normValZ != 0.0) {
+		float cosToAdd = cos(normValZ * zN) * normCoeffZ;
+		displacement += cosToAdd * normal;
+	}
+`
+];
+
+normalShaderHeader = `vec3 applyNormDeformation(vec3 pos, vec3 normal) {
+	float xN = normal.x;
+	float yN = normal.y;
+	float zN = normal.z;
+
+	vec3 displacement = vec3(0.0);
+`;
+
+normalShaderFooter = `
+	return pos + displacement;
+}`;
+
+normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+
 /**
  * Valide un shader GLSL (vertex ou fragment)
  * @param {string} shaderCode - Code source GLSL

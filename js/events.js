@@ -167,6 +167,85 @@ shaderOpt1.addEventListener("change", () => { updShaderOpt('opt1', shaderOpt1.ch
 shaderOpt2.addEventListener("change", () => { updShaderOpt('opt2', shaderOpt2.checked); });
 shaderOpt3.addEventListener("change", () => { updShaderOpt('opt3', shaderOpt3.checked); });
 
+// ==================== NORMAL SHADER EDITOR EVENTS ====================
+
+// Reset du temps pour l'éditeur normal
+document.getElementById('resetBtnNormal')?.addEventListener('click', () => {
+   w = 0;
+});
+
+// Compiler le shader normal
+document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
+   const statusEl = document.getElementById('editorStatusNormal');
+
+   if (!glo.editorNormal) return;
+
+   const fullCode = glo.editorNormal.getValue();
+
+   // Extraire le code entre les marqueurs
+   const startTag = 'vec3 displacement = vec3(0.0);';
+   const endTag = 'return pos + displacement;';
+   const startIndex = fullCode.indexOf(startTag);
+   const endIndex = fullCode.indexOf(endTag);
+
+   if (startIndex === -1 || endIndex === -1) {
+      updateStatus('Erreur: marqueurs manquants', true, statusEl);
+      return;
+   }
+
+   const normCode = fullCode.slice(startIndex + startTag.length, endIndex);
+
+   // Sauvegarder dans le tableau
+   normalShaders[glo.numNormalShaderSelect] = normCode;
+
+   // Tenter de recompiler le vertex shader
+   if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      const success = glo.ribbon.shaderMeshInstance.updateNormShader(normCode);
+      if (success) {
+         updateStatus('Prêt', false, statusEl);
+      } else {
+         updateStatus('Erreur de compilation du vertex shader', true, statusEl);
+
+         // Afficher un toast d'erreur
+         if (typeof M !== 'undefined') {
+            M.toast({
+               html: '❌ Erreur de compilation du shader normal',
+               classes: 'red darken-2',
+               displayLength: 5000
+            });
+         }
+      }
+   } else {
+      updateStatus('Prêt (pas de mesh actif)', false, statusEl);
+   }
+});
+
+// Fermer l'éditeur normal
+document.getElementById('closeEditorNormal')?.addEventListener('click', () => {
+   glo.editorNormalIsOpened = false;
+   glo.editorWindowNormal.style.display = 'none';
+});
+
+// Plein écran éditeur normal
+let isFullscreenNormal = false;
+document.getElementById('toggleFullscreenNormal')?.addEventListener('click', function() {
+   const icon = this.querySelector('i');
+
+   if (!isFullscreenNormal) {
+      glo.editorWindowNormal.classList.add('fullscreen');
+      icon.textContent = 'fullscreen_exit';
+      isFullscreenNormal = true;
+   } else {
+      glo.editorWindowNormal.classList.remove('fullscreen');
+      icon.textContent = 'fullscreen';
+      isFullscreenNormal = false;
+   }
+
+   if (glo.editorNormal) {
+      setTimeout(() => glo.editorNormal.layout(), 100);
+   }
+});
+
 document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 
@@ -550,7 +629,13 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "9":
-                  //FREE
+                  e.preventDefault();
+                  e.stopPropagation();
+                  glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
+                  if(glo.editorWindowNormal.style.display === 'flex'){
+                     normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+                     openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
+                  }
 
                   break;
                case "!":

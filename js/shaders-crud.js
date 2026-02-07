@@ -415,9 +415,323 @@ const ShaderCRUD = {
     }
 };
 
+// ==================== SHADER CRUD NORMAL ====================
+
+const ShaderCRUDNormal = {
+    currentShaderIndex: 0,
+    isCreatingNew: false,
+
+    init: function() {
+        this.populateSelect();
+        this.bindEvents();
+        this.currentShaderIndex = glo.numNormalShaderSelect;
+        this.updateSelectValue();
+    },
+
+    getShaderName: function(shaderCode, index) {
+        if (!shaderCode) return `Normal ${index}`;
+        const trimmed = shaderCode.trim();
+        const match = trimmed.match(/^\/\/\s*(.+)/);
+        if (match && match[1]) return match[1].trim();
+        return `Normal ${index}`;
+    },
+
+    populateSelect: function() {
+        const select = document.getElementById('shaderSelectNormal');
+        if (!select) return;
+
+        select.innerHTML = '';
+        normalShaders.forEach((shader, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = this.getShaderName(shader, index);
+            select.appendChild(option);
+        });
+
+        if (this.isCreatingNew) {
+            const option = document.createElement('option');
+            option.value = 'new';
+            option.textContent = '* Nouveau shader normal *';
+            select.appendChild(option);
+            select.value = 'new';
+        }
+    },
+
+    updateSelectValue: function() {
+        const select = document.getElementById('shaderSelectNormal');
+        if (select && !this.isCreatingNew) {
+            select.value = this.currentShaderIndex;
+        }
+    },
+
+    bindEvents: function() {
+        const select = document.getElementById('shaderSelectNormal');
+        if (select) {
+            select.addEventListener('change', (e) => this.onSelectChange(e));
+        }
+
+        const newBtn = document.getElementById('newShaderBtnNormal');
+        if (newBtn) {
+            newBtn.addEventListener('click', (e) => { e.preventDefault(); this.createNew(); });
+        }
+
+        const saveBtn = document.getElementById('saveShaderBtnNormal');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', (e) => { e.preventDefault(); this.save(); });
+        }
+
+        const deleteBtn = document.getElementById('deleteShaderBtnNormal');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', (e) => { e.preventDefault(); this.delete(); });
+        }
+
+        const exportBtn = document.getElementById('exportShadersBtnNormal');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', (e) => { e.preventDefault(); this.exportAll(); });
+        }
+
+        const importBtn = document.getElementById('importShadersBtnNormal');
+        if (importBtn) {
+            importBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('importShadersFileNormal').click();
+            });
+        }
+
+        const importFile = document.getElementById('importShadersFileNormal');
+        if (importFile) {
+            importFile.addEventListener('change', (e) => this.importFromFile(e));
+        }
+    },
+
+    onSelectChange: function(e) {
+        const value = e.target.value;
+        if (value === 'new') return;
+
+        if (this.isCreatingNew) {
+            this.isCreatingNew = false;
+            this.populateSelect();
+        }
+
+        const index = parseInt(value);
+        this.currentShaderIndex = index;
+        glo.numNormalShaderSelect = index;
+
+        this.loadShaderInEditor(index);
+        this.compileCurrentShader();
+    },
+
+    loadShaderInEditor: function(index) {
+        if (glo.editorNormal) {
+            const fullShader = normalShaderHeader + normalShaders[index] + normalShaderFooter;
+            glo.editorNormal.setValue(fullShader);
+            updateStatus(this.getShaderName(normalShaders[index], index) + ' chargé', false, document.getElementById('editorStatusNormal'));
+        }
+    },
+
+    extractNormCode: function() {
+        if (!glo.editorNormal) return '';
+
+        const fullCode = glo.editorNormal.getValue();
+
+        const startTag = 'vec3 displacement = vec3(0.0);';
+        const endTag = 'return pos + displacement;';
+        const startIndex = fullCode.indexOf(startTag);
+        const endIndex = fullCode.indexOf(endTag);
+
+        if (startIndex === -1 || endIndex === -1) return '';
+
+        return fullCode.slice(startIndex + startTag.length, endIndex);
+    },
+
+    createNew: function() {
+        this.isCreatingNew = true;
+
+        const shaderName = prompt('Nom du nouveau shader normal :', 'Nouveau shader normal');
+        if (shaderName === null) {
+            this.isCreatingNew = false;
+            return;
+        }
+
+        const newCode = `
+	// ${shaderName}
+	displacement = normal * sin(length(pos) * 10.0) * 0.1;
+`;
+
+        this.populateSelect();
+
+        if (glo.editorNormal) {
+            const fullShader = normalShaderHeader + newCode + normalShaderFooter;
+            glo.editorNormal.setValue(fullShader);
+            updateStatus('Mode création - Modifier et sauvegarder', false, document.getElementById('editorStatusNormal'));
+        }
+    },
+
+    save: function() {
+        const normCode = this.extractNormCode();
+
+        if (!normCode.trim()) {
+            updateStatus('Erreur: Code shader vide', true, document.getElementById('editorStatusNormal'));
+            return;
+        }
+
+        if (this.isCreatingNew) {
+            normalShaders.push(normCode);
+            this.currentShaderIndex = normalShaders.length - 1;
+            glo.numNormalShaderSelect = this.currentShaderIndex;
+            this.isCreatingNew = false;
+        } else {
+            normalShaders[this.currentShaderIndex] = normCode;
+        }
+
+        this.saveToStorage();
+        const name = this.getShaderName(normCode, this.currentShaderIndex);
+        updateStatus(name + ' sauvegardé (local)', false, document.getElementById('editorStatusNormal'));
+
+        this.populateSelect();
+        this.updateSelectValue();
+        this.compileCurrentShader();
+    },
+
+    saveToStorage: function() {
+        try {
+            localStorage.setItem('normalShaders', JSON.stringify(normalShaders));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    loadFromStorage: function() {
+        try {
+            const data = localStorage.getItem('normalShaders');
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    normalShaders.length = 0;
+                    parsed.forEach(s => normalShaders.push(s));
+                    return true;
+                }
+            }
+        } catch (e) {}
+        return false;
+    },
+
+    delete: function() {
+        if (normalShaders.length <= 1) {
+            updateStatus('Erreur: Impossible de supprimer le dernier shader', true, document.getElementById('editorStatusNormal'));
+            return;
+        }
+
+        if (this.isCreatingNew) {
+            this.isCreatingNew = false;
+            this.populateSelect();
+            this.loadShaderInEditor(this.currentShaderIndex);
+            updateStatus('Création annulée', false, document.getElementById('editorStatusNormal'));
+            return;
+        }
+
+        const shaderName = this.getShaderName(normalShaders[this.currentShaderIndex], this.currentShaderIndex);
+        if (!confirm('Supprimer "' + shaderName + '" ?')) return;
+
+        normalShaders.splice(this.currentShaderIndex, 1);
+        if (this.currentShaderIndex >= normalShaders.length) {
+            this.currentShaderIndex = normalShaders.length - 1;
+        }
+        glo.numNormalShaderSelect = this.currentShaderIndex;
+
+        this.saveToStorage();
+        updateStatus(shaderName + ' supprimé', false, document.getElementById('editorStatusNormal'));
+
+        this.populateSelect();
+        this.updateSelectValue();
+        this.loadShaderInEditor(this.currentShaderIndex);
+        this.compileCurrentShader();
+    },
+
+    exportAll: function() {
+        let content = 'normalShaders = [\n';
+        normalShaders.forEach((shader, index) => {
+            content += '`' + shader + '`';
+            if (index < normalShaders.length - 1) content += ',';
+            content += '\n';
+        });
+        content += '];\n';
+
+        const blob = new Blob([content], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shaders-normal.js';
+        a.click();
+        URL.revokeObjectURL(url);
+
+        updateStatus('Fichier shaders-normal.js téléchargé', false, document.getElementById('editorStatusNormal'));
+    },
+
+    importFromFile: function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const content = ev.target.result;
+                const match = content.match(/normalShaders\s*=\s*\[([\s\S]*)\];/);
+                if (!match) throw new Error('Format invalide');
+
+                const inner = match[1];
+                const shaders = [];
+                const regex = /`([\s\S]*?)`/g;
+                let m;
+                while ((m = regex.exec(inner)) !== null) {
+                    shaders.push(m[1]);
+                }
+                if (shaders.length === 0) throw new Error('Aucun shader trouvé');
+
+                const replace = confirm(
+                    'Comment importer ?\n\nOK = Remplacer tous\nAnnuler = Ajouter aux existants'
+                );
+
+                if (replace) {
+                    normalShaders.length = 0;
+                    shaders.forEach(s => normalShaders.push(s));
+                    this.currentShaderIndex = 0;
+                } else {
+                    shaders.forEach(s => normalShaders.push(s));
+                }
+                glo.numNormalShaderSelect = this.currentShaderIndex;
+
+                this.saveToStorage();
+                this.populateSelect();
+                this.updateSelectValue();
+                this.loadShaderInEditor(this.currentShaderIndex);
+                this.compileCurrentShader();
+
+                updateStatus('Import réussi: ' + shaders.length + ' shaders', false, document.getElementById('editorStatusNormal'));
+            } catch (err) {
+                updateStatus('Erreur import: ' + err.message, true, document.getElementById('editorStatusNormal'));
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    },
+
+    compileCurrentShader: function() {
+        normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+
+        const compileBtn = document.getElementById('compileBtnNormal');
+        if (compileBtn) {
+            compileBtn.click();
+        }
+    }
+};
+
 // Initialiser le système CRUD quand le DOM est prêt
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         ShaderCRUD.init();
+        ShaderCRUDNormal.loadFromStorage();
+        ShaderCRUDNormal.init();
     }, 500);
 });

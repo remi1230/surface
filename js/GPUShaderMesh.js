@@ -698,7 +698,10 @@ void main() {
 
 	// ============================================================
 	// ETAPE 3b : Déformation par normales (cos along normal)
+	// Initialiser les globales pour les fonctions utilitaires (m, o, b, a...)
 	// ============================================================
+	gx = pos.x; gy = pos.y; gz = pos.z;
+	gu = u; gv = v;
 	pos = applyNormDeformation(pos, normal);
 
 	// ============================================================
@@ -1443,6 +1446,9 @@ void main() {
 	}
 
 	// Déformation par normales (cos along normal)
+	// Initialiser les globales pour les fonctions utilitaires (m, o, b, a...)
+	gx = pos.x; gy = pos.y; gz = pos.z;
+	gu = u; gv = v;
 	pos = applyNormDeformation(pos, norm);
 
 	// Déformation par expression (si activée)

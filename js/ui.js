@@ -777,6 +777,13 @@ function applyFontStyleToTitle(fontWeight = 600) {
       control.fontWeight = fontWeight;
 	  control.color = glo.theme.header.title.color;
   });
+  glo.allControls.haveThisClass('h1').forEach(control => { control.fontSize = 48; });
+}
+function customSlidersBar(barOffset, thumbWidth = false) {
+  glo.allControls.haveThisClass('slider').forEach(control => {
+      control.barOffset = barOffset;
+      if(thumbWidth) control.thumbWidth = thumbWidth;
+  });
 }
 
 function styleUI(fontSizeToAdd = -1){		
@@ -784,4 +791,5 @@ function styleUI(fontSizeToAdd = -1){
     applyFontToButtons('Poppins', 400, fontSizeToAdd);
     applyFontToInputs('Inter', 400, fontSizeToAdd);
     applyFontStyleToTitle();
+    customSlidersBar("6px", "21px");
 }

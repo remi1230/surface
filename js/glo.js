@@ -596,7 +596,6 @@ var glo = {
 	cam_pose: 60,
 	sliderGain: 0,
 	is_sliderGainPos: false,
-	sliderGainSign: 0,
 	slidersUVOnOneSign: {u: false, v: false},
 	meshChannel: new BroadcastChannel('mesh_channel'),
 	params:{
@@ -848,12 +847,12 @@ var glo = {
 	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.14, 0.43, 0.38),
-	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
+	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	lineColor: new BABYLON.Color3(1, 1, 1),
 	initialColor:{
 		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 		emissiveColor: new BABYLON.Color3(0.1, 0.35, 0.35),
-		backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.1),
+		backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 		lineColor: new BABYLON.Color3(1, 1, 1),
 	},
 	color_line_grid: new BABYLON.Color3(0, 0, 0),

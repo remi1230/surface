@@ -57,7 +57,6 @@ function add_gui_controls(){
   add_switch_and_help_buttons();
   add_axis_and_rot_buttons();
   add_uv_sliders();
-  add_alpha_slider();
   add_inputs_equations();
   add_lines_and_dim_buttons();
 
@@ -500,7 +499,7 @@ function add_uv_sliders(){
       if(e.buttonIndex == 2){ slider.value = slider.startValue; }
     });
     slider.onWheelObservable.add(function (e) {
-      var val = e.y < 0 ? val = pi/8 : val = -pi/8; slider.value += val;
+      var val = e.y < 0 ? val = PI/8 : val = -PI/8; slider.value += val;
     });
 
     panel.addControl(slider);
@@ -510,47 +509,21 @@ function add_uv_sliders(){
   add_slider('v', 'V', 'v', 'slider_v');
 }
 
-function add_alpha_slider(){
-  var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, "panelAlphaSlider", 'panel left first');
-  panel.class = "panel left first";
-  glo.advancedTexture.addControl(panel);
-
-  var header = new BABYLON.GUI.TextBlock();
-  parmamControl(header, 'alphaSliderHeader', 'header left first', {text: "Transparency"});
-  panel.addControl(header);
-
-  var slider = new BABYLON.GUI.Slider();
-  parmamControl(slider, 'alphaSlider', 'slider left first', {minimum: 0, maximum: 1, value: glo.ribbon_alpha});
-
-  slider.onValueChangedObservable.add(function (value) {
-    if(typeof(glo.ribbon) != "undefined" && glo.ribbon != null){
-      glo.ribbon.material.alpha = value;
-      glo.ribbon_alpha = value;
-      if(glo.curves.lineSystem){ glo.curves.lineSystem.alpha = value; }
-      if(glo.curves.doubleLineSystem){ glo.curves.doubleLineSystem.alpha = value; }
-    }
-  });
-
-  panel.addControl(slider);
-}
 function add_inputs_equations(){
   var panel                = new BABYLON.GUI.StackPanel();
-  var panelSuitsEquations  = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
 
-  parmamControl(panel, "inputsEquations", 'panel left first');
-  parmamControl(panelSuitsEquations, "inputsSuitsEquations", 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 24, pR: 1, t: 26});
-  parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, pR: 1, t: 30, h: 10, pL: 1});
+  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 20, pR: 1, t: 14.25, h: 30, pL: 1});
 
-  var options = {hAlign: 'right', vAlign: 'top', w: 24, t: 83, pR: 1};
+  var options = {hAlign: 'right', vAlign: 'top', w: 20, t: 30};
+  parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
+  options = {hAlign: 'right', vAlign: 'top', w: 24, t: 83, pR: 1};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   makePanelTitle("macrosVariables", "Macros variables", 25.5, "sixth noAutoParam");
 
   glo.advancedTexture.addControl(panel);
-  glo.advancedTexture.addControl(panelSuitsEquations);
   glo.advancedTexture.addControl(panelSymsEquations);
   glo.advancedTexture.addControl(panelEvalY);
 
@@ -559,7 +532,7 @@ function add_inputs_equations(){
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, colorEquation = false, withEvent = true, width = 365){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 365){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
     if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
@@ -588,16 +561,9 @@ function add_inputs_equations(){
         }
 
         if (key != "Tab" && !key.match(/Arrow/, g)) {
-          if(!colorEquation){
-            if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
-            else{ glo['params']['normale'][gloPropToModify] = text; }
-          }
-          else{
-            glo['params'][gloPropToModify] = text;
-          }
+          glo['params'][gloPropToModify] = text;
           if(event){
-            if(!glo.normalOnNormalMode){ inputChangeEvent(); }
-            else if(key == "Enter"){ inputChangeEvent(); }
+            inputChangeEvent();
           }
         }
         else if (key == "Tab") {
@@ -617,13 +583,9 @@ function add_inputs_equations(){
       });
       input.onTextPasteObservable.add((event) => {
         var text = input.text;
-        if(!colorEquation){
-          if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
-          else{ glo['params']['normale'][gloPropToModify] = text; }
-        }
-        else{
-          glo['params'][gloPropToModify] = text;
-        }
+        if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
+        else{ glo['params']['normale'][gloPropToModify] = text; }
+        
         if(event){ inputChangeEvent(); }
         glo.advancedTexture.moveFocusToControl(input);
       });
@@ -637,10 +599,11 @@ function add_inputs_equations(){
   add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
   add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
   add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
-  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
+  add_input(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta");
   add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
+  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
 
-  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, false);
+  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false);
 
   add_input(panelEvalY, "X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
   add_input(panelEvalY, "Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
@@ -1048,6 +1011,9 @@ function addSlider(parent, name, text, val, decimalPrecision, min, max, step, ev
       eventUp(e);
     });
   }
+
+  slider.subscribeToDoubleClick();
+
   parent.addControl(slider);
 }
 
@@ -1070,8 +1036,8 @@ function add_shaders_ctrl(){
       ctrl: { name: "LightSliders", top: 29.5, numUI: 'seventh', paddingLeft: 0.0, isVertical: true, height: 32 }
     },
     grid: {
-      title:{ name: "GridParams", text: "Grid", top: 59.5, numUI: 'sixth', numUI: 'sixth noAutoParam'},
-      ctrl: { name: "gridParamsSliders", top: 63.5, paddingLeft: 0.0, isVertical: true, height: 5, numUI: 'sixth noAutoParam' }
+      title:{ name: "GridParams", text: "Grid", top: 64, numUI: 'sixth', numUI: 'sixth noAutoParam'},
+      ctrl: { name: "gridParamsSliders", top: 67.5, paddingLeft: 0.0, isVertical: true, height: 5, numUI: 'sixth noAutoParam' }
     },
     video: {
       title: {name: "Video", text: "Video", top: 66, numUI: 'fourth noAutoParam' },
@@ -1458,6 +1424,7 @@ function add_blender_sliders(){
 
 function add_sixth_panel_sliders(){
   let panelSliders                   = new BABYLON.GUI.StackPanel();
+  let panelButton                    = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
 
@@ -1472,7 +1439,8 @@ function add_sixth_panel_sliders(){
       return count;
     };
   }
-  addPanel(panelSliders, 'panelSliders', 45);
+  addPanel(panelButton, 'panelButtonUvToXy', 41);
+  addPanel(panelSliders, 'panelSliders', 50);
   const posPanel = createIncrementer(55, 5);
 
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel(), false, 20, 4, 'eleventh', 1.42);
@@ -1531,7 +1499,14 @@ function add_sixth_panel_sliders(){
     parent.addControl(slider);
   }
 
-  makePanelTitle("firstPointOffset", "First point offset", 41.5, "sixth noAutoParam");
+  addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 100, 30, 25, 0, function(value){
+    swapControlBackground("uvToXyButton");
+    glo.params.uvToXy = !glo.params.uvToXy;
+    uvToXy();
+    remakeRibbon();
+  });
+
+  makePanelTitle("firstPointOffset", "First point offset", 46, "sixth noAutoParam");
 
   addSlider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
   addSlider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
@@ -1615,12 +1590,6 @@ function add_eleventh_panel_sliders(){
 
   const buttonSizes = {width: 120, height: 33};
 
-  addButton("eleventh", panelButton2, "uvToXyButton", "UV → XY", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
-    swapControlBackground("uvToXyButton");
-    glo.params.uvToXy = !glo.params.uvToXy;
-    uvToXy();
-    remakeRibbon();
-  });
   addButton("eleventh", panelButton2, "resetEquationsButton", "RESET", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
     resetEquationsParamSliders();
   });
@@ -1628,6 +1597,9 @@ function add_eleventh_panel_sliders(){
     swapControlBackground("switchWritingTypeButton");
     glo.switchWritingType = !glo.switchWritingType;
     switchWritingType(glo.switchWritingType);
+  });
+  addButton("eleventh", panelButton2, "planSwitchEquationsButton", "1 PLAN", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    showAPlane(glo.planSelects.next().value);
   });
   addButton("eleventh", panelButton3, "uMoreOneButton", "U ++", 70, buttonSizes.height, 26, 0, function(value){
     slidersAnim('u', 0, 0.01);

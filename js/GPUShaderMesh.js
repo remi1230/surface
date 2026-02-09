@@ -1923,6 +1923,7 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 		z: glo.params.text_input_z,
 		alpha: glo.params.text_input_alpha,  // ROT Z
 		beta: glo.params.text_input_beta,    // ROT Y
+		theta: glo.params.text_input_theta,    // ROT X
 	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cartesian';
@@ -1931,42 +1932,60 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	/**
 	 * @override
 	 */
+	
 	getPositionGLSL() {
 		const glslX = this.computer.transformExpressionToGLSL(this.equa.x || 'u');
 		const glslY = this.computer.transformExpressionToGLSL(this.equa.y || 'v');
 		const glslZ = this.computer.transformExpressionToGLSL(this.equa.z || '0.0');
-		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
-		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		
+		// Assignation correcte des axes
+		const glslTheta = this.computer.transformExpressionToGLSL(this.equa.theta || '0.0'); // ROT X
+		const glslBeta  = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');  // ROT Y
+		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0'); // ROT Z
 
 		return `
-	// Coordonnées cartésiennes
-	float px = ${glslX};
-	float py = ${glslY};
-	float pz = ${glslZ};
+		// 1. Définition explicite des coordonnées (comme dans votre original)
+		float px = ${glslX};
+		float py = ${glslY};
+		float pz = ${glslZ};
 
-	// Rotations ROT Z (alpha) et ROT Y (beta)
-	float alpha = ${glslAlpha};
-	float beta = ${glslBeta};
+		float theta = ${glslTheta};
+		float beta  = ${glslBeta};
+		float alpha = ${glslAlpha};
 
-	if (alpha != 0.0 || beta != 0.0) {
-		float cosA = cos(alpha);
-		float sinA = sin(alpha);
-		float cosB = cos(beta);
-		float sinB = sin(beta);
+		// 2. Rotation X (Theta) -> Modifie Y et Z
+		if (theta != 0.0) {
+			float c = cos(theta);
+			float s = sin(theta);
+			float tempY = py * c - pz * s;
+			float tempZ = py * s + pz * c;
+			py = tempY;
+			pz = tempZ;
+		}
 
-		// Rotation Y (beta) puis Z (alpha)
-		float x1 = px * cosB - pz * sinB;
-		float z1 = px * sinB + pz * cosB;
-		float x2 = x1 * cosA - py * sinA;
-		float y2 = x1 * sinA + py * cosA;
+		// 3. Rotation Y (Beta) -> Modifie X et Z
+		if (beta != 0.0) {
+			float c = cos(beta);
+			float s = sin(beta);
+			float tempX = px * c + pz * s;
+			float tempZ = -px * s + pz * c; // Notez le signe inversé classique en Y
+			px = tempX;
+			pz = tempZ;
+		}
 
-		px = x2;
-		py = y2;
-		pz = z1;
-	}
+		// 4. Rotation Z (Alpha) -> Modifie X et Y
+		if (alpha != 0.0) {
+			float c = cos(alpha);
+			float s = sin(alpha);
+			float tempX = px * c - py * s;
+			float tempY = px * s + py * c;
+			px = tempX;
+			py = tempY;
+		}
 
-	outPos = vec3(px, py, pz);
-`;
+		// Sortie finale
+		outPos = vec3(px, py, pz);
+	`;
 	}
 }
 
@@ -1985,7 +2004,8 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 		alpha: glo.params.text_input_y,      // ROT Z
 		beta: glo.params.text_input_z,       // ROT Y
 		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
-		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+		beta2: glo.params.text_input_beta,   // ROT Y secondaire
+		theta: glo.params.text_input_theta,   // ROT Y secondaire
 	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'spheric';
@@ -1998,8 +2018,9 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
 		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
 		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
-		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
-		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
+		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+		const glslTheta = this.computer.transformExpressionToGLSL(this.equa.theta || '0.0');
 
 		return `
 	// Coordonnées sphériques
@@ -2018,25 +2039,39 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 	float py = pt.y;
 	float pz = pt.z;
 
-	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	// Rotations secondaires
 	float alpha = ${glslAlpha2};
-	float beta = ${glslBeta2};
+	float beta  = ${glslBeta2};
+	float theta = ${glslTheta};
 
-	if (alpha != 0.0 || beta != 0.0) {
-		float cosA = cos(alpha);
-		float sinA = sin(alpha);
-		float cosB = cos(beta);
-		float sinB = sin(beta);
+	// 2. Rotation X (Theta) -> Modifie Y et Z
+	if (theta != 0.0) {
+		float c = cos(theta);
+		float s = sin(theta);
+		float tempY = py * c - pz * s;
+		float tempZ = py * s + pz * c;
+		py = tempY;
+		pz = tempZ;
+	}
 
-		// Rotation Y (beta2) puis Z (alpha2)
-		float x1 = px * cosB - pz * sinB;
-		float z1 = px * sinB + pz * cosB;
-		float x2 = x1 * cosA - py * sinA;
-		float y2 = x1 * sinA + py * cosA;
+	// 3. Rotation Y (Beta) -> Modifie X et Z
+	if (beta != 0.0) {
+		float c = cos(beta);
+		float s = sin(beta);
+		float tempX = px * c + pz * s;
+		float tempZ = -px * s + pz * c; // Notez le signe inversé classique en Y
+		px = tempX;
+		pz = tempZ;
+	}
 
-		px = x2;
-		py = y2;
-		pz = z1;
+	// 4. Rotation Z (Alpha) -> Modifie X et Y
+	if (alpha != 0.0) {
+		float c = cos(alpha);
+		float s = sin(alpha);
+		float tempX = px * c - py * s;
+		float tempY = px * s + py * c;
+		px = tempX;
+		py = tempY;
 	}
 
 	outPos = vec3(px, py, pz);
@@ -2060,6 +2095,7 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 		beta: glo.params.text_input_z,       // Z (hauteur)
 		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
 		beta2: glo.params.text_input_beta,    // ROT Y secondaire
+		theta: glo.params.text_input_theta,    // ROT Y secondaire
 	}, equa2, dimOne, fractalize) {
 		super(parametres, equa, equa2, dimOne, fractalize);
 		this.coordSystem = 'cylindrical';
@@ -2069,52 +2105,67 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 	 * @override
 	 */
 	getPositionGLSL() {
-		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
-		const glslAlpha = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
-		const glslBeta = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
+		const glslR      = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
+		const glslAlpha  = this.computer.transformExpressionToGLSL(this.equa.alpha || '0.0');
+		const glslBeta   = this.computer.transformExpressionToGLSL(this.equa.beta || '0.0');
 		const glslAlpha2 = this.computer.transformExpressionToGLSL(this.equa.alpha2 || '0.0');
-		const glslBeta2 = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+		const glslBeta2  = this.computer.transformExpressionToGLSL(this.equa.beta2 || '0.0');
+		const glslTheta  = this.computer.transformExpressionToGLSL(this.equa.theta || '0.0');
 
 		return `
-	// Coordonnées cylindriques
-	float cylR = ${glslR};
-	float cylAlpha = ${glslAlpha};
-	float cylHeight = ${glslBeta};
+			// Coordonnées cylindriques
+			float cylR = ${glslR};
+			float cylAlpha = ${glslAlpha};
+			float cylHeight = ${glslBeta};
 
-	// Point de départ : uFirstPoint * R
-	vec3 pt = uFirstPoint * cylR;
+			// Point de départ : uFirstPoint * R
+			vec3 pt = uFirstPoint * cylR;
 
-	// Rotation Z (alpha) uniquement
-	pt = rotateAxis(vec3(0.0, 0.0, 1.0), cylAlpha) * pt;
+			// Rotation Z (alpha) uniquement
+			pt = rotateAxis(vec3(0.0, 0.0, 1.0), cylAlpha) * pt;
 
-	// Hauteur = beta
-	float px = pt.x;
-	float py = pt.y;
-	float pz = cylHeight;
+			// Hauteur = beta
+			float px = pt.x;
+			float py = pt.y;
+			float pz = cylHeight;
 
-	// Rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
-	float alpha = ${glslAlpha2};
-	float beta = ${glslBeta2};
+			// Rotations secondaires
+			float alpha = ${glslAlpha2};
+			float beta  = ${glslBeta2};
+			float theta = ${glslTheta};
 
-	if (alpha != 0.0 || beta != 0.0) {
-		float cosA = cos(alpha);
-		float sinA = sin(alpha);
-		float cosB = cos(beta);
-		float sinB = sin(beta);
+			// 2. Rotation X (Theta) -> Modifie Y et Z
+			if (theta != 0.0) {
+				float c = cos(theta);
+				float s = sin(theta);
+				float tempY = py * c - pz * s;
+				float tempZ = py * s + pz * c;
+				py = tempY;
+				pz = tempZ;
+			}
 
-		// Rotation Y (beta2) puis Z (alpha2)
-		float x1 = px * cosB - pz * sinB;
-		float z1 = px * sinB + pz * cosB;
-		float x2 = x1 * cosA - py * sinA;
-		float y2 = x1 * sinA + py * cosA;
+			// 3. Rotation Y (Beta) -> Modifie X et Z
+			if (beta != 0.0) {
+				float c = cos(beta);
+				float s = sin(beta);
+				float tempX = px * c + pz * s;
+				float tempZ = -px * s + pz * c; // Notez le signe inversé classique en Y
+				px = tempX;
+				pz = tempZ;
+			}
 
-		px = x2;
-		py = y2;
-		pz = z1;
-	}
+			// 4. Rotation Z (Alpha) -> Modifie X et Y
+			if (alpha != 0.0) {
+				float c = cos(alpha);
+				float s = sin(alpha);
+				float tempX = px * c - py * s;
+				float tempY = px * s + py * c;
+				px = tempX;
+				py = tempY;
+			}
 
-	outPos = vec3(px, py, pz);
-`;
+			outPos = vec3(px, py, pz);
+		`;
 	}
 }
 

@@ -6,7 +6,15 @@ fragmentShaders = [
 	// Grille
 	float gu = fract(vUV.x * P);
 	float gv = fract(vUV.y * Q * 0.5);
-	float line = step(1.0 - (lineWidth*coeffLine) / P, gu) + step(1.0 - (lineWidth*coeffLine*2.0) / Q, gv);
+
+	float edgeU = 1.0 - (lineWidth * coeffLine) / P;
+    float edgeV = 1.0 - (lineWidth * coeffLine * 2.0) / Q;
+    float fw = fwidth(vUV.x * P); // largeur d'un pixel en espace UV
+    float fh = fwidth(vUV.y * Q * 0.5);
+    float lineU = smoothstep(edgeU - fw, edgeU + fw, gu);
+    float lineV = smoothstep(edgeV - fh, edgeV + fh, gv);
+    float line = min(lineU + lineV, 1.0);
+
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `

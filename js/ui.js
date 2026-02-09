@@ -300,15 +300,17 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputZ', 'Z');
 			changeHeaderText('header_inputAlpha', 'Rot Z');
 			changeHeaderText('header_inputBeta', 'Rot Y');
+			changeHeaderText('header_inputTheta', 'Rot X');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "CART"; 
 		break;
 		case 'spheric':
 			changeHeaderText('header_inputX', 'R');
-			changeHeaderText('header_inputY', 'Rot Z');
-			changeHeaderText('header_inputZ', 'Rot Y');
-			changeHeaderText('header_inputAlpha', 'Rot2 Y');
-			changeHeaderText('header_inputBeta', 'Rot2 Z');
+			changeHeaderText('header_inputY', 'Rot Y');
+			changeHeaderText('header_inputZ', 'Rot Z');
+			changeHeaderText('header_inputAlpha', 'Rot2 Z');
+			changeHeaderText('header_inputBeta', 'Rot2 Y');
+			changeHeaderText('header_inputTheta', 'Rot2 X');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "SPHE"; 
 		break;
@@ -317,7 +319,8 @@ function switchDrawCoordsType(update_slider_uv = true){
 			changeHeaderText('header_inputY', 'Rot Z');
 			changeHeaderText('header_inputZ', 'Z');
 			changeHeaderText('header_inputAlpha', 'Rot2 Z');
-			changeHeaderText('header_inputBeta', 'Rot Y');
+			changeHeaderText('header_inputBeta', 'Rot2 Y');
+			changeHeaderText('header_inputTheta', 'Rot2 X');
 
 			glo.allControls.getByName("but_coord").textBlock.text = "CYL"; 
 		break;

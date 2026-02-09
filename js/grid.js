@@ -56,15 +56,30 @@ function showPlane(visible, plan){
 	else{
 		switch (plan) {
 			case 'xy':
-				glo.planeXY.dispose(); glo.planeXY = {};
+				if(glo.planeXY && typeof glo.planeXY.dispose === 'function'){ glo.planeXY.dispose(); glo.planeXY = {}; }
 				break;
 			case 'yz':
-				glo.planeYZ.dispose(); glo.planeYZ = {};
+				if(glo.planeYZ && typeof glo.planeYZ.dispose === 'function'){ glo.planeYZ.dispose(); glo.planeYZ = {}; }
 				break;
 			case 'xz':
-				glo.planeXZ.dispose(); glo.planeXZ = {};
+				if(glo.planeXZ && typeof glo.planeXZ.dispose === 'function'){ glo.planeXZ.dispose(); glo.planeXZ = {}; }
 				break;
 		}
+	}
+}
+
+function showPlaneX(visible = true){ showPlane(visible, 'xy'); showPlane(false, 'yz'); showPlane(false, 'xz'); }
+function showPlaneY(visible = true){ showPlane(visible, 'yz'); showPlane(false, 'xy'); showPlane(false, 'xz'); }
+function showPlaneZ(visible = true){ showPlane(visible, 'xz'); showPlane(false, 'xy'); showPlane(false, 'yz'); }
+function showNoPlane(){ showPlane(false, 'xz'); showPlane(false, 'xy'); showPlane(false, 'yz'); }
+
+function showAPlane(plan){
+	switch(plan){
+		case 'x' : showPlaneX(); break;
+		case 'y' : showPlaneY(); break;
+		case 'z' : showPlaneZ(); break;
+
+		case 'none' : showNoPlane(); break;
 	}
 }
 

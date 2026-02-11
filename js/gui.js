@@ -320,19 +320,17 @@ function add_axis_and_rot_buttons(){
   parmamControl(button1, 'fullScreenButton', 'button right first', {h: 30, pL: 10}, true);
   button1.width = 0.2;
   button1.onPointerUpObservable.add(async function() {
-      glo.fullScreen = !glo.fullScreen;
       if (!document.fullscreenElement) {
-          glo.engine.enterFullscreen();
-          button1.textBlock.text = "↘ S";
+          document.documentElement.requestFullscreen();
       } else {
-          glo.engine.exitFullscreen();
-          button1.textBlock.text = "↗ S";
+          document.exitFullscreen();
       }
   });
 
   // Écouter le changement de fullscreen pour resync le GUI
   document.addEventListener('fullscreenchange', () => {
       glo.fullScreen = !!document.fullscreenElement;
+      button1.textBlock.text = glo.fullScreen ? "↘ S" : "↗ S";
 
       setTimeout(() => {
         glo.engine.resize();

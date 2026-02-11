@@ -333,8 +333,20 @@ function add_axis_and_rot_buttons(){
       button1.textBlock.text = glo.fullScreen ? "↘ S" : "↗ S";
 
       setTimeout(() => {
-        glo.engine.resize();
-      }, 100);
+        if (!glo.fullScreen) {
+            // Après sortie du fullscreen, clientHeight peut encore reporter
+            // les dimensions plein écran. Forcer via style inline pour garantir
+            // que engine.resize() lise les bonnes dimensions.
+            var canvas = glo.engine.getRenderingCanvas();
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            glo.engine.resize();
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+        } else {
+            glo.engine.resize();
+        }
+      }, 150);
   });
 
   panel.addControl(button1);

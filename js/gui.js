@@ -321,7 +321,7 @@ function add_axis_and_rot_buttons(){
   button1.width = 0.2;
   button1.onPointerUpObservable.add(async function() {
       if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
+          document.getElementById('univers_div').requestFullscreen();
       } else {
           document.exitFullscreen();
       }

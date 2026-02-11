@@ -49,7 +49,7 @@ fragmentShaders = [
 `,
 `
     //Position
-    col = palette(length(vPosition));
+    col = 1.0-rainbow(length(vPosition));
 `,
 `
     //Normal
@@ -227,7 +227,7 @@ vec3 light(vec3 lampPos, vec3 baseColor) {
 
     vec3 halfDir = normalize(L + V);
     float NdotH = max(dot(N, halfDir), 0.0);
-    float spec = pow(NdotH, 2.0) * 4.0;
+    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
     vec3 specular = baseColor * spec * att;
 
     vec3 ambient = vec3(0.05);
@@ -555,6 +555,8 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform float lampIntensity;
 uniform float lampRadius;
+uniform float lampSpecularIntensity;
+uniform float lampSpecularPower;
 
 ${getFragmentUtilsGLSL()}
 

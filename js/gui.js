@@ -282,19 +282,19 @@ function add_switch_and_help_buttons(){
 }
 function add_axis_and_rot_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 20, pL: -2.5 };
+  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 19.5, pL: -2.5 };
   parmamControl(panel, 'axisAndRotButton', 'panel right first noAutoParam', options);
   panel.isVertical = false;
   glo.advancedTexture.addControl(panel);
 
-  addButton("first", panel, "but_axis", "AXIS", 70, 100/3, 10, 0, function(){
+  addButton("first", panel, "but_axis", "AXIS", 70, 30, 10, 0, function(){
     glo.axis_visible = !glo.axis_visible;
     if(glo.first_axis_visible){ showAxis(glo.axis_size, 1); glo.first_axis_visible = false; }
     else{
       switch_axis();
     }
   });
-  addButton("first", panel, "but_rot", "Rot α", 70, 100/3, 10, 0, function(){
+  addButton("first", panel, "but_rot", "Rot α", 70, 30, 10, 0, function(){
     const rotType = glo.rotType.next().value;
 
     switch(rotType.next){
@@ -316,7 +316,7 @@ function add_axis_and_rot_buttons(){
   });
 
   var button1 = BABYLON.GUI.Button.CreateSimpleButton("but_screen", "↗ S");
-  parmamControl(button1, 'fullScreenButton', 'button right first', {h: 35, pL: 10}, true);
+  parmamControl(button1, 'fullScreenButton', 'button right first', {h: 30, pL: 10}, true);
   button1.width = 0.2;
   button1.onPointerUpObservable.add(async function() {
       glo.fullScreen = !glo.fullScreen;
@@ -347,7 +347,7 @@ function add_axis_and_rot_buttons(){
   panel.addControl(button1);
   glo.fullScreenButton = button1;
 
-  addButton("first", panel, "but_resolution", "Rx1", 70, 100/3, 10, 0, function(){
+  addButton("first", panel, "but_resolution", `Rx${glo.resolutionCoeff}`, 70, 30, 10, 0, function(){
     changeResolution('increase');
     glo.allControls.getByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   }, function(){
@@ -360,7 +360,7 @@ function add_lines_and_dim_buttons(){
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftLineDim; }
   });
-  var top_panel = -3;
+  var top_panel = -3.42;
 
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: top_panel, pL: 2.33};

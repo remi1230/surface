@@ -788,10 +788,14 @@ function customSlidersBar(barOffset, thumbWidth = false) {
       if(thumbWidth) control.thumbWidth = thumbWidth;
   });
 }
+function applyHeightToButtons(height = glo.theme.button.height){
+	glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(button => { button.height = `${height}px`; });
+}
 
 function styleUI(fontSizeToAdd = -1){		
 	applyFontToHeaders('Poppins', 300, fontSizeToAdd);
     applyFontToButtons('Poppins', 400, fontSizeToAdd);
+    applyHeightToButtons();
     applyFontToInputs('Inter', 400, fontSizeToAdd);
     applyFontStyleToTitle();
     customSlidersBar("6px", "21px");

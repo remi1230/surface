@@ -81,10 +81,11 @@ Game = function(canvasId) {
   glo.end_loop = false;
   _this.scene.executeWhenReady(function() {
     engine.runRenderLoop(function() {
-        if (glo.rotateType != 'none') { rotate_camera(); }
-
         _this.scene.render();
     });
+  });
+  _this.scene.registerBeforeRender(() => {
+    if (glo.rotateType !== 'none') rotate_camera();
   });
 };
 
@@ -103,20 +104,21 @@ Game.prototype = {
 
 g = new Game('renderCanvas');
 
-function rotate_camera(){
-	if(glo.ribbon){
-		const speed = glo.rotate_speed;
-		switch(glo.rotateType.current){
-			case 'alpha':
-				glo.camera.alpha += speed;
-			break;
-			case 'beta':
-				glo.camera.beta += speed;
-			break;
-			case 'teta':
-				glo.camera.alpha += speed;
-				glo.camera.beta += speed;
-			break;
-		}
-	}
+function rotate_camera() {
+  if (glo.ribbon) {
+    const dt = glo.engine.getDeltaTime() / 1000; // en secondes
+    const speed = glo.rotate_speed * dt * 60; // normalise pour ~60fps
+    switch (glo.rotateType.current) {
+      case 'alpha':
+        glo.camera.alpha += speed;
+        break;
+      case 'beta':
+        glo.camera.beta += speed;
+        break;
+      case 'teta':
+        glo.camera.alpha += speed;
+        glo.camera.beta += speed;
+        break;
+    }
+  }
 }

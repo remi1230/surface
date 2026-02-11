@@ -238,8 +238,8 @@ class ShaderMeshBase {
 		// Traiter les équations
 		this.equa = equa;
 		this.equa2 = equa2;
-		this.processEquations(this.equa);
-		this.processEquations(this.equa2);
+		//this.processEquations(this.equa);
+		//this.processEquations(this.equa2);
 
 		// Initialiser les paramètres U
 		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
@@ -276,7 +276,7 @@ class ShaderMeshBase {
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0.0;
 		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0.0;
 
-		this.w = performance.now() * 0.001;
+		this.t = performance.now() * 0.001;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
@@ -483,7 +483,7 @@ uniform float uMinU, uMaxU, uStepU;
 uniform float uMinV, uMaxV, uStepV;
 uniform float uStepsU, uStepsV;
 uniform float A, B, C, D, E, F, G, H, I, J, K, L, M, P, Q, S, T;
-uniform float w;
+uniform float t;
 uniform float eps;
 uniform float scaleNorm;
 uniform int deformationEnabled;
@@ -527,7 +527,7 @@ vec3 computePosition(float u, float v, float i, float j) {
 	float d = mod(j, 2.0) == 0.0 ? -1.0 : 1.0;
 	float k = mod(i, 2.0) == 0.0 ? -1.0 : 1.0;
 	float p = mod(i, 2.0) == 0.0 ? -u : u;
-	float t = mod(j, 2.0) == 0.0 ? -v : v;
+	float w = mod(j, 2.0) == 0.0 ? -v : v;
 	float n = i * (uStepsV + 1.0) + j;
 
 	vec3 outPos;
@@ -666,7 +666,7 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
 	float p = k < 0.0 ? -u : u;
-	float t = d < 0.0 ? -v : v;
+	float w = d < 0.0 ? -v : v;
 
 	float g = xN * yN * zN;
 
@@ -760,11 +760,13 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform float lampIntensity;
 uniform float lampRadius;
+uniform float lampSpecularIntensity;
+uniform float lampSpecularPower;
 uniform float invcol;
 uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
-uniform float w;
+uniform float t;
 uniform float islight;
 uniform float opt1;
 uniform float opt2;
@@ -774,7 +776,7 @@ uniform float Q;
 uniform float S;
 uniform float T;
 
-#define time w
+#define time t
 
 ${getFragmentUtilsGLSL()}
 
@@ -818,13 +820,13 @@ void main() {
 					"uMinV", "uMaxV", "uStepV",
 					"uStepsU", "uStepsV",
 					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "P", "Q", "S", "T",
-					"w", "eps", "scaleNorm", "deformationEnabled",
+					"t", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"flatAmount", "twistAmount", "spherifyAmount",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius",
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower',
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
 				]
 			}
@@ -872,7 +874,7 @@ void main() {
 
 		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
 				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
-				this.shaderMaterial.setFloat("w", performance.now() * 0.001);
+				this.shaderMaterial.setFloat("t", performance.now() * 0.001);
 				this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
@@ -928,7 +930,7 @@ void main() {
 		mat.setFloat("Q", this.Q);
 		mat.setFloat("S", this.S);
 		mat.setFloat("T", this.T);
-		mat.setFloat("w", this.w);
+		mat.setFloat("t", this.t);
 		mat.setFloat("opt1", this.opt1);
 		mat.setFloat("opt2", this.opt2);
 		mat.setFloat("opt3", this.opt3);
@@ -980,7 +982,7 @@ void main() {
 		));
 
 		// Temps
-		mat.setFloat("w", performance.now() * 0.001);
+		mat.setFloat("t", performance.now() * 0.001);
 
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
@@ -1008,6 +1010,8 @@ void main() {
 		));
 		mat.setFloat("lampIntensity", glo.shaders.light.intensity);
 		mat.setFloat("lampRadius", glo.shaders.light.radius);
+		mat.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
+		mat.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
 
 		// Grille
 		mat.setFloat("gridU", glo.params.steps_u);
@@ -1052,7 +1056,7 @@ void main() {
 		this.shaderMaterial.setFloat("K", this.K);
 		this.shaderMaterial.setFloat("L", this.L);
 		this.shaderMaterial.setFloat("M", this.M);
-		this.shaderMaterial.setFloat("w", this.w);
+		this.shaderMaterial.setFloat("t", this.t);
 	}
 
 	/**
@@ -1107,6 +1111,8 @@ void main() {
 		));
 		this.shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
 		this.shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
+		this.shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
+		this.shaderMaterial.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
 	}
 
 	/**
@@ -1367,7 +1373,7 @@ uniform float uMinU, uMaxU, uStepU;
 uniform float uMinV, uMaxV, uStepV;
 uniform float uStepsU, uStepsV;
 uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
-uniform float w;
+uniform float t;
 uniform float eps;
 uniform float scaleNorm;
 uniform int deformationEnabled;
@@ -1450,7 +1456,7 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
 	float p = k < 0.0 ? -u : u;
-	float t = d < 0.0 ? -v : v;
+	float w = d < 0.0 ? -v : v;
 
 	float g = xN * yN * zN;
 
@@ -1563,7 +1569,7 @@ void main() {
 
 		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
 			this.shaderMaterial.setFloat("time", performance.now() * 0.001);
-			this.shaderMaterial.setFloat("w", performance.now() * 0.001);
+			this.shaderMaterial.setFloat("t", performance.now() * 0.001);
 			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
@@ -1807,8 +1813,8 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('uStepsV', this.nb_steps_v);
 
 		// Variables utilisateur
-		setF('A', params.A);
-		setF('B', params.B);
+		setF('A', glo.params.A);
+		setF('B', glo.params.B);
 		setF('C', glo.params.C);
 		setF('D', glo.params.D);
 		setF('E', glo.params.E);
@@ -1822,7 +1828,7 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('M', glo.params.M);
 
 		// Temps et epsilon
-		setF('w', performance.now() * 0.001);
+		setF('t', performance.now() * 0.001);
 		setF('eps', 0.001);
 		setF('scaleNorm', glo.scaleNorm || 1.0);
 		setI('deformationEnabled', deformationEnabled ? 1 : 0);

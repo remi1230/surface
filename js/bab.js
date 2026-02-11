@@ -46,6 +46,7 @@ Game = function(canvasId) {
     doNotHandleContextLost: true,
     disableWebGL2Support: false
   });
+  
   canvas.height = window.innerHeight;
   engine.resize();
   engine.enableOfflineSupport = false;

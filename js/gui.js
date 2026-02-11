@@ -52,7 +52,6 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
 
 function add_gui_controls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
-  //glo.advancedTexture.idealWidth = 1920;
   glo.advancedTexture.useSmallestIdeal = false;
 
   add_switch_and_help_buttons();
@@ -320,23 +319,33 @@ function add_axis_and_rot_buttons(){
   parmamControl(button1, 'fullScreenButton', 'button right first', {h: 30, pL: 10}, true);
   button1.width = 0.2;
   button1.onPointerUpObservable.add(async function() {
-      glo.fullScreen = !glo.fullScreen;
       if (!document.fullscreenElement) {
-          glo.engine.enterFullscreen();
-          button1.textBlock.text = "↘ S";
+          document.getElementById('univers_div').requestFullscreen();
       } else {
-          glo.engine.exitFullscreen();
-          button1.textBlock.text = "↗ S";
+          document.exitFullscreen();
       }
   });
 
   // Écouter le changement de fullscreen pour resync le GUI
   document.addEventListener('fullscreenchange', () => {
       glo.fullScreen = !!document.fullscreenElement;
-      
+      button1.textBlock.text = glo.fullScreen ? "↘ S" : "↗ S";
+
       setTimeout(() => {
-        glo.engine.resize();
-      }, 100);
+        if (!glo.fullScreen) {
+            // Après sortie du fullscreen, clientHeight peut encore reporter
+            // les dimensions plein écran. Forcer via style inline pour garantir
+            // que engine.resize() lise les bonnes dimensions.
+            var canvas = glo.engine.getRenderingCanvas();
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            glo.engine.resize();
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+        } else {
+            glo.engine.resize();
+        }
+      }, 150);
   });
 
   panel.addControl(button1);

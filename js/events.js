@@ -37,6 +37,10 @@ $( document ).ready(async function() {
    styleUI();
 });
 
+window.addEventListener('resize', () => {
+   glo.engine.resize();
+});
+
 $("#univers_div").mouseenter(function(){
 	$("#univers_div").css('cursor', 'pointer');
 });

@@ -766,6 +766,8 @@ function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false)
   glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
   });
+  glo.allControls.getByName('but_goBack').textBlock.fontSize = '20px';
+  glo.allControls.getByName('but_goTo').textBlock.fontSize   = '20px';
 }
 function applyFontToInputs(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('input').forEach(control => {

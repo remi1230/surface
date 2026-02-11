@@ -52,7 +52,8 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
 
 function add_gui_controls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
-  glo.advancedTexture.useSmallestIdeal = true;
+  //glo.advancedTexture.idealWidth = 1920;
+  glo.advancedTexture.useSmallestIdeal = false;
 
   add_switch_and_help_buttons();
   add_axis_and_rot_buttons();
@@ -321,10 +322,10 @@ function add_axis_and_rot_buttons(){
   button1.onPointerUpObservable.add(async function() {
       glo.fullScreen = !glo.fullScreen;
       if (!document.fullscreenElement) {
-          await glo.canvas.requestFullscreen();
+          glo.engine.enterFullscreen();
           button1.textBlock.text = "↘ S";
       } else {
-          await document.exitFullscreen();
+          glo.engine.exitFullscreen();
           button1.textBlock.text = "↗ S";
       }
   });
@@ -334,13 +335,7 @@ function add_axis_and_rot_buttons(){
       glo.fullScreen = !!document.fullscreenElement;
       
       setTimeout(() => {
-          glo.engine.resize();
-          
-          // Resync le GUI
-          glo.advancedTexture.scaleTo(
-              glo.engine.getRenderWidth(), 
-              glo.engine.getRenderHeight()
-          );
+        glo.engine.resize();
       }, 100);
   });
 
@@ -363,7 +358,7 @@ function add_lines_and_dim_buttons(){
   var top_panel = -3.42;
 
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: top_panel, pL: 2.33};
+  var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: top_panel, pL: 1.75};
   parmamControl(panel, 'lineDim', 'panel left first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
@@ -391,7 +386,7 @@ function add_lines_and_dim_buttons(){
 }
 function add_switchForm_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6, t: -1, };
+  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.33, t: -1, };
   parmamControl(panel, 'panelswitchFormButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
@@ -403,8 +398,8 @@ function add_switchForm_buttons(){
   }
   
 
-  addButton("first", panel, "but_goBack", "<", 80, 30, 10, 0, function(){switchRadios(false);}, undefined, 'left');
-  addButton("first", panel, "but_goTo", ">", 80, 30, 10, 0, function(){switchRadios(true)}, undefined, 'left');
+  addButton("first", panel, "but_goBack", "<", 60, 30, 10, 0, function(){switchRadios(false);}, undefined, 'left');
+  addButton("first", panel, "but_goTo", ">", 60, 30, 10, 0, function(){switchRadios(true)}, undefined, 'left');
 }
 
 function add_views_buttons(){
@@ -466,7 +461,7 @@ function add_views_buttons(){
 function add_uv_sliders(){
   function add_slider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
-    parmamControl(panel, "panel_" + name, 'panel left first');
+    parmamControl(panel, "panel_" + name, 'panel left first', {left: -20});
     glo.advancedTexture.addControl(panel);
 
     var min_start = -glo['params'][gloPropToModify].toFixed(2);
@@ -476,7 +471,7 @@ function add_uv_sliders(){
     panel.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
-    parmamControl(slider, name, 'slider left first', {minimum: 0, maximum: 6*PI, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify]});
+    parmamControl(slider, name, 'slider left first', {w: 105, minimum: 0, maximum: 6*PI, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify]});
     glo[gloPropToAssignInput] = slider;
 
     slider.onValueChangedObservable.add(async function (value) {
@@ -514,7 +509,7 @@ function add_inputs_equations(){
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
 
-  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 20, pR: 1, t: 14.25, h: 30, pL: 1});
+  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 20, pR: 1, t: 14.25, h: 30, pL: 0.5});
 
   var options = {hAlign: 'right', vAlign: 'top', w: 20, t: 30};
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
@@ -603,7 +598,7 @@ function add_inputs_equations(){
   add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
   add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
 
-  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false);
+  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, 354);
 
   add_input(panelEvalY, "X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
   add_input(panelEvalY, "Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
@@ -639,7 +634,6 @@ function add_radios(suit = false){
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftRadios; topShiftLineDim+=glo.shiftLineDim; }
   });
   var top_panel = 51;
-  var top_panel_line_dim = -3;
 
   if(glo.first_radio){
     var panel = new BABYLON.GUI.StackPanel();
@@ -651,7 +645,7 @@ function add_radios(suit = false){
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
     glo.advancedTexture.addControl(panel);
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 15});
+    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 25});
     panel.addControl(header);
   }
 
@@ -698,7 +692,6 @@ function add_radios(suit = false){
   if(!glo.first_radio){
     var panel = glo.allControls.getByName('panelRadios');
     glo.allControls.getByName('panelRadios').top = top_panel + '%';
-    glo.allControls.getByName('lineDim').top = top_panel_line_dim + '%';
     glo.formes.select.map( forme => {
         var radio_form = glo.radios_formes.getByName("Radio-" + forme.text);
         if(radio_form != false){

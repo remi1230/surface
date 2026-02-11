@@ -45,7 +45,7 @@ var glo = {
 		select:[
 			{text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "cosh(v/2)cu", fy: ".5v", fz: "cosh(v/2)su", check: false, orient: {distance: 12.5, axis: "X", direction: 1, alpha: 0, beta: -PI/8}},
 			{text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,  fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "cu", beta:"cusu", theta: "", check: false, orient: {distance: 12.5, axis: "X", direction: 1, alpha: -PI/8, beta: PI}},
-			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "G(cv + 1)", check: false, orient: {distance: 12.5, axis: "X", direction: 1, alpha: PI/4, beta: -PI/8}},
+			{text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,  fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "G(c(vct)+1)", beta:"t", theta: "t", check: false, orient: {distance: 12.5, axis: "X", direction: 1, alpha: PI/2, beta: -PI/6}},
 			{text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,  fx: ".125u", fy: ".125v", fz: ".125sucv", check: false, orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 10}},
 			{text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "c(u+.001)", fy: "cv", fz: "cupv", check: false, orient: {axis: "X", direction: -1, alpha: PI/3, beta: -PI/4, distance: 8} },
 			{text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32, fx: "(1/3)sinh(v)su", fy: "u", fz: "-(1/3)sinh(v)cu", check: false, orient: {distance: 20, axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4}},
@@ -757,7 +757,7 @@ var glo = {
 		},
 		radio:{
 			text:{
-				color : '#eee',
+				color : '#dce3f2',
 			},
 			button:{
 				width      : '9px',

@@ -333,9 +333,10 @@ function add_axis_and_rot_buttons(){
   // Écouter le changement de fullscreen pour resync le GUI
   document.addEventListener('fullscreenchange', () => {
       glo.fullScreen = !!document.fullscreenElement;
-      
+
       setTimeout(() => {
         glo.engine.resize();
+        gui_resize();
       }, 100);
   });
 

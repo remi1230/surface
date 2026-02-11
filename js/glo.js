@@ -574,6 +574,8 @@ var glo = {
 	  }
 	},
 	coeff_gui_resize: {
+		width_3840: 2.25,
+		width_2560: 1.5,
 		width_1920: 1.125,
 		width_1600: 1,
 		width_1366: 0.9,

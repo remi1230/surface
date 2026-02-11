@@ -441,13 +441,16 @@ function paramRadios(){
 }
 
 function gui_resize(){
-	var w = window.screen.width;
-	var h = window.screen.height;
+	var w = window.innerWidth;
+	var h = window.innerHeight;
 	var coeff = glo.coeff_gui_resize.width_1920;
-	if(w < 1367){ coeff = glo.coeff_gui_resize.width_1366; }
-	else if(w < 1601){ coeff = glo.coeff_gui_resize.width_1600; }
+	if(w >= 3840){ coeff = glo.coeff_gui_resize.width_3840; }
+	else if(w >= 2560){ coeff = glo.coeff_gui_resize.width_2560; }
+	else if(w >= 1920){ coeff = glo.coeff_gui_resize.width_1920; }
+	else if(w >= 1600){ coeff = glo.coeff_gui_resize.width_1600; }
+	else { coeff = glo.coeff_gui_resize.width_1366; }
 
-	coeff/=Math.pow(window.devicePixelRatio, 0.75);
+	coeff /= Math.pow(window.devicePixelRatio, 0.75);
 
 	glo.advancedTexture.idealWidth = w / coeff;
 	glo.advancedTexture.idealHeight = h / coeff;

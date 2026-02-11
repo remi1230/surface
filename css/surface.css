@@ -103,6 +103,10 @@ html, body {
     padding: 0;
     cursor: pointer;
 }
+#univers_div {
+    width: 100%;
+    height: 100%;
+}
 td{
   text-align: center;
 }

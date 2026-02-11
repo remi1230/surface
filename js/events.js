@@ -25,7 +25,7 @@ $( document ).ready(async function() {
       if(panelClass !== glo.guiSelect){ toggleGuiControlsByClass(false, panelClass); }
    });
 
-   gui_resize();
+   //gui_resize();
    initExportModal();
    $('.modal').not('#exportModal').modal();
    $('select').formSelect();
@@ -39,7 +39,6 @@ $( document ).ready(async function() {
 
 window.addEventListener('resize', () => {
    glo.engine.resize();
-   gui_resize();
 });
 
 $("#univers_div").mouseenter(function(){

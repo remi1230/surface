@@ -336,7 +336,6 @@ function add_axis_and_rot_buttons(){
 
       setTimeout(() => {
         glo.engine.resize();
-        gui_resize();
       }, 100);
   });
 

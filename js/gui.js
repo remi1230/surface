@@ -294,10 +294,9 @@ function add_axis_and_rot_buttons(){
       switch_axis();
     }
   });
-  addButton("first", panel, "but_rot", "Rot α", 70, 30, 10, 0, function(){
-    const rotType = glo.rotType.next().value;
 
-    switch(rotType.next){
+  function switchRotateTypeText(rotType = glo.rotateType.current){
+    switch(rotType){
       case 'alpha':
         glo.allControls.getByName("but_rot").textBlock.text = "Rot α";
       break;
@@ -308,11 +307,19 @@ function add_axis_and_rot_buttons(){
         glo.allControls.getByName("but_rot").textBlock.text = "Rot θ";
       break;
       case 'none' :
-        glo.allControls.getByName("but_rot").textBlock.text = "Stop";
+        glo.allControls.getByName("but_rot").textBlock.text = "ROT";
       break;
     }
+  }
 
-    glo.meshChannel.postMessage({ action: 'setRotateType', rotType: rotType.next });
+  addButton("first", panel, "but_rot", "ROT", 70, 30, 10, 0, function(){
+    genInTwoWays(glo.rotType, 'rotateType', true);
+    switchRotateTypeText();
+    glo.meshChannel.postMessage({ action: 'setRotateType', rotType: glo.rotateType });
+  }, function(){
+    genInTwoWays(glo.rotType, 'rotateType', false);
+    switchRotateTypeText();
+    glo.meshChannel.postMessage({ action: 'setRotateType', rotType: glo.rotateType });
   });
 
   var button1 = BABYLON.GUI.Button.CreateSimpleButton("but_screen", "↗ S");

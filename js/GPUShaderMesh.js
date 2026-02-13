@@ -637,8 +637,6 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float p = k < 0.0 ? -u : u;
 	float w = d < 0.0 ? -v : v;
 
-	float g = xN * yN * zN;
-
 	${glslDeformBlock}
 }
 
@@ -1419,8 +1417,6 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
 	float p = k < 0.0 ? -u : u;
 	float w = d < 0.0 ? -v : v;
-
-	float g = xN * yN * zN;
 
 	${glslDeformBlock}
 }

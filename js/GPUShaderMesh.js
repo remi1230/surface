@@ -376,6 +376,9 @@ float m() {
 	float deformCoeff2 = 1.0/deformCoeff1;
 	return deformCoeff2*cos(gx * deformCoeff1) * cos(gy * deformCoeff1) * cos(gz * deformCoeff1);
 }
+vec3 m(vec3 pos) {
+	return vec3(m(pos.x), m(pos.y), m(pos.z));
+}
 
 // Fonctions de déformation o()
 float o(float ncx, float ncy, float ncz) {
@@ -583,40 +586,6 @@ vec3 applySymmetry(vec3 pos) {
 }
 
 // ============================================================
-// TRANSFORMATIONS ADDITIONNELLES (flat, twist, spherify, wave)
-// ============================================================
-vec3 applyTransformations(vec3 pos, float u, float v) {
-	vec3 result = pos;
-
-	// FLAT : Aplatir vers Y = 0
-	if (flatAmount > 0.0) {
-		result.y = mix(result.y, 0.0, flatAmount);
-	}
-
-	// TWIST : Rotation autour de Y proportionnelle à Y
-	if (twistAmount != 0.0) {
-		float angle = result.y * twistAmount;
-		float c = cos(angle);
-		float s = sin(angle);
-		float newX = result.x * c - result.z * s;
-		float newZ = result.x * s + result.z * c;
-		result.x = newX;
-		result.z = newZ;
-	}
-
-	// SPHERIFY : Interpolation vers une sphère
-	if (spherifyAmount > 0.0) {
-		float radius = length(result);
-		if (radius > 0.001) {
-			vec3 spherePos = normalize(result) * radius;
-			result = mix(result, spherePos, spherifyAmount);
-		}
-	}
-
-	return result;
-}
-
-// ============================================================
 // DÉFORMATION PAR NORMALES (ondes de surface via sliders Norm/n)
 // ============================================================
 vec3 applyNormDeformation(vec3 pos, vec3 normal) {
@@ -686,20 +655,13 @@ void main() {
 	vec3 pos = computePosition(u, v, i, j);
 
 	// ============================================================
-	// ETAPE 2 : Appliquer les transformations additionnelles
-	// ============================================================
-	//pos = applyTransformations(pos, u, v);
-
-	// ============================================================
-	// ETAPE 2b : Appliquer la symétrisation (rotation des copies)
+	// ETAPE 2 : Appliquer la symétrisation (rotation des copies)
 	// ============================================================
 	pos = applySymmetry(pos);
 
 	// ============================================================
 	// ETAPE 3 : Calculer la normale par différences finies
 	// ============================================================
-	//vec3 posU = applySymmetry(applyTransformations(computePosition(u + eps, v, i, j), u + eps, v));
-	//vec3 posV = applySymmetry(applyTransformations(computePosition(u, v + eps, i, j), u, v + eps))
 	vec3 posU = applySymmetry(computePosition(u + eps, v, i, j));
 	vec3 posV = applySymmetry(computePosition(u, v + eps, i, j));
 

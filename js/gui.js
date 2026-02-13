@@ -1754,6 +1754,7 @@ function add_transformation_sliders(){
       checked.forEach(function(axis){
         axisState[axis].value = value;
         glo.params[baseName + axis.toUpperCase()] = value;
+        glo.params.meshTransformations[baseName][axis] = value;
       });
 
       slider.lastValue = value;
@@ -1792,7 +1793,6 @@ function add_transformation_sliders(){
     axes.forEach(function(axis){
       transformMesh('scaling', axis, value);
     });
-    //applyTransformations();
   });
   
   addXYZSlider(panel, "rotation", "Rotation", 0, 3, -2*PI, 2*PI, PI/180, function(value, axes){ 

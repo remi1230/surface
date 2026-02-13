@@ -48,6 +48,19 @@ fragmentShaders = [
     col = vec3(0.125, 0.75, 0.85);
 `,
 `
+    //Lego
+    float nb = P/4.0;
+    vec3 pos = Q*floor(vPosition * nb)/(16.0*32.0);
+
+    pos = vec3(m(pos), o(pos), hc(pos));
+
+    vec3 col1 = rainbop(pos.x, pos);
+    vec3 col2 = rainbop(pos.y, pos);
+    vec3 col3 = rainbop(pos.z, pos);
+
+    col = mix(col1, col2, Ts(2.0)*col3);
+`,
+`
     //Position
     col = 1.0-rainbow(length(vPosition));
 `,
@@ -261,6 +274,13 @@ vec3 rainbow(float t) {
     float r = abs(sin(t * 6.28 + 0.0));
     float g = abs(sin(t * 6.28 + 2.09));
     float b = abs(sin(t * 6.28 + 4.19));
+    return vec3(r, g, b);
+}
+
+vec3 rainbop(float t, vec3 p) {
+    float r = abs(sin(t * 6.28 + p.x));
+    float g = abs(sin(t * 6.28 + p.y));
+    float b = abs(sin(t * 6.28 + p.z));
     return vec3(r, g, b);
 }
 

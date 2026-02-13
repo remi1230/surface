@@ -76,27 +76,27 @@ var glo = {
 			{text: "Heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "u", fz: "v/2", alpha: "", beta: "(cu**8)8suv", theta: "", check: false, orient: {distance: 6, axis: "X", direction: -1, alpha: 0, beta: PI, offset:{z:-0.5}}},
 			{text: "Nautile", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "cu", fy: "-u", fz: "v", alpha: "cv", beta: "cusu", theta: "", check: false, orient: {distance: 7, axis: "Y", direction: -1, alpha: -5*PI/4, beta: 0} },
 			{text: "Pen mine", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "(u+c(u+c(v+vsu)))", fy: "u+cu", fz: "v", check: false, orient: {distance: 7, axis: "Z", direction: 1, alpha: -2*PI/3, beta: -9*PI/8}},
-			{text: "Propeller", typeCoords: 'spheric', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "s(.2v)", fz: "vc(.2v)s(.2u)", check: false, orient: {distance: 7, axis: "X", direction: 1, alpha: 0, beta: PI}},
-			{text: "Seashell heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u(cv+1)", fy: "usv", fz: "ucv", check: false, orient: {distance: 7, axis: "Y", direction: -1, alpha: -5*PI/4, beta: -PI/4}},
-			{text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "v", fz: "u", check: false, orient: {distance: 7, axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8} },
-			{text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u", fz: "v", check: false, orient: {distance: 7, axis: "X", direction: 1, alpha: -PI/8, beta: -PI/8}},
-			{text: "Sphere rosette", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u-v", fz: "u+v", check: false, orient: {distance: 7, axis:"X", direction : 1 , alpha : -PI/8 , beta : -PI/8}},
-			{text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3,  fx:"u" , fy:"pi/4" , fz:"u+v" , check:false , orient:{distance :7 , axis :"X" , direction :1 , alpha :PI/4 , beta :-PI/8}},
-			{text:"Spiral penta curve" , typeCoords :"spheric" , udef :PI , vdef :PI , nb_steps_u :256 , nb_steps_v :5 , fx :"u" , fy :"pi/4" , fz :"2(u+v)" , alpha :"a(u/(3+2/3))+pi/(2**0.5)" , check:false , orient:{distance :7,axis :"X" , direction :1,alpha :3.5*PI/4,beta :0}},
-			{text:"Twisted weathercock" , typeCoords :"spheric" , udef :PI/2,vdef :PI,nb_steps_u :128,nb_steps_v :256, fx :"pi+c(12(u+v))", fy :"u", fz :"v", alpha :"", beta :"u/1.1", theta:"", check:false, orient:{distance :7,axis :"X",direction :-1,alpha :PI,beta :-PI/12}},
-			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128, fx: "u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, orient: {distance: 7, axis: "X", direction: -1, alpha: 0, beta: 0}},
-			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,  orient: {distance: 7, axis: "X", direction: 1, alpha: 0, beta: -PI/4}},
-			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "1", fy: "v", fz: "u", check: false, orient: {distance: 7, axis: "X", direction: 1, alpha: PI/4, beta: -PI/12}},
-			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "us(fact(v))", fz: "6ucvs(60u)", check: false, orient: {distance :7,axis :"Z" , direction :-1,alpha :PI/8,beta :-PI/16}},
+			{text: "Propeller", typeCoords: 'spheric', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "s(.2v)", fz: "vc(.2v)s(.2u)", check: false, orient: {distance: 60, axis: "Y", direction: 1, alpha: PI/4, beta: 0}},
+			{text: "Seashell heart", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u(cv+1)", fy: "usv", fz: "ucv", check: false, orient: {distance: 15, axis: "Y", direction: -1, alpha: 5*PI/4, beta: -PI/4}},
+			{text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "v", fz: "u", check: false, orient: {distance: 7, axis: "Y", direction: 1, alpha: -PI/8, beta: -PI/8} },
+			{text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u", fz: "v", check: false, orient: {distance: 7, axis: "Y", direction: 1, alpha: -PI/8, beta: -PI/8}},
+			{text: "Sphere rosette", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,  fx: "1", fy: "u-v", fz: "u+v", check: false, orient: {distance: 7, axis:"Y", direction : 1 , alpha : -PI/8 , beta : -PI/8}},
+			{text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3/4,  fx:"u" , fy:"pi/4" , fz:"u+v" , check:false , orient:{distance :15 , axis :"Y" , direction :1 , alpha :PI/4 , beta :-PI/8}},
+			{text:"Spiral penta curve" , typeCoords :"spheric" , udef :PI , vdef :PI , nb_steps_u :256 , nb_steps_v :5/4 , fx :"u" , fy :"pi/4" , fz :"2(u+v)" , alpha :"a(u/(3+2/3))+pi/(2**0.5)" , check:false , orient:{distance :15,axis :"Y" , direction :1,alpha :3.5*PI/4,beta :0}},
+			{text:"Twisted weathercock" , typeCoords :"spheric" , udef :PI/2,vdef :PI,nb_steps_u :128,nb_steps_v :256, fx :"pi+c(12(u+v))", fy :"u", fz :"v", alpha :"", beta :"u/1.1", theta:"", check:false, orient:{distance :20,axis :"X",direction :1,alpha :PI/16,beta :-PI/16}},
+			{text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128, fx: "u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false, orient: {distance: 15, axis: "X", direction: 1, alpha: PI/2, beta: -PI/12}},
+			{text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256, fx: "c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,  orient: {distance: 7, axis: "X", direction: -1, alpha: 0, beta: -PI/4}},
+			{text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  fx: "1", fy: "v", fz: "u", check: false, orient: {distance: 15, axis: "X", direction: 1, alpha: PI/4, beta: -PI/12}},
+			{text: "Egyptian tiara", typeCoords: 'cylindrical', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "6uv²-v**3", fy: "us(fact(v))", fz: "6ucvs(60u)", check: false, orient: {distance :15,axis :"Z" , direction :-1,alpha :PI/8,beta :-PI/16}},
 			{text: "Hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "v²", fy: "u", fz: "v", check: false, orient: {distance: 7, axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
-			{text: "Inverse hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 124,  fx: "1/(4v)", fy: "u", fz: "4v", check: false, orient: {distance: 7, axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
-			{text: "Invsin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 124,  fx: "1/(4v)", fy: "u", fz: "4v+s(6Gu)", check: false, orient: {distance :7,axis :"X" , direction :-1,alpha :0,beta :-PI/12}},
-			{text:"Invspin hyperbola" , typeCoords :"cylindrical" , udef :PI,vdef :PI,nb_steps_u :64,nb_steps_v :164 , fx :"1/(12v)", fy :"u", fz :"(8+2/3)v", beta :"3vsi(v)/2", check:false , orient:{distance :7,axis :"X" , direction :-1,alpha :PI/4,beta :-PI/12}},
-			{text:"Moebius" , typeCoords :"cylindrical" , udef :PI,vdef :1,nb_steps_u :128,nb_steps_v :128 , fx :"(1+ 0.5vc(0.5u))cu", fy :"(1+ 0.5vc(0.5u))su", fz :"0.5vs(0.5u)", check:false , orient:{distance :7,axis :"X" , direction :-1,alpha :PI/3,beta :-PI/12}},
-			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "u", fy: "v", fz: "v", check: false, orient: {distance: 7, axis: "X", direction: -1, alpha: PI/4, beta: -PI/4}},
-			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", beta: "c(60u)/12", check: false, orient: {distance: 7, axis: "X", direction: -1, alpha: PI/4, beta: -PI/4}},
-			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, orient: {distance :7,axis :"X" , direction :1,alpha :PI/4,beta :-PI/8}},
-			{text:"Spiral 4" , typeCoords :"cylindrical" , udef :PI/2,vdef :PI/2,nb_steps_u :128,nb_steps_v :128 , fx :"4uv", fy :"pi", fz :"u", alpha :"v", beta :"ch(u,v)pi", theta:"", check:false , orient:{distance :7,axis :"X" , direction :1,alpha :PI/4,beta :-PI/8}},
+			{text: "Inverse hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 124,  fx: "1/(4v)", fy: "u", fz: "4v", check: false, orient: {distance: 15, axis: "X", direction: -1, alpha: 0, beta: -PI/12}},
+			{text: "Invsin hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 124,  fx: "1/(4v)", fy: "u", fz: "4v+s(6Gu)", check: false, orient: {distance :15,axis :"X" , direction :-1,alpha :0,beta :-PI/12}},
+			{text:"Invspin hyperbola" , typeCoords :"cylindrical" , udef :PI,vdef :PI,nb_steps_u :64,nb_steps_v :164 , fx :"1/(12v)", fy :"u", fz :"(8+2/3)v", beta :"3vsi(v)/2", check:false , orient:{distance :15,axis :"X" , direction :-1,alpha :PI/4,beta :-PI/12}},
+			{text:"Moebius" , typeCoords :"cylindrical" , udef :PI,vdef :1,nb_steps_u :128,nb_steps_v :128 , fx :"(1+ 0.5vc(0.5u))cu", fy :"(1+ 0.5vc(0.5u))su", fz :"0.5vs(0.5u)", check:false , orient:{distance :15,axis :"X" , direction :-1,alpha :PI/3,beta :-PI/12}},
+			{text: "Spiral 1", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 32, nb_steps_v: 64,  fx: "u", fy: "v", fz: "v", check: false, orient: {distance: 15, axis: "X", direction: -1, alpha: PI/4, beta: -PI/4}},
+			{text: "Spiral 2", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "u", fy: "v", fz: "3v+sufv", beta: "c(60u)/12", check: false, orient: {distance: 15, axis: "X", direction: -1, alpha: PI/4, beta: -PI/4}},
+			{text: "Spiral 3", typeCoords: 'cylindrical', udef: 6*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,  fx: "uc(0.5v)/2", fy: "u+v", fz: "abs(u)u/12", check: false, orient: {distance :15,axis :"X" , direction :1,alpha :PI/4,beta :-PI/8}},
+			{text:"Spiral 4" , typeCoords :"cylindrical" , udef :PI/2,vdef :PI/2,nb_steps_u :128,nb_steps_v :128 , fx :"4uv", fy :"pi", fz :"u", alpha :"v", beta :"ch(u,v)pi", theta:"", check:false , orient:{distance :15,axis :"X" , direction :1,alpha :PI/4,beta :-PI/8}},
 		],
 		setFormeSelect: async function(txt, coordsType, draw = true){
 			for (const sel of this.select) {
@@ -709,6 +709,31 @@ var glo = {
 				z:  0,
 				nz: 0.3,
 			}
+		},
+		meshTransformations:{
+			scaling:{
+				x: 0, y:0, z: 0
+			},
+			rotation:{
+				x: 0, y:0, z: 0
+			},
+			position:{
+				x: 0, y:0, z: 0
+			},
+			cSymmetry:{
+				x: 0, y:0, z: 0
+			},
+			run: function() {
+				for(let prop in this){
+					if(typeof this[prop] === 'object' && prop !== 'cSymmetry'){
+						for(let sprop in this[prop]){
+							const val = this[prop][sprop];
+
+							if(val){ transformMesh(prop, sprop, val); }
+						}
+					}
+				}
+			},
 		},
 		invPos: {x: false, y: false, z: false},
 		quaternionByRotR: false,

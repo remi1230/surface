@@ -19,6 +19,8 @@ async function make_curves(){
 			glo.ribbon.position.z += offset.z || 0;
 		});
 	}
+
+	glo.params.meshTransformations.run();
 }
 
 function makeOnlyCurves() {
@@ -368,7 +370,7 @@ function isUV(){
 		    isV: inputs.some(input => input.includes('v') || input.includes('à') || input.includes('m') )};
 }
 
-function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon, /*lines = glo.curves.lineSystem, dblLines = glo.curves.lineSystemDouble*/){
+function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon){
 	mesh[transformKind][axis] = value;
 }
 

@@ -10,16 +10,6 @@ async function make_curves(){
 
 	if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
 
-	const form = glo.formes.getFormSelect().form;
-	if(form.orient.offset){
-		const offset = form.orient.offset;
-		glo.scene.onAfterRenderObservable.addOnce(() => {
-			glo.ribbon.position.x += offset.x || 0;
-			glo.ribbon.position.y += offset.y || 0;
-			glo.ribbon.position.z += offset.z || 0;
-		});
-	}
-
 	glo.params.meshTransformations.run();
 }
 

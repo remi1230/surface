@@ -446,6 +446,11 @@ vec3  q(vec3 aa, vec3 bb, float t)   { return mix(aa, bb, t); }
 float r(float e0, float e1, float x) { return smoothstep(e0, e1, x); }
 
 float g(float edge, float x) { return step(edge, x); }
+
+float f(float n){
+	if (n < 0.5) return 1.0;
+    return sqrt(6.2831853 * n) * pow(n / 2.7182818, n);	
+}
 `;
 	}
 
@@ -547,6 +552,10 @@ vec3 computePosition(float u, float v, float i, float j) {
 	outPos = rotateAxis(vec3(1.0, 0.0, 0.0), blendO.x * O) * outPos;
 	outPos = rotateAxis(vec3(0.0, 1.0, 0.0), blendO.y * O) * outPos;
 	outPos = rotateAxis(vec3(0.0, 0.0, 1.0), blendO.z * O) * outPos;
+
+	//outPos.x = mix(outPos.x, 0.0, outPos.x > 50.0 || outPos.x < -50.0);
+	//outPos.y = mix(outPos.y, 0.0, outPos.y > 50.0 || outPos.y < -50.0);
+	//outPos.z = mix(outPos.z, 0.0, outPos.z > 50.0 || outPos.z < -50.0);
 
 	return outPos;
 }

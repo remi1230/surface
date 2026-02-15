@@ -657,12 +657,12 @@ function add_radios(suit = false){
       glo.whellSwitchFormDown = event.y > 0 ? true : false;
       await whellSwitchForm();
     });
-    var options = {hAlign: 'left', vAlign: 'top', w: 20, t: top_panel, pL: 4};
+    var options = {hAlign: 'left', vAlign: 'top', w: 9.5, t: top_panel, pL: 0, l:7.5};
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
     glo.advancedTexture.addControl(panel);
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 25});
-    panel.addControl(header);
+    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 50});
+    panel.addControl(header);//panel.background='red';
   }
 
   var addRadio = function(text, parent, group, check = false, typeCoords) {

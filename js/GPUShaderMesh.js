@@ -451,6 +451,23 @@ float f(float n){
 	if (n < 0.5) return 1.0;
     return sqrt(6.2831853 * n) * pow(n / 2.7182818, n);	
 }
+
+vec3 cr(float x1, float y1, float z1, float x2, float y2, float z2){
+	return cross(vec3(x1, y1, z1), vec3(x2, y2, z2));
+}
+
+float crl(float x1, float y1, float z1, float x2, float y2, float z2){
+	return length(cross(vec3(x1, y1, z1), vec3(x2, y2, z2)));
+}
+
+float cc(float vx1, float vy1, float vx2, float vy2){
+	return dot(vec2(vx1, vy1), vec2(vx2, vy2));
+}
+
+float cc(float vx1, float vy1, float vz1, float vx2, float vy2, float vz2){
+	return dot(vec3(vx1, vy1, vz1), vec3(vx2, vy2, vz2));
+}
+
 `;
 	}
 
@@ -1922,6 +1939,8 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 		float py = ${glslY};
 		float pz = ${glslZ};
 
+		float x = px; float y = py; float z = pz;
+
 		float theta = ${glslTheta};
 		float beta  = ${glslBeta};
 		float alpha = ${glslAlpha};
@@ -2012,6 +2031,8 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 	float py = pt.y;
 	float pz = pt.z;
 
+	float x = px; float y = py; float z = pz;
+
 	// Rotations secondaires
 	float alpha = ${glslAlpha2};
 	float beta  = ${glslBeta2};
@@ -2101,6 +2122,8 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 			float px = pt.x;
 			float py = pt.y;
 			float pz = cylHeight;
+
+			float x = px; float y = py; float z = pz;
 
 			// Rotations secondaires
 			float alpha = ${glslAlpha2};

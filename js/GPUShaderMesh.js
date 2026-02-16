@@ -868,10 +868,12 @@ void main() {
 		// Créer le ShaderMaterial
 		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
 
-		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
-				this.shaderMaterial.setFloat("time", performance.now() * glo.timeCoeff);
-				this.shaderMaterial.setFloat("t", performance.now() * glo.timeCoeff);
-				this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+		// Single observer for per-frame updates (time + camera)
+		this.cameraObserver = glo.scene.onBeforeRenderObservable.add(() => {
+			const t = performance.now() * glo.timeCoeff;
+			this.shaderMaterial.setFloat("time", t);
+			this.shaderMaterial.setFloat("t", t);
+			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
 		// Configurer les uniforms
@@ -881,11 +883,6 @@ void main() {
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
-
-		// Observer pour mettre à jour la caméra
-		this.cameraObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
-			this.updateCamera();
-		});
 
 		return this.mesh;
 	}
@@ -1516,9 +1513,11 @@ void main() {
 		// Créer le ShaderMaterial
 		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
 
-		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
-			this.shaderMaterial.setFloat("time", performance.now() * glo.timeCoeff);
-			this.shaderMaterial.setFloat("t", performance.now() * glo.timeCoeff);
+		// Single observer for per-frame updates (time + camera)
+		this.cameraObserver = glo.scene.onBeforeRenderObservable.add(() => {
+			const t = performance.now() * glo.timeCoeff;
+			this.shaderMaterial.setFloat("time", t);
+			this.shaderMaterial.setFloat("t", t);
 			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
@@ -1529,11 +1528,6 @@ void main() {
 		this.shaderMaterial.backFaceCulling = false;
 		this.shaderMaterial.sideOrientation = BABYLON.Material.DoubleSide;
 		this.mesh.material = this.shaderMaterial;
-
-		// Observer caméra
-		this.cameraObserver = this.computer.scene.onBeforeRenderObservable.add(() => {
-			this.updateCamera();
-		});
 
 		return this.mesh;
 	}

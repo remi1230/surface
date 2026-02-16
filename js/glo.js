@@ -803,6 +803,7 @@ var glo = {
 		opt2: false,
 		opt3: false,
 	},
+	timeCoeff: 0.001,
 	shaderMaterial: true,
     shaderColor:true,
 	editorWindow: getById('shaderEditor'),

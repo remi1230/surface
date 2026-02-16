@@ -276,7 +276,7 @@ class ShaderMeshBase {
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0.0;
 		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0.0;
 
-		this.t = performance.now() * 0.001;
+		this.t = performance.now() * glo.timeCoeff;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
@@ -859,8 +859,8 @@ void main() {
 		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
 
 		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
-				this.shaderMaterial.setFloat("time", performance.now() * 0.001);
-				this.shaderMaterial.setFloat("t", performance.now() * 0.001);
+				this.shaderMaterial.setFloat("time", performance.now() * glo.timeCoeff);
+				this.shaderMaterial.setFloat("t", performance.now() * glo.timeCoeff);
 				this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
@@ -968,7 +968,7 @@ void main() {
 		));
 
 		// Temps
-		mat.setFloat("t", performance.now() * 0.001);
+		mat.setFloat("t", performance.now() * glo.timeCoeff);
 
 		// FirstPoint
 		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
@@ -1027,7 +1027,6 @@ void main() {
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
 		this.K = glo.params.K; this.M = glo.params.M;
-		//this.w = performance.now() * 0.01;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);
@@ -1552,8 +1551,8 @@ void main() {
 		this.shaderMaterial = this._createShaderMaterial(vertexShader, fragmentShader);
 
 		glo.shaderRenderObserver = glo.scene.onBeforeRenderObservable.add(() => {
-			this.shaderMaterial.setFloat("time", performance.now() * 0.001);
-			this.shaderMaterial.setFloat("t", performance.now() * 0.001);
+			this.shaderMaterial.setFloat("time", performance.now() * glo.timeCoeff);
+			this.shaderMaterial.setFloat("t", performance.now() * glo.timeCoeff);
 			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
 		});
 
@@ -1812,7 +1811,7 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('M', glo.params.M);
 
 		// Temps et epsilon
-		setF('t', performance.now() * 0.001);
+		setF('t', performance.now() * glo.timeCoeff);
 		setF('eps', 0.001);
 		setF('scaleNorm', glo.scaleNorm || 1.0);
 		setI('deformationEnabled', deformationEnabled ? 1 : 0);

@@ -388,15 +388,20 @@ document.getElementById('univers_div').addEventListener("keydown", function (e) 
 
                   break;
                case "f":
-                  //FREE
+                  glo.timeCoeff *= 2;
 
                   break;
                case "q":
-                  //FREE
+                  glo.timeCoeff /= 2;
 
                   break;
                case "a":
-                  styleUI();
+                  glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
+                  glo.pause          = !glo.pause;
+
+                  glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
+
+                  glo.allControls.getByName('resetTimeButton').text = glo.pause ? 'PLAY' : 'STOP';
 
                break;
                case "ù":

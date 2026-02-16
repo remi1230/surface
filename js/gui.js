@@ -1436,6 +1436,7 @@ function add_sixth_panel_sliders(){
   let panelButton                    = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
+  let panelTimeButtons               = new BABYLON.GUI.StackPanel();
 
   function addPanel(panel, name, top, isVertical = true, width = 20, height = undefined, numUI = 'sixth', paddingLeft = 0){
     parmamControl(panel, name, `panel right ${numUI} noAutoParam`, {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top, pR: 0.5, pL: paddingLeft});
@@ -1454,6 +1455,7 @@ function add_sixth_panel_sliders(){
 
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
+  addPanel(panelTimeButtons, 'panelTimeButtons', posPanel()+4, false, 20, 4, 'eleventh', 1.42);
 
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1565,8 +1567,20 @@ function add_sixth_panel_sliders(){
   });
   addButton("eleventh", panelButtonSlidersUVOnOneSignV, "InvFormulaUV", "Inv UV", buttonSizes.width+30, buttonSizes.height, 32, 0, async function(value){
     await invElemInInput("u", "v");
-    
+  });
+  addButton("eleventh", panelTimeButtons, "minusTimeButton", "Time -", 95, buttonSizes.height, 0, 0, async function(value){
+    glo.timeCoeff /= 2;
+  });
+  addButton("eleventh", panelTimeButtons, "resetTimeButton", "Stop", 122, buttonSizes.height, 28, 0, async function(value){
+    glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
+    glo.pause          = !glo.pause;
 
+    glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
+
+    glo.allControls.getByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
+  });
+  addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 122, buttonSizes.height, 28, 0, async function(value){
+    glo.timeCoeff *= 2;
   });
 }
 

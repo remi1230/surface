@@ -27,9 +27,7 @@ fragmentShaders = [
     vec3 col3 = 1.0 - mix(col1, col2, dot(col1,col2));
     vec3 col4 = 1.0 - mix(col1, col2, cross(col1,col2));
 
-    //col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
-
-    if(opt1 == 1.0) col = mix(col3, col4, Ts(1.0));
+    if(opt1 == 0.0) col = mix(col3, col4, Ts(1.0));
     else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 `,
 `

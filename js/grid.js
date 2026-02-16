@@ -396,15 +396,6 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 		}
 	}
 	glo.camera.radius = options.distance;
-
-	/*if(options.offset){
-		const offset = options.offset;
-		glo.scene.onAfterRenderObservable.addOnce(() => {
-			glo.ribbon.position.x += offset.x || 0;
-			glo.ribbon.position.y += offset.y || 0;
-			glo.ribbon.position.z += offset.z || 0;
-		});
-	}*/
 }
 
 function switch_grid(grid_visible = glo.grid_visible){

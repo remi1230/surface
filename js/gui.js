@@ -85,7 +85,18 @@ function add_gui_controls(){
 
 function guiControls_AddIdentificationFunctions(){
   glo.allControls = glo.advancedTexture.getDescendants();
+  // Cache Map for O(1) lookup by name instead of O(n) linear search
+  glo._controlsByName = new Map();
+  glo.allControls.forEach(elem => {
+    if(typeof(elem) != 'undefined' && typeof(elem.name) != 'undefined' && elem.name){
+      glo._controlsByName.set(elem.name, elem);
+    }
+  });
   function getByName(name){
+    // Use cached Map if available (for glo.allControls), otherwise linear search
+    if(this === glo.allControls && glo._controlsByName.has(name)){
+      return glo._controlsByName.get(name);
+    }
   	var elemToReturn = false;
   	this.map(elem => {
   		if(typeof(elem) != 'undefined' && typeof(elem.name) != 'undefined' && elem.name == name){ elemToReturn = elem; }
@@ -616,8 +627,8 @@ function add_inputs_equations(){
 
   add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, 354);
 
-  add_input(panelEvalY, "X", "", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
-  add_input(panelEvalY, "Y", "", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
+  add_input(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
+  add_input(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
 
   // Ajouter un événement personnalisé pour R Symmetrize
   glo.input_sym_r.onKeyboardEventProcessedObservable.add(async (event) => {
@@ -1078,6 +1089,7 @@ function add_shaders_ctrl(){
   }, function(){ switchShader(false); });
   addButton("fourth noAutoParam", panelButtons, "invcolShaderEditorButton", "Inv", "17.5%", 30, 10, 0, async function(){
       glo.shaders.params.invcol = !glo.shaders.params.invcol;
+      swapControlBackground("invcolShaderEditorButton");
       glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
   });
   addButton("fourth noAutoParam", panelButtons, "shaderLightButton", "💡", "17.5%", 30, 10, 0, async function(){
@@ -1511,8 +1523,10 @@ function add_sixth_panel_sliders(){
   }
 
   addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 100, 30, 25, 0, function(value){
-    swapControlBackground("uvToXyButton");
     glo.params.uvToXy = !glo.params.uvToXy;
+
+    glo.allControls.getByName("uvToXyButton").textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
+
     uvToXy();
     remakeRibbon();
   });
@@ -1637,7 +1651,7 @@ function add_eleventh_panel_sliders(){
     slidersAnim('v', 0, -0.01);
   });
   addButton("eleventh", panelButton3, "updateRots", "Upd Rot", buttonSizes.width, buttonSizes.height, 25, 0, async function(){
-    swapControlBackground("updateRots", glo.controlConfig.backgroundActived, glo.controlConfig.background);
+    swapControlBackground("updateRots");
     glo.params.updateRots = !glo.params.updateRots;
   });
   addButton("eleventh", panelButton4, "uMoreLittleOneButton", "U +", 70, buttonSizes.height, 26, 0, function(value){
@@ -1662,6 +1676,7 @@ function add_eleventh_panel_sliders(){
     glo.camera.radius*=1.0625;
   });
   addButton("eleventh", panelButton6, "resetViewButton", "Cam 0", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    cameraOnPos({x: 0, y: 0, z: 0});
     viewOnAxis();
   });
 }
@@ -1789,7 +1804,7 @@ function add_transformation_sliders(){
         
         checked.forEach(function(axis){
           axisState[axis].value = slider.startValue;
-          glo.params[baseName + axis.toUpperCase()] = slider.startValue;
+          glo.params.meshTransformations[baseName][axis] = slider.startValue;
         });
         
         slider.value = slider.startValue;

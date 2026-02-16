@@ -85,7 +85,18 @@ function add_gui_controls(){
 
 function guiControls_AddIdentificationFunctions(){
   glo.allControls = glo.advancedTexture.getDescendants();
+  // Cache Map for O(1) lookup by name instead of O(n) linear search
+  glo._controlsByName = new Map();
+  glo.allControls.forEach(elem => {
+    if(typeof(elem) != 'undefined' && typeof(elem.name) != 'undefined' && elem.name){
+      glo._controlsByName.set(elem.name, elem);
+    }
+  });
   function getByName(name){
+    // Use cached Map if available (for glo.allControls), otherwise linear search
+    if(this === glo.allControls && glo._controlsByName.has(name)){
+      return glo._controlsByName.get(name);
+    }
   	var elemToReturn = false;
   	this.map(elem => {
   		if(typeof(elem) != 'undefined' && typeof(elem.name) != 'undefined' && elem.name == name){ elemToReturn = elem; }

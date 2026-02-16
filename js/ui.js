@@ -497,36 +497,6 @@ function reg(f) {
     return f;
 }
 
-function regOneTest(expReg) {
-	console.log("=== regOne START ===");
-	console.log("Input:", expReg, "| Type:", typeof expReg);
-	
-	if (expReg == "'") {
-		console.log("Cas spécial: apostrophe détectée, remplacement par '0'");
-		expReg = "0";
-	}
-	else if(expReg) {
-		expReg = expReg.toString();
-		console.log("Après toString():", expReg);
-		
-		for (let i = 0; i < glo.regs.length; i++) {
-			const avant = expReg;
-			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
-			if (avant !== expReg) {
-				console.log(`Regex #${i} a matché:`, glo.regs[i].exp);
-				console.log(`  Avant: "${avant}"`);
-				console.log(`  Après: "${expReg}"`);
-			}
-		}
-	}
-	else {
-		console.log("expReg est falsy, aucune transformation");
-	}
-	
-	console.log("Output final:", expReg);
-	console.log("=== regOne END ===");
-	return expReg;
-}
 
 function regOne(expReg) {
 	if (expReg == "'") {

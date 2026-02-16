@@ -2,21 +2,14 @@
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
 $( document ).ready(async function() {
-   // Forcer le chargement de toutes les variantes Poppins avant de créer les contrôles GUI
+   // Load only the critical font weights used by the GUI before init
+   // Other weights will load on demand via font-display: swap in CSS
    await Promise.all([
-      document.fonts.load('200 1em Manrope'),
-      document.fonts.load('300 1em Manrope'),
       document.fonts.load('400 1em Manrope'),
-      document.fonts.load('500 1em Manrope'),
       document.fonts.load('600 1em Manrope'),
-      document.fonts.load('700 1em Manrope'),
-      document.fonts.load('800 1em Manrope'),
-      document.fonts.load('100 1em Poppins'),
       document.fonts.load('300 1em Poppins'),
       document.fonts.load('400 1em Poppins'),
-      document.fonts.load('500 1em Poppins'),
       document.fonts.load('600 1em Poppins'),
-      document.fonts.load('700 1em Poppins'),
    ]);
 
    add_gui_controls();

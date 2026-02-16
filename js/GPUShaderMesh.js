@@ -296,6 +296,16 @@ class ShaderMeshBase {
 
 		// Observer pour la caméra
 		this.cameraObserver = null;
+
+		// Reusable vector objects to avoid GC pressure in update methods
+		this._vecBlendU = new BABYLON.Vector4(0, 0, 0, 0);
+		this._vecBlendO = new BABYLON.Vector3(0, 0, 0);
+		this._vecSymOrder = new BABYLON.Vector3(0, 0, 0);
+		this._vecSymCenter = new BABYLON.Vector3(0, 0, 0);
+		this._vecFirstPoint = new BABYLON.Vector3(1, 0, 0);
+		this._vecMeshBg = new BABYLON.Vector3(0, 0, 0);
+		this._vecMeshFg = new BABYLON.Vector3(0, 0, 0);
+		this._vecLampPos = new BABYLON.Vector3(0, 0, 0);
 	}
 
 	/**
@@ -925,18 +935,11 @@ void main() {
 		mat.setFloat("scaleNorm", glo.scaleNorm || 1.0);
 		mat.setInt("deformationEnabled", deformationEnabled ? 1 : 0);
 
-		// Blender
-		mat.setVector4("blendU", new BABYLON.Vector4(
-			this.blenderInfos.u.x,
-			this.blenderInfos.u.y,
-			this.blenderInfos.u.z,
-			0
-		));
-		mat.setVector3("blendO", new BABYLON.Vector3(
-			this.blenderInfos.O.x,
-			this.blenderInfos.O.y,
-			this.blenderInfos.O.z
-		));
+		// Blender (reuse pre-allocated vectors)
+		this._vecBlendU.set(this.blenderInfos.u.x, this.blenderInfos.u.y, this.blenderInfos.u.z, 0);
+		mat.setVector4("blendU", this._vecBlendU);
+		this._vecBlendO.set(this.blenderInfos.O.x, this.blenderInfos.O.y, this.blenderInfos.O.z);
+		mat.setVector3("blendO", this._vecBlendO);
 
 		// Transformations additionnelles
 		mat.setFloat("flatAmount", this.flatAmount);
@@ -956,44 +959,26 @@ void main() {
 		mat.setFloat("uSymAngle", glo.params.symmetrizeAngle || Math.PI);
 		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
 		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
-		mat.setVector3("uSymOrder", new BABYLON.Vector3(
-			axisMap[orderStr[0]] ?? 0.0,
-			axisMap[orderStr[1]] ?? 1.0,
-			axisMap[orderStr[2]] ?? 2.0
-		));
-		mat.setVector3("uSymCenter", new BABYLON.Vector3(
-			glo.centerSymmetry.x || 0,
-			glo.centerSymmetry.y || 0,
-			glo.centerSymmetry.z || 0
-		));
+		this._vecSymOrder.set(axisMap[orderStr[0]] ?? 0.0, axisMap[orderStr[1]] ?? 1.0, axisMap[orderStr[2]] ?? 2.0);
+		mat.setVector3("uSymOrder", this._vecSymOrder);
+		this._vecSymCenter.set(glo.centerSymmetry.x || 0, glo.centerSymmetry.y || 0, glo.centerSymmetry.z || 0);
+		mat.setVector3("uSymCenter", this._vecSymCenter);
 
 		// Temps
 		mat.setFloat("t", performance.now() * glo.timeCoeff);
 
-		// FirstPoint
-		mat.setVector3("uFirstPoint", new BABYLON.Vector3(
-			glo.firstPoint?.x || 1,
-			glo.firstPoint?.y || 0,
-			glo.firstPoint?.z || 0
-		));
+		// FirstPoint (reuse pre-allocated vector)
+		this._vecFirstPoint.set(glo.firstPoint?.x || 1, glo.firstPoint?.y || 0, glo.firstPoint?.z || 0);
+		mat.setVector3("uFirstPoint", this._vecFirstPoint);
 
-		// Éclairage et couleurs
+		// Éclairage et couleurs (reuse pre-allocated vectors)
 		mat.setVector3("cameraPosition", this.computer.scene.activeCamera.position);
-		mat.setVector3("meshBg", new BABYLON.Vector3(
-			glo.emissiveColor.r,
-			glo.emissiveColor.g,
-			glo.emissiveColor.b
-		));
-		mat.setVector3("meshFg", new BABYLON.Vector3(
-			glo.lineColor.r,
-			glo.lineColor.g,
-			glo.lineColor.b
-		));
-		mat.setVector3("lampPosition", new BABYLON.Vector3(
-			glo.shaders.light.direction.x,
-			glo.shaders.light.direction.y,
-			glo.shaders.light.direction.z
-		));
+		this._vecMeshBg.set(glo.emissiveColor.r, glo.emissiveColor.g, glo.emissiveColor.b);
+		mat.setVector3("meshBg", this._vecMeshBg);
+		this._vecMeshFg.set(glo.lineColor.r, glo.lineColor.g, glo.lineColor.b);
+		mat.setVector3("meshFg", this._vecMeshFg);
+		this._vecLampPos.set(glo.shaders.light.direction.x, glo.shaders.light.direction.y, glo.shaders.light.direction.z);
+		mat.setVector3("lampPosition", this._vecLampPos);
 		mat.setFloat("lampIntensity", glo.shaders.light.intensity);
 		mat.setFloat("lampRadius", glo.shaders.light.radius);
 		mat.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
@@ -1026,7 +1011,7 @@ void main() {
 		this.G = glo.params.G; this.H = glo.params.H;
 		this.I = glo.params.I; this.J = glo.params.J;
 		this.K = glo.params.K; this.L = glo.params.L;
-		this.K = glo.params.K; this.M = glo.params.M;
+		this.M = glo.params.M;
 
 		this.shaderMaterial.setFloat("A", this.A);
 		this.shaderMaterial.setFloat("B", this.B);
@@ -1052,17 +1037,10 @@ void main() {
 
 		this.blenderInfos = glo.params.blender;
 
-		this.shaderMaterial.setVector4("blendU", new BABYLON.Vector4(
-			this.blenderInfos.u.x,
-			this.blenderInfos.u.y,
-			this.blenderInfos.u.z,
-			0
-		));
-		this.shaderMaterial.setVector3("blendO", new BABYLON.Vector3(
-			this.blenderInfos.O.x,
-			this.blenderInfos.O.y,
-			this.blenderInfos.O.z
-		));
+		this._vecBlendU.set(this.blenderInfos.u.x, this.blenderInfos.u.y, this.blenderInfos.u.z, 0);
+		this.shaderMaterial.setVector4("blendU", this._vecBlendU);
+		this._vecBlendO.set(this.blenderInfos.O.x, this.blenderInfos.O.y, this.blenderInfos.O.z);
+		this.shaderMaterial.setVector3("blendO", this._vecBlendO);
 	}
 
 	/**
@@ -1071,16 +1049,10 @@ void main() {
 	updateColors() {
 		if (!this.shaderMaterial) return;
 
-		this.shaderMaterial.setVector3("meshBg", new BABYLON.Vector3(
-			glo.emissiveColor.r,
-			glo.emissiveColor.g,
-			glo.emissiveColor.b
-		));
-		this.shaderMaterial.setVector3("meshFg", new BABYLON.Vector3(
-			glo.lineColor.r,
-			glo.lineColor.g,
-			glo.lineColor.b
-		));
+		this._vecMeshBg.set(glo.emissiveColor.r, glo.emissiveColor.g, glo.emissiveColor.b);
+		this.shaderMaterial.setVector3("meshBg", this._vecMeshBg);
+		this._vecMeshFg.set(glo.lineColor.r, glo.lineColor.g, glo.lineColor.b);
+		this.shaderMaterial.setVector3("meshFg", this._vecMeshFg);
 	}
 
 	/**
@@ -1089,11 +1061,8 @@ void main() {
 	updateLighting() {
 		if (!this.shaderMaterial) return;
 
-		this.shaderMaterial.setVector3("lampPosition", new BABYLON.Vector3(
-			glo.shaders.light.direction.x,
-			glo.shaders.light.direction.y,
-			glo.shaders.light.direction.z
-		));
+		this._vecLampPos.set(glo.shaders.light.direction.x, glo.shaders.light.direction.y, glo.shaders.light.direction.z);
+		this.shaderMaterial.setVector3("lampPosition", this._vecLampPos);
 		this.shaderMaterial.setFloat("lampIntensity", glo.shaders.light.intensity);
 		this.shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
 		this.shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
@@ -1116,11 +1085,8 @@ void main() {
 	updateSymmetryCenter() {
 		if (!this.shaderMaterial) return;
 
-		this.shaderMaterial.setVector3("uSymCenter", new BABYLON.Vector3(
-			glo.centerSymmetry.x || 0,
-			glo.centerSymmetry.y || 0,
-			glo.centerSymmetry.z || 0
-		));
+		this._vecSymCenter.set(glo.centerSymmetry.x || 0, glo.centerSymmetry.y || 0, glo.centerSymmetry.z || 0);
+		this.shaderMaterial.setVector3("uSymCenter", this._vecSymCenter);
 	}
 
 	/**

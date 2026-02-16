@@ -13,7 +13,7 @@ function make_planes(){
 	}
 
 	if(typeof(glo.planes) != "undefined"){
-		glo.planes.map(plane => { plane.dispose(); plane = {}; } );
+		glo.planes.forEach(plane => { plane.dispose(); });
 	}
 
 	if(glo.planes_visible){
@@ -169,11 +169,11 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 	glo.axis_size = axis_size;
 
 	if(typeof(glo.labels_grid) != "undefined"){
-		glo.labels_grid.map(label_grid => { label_grid.dispose(); label_grid = {}; } );
-		glo.planes_grid.map(plane_grid => { plane_grid.dispose(); plane_grid = {}; } );
-		glo.gridX.map(gridX => { gridX.dispose(); gridX = {}; } );
-		glo.gridY.map(gridY => { gridY.dispose(); gridY = {}; } );
-		glo.gridZ.map(gridZ => { gridZ.dispose(); gridZ = {}; } );
+		glo.labels_grid.forEach(label_grid => { label_grid.dispose(); });
+		glo.planes_grid.forEach(plane_grid => { plane_grid.dispose(); });
+		glo.gridX.forEach(line => { line.dispose(); });
+		glo.gridY.forEach(line => { line.dispose(); });
+		glo.gridZ.forEach(line => { line.dispose(); });
 	}
 	glo.labels_grid = [];
 	glo.planes_grid = [];
@@ -482,8 +482,8 @@ function switch_axis(axis_visible = glo.axis_visible){
 		glo.xChar.visibility = 0;
 		glo.yChar.visibility = 0;
 		glo.zChar.visibility = 0;
-		glo.labels_axis.map(label_axis => { label_axis.isVisible = 1; } );
-		glo.planes_axis.map(plane_axis => { plane_axis.visibility = 0; } );
+		glo.labels_axis.forEach(label_axis => { label_axis.isVisible = 1; });
+		glo.planes_axis.forEach(plane_axis => { plane_axis.visibility = 0; });
 	}
 	else{
 		glo.axisX.visibility = 0;
@@ -492,7 +492,7 @@ function switch_axis(axis_visible = glo.axis_visible){
 		glo.xChar.visibility = 0;
 		glo.yChar.visibility = 0;
 		glo.zChar.visibility = 0;
-		glo.labels_axis.map(label_axis => { label_axis.isVisible = 0; } );
-		glo.planes_axis.map(plane_axis => { plane_axis.isVisible = 0; } );
+		glo.labels_axis.forEach(label_axis => { label_axis.isVisible = 0; });
+		glo.planes_axis.forEach(plane_axis => { plane_axis.isVisible = 0; });
 	}
 }

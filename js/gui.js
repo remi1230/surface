@@ -414,7 +414,7 @@ function add_lines_and_dim_buttons(){
 }
 function add_switchForm_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.33, t: -1, };
+  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.5, t: -1, };
   parmamControl(panel, 'panelswitchFormButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
@@ -489,7 +489,8 @@ function add_views_buttons(){
 function add_uv_sliders(){
   function add_slider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
-    parmamControl(panel, "panel_" + name, 'panel left first', {left: -20});
+    parmamControl(panel, "panel_" + name, 'panel left first noAutoParam', 
+      {hAlign: 'left', vAlign: 'top', w: 22, t: 5 * (name == 'u' ? 0.2 : 1), pT: 5 * (name == 'u' ? 0.1 : 0.6), h: 7, pL: 2.125, l: -2 });
     glo.advancedTexture.addControl(panel);
 
     var min_start = -glo['params'][gloPropToModify].toFixed(2);
@@ -499,7 +500,7 @@ function add_uv_sliders(){
     panel.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
-    parmamControl(slider, name, 'slider left first', {w: 105, minimum: 0, maximum: 6*PI, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify]});
+    parmamControl(slider, name, 'slider left first', {minimum: 0, maximum: 6*PI, value: glo['params'][gloPropToModify], startValue: glo['params'][gloPropToModify]});
     glo[gloPropToAssignInput] = slider;
 
     slider.onValueChangedObservable.add(async function (value) {
@@ -525,6 +526,8 @@ function add_uv_sliders(){
       var val = e.y < 0 ? val = PI/8 : val = -PI/8; slider.value += val;
     });
 
+    slider.subscribeToDoubleClick();
+
     panel.addControl(slider);
   }
 
@@ -537,7 +540,7 @@ function add_inputs_equations(){
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
 
-  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 20, pR: 1, t: 14.25, h: 30, pL: 0.5});
+  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 21, pR: 1, t: 14.25, h: 30, pL: 0.66});
 
   var options = {hAlign: 'right', vAlign: 'top', w: 20, t: 30};
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
@@ -555,10 +558,11 @@ function add_inputs_equations(){
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 365){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 355){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
     if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
+    else{ header.paddingLeft = "-4%"; }
     parent.addControl(header);
 
     var input = new BABYLON.GUI.InputText();
@@ -2129,13 +2133,13 @@ function param_controls(){
   });
   pr_top = 1.5;
   glo.allControls.haveTheseClasses('panel', 'left', 'first').haveNotThisClass('noAutoParam').map(pr => {
-    parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 20, t: pr_top, pL: 1, }, false, false);
+    parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 21, t: pr_top, pL: 1, }, false, false);
     if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }
     if(pr.name === "inputsEquations"){ pr.top = "20%"; }
     pr_top += glo.mainTopShift;
   });
   glo.allControls.haveTheseClasses('slider', 'left', 'first').map(sr => {
-    parmamControl(sr, '', '', { hAlign: 'left', vAlign: 'top', h: 20, background: 'grey', }, true, false);
+    parmamControl(sr, '', '', { hAlign: 'left', vAlign: 'top', h: 20, w: 98.125, background: 'grey', }, false, false);
     sr.paddingLeft = '1%';
   });
   glo.allControls.haveTheseClasses('input', 'left', 'first').map(inp => {

@@ -1193,12 +1193,8 @@ function add_shaders_ctrl(){
 
     glo.grid_visible = true;
     glo.axis_visible = true;
+    glo.first_axis_visible = false;
 
-    if(glo.axisX){
-      glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
-      glo.labels_axis.forEach(label => label.dispose());
-		  glo.planes_axis.forEach(plane => plane.dispose());
-    }
     showAxis(glo.axis_size, 1);
 
     glo.planes_visible = true;

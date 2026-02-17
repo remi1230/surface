@@ -94,6 +94,15 @@ function showAPlane(plan){
 }
 
 var showAxis = function(size, visibility = 0) {
+	if(glo.axisX){
+		glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
+	}
+	if(glo.labels_axis && glo.labels_axis.length){
+		glo.labels_axis.forEach(label => label.dispose());
+	}
+	if(glo.planes_axis && glo.planes_axis.length){
+		glo.planes_axis.forEach(plane => plane.dispose());
+	}
 	glo.labels_axis = [];
 	glo.planes_axis = [];
 	var makeTextPlane = function(text, color, size_plane) {

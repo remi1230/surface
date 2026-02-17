@@ -1,13 +1,21 @@
 function make_planes(){
-	function make_plan(x,y,z){
+	function make_plan(x, y, z) {
 		var sourcePlane = new BABYLON.Plane(x, y, z, 0);
 		sourcePlane.normalize();
-		var plane = BABYLON.MeshBuilder.CreatePlane("plane", {height: glo.planSize, width: glo.planSize, sourcePlane: sourcePlane, sideOrientation: BABYLON.Mesh.DOUBLESIDE}, glo.scene);
+		var plane = BABYLON.MeshBuilder.CreatePlane("plane", {
+			sourcePlane: sourcePlane,
+			sideOrientation: BABYLON.Mesh.DOUBLESIDE
+		}, glo.scene);
+		
 		var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
 		material.backFaceCulling = false;
 		material.alpha = 0.25;
 		plane.material = material;
 		plane.isPickable = false;
+
+		// Le mesh fait 1x1 de base, on scale pour couvrir la grille (-planSize à +planSize)
+		const s = glo.planSize * 2;
+		plane.scaling = new BABYLON.Vector3(s, s, 1);
 
 		return plane;
 	}
@@ -22,6 +30,8 @@ function make_planes(){
 		glo.planes.push(make_plan(0, 1, 0));
 		glo.planes.push(make_plan(1, 0, 0));
 	}
+
+	glo.params.gridScaleValueOrigin = glo.params.gridScaleValue;
 }
 
 function showPlane(visible, plan){

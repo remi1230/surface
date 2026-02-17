@@ -1186,7 +1186,23 @@ function add_shaders_ctrl(){
     glo.shaders.light.specular.power = value; glo.ribbon.shaderMeshInstance.updateLighting();
   }, 'seventh');
   addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
-    glo.params.gridScaleValue = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    glo.params.gridScaleValue = value;
+    glo.planSize  = value;
+    glo.axis_size = value;
+
+    glo.grid_visible = true;
+    glo.axis_visible = true;
+
+    if(glo.axisX){
+      glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
+      glo.labels_axis.forEach(label => label.dispose());
+		  glo.planes_axis.forEach(plane => plane.dispose());
+    }
+    showAxis(glo.axis_size, 1);
+
+    glo.planes_visible = true;
+    make_planes();
+
     showGrid(value, value, value, 1);
   }, 'sixth');
 

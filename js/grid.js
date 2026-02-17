@@ -8,6 +8,7 @@ function make_planes(){
 		}, glo.scene);
 		
 		var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
+		material.emissiveColor = glo.backgroundColor.inv();
 		material.backFaceCulling = false;
 		material.alpha = 0.25;
 		plane.material = material;
@@ -94,6 +95,15 @@ function showAPlane(plan){
 }
 
 var showAxis = function(size, visibility = 0) {
+	if(glo.axisX){
+		glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
+	}
+	if(glo.labels_axis && glo.labels_axis.length){
+		glo.labels_axis.forEach(label => label.dispose());
+	}
+	if(glo.planes_axis && glo.planes_axis.length){
+		glo.planes_axis.forEach(plane => plane.dispose());
+	}
 	glo.labels_axis = [];
 	glo.planes_axis = [];
 	var makeTextPlane = function(text, color, size_plane) {
@@ -221,7 +231,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		plane.metadata = { ind: parseInt(text), axis: axis, isOrtho: isOrtho, type: 'plane' };
 
 		// Ajoutons l'événement de clic
-		plane.actionManager = new BABYLON.ActionManager(glo.scene);
+		/*plane.actionManager = new BABYLON.ActionManager(glo.scene);
 		plane.actionManager.registerAction(new BABYLON.ExecuteCodeAction(
 			BABYLON.ActionManager.OnPickTrigger, function(evt) {
 				// Récupérons les valeurs directement depuis le plane cliqué
@@ -230,12 +240,12 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 				var clickedAxis  = clickedPlane.metadata.axis;
 
 				// Vérifions que les valeurs sont correctes
-				//console.log("Clicked:", clickedInd, clickedAxis);
+				console.log("Clicked:", clickedInd, clickedAxis);
 
 				// Appelons la fonction pour changer la couleur de la ligne
 				changeLineColor(clickedInd, clickedAxis, isOrtho);
 			}
-		));
+		));*/
 
 		glo.labels_grid.push(label);
 		glo.planes_grid.push(plane);

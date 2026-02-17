@@ -72,3 +72,7 @@ BABYLON.Mesh.prototype.weightToDownload = function() {
 	const weight = glo.params.steps_u * glo.params.steps_v / 18000;
 	return `≈ ${weight.toFixed(2)} Mo`;
 }
+
+BABYLON.Color3.prototype.inv = function() {
+	return new BABYLON.Color3(1 - this.r, 1 - this.g, 1 - this.b);
+}

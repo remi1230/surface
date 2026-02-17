@@ -391,11 +391,12 @@ function add_lines_and_dim_buttons(){
 
   addButton("first", panel, "but_grid", "GRID", 60, 30, 0, 0, async function(){
     glo.grid_visible = !glo.grid_visible;
-    glo.axis_visible = !glo.axis_visible;
-    
-    if(!glo.grid_visible){ switch_grid(); showAxis(glo.axis_size, 0); return; }
+    glo.axis_visible = glo.grid_visible;
+
+    if(!glo.grid_visible){ switch_grid(); return; }
 
     showAxis(glo.axis_size, 1);
+    glo.first_axis_visible = false;
     const gridScale = glo.params.gridScaleValue;
     showGrid(gridScale, gridScale, gridScale, 1); glo.first_grid_visible = false;
   }, undefined, 'left');
@@ -886,6 +887,8 @@ function add_color_pickers(){
     if(typeof(glo.gridX) != "undefined"){ glo.gridX.map(line => { line.color = new_color_line_grid; }); }
     if(typeof(glo.gridY) != "undefined"){ glo.gridY.map(line => { line.color = new_color_line_grid; }); }
     if(typeof(glo.gridZ) != "undefined"){ glo.gridZ.map(line => { line.color = new_color_line_grid; }); }
+
+    glo.planes.map(plane => { plane.material.emissiveColor = glo.backgroundColor.inv(); });
   });
 
   var picker3 = new BABYLON.GUI.ColorPicker();
@@ -1192,12 +1195,8 @@ function add_shaders_ctrl(){
 
     glo.grid_visible = true;
     glo.axis_visible = true;
+    glo.first_axis_visible = false;
 
-    if(glo.axisX){
-      glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
-      glo.labels_axis.forEach(label => label.dispose());
-		  glo.planes_axis.forEach(plane => plane.dispose());
-    }
     showAxis(glo.axis_size, 1);
 
     glo.planes_visible = true;

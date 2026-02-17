@@ -391,11 +391,12 @@ function add_lines_and_dim_buttons(){
 
   addButton("first", panel, "but_grid", "GRID", 60, 30, 0, 0, async function(){
     glo.grid_visible = !glo.grid_visible;
-    glo.axis_visible = !glo.axis_visible;
-    
-    if(!glo.grid_visible){ switch_grid(); showAxis(glo.axis_size, 0); return; }
+    glo.axis_visible = glo.grid_visible;
+
+    if(!glo.grid_visible){ switch_grid(); return; }
 
     showAxis(glo.axis_size, 1);
+    glo.first_axis_visible = false;
     const gridScale = glo.params.gridScaleValue;
     showGrid(gridScale, gridScale, gridScale, 1); glo.first_grid_visible = false;
   }, undefined, 'left');

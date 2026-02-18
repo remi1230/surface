@@ -1,4 +1,4 @@
-function make_planes(){
+function make_planes(planXY = true, planYZ = true, planXZ = true){
 	function make_plan(x, y, z) {
 		var sourcePlane = new BABYLON.Plane(x, y, z, 0);
 		sourcePlane.normalize();
@@ -25,11 +25,11 @@ function make_planes(){
 		glo.planes.map(plane => { plane.dispose(); plane = {}; } );
 	}
 
-	if(glo.planes_visible){
+	if(glo.planes_visible || !planXY || !planYZ || !planXZ){
 		glo.planes = [];
-		glo.planes.push(make_plan(0, 0, 1));
-		glo.planes.push(make_plan(0, 1, 0));
-		glo.planes.push(make_plan(1, 0, 0));
+		if(planXY) glo.planes.push(make_plan(0, 0, 1));
+		if(planXZ) glo.planes.push(make_plan(0, 1, 0));
+		if(planYZ) glo.planes.push(make_plan(1, 0, 0));
 	}
 
 	glo.params.gridScaleValueOrigin = glo.params.gridScaleValue;
@@ -86,11 +86,11 @@ function showNoPlane(){ showPlane(false, 'xz'); showPlane(false, 'xy'); showPlan
 
 function showAPlane(plan){
 	switch(plan){
-		case 'x' : showPlaneX(); break;
-		case 'y' : showPlaneY(); break;
-		case 'z' : showPlaneZ(); break;
+		case 'x' : make_planes(true, false, false); break;
+		case 'y' : make_planes(false, true, false); break;
+		case 'z' : make_planes(false, false, true); break;
 
-		case 'none' : showNoPlane(); break;
+		case 'none' : make_planes(false, false, false);  break;
 	}
 }
 

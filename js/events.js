@@ -27,7 +27,8 @@ $( document ).ready(async function() {
 
    //gui_resize();
    initExportModal();
-   $('.modal').not('#exportModal').modal();
+   initImportModal();
+   $('.modal').not('#exportModal').not('#importModal').modal();
    $('select').formSelect();
    glo.formes.setFormeSelect(...glo.formes.selected);
    startAnim(20, 1);

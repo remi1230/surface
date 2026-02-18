@@ -34,17 +34,22 @@ function exportModal(){
 		$("#filename").val(filename + (fileNumber + 1));
 	}
 }
-function importModal(){
-	glo.modalOpen = true;
-	event.stopPropagation();
-	event.preventDefault();
-	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-	$('#importModal').modal('open', {
+function initImportModal(){
+	var elems = document.querySelectorAll('#importModal');
+	M.Modal.init(elems, {
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 			glo.modalOpen = false;
 		},
 	});
+}
+
+function importModal(){
+	glo.modalOpen = true;
+	event.stopPropagation();
+	event.preventDefault();
+	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
+	M.Modal.getInstance(document.querySelector('#importModal')).open();
 }
 
 function download_JSON_mesh(event){
@@ -63,10 +68,6 @@ function download_JSON_mesh(event){
 			case 'json':
 				var contentJsonFile = JSON.parse(fileContent);
 				for(var prop in contentJsonFile){ glo.params[prop] = contentJsonFile[prop]; }
-
-				if(typeof(glo.playWithColMode) == "undefined"){ glo.playWithColMode = playWithColNextMode(); }
-				var playWithColorMode = glo.params.playWithColorMode;
-				while(playWithColorMode != glo.playWithColMode.next().value){}
 
 				paramsToControls();
 				var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
@@ -131,21 +132,32 @@ async function exportMesh(exportFormat) {
         window.URL.revokeObjectURL(objectUrl);
     }
 
-    // Pour les shader meshes, extraire les positions réelles du GPU via Transform Feedback
-    let exportMeshRef = null;
-    if (glo.fromShader && glo.ribbon && glo.ribbon.shaderMeshInstance && exportFormat !== "json") {
-        exportMeshRef = glo.ribbon.shaderMeshInstance.createExportMesh();
-        if (!exportMeshRef) {
-            console.error('[Export] Impossible d\'extraire les positions du shader mesh');
-            return false;
-        }
+    var filename = $("#filename").val();
+    if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
+        filename += "." + exportFormat;
     }
 
-    const meshToExport = exportMeshRef || glo.ribbon;
-    await meshToExport.bakeCurrentTransformIntoVertices();
-
     let strMesh;
-    if (exportFormat !== "json") {
+    if (exportFormat === "json") {
+        // Export JSON : on sérialise uniquement glo.params, sans toucher au mesh GPU
+        glo.params.coordsType = glo.coordsType;
+        var objForm = glo.formes.getFormSelect();
+        glo.params.formName = !objForm ? "" : objForm.form.text;
+        strMesh = JSON.stringify(glo.params);
+    } else {
+        // Pour les shader meshes, extraire les positions réelles du GPU
+        let exportMeshRef = null;
+        if (glo.fromShader && glo.ribbon && glo.ribbon.shaderMeshInstance) {
+            exportMeshRef = glo.ribbon.shaderMeshInstance.createExportMesh();
+            if (!exportMeshRef) {
+                console.error('[Export] Impossible d\'extraire les positions du shader mesh');
+                return false;
+            }
+        }
+
+        const meshToExport = exportMeshRef || glo.ribbon;
+        await meshToExport.bakeCurrentTransformIntoVertices();
+
         if (exportFormat === "babylon") {
             strMesh = JSON.stringify(BABYLON.SceneSerializer.SerializeMesh(meshToExport));
         } else if (exportFormat === "obj") {
@@ -165,10 +177,10 @@ async function exportMesh(exportFormat) {
                 });
 
                 if (meshesToExport.length > 0) {
-                    let meshToExport = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
-                    if (meshToExport) {
-                        strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
-                        glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, meshToExport], true, true);
+                    let mergedMesh = await BABYLON.Mesh.MergeMeshes(meshesToExport, true, true);
+                    if (mergedMesh) {
+                        strMesh = BABYLON.OBJExport.OBJ([mergedMesh]);
+                        glo.ribbon = await BABYLON.Mesh.MergeMeshes([glo.ribbon, mergedMesh], true, true);
                     } else {
                         console.log("Mesh fusion failed");
                     }
@@ -178,22 +190,10 @@ async function exportMesh(exportFormat) {
             }
         }
 
-        var filename = $("#filename").val();
-        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
-            filename += "." + exportFormat;
+        // Nettoyer le mesh temporaire d'export
+        if (exportMeshRef) {
+            exportMeshRef.dispose();
         }
-    } else {
-        var filename = $("#filename").val();
-        var exportFormat = 'json';
-        if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
-            filename += "." + exportFormat;
-        }
-
-        glo.params.coordsType = glo.coordsType;
-        var objForm = glo.formes.getFormSelect();
-        var form = !objForm ? "" : objForm.form.text;
-        glo.params.formName = form;
-        strMesh = JSON.stringify(glo.params);
     }
 
     // Créer un blob et générer l'URL de téléchargement
@@ -207,13 +207,8 @@ async function exportMesh(exportFormat) {
     // Déclencher le téléchargement en cliquant sur le lien caché
     $("#downloadLink")[0].click();
 
-    // Nettoyer le mesh temporaire d'export (si créé via Transform Feedback)
-    if (exportMeshRef) {
-        exportMeshRef.dispose();
-    }
-
     // Fermer le modal
-    $('#exportModal').modal('close');
+    M.Modal.getInstance(document.querySelector('#exportModal')).close();
 
     return false;
 }

@@ -67,7 +67,14 @@ function download_JSON_mesh(event){
 		switch(fileExtension){
 			case 'json':
 				var contentJsonFile = JSON.parse(fileContent);
-				for(var prop in contentJsonFile){ glo.params[prop] = contentJsonFile[prop]; }
+				for(var prop in contentJsonFile){
+					if(prop === 'meshTransformations'){
+						// Merger uniquement les données, la méthode run() n'est pas sérialisable en JSON
+						Object.assign(glo.params.meshTransformations, contentJsonFile.meshTransformations);
+					} else {
+						glo.params[prop] = contentJsonFile[prop];
+					}
+				}
 
 				paramsToControls();
 				var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();

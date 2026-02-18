@@ -275,6 +275,7 @@ function paramsToControls(){
 	glo.allControls.getByName('inputColorZ').text = glo.params.text_input_color_z;
 	glo.allControls.getByName('inputColorAlpha').text = glo.params.text_input_color_alpha;
 	glo.allControls.getByName('inputColorBeta').text = glo.params.text_input_color_beta;
+	if(glo.input_sym_r){ glo.input_sym_r.text = glo.params.text_input_sym_r || ''; }
 	glo.skipRebuild = false;
 }
 

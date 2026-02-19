@@ -406,7 +406,7 @@ function add_lines_and_dim_buttons(){
   }, undefined, 'left');
   addButton("first", panel, "but_coord", "CART", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
   addButton("first", panel, "but_import_obj", "IMP", 60, 30, 10, 0, function(){
-    importOBJMesh();
+    importModal();
   }, undefined, 'left');
   addButton("first", panel, "but_dimension", "EXP", 60, 30, 10, 0, function(){
     exportModal();

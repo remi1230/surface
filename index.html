@@ -126,10 +126,19 @@
   <div id="importModal" class="modal overflow-hidden">
     <div class="modal-content">
       <h4 style="text-align:center;">Import mesh</h4>
+      <div class="row">
+        <div class="input-field col s12">
+          <select id="importFormat" onchange="document.getElementById('jsonFileUpload').accept = this.value === 'json' ? '.json' : '.obj'">
+            <option value="json" selected>JSON</option>
+            <option value="obj">OBJ</option>
+          </select>
+          <label>Format</label>
+        </div>
+      </div>
       <div class="file-field input-field">
         <div class="btn">
           <span>File</span>
-          <input type="file" id="jsonFileUpload" onChange="if($('#jsonFileUpload').val() != ''){ download_JSON_mesh(event); }">
+          <input type="file" id="jsonFileUpload" accept=".json" onChange="if($('#jsonFileUpload').val() != ''){ download_JSON_mesh(event); }">
         </div>
         <div class="file-path-wrapper">
           <input class="file-path validate" type="text">

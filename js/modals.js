@@ -37,6 +37,9 @@ function exportModal(){
 function initImportModal(){
 	var elems = document.querySelectorAll('#importModal');
 	M.Modal.init(elems, {
+		onOpenStart: function() {
+			M.FormSelect.init(document.querySelector('#importFormat'));
+		},
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 			glo.modalOpen = false;
@@ -46,8 +49,10 @@ function initImportModal(){
 
 function importModal(){
 	glo.modalOpen = true;
-	event.stopPropagation();
-	event.preventDefault();
+	if(typeof event !== 'undefined' && event && event.stopPropagation){
+		event.stopPropagation();
+		event.preventDefault();
+	}
 	if(glo.fullScreen){ glo.engine.switchFullscreen(); }
 	M.Modal.getInstance(document.querySelector('#importModal')).open();
 }

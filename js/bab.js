@@ -36,11 +36,6 @@ Player.prototype = {
 
     glo.camera = this.camera;
     glo.camera_target = this.camera.getTarget();
-
-    glo.isPointerDown = false;
-    canvas.addEventListener('pointerdown', () => { glo.isPointerDown = true;  });
-    canvas.addEventListener('pointerup',   () => { glo.isPointerDown = false; });
-    canvas.addEventListener('pointerleave',() => { glo.isPointerDown = false; });
   }
 };
 
@@ -95,12 +90,13 @@ g = new Game('renderCanvas');
 
 function rotate_camera() {
   if (glo.ribbon) {
-    // Neutralise l'inertie résiduelle uniquement après relâchement du bouton
-    // souris, pour ne pas bloquer l'inertie pendant un drag actif.
-    if (!glo.isPointerDown) {
-      glo.camera.inertialAlphaOffset = 0;
-      glo.camera.inertialBetaOffset  = 0;
-    }
+    // Sauvegarde l'inertie souris, la neutralise le temps d'appliquer la
+    // vitesse de rotation, puis la restaure pour que Babylon.js puisse
+    // continuer à la décroître naturellement sans interférer avec la rotation.
+    const savedAlpha = glo.camera.inertialAlphaOffset;
+    const savedBeta  = glo.camera.inertialBetaOffset;
+    glo.camera.inertialAlphaOffset = 0;
+    glo.camera.inertialBetaOffset  = 0;
 
     const dt = glo.engine.getDeltaTime() / 1000; // en secondes
     const speed = glo.rotate_speed * dt * 60; // normalise pour ~60fps
@@ -116,5 +112,8 @@ function rotate_camera() {
         glo.camera.beta += speed;
         break;
     }
+
+    glo.camera.inertialAlphaOffset = savedAlpha;
+    glo.camera.inertialBetaOffset  = savedBeta;
   }
 }

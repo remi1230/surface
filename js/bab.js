@@ -90,6 +90,11 @@ g = new Game('renderCanvas');
 
 function rotate_camera() {
   if (glo.ribbon) {
+    // Neutralise l'inertie résiduelle des mouvements souris pour éviter
+    // qu'ils interfèrent avec la rotation programmée de la caméra.
+    glo.camera.inertialAlphaOffset = 0;
+    glo.camera.inertialBetaOffset  = 0;
+
     const dt = glo.engine.getDeltaTime() / 1000; // en secondes
     const speed = glo.rotate_speed * dt * 60; // normalise pour ~60fps
     switch (glo.rotateType.current) {

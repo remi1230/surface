@@ -406,7 +406,7 @@ function add_lines_and_dim_buttons(){
   }, undefined, 'left');
   addButton("first", panel, "but_coord", "CART", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
   addButton("first", panel, "but_import_obj", "IMP", 60, 30, 10, 0, function(){
-    importOBJMesh();
+    importModal();
   }, undefined, 'left');
   addButton("first", panel, "but_dimension", "EXP", 60, 30, 10, 0, function(){
     exportModal();
@@ -1168,29 +1168,49 @@ function add_shaders_ctrl(){
     parent.addControl(container);
   }
 
+  function updLightingFloat(varName, shaderVarName, varValue){
+    glo.shaders.light[varName] = varValue;
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
+  }
+  function updLightingVec3(axis, value){
+    glo.shaders.light.direction[axis] = value;
+    
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
+      let direction = glo.shaders.light.direction;
+
+      shaderMeshInstance._vecLampPos.set(direction.x, direction.y, direction.z);
+      shaderMeshInstance.shaderMaterial.setVector3("lampPosition", shaderMeshInstance._vecLampPos);
+    }
+  }
+  function updLightingSpecularFloat(varName, shaderVarName, varValue){
+    glo.shaders.light.specular[varName] = varValue;
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
+  }
+
   const lightInfos = glo.shaders.light;
   const dirRange   = 5;
 
   addSlider(panelLight, "lightIntensity", "Intensity", glo.shaders.light.intensity, 2, 0, dirRange, 0.01, async function(value){
-    glo.shaders.light.intensity = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingFloat('intensity', 'lampIntensity', value);
   }, 'seventh');
   addSlider(panelLight, "lightDirectionX", "Direction X", glo.shaders.light.direction.x, 2, -dirRange, dirRange, 0.01, async function(value){
-    glo.shaders.light.direction.x = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingVec3('x', value);
   }, 'seventh');
   addSlider(panelLight, "lightDirectionY", "Direction Y", glo.shaders.light.direction.y, 2, -dirRange, dirRange, 0.01, async function(value){
-    glo.shaders.light.direction.y = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingVec3('y', value);
   }, 'seventh');
   addSlider(panelLight, "lightDirectionZ", "Direction Z", glo.shaders.light.direction.z, 2, -dirRange, dirRange, 0.01, async function(value){
-    glo.shaders.light.direction.z = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingVec3('z', value);
   }, 'seventh');
   addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){
-    glo.shaders.light.radius = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingFloat('radius', 'lampRadius', value);
   }, 'seventh');
   addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 4, 0.01, async function(value){
-    glo.shaders.light.specular.intensity = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingSpecularFloat('intensity', 'lampSpecularIntensity', value);
   }, 'seventh');
   addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){
-    glo.shaders.light.specular.power = value; glo.ribbon.shaderMeshInstance.updateLighting();
+    updLightingSpecularFloat('power', 'lampSpecularPower', value);
   }, 'seventh');
   addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
     glo.params.gridScaleValue = value;

@@ -106,15 +106,15 @@ var glo = {
 							const lighting = sel.lighting;
 							if(lighting.pos){
 								const lightPos = lighting.pos;
-								if(lightPos.x) glo.allControls.getByName('lightDirectionX').value = lightPos.x;
-								if(lightPos.y) glo.allControls.getByName('lightDirectionY').value = lightPos.y;
-								if(lightPos.z) glo.allControls.getByName('lightDirectionZ').value = lightPos.z;
+								if(lightPos.x || lightPos.x === 0) glo.allControls.getByName('lightDirectionX').value = lightPos.x;
+								if(lightPos.y || lightPos.y === 0) glo.allControls.getByName('lightDirectionY').value = lightPos.y;
+								if(lightPos.z || lightPos.z === 0) glo.allControls.getByName('lightDirectionZ').value = lightPos.z;
 							}
 							if(lighting.intensity){ glo.allControls.getByName('lightIntensity').value = lighting.intensity; }	
 							if(lighting.specular){
 								const specular = lighting.specular;
-								if(specular.intensity) glo.allControls.getByName('lightSpecularIntensity').value = specular.intensity;
-								if(specular.power) glo.allControls.getByName('lightSpecularPower').value = specular.power;
+								if(specular.intensity || specular.intensity === 0) glo.allControls.getByName('lightSpecularIntensity').value = specular.intensity;
+								if(specular.power || specular.power === 0) glo.allControls.getByName('lightSpecularPower').value = specular.power;
 							}
 						}
 						else{

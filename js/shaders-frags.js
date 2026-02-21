@@ -33,14 +33,14 @@ fragmentShaders = [
     vec2 cell = fract(hexUV) - 0.5;
     float d = sdHexagon(cell, 5.666/12.0);
     // N'affiche QUE les bords (d proche de 0)
-    if(abs(d) > 0.04) discard;
+    if(abs(d) > T + 0.05) discard;
     col = 1.0-backgroundColor;
 `,
 `
     // Disco
     vec2 uv = fract(vUV * vec2(P, Q*0.5)) - 0.5;
     float d = length(uv);
-    if(d > 0.4) discard;
+    if(d > 0.33+T) discard;
     col = palette(d * 3.0 + time + vPosition.x); 
 `,
 `
@@ -60,8 +60,8 @@ fragmentShaders = [
     //CosPos
     vec3 pos = npos();
 
-    float c     = (42.0/64.0) * P / 2.0;
-    float val   = o(pos, c);
+    float c     = P / 2.0;
+    float val   = o(pos, c + Ts(1.0));
     vec3 valCol = cpalette(val, palette(val));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);
@@ -180,7 +180,7 @@ fragmentShaders = [
     vec3 color = vec3(.0);
 
     // Scale
-    vec2 scale = vec2(64., 32.);
+    vec2 scale = vec2(P, P*0.5);
     st *= scale;
 
     vec2 i_st = floor(st);
@@ -193,6 +193,7 @@ fragmentShaders = [
 
     col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
 
+    if(length(col) > T+0.85){ discard; }
 
 `
 ];

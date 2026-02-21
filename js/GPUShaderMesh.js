@@ -257,8 +257,8 @@ class ShaderMeshBase {
 		this.uvInfos = isUV();
 
 		// Flags
-		this.invcol  = glo.shaders.params.invcol ? 1.0 : 0.0;
-		this.islight = glo.shaders.params.islight ? 1.0 : 0.0;
+		/*this.invcol  = glo.shaders.params.invcol ? 1.0 : 0.0;
+		this.islight = glo.shaders.params.islight ? 1.0 : 0.0;*/
 
 		// Paramètres UI
 		this.A = glo.params.A; this.B = glo.params.B;
@@ -281,10 +281,6 @@ class ShaderMeshBase {
 		// Blender
 		this.blenderInfos = glo.params.blender;
 
-		// Transformations additionnelles (uniforms)
-		this.flatAmount = 0.0;      // 0 = normal, 1 = complètement plat
-		this.twistAmount = 0.0;     // Angle de twist par unité de hauteur
-		this.spherifyAmount = 0.0;  // 0 = normal, 1 = sphère parfaite
 		// Norm deformation parameters (read from glo.params.functionIt.norm)
 		const norm = glo.params.functionIt.norm;
 		this.normValX = norm.x;
@@ -529,10 +525,6 @@ uniform int deformationEnabled;
 uniform vec4 blendU;
 uniform vec3 blendO;
 
-// Uniforms transformations additionnelles
-uniform float flatAmount;
-uniform float twistAmount;
-uniform float spherifyAmount;
 // Norm deformation uniforms
 uniform float normValX, normCoeffX;
 uniform float normValY, normCoeffY;
@@ -812,7 +804,6 @@ void main() {
 					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "P", "Q", "S", "T",
 					"t", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
-					"flatAmount", "twistAmount", "spherifyAmount",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
@@ -897,8 +888,8 @@ void main() {
 		mat.setFloat("uStepsU", this.nb_steps_u);
 		mat.setFloat("uStepsV", this.nb_steps_v);
 
-		mat.setFloat("invcol", this.invcol ? 1.0 : 0.0);
-		mat.setFloat("islight", this.islight ? 1.0 : 0.0);
+		mat.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+		mat.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
 
 		mat.setFloat("A", this.A);
 		mat.setFloat("B", this.B);
@@ -933,9 +924,6 @@ void main() {
 		mat.setVector3("blendO", this._vecBlendO);
 
 		// Transformations additionnelles
-		mat.setFloat("flatAmount", this.flatAmount);
-		mat.setFloat("twistAmount", this.twistAmount);
-		mat.setFloat("spherifyAmount", this.spherifyAmount);
 		mat.setFloat("normValX", this.normValX);
 		mat.setFloat("normCoeffX", this.normCoeffX);
 		mat.setFloat("normValY", this.normValY);
@@ -1256,26 +1244,6 @@ void main() {
 	}
 
 	/**
-	 * Met à jour les transformations additionnelles
-	 */
-	updateTransformations(flat = null, twist = null, spherify = null) {
-		if (!this.shaderMaterial) return;
-
-		if (flat !== null) {
-			this.flatAmount = flat;
-			this.shaderMaterial.setFloat("flatAmount", flat);
-		}
-		if (twist !== null) {
-			this.twistAmount = twist;
-			this.shaderMaterial.setFloat("twistAmount", twist);
-		}
-		if (spherify !== null) {
-			this.spherifyAmount = spherify;
-			this.shaderMaterial.setFloat("spherifyAmount", spherify);
-		}
-	}
-
-	/**
 	 * Met à jour un uniform de déformation par normale
 	 * @param {string} uniformName - ex: "normValX", "normCoeffX"
 	 * @param {number} value
@@ -1329,10 +1297,6 @@ uniform int deformationEnabled;
 uniform vec4 blendU;
 uniform vec3 blendO;
 
-// Uniforms transformations additionnelles
-uniform float flatAmount;
-uniform float twistAmount;
-uniform float spherifyAmount;
 // Norm deformation uniforms
 uniform float normValX, normCoeffX;
 uniform float normValY, normCoeffY;
@@ -1780,10 +1744,6 @@ void main() { fragColor = vec4(0.0); }`;
 		setV4('blendU', bl.u.x, bl.u.y, bl.u.z, 0);
 		setV3('blendO', bl.O.x, bl.O.y, bl.O.z);
 
-		// Transformations additionnelles
-		setF('flatAmount', this.flatAmount);
-		setF('twistAmount', this.twistAmount);
-		setF('spherifyAmount', this.spherifyAmount);
 		setF('normValX', this.normValX);
 		setF('normCoeffX', this.normCoeffX);
 		setF('normValY', this.normValY);

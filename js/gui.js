@@ -892,7 +892,14 @@ function add_color_pickers(){
     if(typeof(glo.gridY) != "undefined"){ glo.gridY.map(line => { line.color = new_color_line_grid; }); }
     if(typeof(glo.gridZ) != "undefined"){ glo.gridZ.map(line => { line.color = new_color_line_grid; }); }
 
-    glo.planes.map(plane => { plane.material.emissiveColor = glo.backgroundColor.inv(); });
+    glo.planes?.map(plane => { plane.material.emissiveColor = glo.backgroundColor.inv(); });
+
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
+
+      shaderMeshInstance._backgroundCanvasColor.set(value.r, value.g, value.b);
+      shaderMeshInstance.shaderMaterial.setVector3("backgroundColor", shaderMeshInstance._backgroundCanvasColor);
+    }
   });
 
   var picker3 = new BABYLON.GUI.ColorPicker();

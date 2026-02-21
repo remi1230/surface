@@ -18,6 +18,32 @@ fragmentShaders = [
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `
+   //Grille
+    float epaisseur = 0.1;
+    vec2 uv = fract(vUV * P * 0.5) - 0.5;
+    float tube = min(abs(uv.x*2.0), abs(uv.y));
+    if(tube > epaisseur) discard;
+    col = 1.0-backgroundColor;  
+`,
+`
+    // Grille hex
+    vec2 hexUV = vec2(vUV.x, vUV.y * 0.5) * P;
+    float row = floor(hexUV.y);
+    if(mod(row, 2.0) > 0.5) hexUV.x += 1.0;
+    vec2 cell = fract(hexUV) - 0.5;
+    float d = sdHexagon(cell, 5.666/12.0);
+    // N'affiche QUE les bords (d proche de 0)
+    if(abs(d) > 0.04) discard;
+    col = 1.0-backgroundColor;
+`,
+`
+    // Disco
+    vec2 uv = fract(vUV * vec2(P, Q*0.5)) - 0.5;
+    float d = length(uv);
+    if(d > 0.4) discard;
+    col = palette(d * 3.0 + time + vPosition.x); 
+`,
+`
     //Norm&Pos
     float coeff = 1.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()));
@@ -572,6 +598,7 @@ uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform vec3 colorsToAdd;
+uniform vec3 backgroundColor;
 uniform float tintColor;
 uniform float lampIntensity;
 uniform float lampRadius;

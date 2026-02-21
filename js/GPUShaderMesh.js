@@ -306,7 +306,8 @@ class ShaderMeshBase {
 		this._vecMeshBg = new BABYLON.Vector3(0, 0, 0);
 		this._vecMeshFg = new BABYLON.Vector3(0, 0, 0);
 		this._vecLampPos = new BABYLON.Vector3(0, 0, 0);
-		this._colorsToAdd = new BABYLON.Vector3(glo.shaders.colors.toAdd.r, glo.shaders.colors.toAdd.g, glo.shaders.colors.toAdd.b);
+		this._colorsToAdd = new BABYLON.Vector3(0, 0, 0);
+		this._backgroundCanvasColor = new BABYLON.Vector3(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
 	}
 
 	/**
@@ -756,6 +757,7 @@ uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform vec3 colorsToAdd;
+uniform vec3 backgroundColor;
 uniform float tintColor;
 uniform float lampIntensity;
 uniform float lampRadius;
@@ -814,7 +816,7 @@ void main() {
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor',
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor', 'backgroundColor',
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
 				]
 			}
@@ -970,6 +972,8 @@ void main() {
 		mat.setVector3("lampPosition", this._vecLampPos);
 		this._colorsToAdd.set(glo.shaders.colors.toAdd.r, glo.shaders.colors.toAdd.g, glo.shaders.colors.toAdd.b);
 		mat.setVector3("colorsToAdd", this._colorsToAdd);
+		this._backgroundCanvasColor.set(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
+		mat.setVector3("backgroundColor", this._backgroundCanvasColor);
 		mat.setFloat("tintColor", glo.shaders.colors.tint);
 		mat.setFloat("lampIntensity", glo.shaders.light.intensity);
 		mat.setFloat("lampRadius", glo.shaders.light.radius);

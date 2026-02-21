@@ -895,8 +895,8 @@ void main() {
 		mat.setFloat("uStepsU", this.nb_steps_u);
 		mat.setFloat("uStepsV", this.nb_steps_v);
 
-		mat.setFloat("invcol", this.invcol ? 1.0 : 0.0);
-		mat.setFloat("islight", this.islight ? 1.0 : 0.0);
+		mat.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+		mat.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
 
 		mat.setFloat("A", this.A);
 		mat.setFloat("B", this.B);

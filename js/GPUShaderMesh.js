@@ -306,6 +306,7 @@ class ShaderMeshBase {
 		this._vecMeshBg = new BABYLON.Vector3(0, 0, 0);
 		this._vecMeshFg = new BABYLON.Vector3(0, 0, 0);
 		this._vecLampPos = new BABYLON.Vector3(0, 0, 0);
+		this._colorsToAdd = new BABYLON.Vector3(glo.shaders.colors.toAdd.r, glo.shaders.colors.toAdd.g, glo.shaders.colors.toAdd.b);
 	}
 
 	/**
@@ -754,6 +755,8 @@ uniform vec3 cameraPosition;
 uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
+uniform vec3 colorsToAdd;
+uniform float tintColor;
 uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
@@ -781,19 +784,8 @@ void main() {
 
 	${mainFrag}
 
-	// Inversion des couleurs si bouton INV actif
-	col = mix(col, vec3(1.0)-col, invcol);
-
-	// Éclairage
-	if(islight == 1.0){
-		vec3 lamp1 = light(lampPosition, col);
-		col*= lamp1;
-		col = col / (col + vec3(1.0));
-		col = pow(col, vec3(1.0 / 2.2));
-	}
-
-	fragColor = vec4(col, 1.0);
-}`;
+	${fragmentShaderFooter}
+`;
 }
 
 	/**
@@ -822,7 +814,7 @@ void main() {
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower',
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor',
 					"gridU", "gridV", "lineWidth", "invcol", "islight"
 				]
 			}
@@ -976,6 +968,9 @@ void main() {
 		mat.setVector3("meshFg", this._vecMeshFg);
 		this._vecLampPos.set(glo.shaders.light.direction.x, glo.shaders.light.direction.y, glo.shaders.light.direction.z);
 		mat.setVector3("lampPosition", this._vecLampPos);
+		this._colorsToAdd.set(glo.shaders.colors.toAdd.r, glo.shaders.colors.toAdd.g, glo.shaders.colors.toAdd.b);
+		mat.setVector3("colorsToAdd", this._colorsToAdd);
+		mat.setFloat("tintColor", glo.shaders.colors.tint);
 		mat.setFloat("lampIntensity", glo.shaders.light.intensity);
 		mat.setFloat("lampRadius", glo.shaders.light.radius);
 		mat.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);

@@ -90,6 +90,14 @@ g = new Game('renderCanvas');
 
 function rotate_camera() {
   if (glo.ribbon) {
+    // Sauvegarde l'inertie souris, la neutralise le temps d'appliquer la
+    // vitesse de rotation, puis la restaure pour que Babylon.js puisse
+    // continuer à la décroître naturellement sans interférer avec la rotation.
+    const savedAlpha = glo.camera.inertialAlphaOffset;
+    const savedBeta  = glo.camera.inertialBetaOffset;
+    glo.camera.inertialAlphaOffset = 0;
+    glo.camera.inertialBetaOffset  = 0;
+
     const dt = glo.engine.getDeltaTime() / 1000; // en secondes
     const speed = glo.rotate_speed * dt * 60; // normalise pour ~60fps
     switch (glo.rotateType.current) {
@@ -104,5 +112,8 @@ function rotate_camera() {
         glo.camera.beta += speed;
         break;
     }
+
+    glo.camera.inertialAlphaOffset = savedAlpha;
+    glo.camera.inertialBetaOffset  = savedBeta;
   }
 }

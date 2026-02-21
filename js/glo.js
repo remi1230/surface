@@ -752,6 +752,10 @@ var glo = {
 			radius: 100.0,
 			specular: {power: 2.0, intensity: 4.0},
 		},
+		colors:{
+			toAdd:{r: 0, g: 0, b: 0},
+			tint: 1,
+		}
 	},
 	video:{
 		canvas: null,
@@ -807,7 +811,7 @@ var glo = {
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
 	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.133),
-	lineColor: new BABYLON.Color3(0.0944, 0.09535, 0.31383),
+	lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	initialColor:{
 		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 		emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),

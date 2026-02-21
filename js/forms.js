@@ -18,7 +18,7 @@ const formsToselect = [
         fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "G(c(vct)+1)", beta:"t", theta: "t", check: false,
         orient: {distance: 12.5, axis: "X", direction: 1, alpha: PI/2, beta: -PI/6}},
     {text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,
-        fx: ".125u", fy: ".125v", fz: ".125sucv", check: false,
+        fx: ".125u", fy: ".125v", fz: ".125s(u+t)c(v+t)", check: false,
         orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 10},
         lighting: {pos:{x: 0, y: 0, z: 1}, intensity: 1.75, specular: {intensity: 4, power: 1.75}}
     },

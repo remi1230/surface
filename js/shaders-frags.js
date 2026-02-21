@@ -34,8 +34,8 @@ fragmentShaders = [
     //CosPos
     vec3 pos = npos();
 
-    float c     = P / 2.0;
-    float val   = opt1 == 1.0 ? m(o(pos, c), o(pos, c), hc(pos, c)) : o(o(pos, c), m(pos, c), hc(pos, c));
+    float c     = (42.0/64.0) * P / 2.0;
+    float val   = o(pos, c);
     vec3 valCol = cpalette(val, palette(val));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);
@@ -571,6 +571,8 @@ uniform float opt3;
 uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
+uniform vec3 colorsToAdd;
+uniform float tintColor;
 uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
@@ -585,6 +587,9 @@ void main(){
 fragmentShaderFooter = `
     // Inversion des couleurs si bouton INV actif
 	col = mix(col, vec3(1.0)-col, invcol);
+
+    col *= tintColor;
+    col += colorsToAdd;
 
 	// Éclairage si bouton avec une lampe actif
 	if(islight == 1.0){

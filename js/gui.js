@@ -226,7 +226,7 @@ function parmamControl(control, name, className, options = {}, px = false, ident
         control.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
         break;
       case 'center':
-        control.horizontalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        control.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
         break;
     }
   }
@@ -245,8 +245,200 @@ function parmamControl(control, name, className, options = {}, px = false, ident
   if(typeof(options.pT) != 'undefined'){ control.paddingTop = options.pT + unit; }
 }
 
-function exemple(){
-  glo.allControls.haveThisClass('button').forEach(but => { but.background = '#654321'; });
+function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
+  var panelTitle = new BABYLON.GUI.StackPanel();
+  parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
+  panelTitle.isVertical = false;
+
+  titleLevels = ['22px', '20px', '17px', '16px'];
+
+  var header = new BABYLON.GUI.TextBlock();
+  header.text = title;
+  header.color = "white";
+  header.fontSize = titleLevels[titleLevel];
+  header.height = "20px";
+  header.width = "100%";
+  header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  parmamControl(header, "headerTitle-" + name, `title header right ${numUI} noAutoParam`);
+  panelTitle.addControl(header);
+
+  glo.advancedTexture.addControl(panelTitle);
+}
+
+function makePanelsTitles(paramsPanels){
+  let panels = [];
+  for(const prop in paramsPanels){
+    for(const sprop in paramsPanels[prop]){
+      const params = paramsPanels[prop][sprop];
+      
+      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.titleLevel);
+      if(sprop === 'ctrl'  && params){
+        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI));
+      }
+    }
+  }
+
+  return panels;
+}
+
+function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
+  var panelCtrl = new BABYLON.GUI.StackPanel();
+  parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
+  panelCtrl.isVertical = isVertical;
+  glo.advancedTexture.addControl(panelCtrl);
+
+  return panelCtrl;
+}
+
+function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, numUI = 'eighth', classes = 'right', eventUp = false, fontSize = 14){
+  var header = new BABYLON.GUI.TextBlock();
+  parmamControl(header, "header_" + name,  `header ${classes} ${numUI} noAutoParam`, { text: text + ": " + val, fontSize: fontSize, h: 20, pT: 4, }, true);
+  parent.addControl(header);
+
+  var slider = new BABYLON.GUI.Slider();
+  var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
+  parmamControl(slider, name, `slider ${classes} ${numUI}`, options, true);
+  slider.startValue = val;
+
+  slider.onValueChangedObservable.add(function(value) {
+    if(!glo.rightButton){
+      header.text = text + ": " + value.toFixed(decimalPrecision);
+      event(value);
+    }
+    glo.rightButton = false;
+  });
+  slider.onPointerClickObservable.add(function (e) {
+    if(e.buttonIndex == 2){
+      glo.rightButton = true;
+      header.text = text + ": " + slider.startValue;
+      slider.value = slider.startValue;
+
+      event(slider.value);
+    }
+  });
+
+  if(eventUp){
+    slider.onPointerUpObservable.add(function (e) {
+      eventUp(e);
+    });
+  }
+
+  slider.subscribeToDoubleClick();
+
+  parent.addControl(slider);
+}
+
+function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, step, eventCallback, axes = ['x', 'y', 'z']) {
+  const AXIS_COLORS = ['#ff6666', '#66ff66', '#6666ff'];
+
+  var groupContainer = new BABYLON.GUI.StackPanel();
+  groupContainer.isVertical = true;
+  groupContainer.width = "100%";
+  groupContainer.adaptHeightToChildren = true;
+  parent.addControl(groupContainer);
+
+  var header = new BABYLON.GUI.TextBlock();
+  parmamControl(header, "header_" + baseName, 'header right eighth noAutoParam', {
+    text: text + ": " + val,
+    color: AXIS_COLORS[0],
+    fontSize: 14,
+    h: 20,
+    pT: 4
+  }, true);
+  groupContainer.addControl(header);
+
+  var rowContainer = new BABYLON.GUI.StackPanel();
+  rowContainer.isVertical = false;
+  rowContainer.height = "20px";
+  rowContainer.width = "100%";
+  groupContainer.addControl(rowContainer);
+
+  var axisState = {};
+  axes.forEach(function(axis, i) {
+    axisState[axis] = { checked: i === 0, value: val };
+  });
+
+  axes.forEach(function(axis, i) {
+    var checkbox = new BABYLON.GUI.Checkbox();
+    checkbox.width = "16px";
+    checkbox.height = "16px";
+    checkbox.isChecked = axisState[axis].checked;
+    checkbox.color = AXIS_COLORS[i];
+    checkbox.background = "#333";
+    rowContainer.addControl(checkbox);
+
+    var label = new BABYLON.GUI.TextBlock();
+    label.text = axis.toUpperCase();
+    label.width = "16px";
+    label.height = "16px";
+    label.color = checkbox.color;
+    label.fontSize = 11;
+    label.paddingRight = "4px";
+    rowContainer.addControl(label);
+
+    checkbox.onIsCheckedChangedObservable.add(function(checked) {
+      axisState[axis].checked = checked;
+      updateSliderDisplay();
+    });
+
+    axisState[axis].checkbox = checkbox;
+  });
+
+  var slider = new BABYLON.GUI.Slider();
+  parmamControl(slider, baseName, 'slider right eighth', {
+    minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'
+  }, true);
+  slider.startValue = val;
+  slider.width = "250px";
+  rowContainer.addControl(slider);
+
+  function getCheckedAxes() {
+    return axes.filter(function(axis) { return axisState[axis].checked; });
+  }
+
+  function getDisplayValue() {
+    var checked = getCheckedAxes();
+    return checked.length === 0 ? val : axisState[checked[0]].value;
+  }
+
+  function updateSliderDisplay() {
+    var displayVal = getDisplayValue();
+    var checked = getCheckedAxes();
+    slider.value = displayVal;
+    header.text = text + ": " + displayVal.toFixed(decimalPrecision);
+    if (checked.length === 0) {
+      header.color = 'grey';
+    } else if (checked.length === 1) {
+      header.color = AXIS_COLORS[axes.indexOf(checked[0])];
+    } else {
+      header.color = 'white';
+    }
+  }
+
+  slider.onValueChangedObservable.add(function(value) {
+    if (glo.rightButton) return;
+    var checked = getCheckedAxes();
+    header.text = text + ": " + value.toFixed(decimalPrecision);
+    checked.forEach(function(axis) { axisState[axis].value = value; });
+    slider.lastValue = value;
+    eventCallback(value, checked);
+  });
+
+  slider.onPointerClickObservable.add(function(e) {
+    if (e.buttonIndex == 2) {
+      glo.rightButton = true;
+      var checked = getCheckedAxes();
+      checked.forEach(function(axis) { axisState[axis].value = slider.startValue; });
+      slider.value = slider.startValue;
+      header.text = text + ": " + slider.startValue.toFixed(decimalPrecision);
+      eventCallback(slider.startValue, checked);
+      glo.rightButton = false;
+    }
+  });
+
+  updateSliderDisplay();
+
+  return { header, slider, axisState };
 }
 
 function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_radius, background = glo.buttons_background, fontSize = glo.buttons_fontsize){
@@ -266,19 +458,11 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
 
 function add_switch_and_help_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = { isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 20, l: 3, t: -1, };
+  var options = { isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 17.125, pR:3, t: -1, };
   parmamControl(panel, 'hideSwitchHelp', 'panel right first noAutoParam', options);
   panel.height = "80px";
   glo.advancedTexture.addControl(panel);
 
-  addButton("first", panel, "but_hide", "HIDE", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
-    glo.allControls.getByName('but_hide').textBlock.text = glo.gui_suit_visible ? "HIDE" : "SHOW";
-
-    toggle_gui_controls(glo.gui_suit_visible);
-    toggleRightPanels(glo.guiSelect, glo.gui_suit_visible);
-
-    glo.gui_suit_visible = !glo.gui_suit_visible;
-  });
   addButton("first", panel, "but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,
              function(){ switchRightPanel(true); }, function(){ switchRightPanel(false); } );
 
@@ -289,6 +473,31 @@ function add_switch_and_help_buttons(){
         if(glo.fullScreen){ glo.engine.switchFullscreen(); }
       }
     });
+  });
+
+  addButton("first", panel, "but_hide", "HIDE", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
+    const buthide = glo.allControls.getByName('but_hide');
+    buthide.textBlock.text = glo.gui_suit_visible ? "HIDE" : "👁️";
+
+    toggle_gui_controls(glo.gui_suit_visible);
+    toggleRightPanels(glo.guiSelect, glo.gui_suit_visible);
+
+    if(!glo.gui_suit_visible){
+      buthide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+      buthide.width        = '50px';
+      buthide.paddingRight = '1px';
+      buthide.background   = "#191921";
+      buthide.color        = "#191921";
+    }
+    else{
+      buthide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+      buthide.width        = '90px';
+      buthide.paddingRight = '1px';
+      buthide.background   = glo.buttons_background;
+      buthide.color        = glo.buttons_color;
+    }
+
+    glo.gui_suit_visible = !glo.gui_suit_visible;
   });
 }
 function add_axis_and_rot_buttons(){
@@ -535,6 +744,99 @@ function add_uv_sliders(){
   add_slider('v', 'V', 'v', 'slider_v');
 }
 
+function add_radios(suit = false){
+  var topShift = 0;
+  var topShiftLineDim = 0;
+  glo.formes.select.map( forme => {
+    if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftRadios; topShiftLineDim+=glo.shiftLineDim; }
+  });
+  var top_panel = 51;
+
+  if(glo.first_radio){
+    var panel = new BABYLON.GUI.StackPanel();
+    panel.onWheelObservable.add(async function(event){
+      glo.whellSwitchFormDown = event.y > 0 ? true : false;
+      await whellSwitchForm();
+    });
+    var options = {hAlign: 'left', vAlign: 'top', w: 9.5, t: top_panel, pL: 0, l:7.5};
+    parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
+    glo.advancedTexture.addControl(panel);
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 50});
+    panel.addControl(header);//panel.background='red';
+  }
+
+  var addRadio = function(text, parent, group, check = false, typeCoords) {
+    if(!glo.first_radio){ check = false; }
+    var button = new BABYLON.GUI.RadioButton();
+    var options = {w: "13", h: "13", group: 'radiosForms', isChecked: check};
+    parmamControl(button, "Radio-" + text, 'radio left first', options, true);
+    for(const prop in glo.theme.radio.button){ button[prop] = glo.theme.radio.button[prop]; }
+    
+    const formSelected = glo.formes.getFormSelect().form;
+    if(formSelected && formSelected.text === text && formSelected.typeCoords === typeCoords){
+      button.isChecked = true;
+    }
+
+    // Ajout du gestionnaire pour les clics gauche et droit
+    button.onPointerClickObservable.add(async function(e) {
+      // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
+      if (e.buttonIndex === 0) {
+
+        await glo.formes.setFormeSelect(text, glo.coordsType);
+
+        // button.onPointerClickObservable.remove(this);
+      }
+    });
+
+    var header = BABYLON.GUI.Control.AddHeader(button, text, "200px", { isHorizontal: true, controlFirst: true });
+    parmamControl(header, "headerRadio-" + text, 'header radio left first noAutoParam', {h: 20, pT: 4}, true);
+    header.paddingLeft = "16%";
+    for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
+
+    var textBlock = header.children[1];
+    textBlock.fontFamily = "Manrope";
+    textBlock.fontWeight = 300;
+    textBlock.fontSize = "14px";
+
+    glo.radios_formes.push({button: button, header: header});
+
+    parent.addControl(header);
+  }
+
+  if(!glo.first_radio){
+    var panel = glo.allControls.getByName('panelRadios');
+    glo.allControls.getByName('panelRadios').top = top_panel + '%';
+    glo.formes.select.map( forme => {
+        var radio_form = glo.radios_formes.getByName("Radio-" + forme.text);
+        if(radio_form != false){
+          radio_form.button.dispose();
+          radio_form.header.dispose();
+        }
+    });
+  }
+
+  glo.radios_formes.length = 0;
+
+  glo.formes.select.map( forme => {
+    if(forme.typeCoords == glo.coordsType){
+      if(!suit){
+        if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
+      }
+      else{
+        if(glo.formesSuit){
+          if(forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
+        }
+        else{
+          if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
+        }
+      }
+    }
+  });
+
+  glo.first_radio = false;
+}
+
 function add_inputs_equations(){
   var panel                = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
@@ -657,101 +959,6 @@ function add_inputs_equations(){
 
       glo.ribbon.shaderMeshInstance.updateDeformationExpression();
   });
-}
-
-function add_radios(suit = false){
-  var topShift = 0;
-  var topShiftLineDim = 0;
-  glo.formes.select.map( forme => {
-    if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftRadios; topShiftLineDim+=glo.shiftLineDim; }
-  });
-  var top_panel = 51;
-
-  if(glo.first_radio){
-    var panel = new BABYLON.GUI.StackPanel();
-    panel.onWheelObservable.add(async function(event){
-      glo.whellSwitchFormDown = event.y > 0 ? true : false;
-      await whellSwitchForm();
-    });
-    var options = {hAlign: 'left', vAlign: 'top', w: 9.5, t: top_panel, pL: 0, l:7.5};
-    parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
-    glo.advancedTexture.addControl(panel);
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 50});
-    panel.addControl(header);//panel.background='red';
-  }
-
-  var addRadio = function(text, parent, group, check = false, typeCoords) {
-    if(!glo.first_radio){ check = false; }
-    var button = new BABYLON.GUI.RadioButton();
-    var options = {w: "13", h: "13", group: 'radiosForms', isChecked: check};
-    parmamControl(button, "Radio-" + text, 'radio left first', options, true);
-    for(const prop in glo.theme.radio.button){ button[prop] = glo.theme.radio.button[prop]; }
-    
-    const formSelected = glo.formes.getFormSelect().form;
-    if(formSelected && formSelected.text === text && formSelected.typeCoords === typeCoords){
-      button.isChecked = true;
-    }
-
-    // Ajout du gestionnaire pour les clics gauche et droit
-    button.onPointerClickObservable.add(async function(e) {
-      // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
-      if (e.buttonIndex === 0) {
-
-        await glo.formes.setFormeSelect(text, glo.coordsType);
-
-        // button.onPointerClickObservable.remove(this);
-      }
-    });
-
-
-
-    var header = BABYLON.GUI.Control.AddHeader(button, text, "200px", { isHorizontal: true, controlFirst: true });
-    parmamControl(header, "headerRadio-" + text, 'header radio left first noAutoParam', {h: 20, pT: 4}, true);
-    header.paddingLeft = "16%";
-    for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
-
-    var textBlock = header.children[1];
-    textBlock.fontFamily = "Manrope";
-    textBlock.fontWeight = 300;
-    textBlock.fontSize = "14px";
-
-    glo.radios_formes.push({button: button, header: header});
-
-    parent.addControl(header);
-  }
-
-  if(!glo.first_radio){
-    var panel = glo.allControls.getByName('panelRadios');
-    glo.allControls.getByName('panelRadios').top = top_panel + '%';
-    glo.formes.select.map( forme => {
-        var radio_form = glo.radios_formes.getByName("Radio-" + forme.text);
-        if(radio_form != false){
-          radio_form.button.dispose();
-          radio_form.header.dispose();
-        }
-    });
-  }
-
-  glo.radios_formes.length = 0;
-
-  glo.formes.select.map( forme => {
-    if(forme.typeCoords == glo.coordsType){
-      if(!suit){
-        if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
-      }
-      else{
-        if(glo.formesSuit){
-          if(forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
-        }
-        else{
-          if(!forme.suit){ addRadio(forme.text, panel, "forms", forme.check, forme.typeCoords); }
-        }
-      }
-    }
-  });
-
-  glo.first_radio = false;
 }
 
 function add_step_uv_slider(){
@@ -966,89 +1173,6 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelTitleUIButton);
   glo.advancedTexture.addControl(panelTitleMeshBg);
   glo.advancedTexture.addControl(panelTitleMeshLine);
-}
-
-function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
-  var panelTitle = new BABYLON.GUI.StackPanel();
-  parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
-  panelTitle.isVertical = false;
-
-  titleLevels = ['22px', '20px', '17px', '16px'];
-
-  var header = new BABYLON.GUI.TextBlock();
-  header.text = title;
-  header.color = "white";
-  header.fontSize = titleLevels[titleLevel];
-  header.height = "20px";
-  header.width = "100%";
-  header.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-  parmamControl(header, "headerTitle-" + name, `title header right ${numUI} noAutoParam`);
-  panelTitle.addControl(header);
-
-  glo.advancedTexture.addControl(panelTitle);
-}
-
-function makePanelsTitles(paramsPanels){
-  let panels = [];
-  for(const prop in paramsPanels){
-    for(const sprop in paramsPanels[prop]){
-      const params = paramsPanels[prop][sprop];
-      
-      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.titleLevel);
-      if(sprop === 'ctrl'  && params){
-        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI));
-      }
-    }
-  }
-
-  return panels;
-}
-
-function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
-  var panelCtrl = new BABYLON.GUI.StackPanel();
-  parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
-  panelCtrl.isVertical = isVertical;
-  glo.advancedTexture.addControl(panelCtrl);
-
-  return panelCtrl;
-}
-
-function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, numUI = 'eighth', classes = 'right', eventUp = false, fontSize = 14){
-  var header = new BABYLON.GUI.TextBlock();
-  parmamControl(header, "header_" + name,  `header ${classes} ${numUI} noAutoParam`, { text: text + ": " + val, fontSize: fontSize, h: 20, pT: 4, }, true);
-  parent.addControl(header);
-
-  var slider = new BABYLON.GUI.Slider();
-  var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
-  parmamControl(slider, name, `slider ${classes} ${numUI}`, options, true);
-  slider.startValue = val;
-
-  slider.onValueChangedObservable.add(function(value) {
-    if(!glo.rightButton){
-      header.text = text + ": " + value.toFixed(decimalPrecision);
-      event(value);
-    }
-    glo.rightButton = false;
-  });
-  slider.onPointerClickObservable.add(function (e) {
-    if(e.buttonIndex == 2){
-      glo.rightButton = true;
-      header.text = text + ": " + slider.startValue;
-      slider.value = slider.startValue;
-
-      event(slider.value);
-    }
-  });
-
-  if(eventUp){
-    slider.onPointerUpObservable.add(function (e) {
-      eventUp(e);
-    });
-  }
-
-  slider.subscribeToDoubleClick();
-
-  parent.addControl(slider);
 }
 
 function add_shaders_ctrl(){
@@ -1345,148 +1469,22 @@ function add_blender_sliders(){
 
   makePanelTitle('BlenderPanelTitle', 'Blend', 25.5, 'eighth noAutoParam');
 
-  function addXYZSlider(parent, baseName, text, paramObject, val, decimalPrecision, min, max, step){
-    // Container principal vertical pour tout le groupe
-    var groupContainer = new BABYLON.GUI.StackPanel();
-    groupContainer.isVertical = true;
-    groupContainer.width = "100%";
-    groupContainer.adaptHeightToChildren = true;
-    parent.addControl(groupContainer);
-
-    // Header en haut
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + baseName, 'header right eighth noAutoParam', { 
-      text: text + ": " + val, 
-      color: 'white', 
-      fontSize: 14, 
-      h: 20, 
-      pT: 4 
-    }, true);
-    groupContainer.addControl(header);
-
-    // Container horizontal pour checkboxes + slider
-    var rowContainer = new BABYLON.GUI.StackPanel();
-    rowContainer.isVertical = false;
-    rowContainer.height = "20px";
-    rowContainer.width = "100%";
-    groupContainer.addControl(rowContainer);
-
-    // État des axes
-    var axisState = {
-      x: { checked: true, value: val },
-      y: { checked: false, value: val },
-      z: { checked: false, value: val }
-    };
-
-    // Créer les checkboxes inline
-    ['x', 'y', 'z'].forEach(function(axis){
-      var checkbox = new BABYLON.GUI.Checkbox();
-      checkbox.width = "16px";
-      checkbox.height = "16px";
-      checkbox.isChecked = axisState[axis].checked;
-      checkbox.color = axis === 'x' ? '#ff6666' : axis === 'y' ? '#66ff66' : '#6666ff';
-      checkbox.background = "#333";
-      rowContainer.addControl(checkbox);
-
-      var label = new BABYLON.GUI.TextBlock();
-      label.text = axis.toUpperCase();
-      label.width = "16px";
-      label.height = "16px";
-      label.color = checkbox.color;
-      label.fontSize = 11;
-      label.paddingRight = "4px";
-      rowContainer.addControl(label);
-
-      checkbox.onIsCheckedChangedObservable.add(function(checked){
-        axisState[axis].checked = checked;
-        updateSliderDisplay();
-      });
-
-      axisState[axis].checkbox = checkbox;
-    });
-
-    // Slider
-    var slider = new BABYLON.GUI.Slider();
-    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
-    parmamControl(slider, baseName, 'slider right eighth', options, true);
-    slider.startValue = val;
-    slider.width = "250px";
-    rowContainer.addControl(slider);
-
-    function getCheckedAxes(){
-      return ['x', 'y', 'z'].filter(axis => axisState[axis].checked);
+  function updateBlender() {
+    if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
+      glo.ribbon.shaderMeshInstance.updateBlender();
+    } else {
+      remakeRibbon();
     }
-
-    function getDisplayValue(){
-      var checked = getCheckedAxes();
-      if(checked.length === 0) return val;
-      return axisState[checked[0]].value;
-    }
-
-    function updateSliderDisplay(){
-      var displayVal = getDisplayValue();
-      slider.value = displayVal;
-      header.text = text + ": " + displayVal.toFixed(decimalPrecision);
-      
-      var checked = getCheckedAxes();
-      if(checked.length === 0){
-        header.color = 'grey';
-      } else if(checked.length === 1){
-        header.color = checked[0] === 'x' ? '#ff6666' : checked[0] === 'y' ? '#66ff66' : '#6666ff';
-      } else {
-        header.color = 'white';
-      }
-    }
-
-    function updateShaderUniforms(){
-      if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
-        glo.ribbon.shaderMeshInstance.updateBlender()
-      } else {
-        remakeRibbon();
-      }
-    }
-
-    slider.onValueChangedObservable.add(function(value) {
-      if(glo.rightButton) return;
-      
-      var checked = getCheckedAxes();
-      header.text = text + ": " + value.toFixed(decimalPrecision);
-      
-      checked.forEach(function(axis){
-        axisState[axis].value = value;
-        paramObject[axis] = value;
-      });
-
-      slider.lastValue = value;
-      updateShaderUniforms();
-    });
-
-    slider.onPointerClickObservable.add(function (e) {
-      if(e.buttonIndex == 2){
-        glo.rightButton = true;
-        var checked = getCheckedAxes();
-        
-        checked.forEach(function(axis){
-          axisState[axis].value = slider.startValue;
-          paramObject[axis] = slider.startValue;
-        });
-        
-        slider.value = slider.startValue;
-        header.text = text + ": " + slider.startValue.toFixed(decimalPrecision);
-        
-        updateShaderUniforms();
-        glo.rightButton = false;
-      }
-    });
-
-    updateSliderDisplay();
-    
-    return { header, slider, axisState };
   }
 
-  // Sliders XYZ combinés pour U et O
-  addXYZSlider(panel, "blenderU", "U", glo.params.blender.u, 0, 2, -12, 12, .01);
-  addXYZSlider(panel, "blenderO", "O", glo.params.blender.O, 0, 2, -12, 12, .01);
+  addXYZSlider(panel, "blenderU", "U", 0, 2, -12, 12, .01, function(value, checked) {
+    checked.forEach(function(axis) { glo.params.blender.u[axis] = value; });
+    updateBlender();
+  });
+  addXYZSlider(panel, "blenderO", "O", 0, 2, -12, 12, .01, function(value, checked) {
+    checked.forEach(function(axis) { glo.params.blender.O[axis] = value; });
+    updateBlender();
+  });
 }
 
 function add_sixth_panel_sliders(){
@@ -1515,7 +1513,7 @@ function add_sixth_panel_sliders(){
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelTimeButtons, 'panelTimeButtons', posPanel()+4, false, 20, 4, 'eleventh', 1.42);
 
-  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
+  function add_slider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, 'header right sixth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
     parent.addControl(header);
@@ -1568,7 +1566,7 @@ function add_sixth_panel_sliders(){
     parent.addControl(slider);
   }
 
-  addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 100, 30, 25, 0, function(value){
+  addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 80, 30, 0, 0, function(value){
     glo.params.uvToXy = !glo.params.uvToXy;
 
     glo.allControls.getByName("uvToXyButton").textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
@@ -1579,9 +1577,9 @@ function add_sixth_panel_sliders(){
 
   makePanelTitle("firstPointOffset", "First point offset", 46, "sixth noAutoParam");
 
-  addSlider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
-  addSlider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
-  addSlider(panelSliders, "firstPointOffsetZ", "Z", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.z = value; });
+  add_slider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
+  add_slider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
+  add_slider(panelSliders, "firstPointOffsetZ", "Z", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.z = value; });
 
   const buttonSizes = {width: 150, height: 33};
 
@@ -1739,163 +1737,35 @@ function add_transformation_sliders(){
   makePanelTitle('TransformationPanelTitle', 'Transformations', 52.5, 'eighth noAutoParam');
   makePanelTitle('panelVarColorTitle', 'Colors', 75, 'eighth noAutoParam');
 
-  function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, step, eventCallback, axis = ['x', 'y', 'z'], toTrans = true){
-    // Container principal vertical pour tout le groupe
-    var groupContainer = new BABYLON.GUI.StackPanel();
-    groupContainer.isVertical = true;
-    groupContainer.width = "100%";
-    groupContainer.adaptHeightToChildren = true;
-    parent.addControl(groupContainer);
-
-    // Header en haut
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + baseName, 'header right eighth noAutoParam', { 
-      text: text + ": " + val, 
-      color: 'white', 
-      fontSize: 14, 
-      h: 20, 
-      pT: 4 
-    }, true);
-    groupContainer.addControl(header);
-
-    // Container horizontal pour checkboxes + slider
-    var rowContainer = new BABYLON.GUI.StackPanel();
-    rowContainer.isVertical = false;
-    rowContainer.height = "20px";
-    rowContainer.width = "100%";
-    groupContainer.addControl(rowContainer);
-
-    let axisState = {};
-    axisState[axis[0]] = { checked: true, value: val };
-    axisState[axis[1]] = { checked: false, value: val };
-    axisState[axis[2]] = { checked: false, value: val };
-
-    // Créer les checkboxes inline
-    axis.forEach(function(axe){
-      var checkbox = new BABYLON.GUI.Checkbox();
-      checkbox.width = "16px";
-      checkbox.height = "16px";
-      checkbox.isChecked = axisState[axe].checked;
-      checkbox.color = axe === axis[0] ? '#ff6666' : axe === axis[1] ? '#66ff66' : '#6666ff';
-      checkbox.background = "#333";
-      rowContainer.addControl(checkbox);
-
-      var label = new BABYLON.GUI.TextBlock();
-      label.text = axe.toUpperCase();
-      label.width = "16px";
-      label.height = "16px";
-      label.color = checkbox.color;
-      label.fontSize = 11;
-      label.paddingRight = "4px";
-      rowContainer.addControl(label);
-
-      checkbox.onIsCheckedChangedObservable.add(function(checked){
-        axisState[axe].checked = checked;
-        updateSliderDisplay();
-      });
-
-      axisState[axe].checkbox = checkbox;
-    });
-
-    // Slider (prend le reste de l'espace)
-    var slider = new BABYLON.GUI.Slider();
-    var options = {minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'};
-    parmamControl(slider, baseName, 'slider right eighth', options, true);
-    slider.startValue = val;
-    slider.width = "250px"; // Prendra l'espace restant dans le StackPanel horizontal
-    rowContainer.addControl(slider);
-
-    function getCheckedAxes(){
-      return axis.filter(axis => axisState[axis].checked);
-    }
-
-    function getDisplayValue(){
-      var checked = getCheckedAxes();
-      if(checked.length === 0) return val;
-      return axisState[checked[0]].value;
-    }
-
-    function updateSliderDisplay(){
-      var displayVal = getDisplayValue();
-      slider.value = displayVal;
-      header.text = text + ": " + displayVal.toFixed(decimalPrecision);
-      
-      var checked = getCheckedAxes();
-      if(checked.length === 0){
-        header.color = 'grey';
-      } else if(checked.length === 1){
-        header.color = checked[0] === axis[0] ? '#ff6666' : checked[0] === axis[1] ? '#66ff66' : '#6666ff';
-      } else {
-        header.color = 'white';
-      }
-    }
-
-    slider.onValueChangedObservable.add(function(value) {
-      if(glo.rightButton) return;
-      
-      var checked = getCheckedAxes();
-      header.text = text + ": " + value.toFixed(decimalPrecision);
-      
-      checked.forEach(function(axis){
-        axisState[axis].value = value;
-        if(toTrans){
-          glo.params[baseName + axis.toUpperCase()] = value;
-          glo.params.meshTransformations[baseName][axis] = value;
-        }
-      });
-
-      slider.lastValue = value;
-      eventCallback(value, checked);
-    });
-
-    slider.onPointerClickObservable.add(function (e) {
-      if(e.buttonIndex == 2){
-        glo.rightButton = true;
-        var checked = getCheckedAxes();
-        
-        checked.forEach(function(axis){
-          axisState[axis].value = slider.startValue;
-          if(toTrans) glo.params.meshTransformations[baseName][axis] = slider.startValue;
-        });
-        
-        slider.value = slider.startValue;
-        header.text = text + ": " + slider.startValue.toFixed(decimalPrecision);
-        
-        eventCallback(slider.startValue, checked);
-        glo.rightButton = false;
-      }
-    });
-
-    axis.forEach(function(axis){
-      glo.params[baseName + axis.toUpperCase()] = val;
-    });
-
-    updateSliderDisplay();
-    
-    return { header, slider, axisState };
+  function updParamsTrans(baseName, axis, value) {
+    glo.params[baseName + axis.toUpperCase()] = value;
+    glo.params.meshTransformations[baseName][axis] = value;
   }
 
-  // Sliders XYZ combinés
-  addXYZSlider(panel, "scaling", "Scaling", 1, 2, 0, 24, .1, function(value, axes){ 
-    axes.forEach(function(axis){
+  addXYZSlider(panel, "scaling", "Scaling", 1, 2, 0, 24, .1, function(value, checked) {
+    checked.forEach(function(axis) {
+      updParamsTrans('scaling', axis, value);
       transformMesh('scaling', axis, value);
     });
   });
-  
-  addXYZSlider(panel, "rotation", "Rotation", 0, 3, -2*PI, 2*PI, PI/180, function(value, axes){ 
-    axes.forEach(function(axis){
+
+  addXYZSlider(panel, "rotation", "Rotation", 0, 3, -2*PI, 2*PI, PI/180, function(value, checked) {
+    checked.forEach(function(axis) {
+      updParamsTrans('rotation', axis, value);
       transformMesh('rotation', axis, value);
     });
   });
-  
-  addXYZSlider(panel, "position", "Position", 0, 2, -24, 24, .01, function(value, axes){ 
-    axes.forEach(function(axis){
+
+  addXYZSlider(panel, "position", "Position", 0, 2, -24, 24, .01, function(value, checked) {
+    checked.forEach(function(axis) {
+      updParamsTrans('position', axis, value);
       transformMesh('position', axis, value);
     });
   });
-  
-  addXYZSlider(panel, "cSymmetry", "Center Symmetry", 0, 1, -24, 24, .1, function(value, axes){
-    axes.forEach(function(axis){
+
+  addXYZSlider(panel, "cSymmetry", "Center Symmetry", 0, 1, -24, 24, .1, function(value, checked) {
+    checked.forEach(function(axis) {
+      updParamsTrans('cSymmetry', axis, value);
       glo.centerSymmetry[axis] = value;
     });
     if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
@@ -1903,22 +1773,19 @@ function add_transformation_sliders(){
     }
   });
 
-  function updColorsVec3(color, value){
+  function updColorsVec3(color, value) {
     glo.shaders.colors.toAdd[color] = value;
-    
-    if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
+    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
       let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
       const colorsToAdd = glo.shaders.colors.toAdd;
-
       shaderMeshInstance._colorsToAdd.set(colorsToAdd.r, colorsToAdd.g, colorsToAdd.b);
       shaderMeshInstance.shaderMaterial.setVector3("colorsToAdd", shaderMeshInstance._colorsToAdd);
     }
   }
-  addXYZSlider(panelVarColor, "varingColor", "Add", 0, 2, -1, 1, .01, function(value, axes){
-    axes.forEach(function(axis){
-      updColorsVec3(axis, value);
-    });
-  }, ['r', 'g', 'b'], false);
+
+  addXYZSlider(panelVarColor, "varingColor", "Add", 0, 2, -1, 1, .01, function(value, checked) {
+    checked.forEach(function(axis) { updColorsVec3(axis, value); });
+  }, ['r', 'g', 'b']);
 
   addSlider(panelVarColor, "varTintSlider", "Tint", 1, 2, 0, 2, 0.01,
     function(value){

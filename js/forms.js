@@ -174,7 +174,7 @@ const formsToselect = [
     },
     {text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "1", fy: "v", fz: "u", check: false,
-        orient: {distance: 7, axis: "Y", direction: 1, alpha: -PI/8, beta: -PI/8},
+        orient: {distance: 7, axis: "Y", direction: 1, alpha: 0, beta: -PI/6},
         lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 3, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,

@@ -653,6 +653,10 @@ function createMeshRecorder(mesh, scene, fps = 60) {
 
     return {
         start() {
+            // Ancrer l'espace GUI à la taille CSS affichée avant de doubler
+            // la résolution hardware, pour éviter le décalage des contrôles.
+            glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
+            glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
             glo.engine.setHardwareScalingLevel(1 / 2);
 
             // Attendre 2 frames pour que le resize soit stabilisé
@@ -671,6 +675,8 @@ function createMeshRecorder(mesh, scene, fps = 60) {
                     observer = null;
                 }
                 glo.engine.setHardwareScalingLevel(1);
+                glo.advancedTexture.idealWidth  = 0;
+                glo.advancedTexture.idealHeight = 0;
             }
         },
 

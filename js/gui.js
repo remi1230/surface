@@ -1669,7 +1669,7 @@ function add_eleventh_panel_sliders(){
   addPanel(panelButton3, 'panelButtonEleventh3', posPanel(), false);
   addPanel(panelButton4, 'panelButtonEleventh4', posPanel(), false);
   addPanel(panelButton6, 'panelButtonEleventh6', 46, false);
-  addPanel(panelRotateCamera, 'panelRotateCamera', 79, true, 20, 10);
+  addPanel(panelRotateCamera, 'panelRotateCamera', 79, true, 18.95, 10);
 
   const buttonSizes = {width: 120, height: 33};
 

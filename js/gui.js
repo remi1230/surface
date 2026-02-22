@@ -463,9 +463,6 @@ function add_switch_and_help_buttons(){
   panel.height = "80px";
   glo.advancedTexture.addControl(panel);
 
-  addButton("first", panel, "but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,
-             function(){ switchRightPanel(true); }, function(){ switchRightPanel(false); } );
-
   addButton("first", panel, "but_help", "HELP", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     if(glo.fullScreen){ glo.engine.switchFullscreen(); }
     $('#helpModal').modal('open', {
@@ -474,6 +471,9 @@ function add_switch_and_help_buttons(){
       }
     });
   });
+
+  addButton("first", panel, "but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,
+             function(){ switchRightPanel(true); }, function(){ switchRightPanel(false); } );
 
   addButton("first", panel, "but_hide", "HIDE", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     const buthide = glo.allControls.getByName('but_hide');

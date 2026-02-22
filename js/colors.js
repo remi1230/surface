@@ -26,7 +26,7 @@ function special_randomize_colors_app(first = false){
 function intiColorUI(){
 	glo.allControls.getByName('pickerColorBackground').value = glo.initialColor.backgroundColor;
 	glo.allControls.getByName('pickerColorEmissive').value   = glo.initialColor.emissiveColor;
-	glo.allControls.getByName('pickerColorDiffuse').value    = glo.initialColor.diffuseColor;
+	glo.allControls.getByName('pickerColorButton').value     = hexToRgbNormalized(glo.buttons_background);
 	glo.allControls.getByName('pickerColorLine').value       = glo.initialColor.lineColor;
 
 	glo.allControls.haveThisClass('button').forEach(button => {
@@ -106,4 +106,15 @@ function rgbNormalizedToHex({ r, g, b }) {
 	const toHex = x => to255(x).toString(16).padStart(2, '0');
 
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function hexToRgbNormalized(hex) {
+    hex = hex.replace(/^#/, '');
+    return new BABYLON.Color3
+		(
+			parseInt(hex.slice(0, 2), 16) / 255,
+			parseInt(hex.slice(2, 4), 16) / 255,
+			parseInt(hex.slice(4, 6), 16) / 255
+		)
+    ;
 }

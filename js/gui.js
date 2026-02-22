@@ -1133,7 +1133,7 @@ function add_color_pickers(){
   });
 
   var picker5 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: hexToRgbNormalized(glo.buttons_background), hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker5.onValueChangedObservable.add(function(value) {
     glo.allControls.haveThisClass('button').forEach(button => {
       button.background = rgbNormalizedToHex(value);
@@ -1643,10 +1643,11 @@ function add_sixth_panel_sliders(){
 }
 
 function add_eleventh_panel_sliders(){
-  let panelButton2 = new BABYLON.GUI.StackPanel();
-  let panelButton3 = new BABYLON.GUI.StackPanel();
-  let panelButton4 = new BABYLON.GUI.StackPanel();
-  let panelButton6 = new BABYLON.GUI.StackPanel();
+  let panelButton2      = new BABYLON.GUI.StackPanel();
+  let panelButton3      = new BABYLON.GUI.StackPanel();
+  let panelButton4      = new BABYLON.GUI.StackPanel();
+  let panelButton6      = new BABYLON.GUI.StackPanel();
+  let panelRotateCamera = new BABYLON.GUI.StackPanel();
 
   function addPanel(panel, name, top, isVertical = true, width = 20, height = 5){
     parmamControl(panel, name, 'panel right eleventh noAutoParam', {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
@@ -1668,6 +1669,7 @@ function add_eleventh_panel_sliders(){
   addPanel(panelButton3, 'panelButtonEleventh3', posPanel(), false);
   addPanel(panelButton4, 'panelButtonEleventh4', posPanel(), false);
   addPanel(panelButton6, 'panelButtonEleventh6', 46, false);
+  addPanel(panelRotateCamera, 'panelRotateCamera', 79, true, 20, 10);
 
   const buttonSizes = {width: 120, height: 33};
 
@@ -1723,6 +1725,11 @@ function add_eleventh_panel_sliders(){
     cameraOnPos({x: 0, y: 0, z: 0});
     viewOnAxis();
   });
+
+  makePanelTitle("rotateSpeed", "Rotate", 75, "eleventh", 2);
+  addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotate_speed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){
+    glo.rotate_speed = value;
+  }, "eleventh", "eleventh");
 }
 
 function add_transformation_sliders(){

@@ -78,8 +78,8 @@ const formsToselect = [
         lighting: {pos:{x: 0, y: 3.5, z: 0.75}, intensity: 2, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 128, nb_steps_v: 128,
-        fx: ".125u", fy: ".125v", fz: ".375(s(h(u,v)))c.5t", theta: "xc.5t", check: false,
-        orient: {distance: 15, axis: "Y", direction: 1, alpha: 0, beta: -PI/4},
+        fx: ".125u", fy: ".125v", fz: ".375(s(h(u,v)+6t))c.5t", theta: "xc.5t", check: false,
+        orient: {distance: 15, axis: "Y", direction: -1, alpha: -PI/2, beta: 0},
         lighting: {pos:{x: 0, y: 0, z: 1}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,

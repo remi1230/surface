@@ -270,11 +270,10 @@ function paramsToControls(){
 	glo.allControls.getByName('inputZ').text = glo.params.text_input_z;
 	glo.allControls.getByName('inputAlpha').text = glo.params.text_input_alpha;
 	glo.allControls.getByName('inputBeta').text = glo.params.text_input_beta;
-	glo.allControls.getByName('inputColorX').text = glo.params.text_input_color_x;
-	glo.allControls.getByName('inputColorY').text = glo.params.text_input_color_y;
-	glo.allControls.getByName('inputColorZ').text = glo.params.text_input_color_z;
-	glo.allControls.getByName('inputColorAlpha').text = glo.params.text_input_color_alpha;
-	glo.allControls.getByName('inputColorBeta').text = glo.params.text_input_color_beta;
+
+	glo.allControls.getByName('inputEvalX').text = glo.params.text_input_eval_x;
+	glo.allControls.getByName('inputEvalY').text = glo.params.text_input_eval_y;
+
 	if(glo.input_sym_r){ glo.input_sym_r.text = glo.params.text_input_sym_r || ''; }
 	glo.skipRebuild = false;
 }

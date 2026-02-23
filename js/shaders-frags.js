@@ -589,6 +589,7 @@ uniform float P;
 uniform float Q;
 uniform float S;
 uniform float T;
+uniform float U;
 uniform float lineWidth;
 uniform float invcol;
 uniform float islight;
@@ -613,6 +614,9 @@ void main(){
 `;
 
 fragmentShaderFooter = `
+    //Checkerboard
+    if(U < 2.0 && length(col) > U){ discard; }
+
     // Inversion des couleurs si bouton INV actif
 	col = mix(col, vec3(1.0)-col, invcol);
 

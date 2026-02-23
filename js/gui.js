@@ -1398,6 +1398,7 @@ function add_step_ABCD_sliders(){
   addSlider(panelShadersVariables, "shadersVariables-Q", "Q", 64, 0, -360, 360, 1, function(value){ updFloatShaderParam("Q", value) }, 'seventh');
   addSlider(panelShadersVariables, "shadersVariables-S", "S", 12, 1, -36, 36, 0.1, function(value){ updFloatShaderParam("S", value) }, 'seventh');
   addSlider(panelShadersVariables, "shadersVariables-T", "T", 0, 2, -1, 1, 0.01, function(value){ updFloatShaderParam("T", value) }, 'seventh');
+  addSlider(panelShadersVariables, "shadersVariables-U", "Chekboard", 2, 2, 0, 2, 0.01, function(value){ updFloatShaderParam("U", value) }, 'seventh');
 }
 
 function add_symmetrize_sliders(){

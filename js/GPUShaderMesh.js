@@ -271,6 +271,7 @@ class ShaderMeshBase {
 
 		this.P = glo.shaders.uservars.P; this.Q = glo.shaders.uservars.Q;
 		this.S = glo.shaders.uservars.S; this.T = glo.shaders.uservars.T;
+		this.U = glo.shaders.uservars.U;
 
 		this.opt1 = glo.shaderOpt.opt1 ? 1.0 : 0.0;
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0.0;
@@ -515,7 +516,7 @@ uniform mat4 world;
 uniform float uMinU, uMaxU, uStepU;
 uniform float uMinV, uMaxV, uStepV;
 uniform float uStepsU, uStepsV;
-uniform float A, B, C, D, E, F, G, H, I, J, K, L, M, P, Q, S, T;
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M, P, Q, S, T, U;
 uniform float t;
 uniform float eps;
 uniform float scaleNorm;
@@ -768,6 +769,7 @@ uniform float P;
 uniform float Q;
 uniform float S;
 uniform float T;
+uniform float U;
 
 #define time t
 
@@ -801,7 +803,7 @@ void main() {
 					"uMinU", "uMaxU", "uStepU",
 					"uMinV", "uMaxV", "uStepV",
 					"uStepsU", "uStepsV",
-					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "P", "Q", "S", "T",
+					"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "P", "Q", "S", "T", "U",
 					"t", "eps", "scaleNorm", "deformationEnabled",
 					"blendU", "blendO", "uFirstPoint",
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
@@ -908,6 +910,7 @@ void main() {
 		mat.setFloat("Q", this.Q);
 		mat.setFloat("S", this.S);
 		mat.setFloat("T", this.T);
+		mat.setFloat("U", this.U);
 		mat.setFloat("t", this.t);
 		mat.setFloat("opt1", this.opt1);
 		mat.setFloat("opt2", this.opt2);

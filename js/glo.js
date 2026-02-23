@@ -739,6 +739,7 @@ var glo = {
 			Q: 64,
 			S: 12,
 			T: 0,
+			U: 2,
 		},
 		light:{
 			direction: {x: -0.4, y: -0.4, z: 0.8},

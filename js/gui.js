@@ -334,7 +334,7 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   var groupContainer = new BABYLON.GUI.StackPanel();
   groupContainer.isVertical = true;
   groupContainer.width = "100%";
-  groupContainer.adaptHeightToChildren = false;
+  groupContainer.adaptHeightToChildren = true;
   parent.addControl(groupContainer);
 
   var header = new BABYLON.GUI.TextBlock();

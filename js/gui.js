@@ -334,7 +334,7 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   var groupContainer = new BABYLON.GUI.StackPanel();
   groupContainer.isVertical = true;
   groupContainer.width = "100%";
-  groupContainer.adaptHeightToChildren = true;
+  groupContainer.adaptHeightToChildren = false;
   parent.addControl(groupContainer);
 
   var header = new BABYLON.GUI.TextBlock();
@@ -389,7 +389,7 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
     minimum: min, maximum: max, value: val, lastValue: val, startValue: val, step: step, h: 18.5, background: 'grey'
   }, true);
   slider.startValue = val;
-  slider.width = "250px";
+  slider.width = "280px";
   rowContainer.addControl(slider);
 
   function getCheckedAxes() {
@@ -623,7 +623,7 @@ function add_lines_and_dim_buttons(){
 }
 function add_switchForm_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.5, t: -1, };
+  var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.58, t: -1, };
   parmamControl(panel, 'panelswitchFormButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
@@ -699,7 +699,7 @@ function add_uv_sliders(){
   function add_slider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
     parmamControl(panel, "panel_" + name, 'panel left first noAutoParam', 
-      {hAlign: 'left', vAlign: 'top', w: 22, t: 5 * (name == 'u' ? 0.2 : 1), pT: 5 * (name == 'u' ? 0.1 : 0.6), h: 7, pL: 2.125, l: -2 });
+      {hAlign: 'left', vAlign: 'top', w: 20.5, t: 5 * (name == 'u' ? 0.2 : 1), pT: 5 * (name == 'u' ? 0.1 : 0.6), h: 7, pL: 0, l: -0.25 });
     glo.advancedTexture.addControl(panel);
 
     var min_start = -glo['params'][gloPropToModify].toFixed(2);
@@ -763,7 +763,7 @@ function add_radios(suit = false){
     glo.advancedTexture.addControl(panel);
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_forms", 'title header left first', {text: "Forms :", pR: 50});
-    panel.addControl(header);//panel.background='red';
+    panel.addControl(header);
   }
 
   var addRadio = function(text, parent, group, check = false, typeCoords) {
@@ -842,11 +842,11 @@ function add_inputs_equations(){
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
 
-  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 21, pR: 1, t: 14.25, h: 30, pL: 0.66});
+  parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 21, pR: 0, t: 14.25, h: 30, pL: 0.375});
 
-  var options = {hAlign: 'right', vAlign: 'top', w: 20, t: 30};
+  var options = {hAlign: 'right', vAlign: 'top', w: 19.5, t: 30, pL: 0, pR: 0.5};
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
-  options = {hAlign: 'right', vAlign: 'top', w: 24, t: 83, pR: 1};
+  options = {hAlign: 'right', vAlign: 'top', w: 19.125, t: 83, l: -0.375, pR: 0, pL:0};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   makePanelTitle("macrosVariables", "Macros variables", 25.5, "sixth noAutoParam");
@@ -860,11 +860,12 @@ function add_inputs_equations(){
 
   var indexInInputsEquations = 0;
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 355){
+  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 354){
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, classNameHeader, {text: textHeader});
-    if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
-    else{ header.paddingLeft = "-4%"; }
+    parmamControl(header, "header_" + name, classNameHeader, {text: textHeader, hAlign: 'center'});
+    //if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
+    //else{ header.paddingLeft = "-4%"; }
+    if(parent.name === 'inputsEquations'){ header.paddingLeft = "-6.85%"; }
     parent.addControl(header);
 
     var input = new BABYLON.GUI.InputText();
@@ -925,17 +926,17 @@ function add_inputs_equations(){
     glo[gloPropToAssignInput] = input;
   }
 
-  add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x");
-  add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y");
-  add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z");
-  add_input(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta");
-  add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta");
-  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha");
+  add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x", false, 366);
+  add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y", false, 366);
+  add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z", false, 366);
+  add_input(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta", false, 366);
+  add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta", false, 366);
+  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha", false, 366);
 
-  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, 354);
+  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, "100%");
 
-  add_input(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x");
-  add_input(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y");
+  add_input(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x", false, "100%");
+  add_input(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y", false, "100%");
 
   // Ajouter un événement personnalisé pour R Symmetrize
   glo.input_sym_r.onKeyboardEventProcessedObservable.add(async (event) => {
@@ -1245,8 +1246,8 @@ function add_shaders_ctrl(){
     // Créer un conteneur vertical pour ce slider
     var container = new BABYLON.GUI.StackPanel();
     container.isVertical = true;
-    container.width  = "85%"; // Pour en mettre 2 côte à côte
-    container.height = "50%";
+    container.width  = "86.5%"; // Pour en mettre 2 côte à côte
+    //container.height = "50%";
     
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { 
@@ -1374,7 +1375,7 @@ function add_step_ABCD_sliders(){
   glo.advancedTexture.addControl(panel);
 
   var panelShadersVariables = new BABYLON.GUI.StackPanel();
-  parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 66, pL: 0.5});
+  parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 66, pL: 0});
   glo.advancedTexture.addControl(panelShadersVariables);
 
   const updFloatParam       = (param, val) => { glo.ribbon.shaderMeshInstance.updateFloatParam(param, val); }
@@ -1398,7 +1399,7 @@ function add_step_ABCD_sliders(){
   addSlider(panelShadersVariables, "shadersVariables-Q", "Q", 64, 0, -360, 360, 1, function(value){ updFloatShaderParam("Q", value) }, 'seventh');
   addSlider(panelShadersVariables, "shadersVariables-S", "S", 12, 1, -36, 36, 0.1, function(value){ updFloatShaderParam("S", value) }, 'seventh');
   addSlider(panelShadersVariables, "shadersVariables-T", "T", 0, 2, -1, 1, 0.01, function(value){ updFloatShaderParam("T", value) }, 'seventh');
-  addSlider(panelShadersVariables, "shadersVariables-U", "Chekboard", 2, 2, 0, 2, 0.01, function(value){ updFloatShaderParam("U", value) }, 'seventh');
+  addSlider(panelShadersVariables, "shadersVariables-U", "Checkerboard", 2, 2, 0, 2, 0.01, function(value){ updFloatShaderParam("U", value) }, 'seventh');
 }
 
 function add_symmetrize_sliders(){
@@ -1407,9 +1408,9 @@ function add_symmetrize_sliders(){
   var panelCheckB    = new BABYLON.GUI.StackPanel();
   var panelScaleNorm = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 37});
-  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 19.25, t: 55, pR: 1});
-  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 61.5, pR: 0.5});
-  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 78.5, pR: 0.5});
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 16, t: 55, left:-66.67});
+  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 61.5, pR: 0});
+  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 78.5, pR: 0});
 
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelCheckB);
@@ -1453,7 +1454,7 @@ function add_symmetrize_sliders(){
     glo.ribbon.shaderMeshInstance.setDeformationScale(value);
   }, 'fourth');
    
-  addButton("fourth noAutoParam", panelButton, "symmetrizeOrder", "S order : XYZ", 127, 30, 10, 0, 
+  addButton("fourth noAutoParam", panelButton, "symmetrizeOrder", "S order : XYZ", 127, 30, 0, 0, 
     function(value){ switchSymmetrizeOrder(true); }, function(value){ switchSymmetrizeOrder(false); });
 
   addButton("fourth noAutoParam", panelButton,"symmetrizeAdding", "S ADD", 127, 30, 10, 0, function(value){
@@ -1465,7 +1466,7 @@ function add_symmetrize_sliders(){
 
 function add_blender_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 29.5, pR: 1, pL: 1});
+  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 29.5, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   makePanelTitle('BlenderPanelTitle', 'Blend', 25.5, 'eighth noAutoParam');
@@ -1485,7 +1486,7 @@ function add_blender_sliders(){
   addXYZSlider(panel, "blenderO", "O", 0, 2, -12, 12, .01, function(value, checked) {
     checked.forEach(function(axis) { glo.params.blender.O[axis] = value; });
     updateBlender();
-  });
+  });//panel.background='green';
 }
 
 function add_sixth_panel_sliders(){
@@ -1495,8 +1496,10 @@ function add_sixth_panel_sliders(){
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
   let panelTimeButtons               = new BABYLON.GUI.StackPanel();
 
-  function addPanel(panel, name, top, isVertical = true, width = 20, height = undefined, numUI = 'sixth', paddingLeft = 0){
-    parmamControl(panel, name, `panel right ${numUI} noAutoParam`, {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top, pR: 0.5, pL: paddingLeft});
+  function addPanel(panel, name, top, isVertical = true, width = 20, height = undefined, numUI = 'sixth', paddingLeft = 0, left = 0){
+    parmamControl(panel, name, `panel right ${numUI} noAutoParam`,
+      {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top, pR: 0.5, pL: paddingLeft, l: left}
+    );
     glo.advancedTexture.addControl(panel);
   }
   function createIncrementer(start, increment) {
@@ -1506,8 +1509,8 @@ function add_sixth_panel_sliders(){
       return count;
     };
   }
-  addPanel(panelButton, 'panelButtonUvToXy', 41);
-  addPanel(panelSliders, 'panelSliders', 50);
+  addPanel(panelButton, 'panelButtonUvToXy', 41, true, 19.125, undefined, 'sixth', -0.33);
+  addPanel(panelSliders, 'panelSliders', 50, true, 20, undefined, 'sixth', -0.5, 0.5);
   const posPanel = createIncrementer(55, 5);
 
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel(), false, 20, 4, 'eleventh', 1.42);
@@ -1735,12 +1738,16 @@ function add_eleventh_panel_sliders(){
 
 function add_transformation_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 56, pR: 1, pL: 1});
+  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 56, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   var panelVarColor = new BABYLON.GUI.StackPanel();
-  parmamControl(panelVarColor, 'panelVarColor', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 78.5, pR: 1, pL: 1});
+  parmamControl(panelVarColor, 'panelVarColor', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 78.5, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panelVarColor);
+
+  var panelVarColorTint = new BABYLON.GUI.StackPanel();
+  parmamControl(panelVarColorTint, 'panelVarColorTint', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 82, pR: 0, pL: 0, pT: 1});
+  glo.advancedTexture.addControl(panelVarColorTint);
 
   makePanelTitle('TransformationPanelTitle', 'Transformations', 52.5, 'eighth noAutoParam');
   makePanelTitle('panelVarColorTitle', 'Colors', 75, 'eighth noAutoParam');
@@ -1795,7 +1802,7 @@ function add_transformation_sliders(){
     checked.forEach(function(axis) { updColorsVec3(axis, value); });
   }, ['r', 'g', 'b']);
 
-  addSlider(panelVarColor, "varTintSlider", "Tint", 1, 2, 0, 2, 0.01,
+  addSlider(panelVarColorTint, "varTintSlider", "Tint", 1, 2, 0, 2, 0.01,
     function(value){
       glo.shaders.colors.tint = value;
 
@@ -1808,7 +1815,7 @@ function add_transformation_sliders(){
 
 function add_ninethPanel_controls(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 42.75, pR: 1, pL: 1});
+  parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 42.75, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   makePanelTitle("waveTitlePanel", "Waves", 39, "eighth noAutoParam");
@@ -1899,7 +1906,7 @@ function add_ninethPanel_controls(){
       minimum: minMain, maximum: maxMain, value: valMain, step: stepMain, h: 18.5, background: 'grey'
     }, true);
     sliderMain.startValue = valMain;
-    sliderMain.width = "72.5%";  // Pourcentage du container parent
+    sliderMain.width = "75%";  // Pourcentage du container parent
     sliderMain.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
     sliderMain.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
     rowMain.addControl(sliderMain);
@@ -1917,7 +1924,7 @@ function add_ninethPanel_controls(){
 
     var sliderSecondary = new BABYLON.GUI.Slider();
     parmamControl(sliderSecondary, baseName + "Secondary", 'slider right eighth', {
-      minimum: minSecondary, maximum: maxSecondary, value: valSecondary, step: stepSecondary, h: 18.5, background: 'grey'
+      minimum: minSecondary, maximum: maxSecondary, value: valSecondary, step: stepSecondary, h: 18.5, w: 380, pL: -5, background: 'grey'
     }, true);
     sliderSecondary.startValue = valSecondary;
     groupContainer.addControl(sliderSecondary);
@@ -2060,11 +2067,7 @@ function param_controls(){
   glo.allControls.haveTheseClasses('panel', 'right', 'first').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', w: 20, t: pr_top, }, false, false);
     pr_top += glo.mainTopShift;
-  });
-  glo.allControls.haveTheseClasses('slider', 'right', 'first').map(sr => {
-    parmamControl(sr, '', '', { hAlign: 'right', vAlign: 'top', h: 20, background: 'grey', }, true, false);
-    sr.paddingRight = '1%';
-  });
+  });;
   pr_top = 1.5;
   glo.allControls.haveTheseClasses('panel', 'left', 'first').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 21, t: pr_top, pL: 1, }, false, false);

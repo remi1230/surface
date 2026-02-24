@@ -110,7 +110,15 @@ var glo = {
 								if(lightPos.y || lightPos.y === 0) glo.allControls.getByName('lightDirectionY').value = lightPos.y;
 								if(lightPos.z || lightPos.z === 0) glo.allControls.getByName('lightDirectionZ').value = lightPos.z;
 							}
-							if(lighting.intensity){ glo.allControls.getByName('lightIntensity').value = lighting.intensity; }	
+							if(lighting.intensity){
+								const lightIntensity = lighting.intensity;
+
+								while(glo.allControls.getByName('lightIntensity').maximum < lightIntensity){
+									glo.allControls.getByName('lightIntensity').maximum *= 2;
+								}
+
+								glo.allControls.getByName('lightIntensity').value = lightIntensity;
+							}	
 							if(lighting.specular){
 								const specular = lighting.specular;
 								if(specular.intensity || specular.intensity === 0) glo.allControls.getByName('lightSpecularIntensity').value = specular.intensity;

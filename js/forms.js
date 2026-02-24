@@ -12,11 +12,13 @@ const formsToselect = [
     {text: "Catenoïd loop", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 48,
         fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "cu", beta:"cusu", theta: "", check: false,
         orient: {distance: 12.5, axis: "X", direction: 1, alpha: -PI/8, beta: PI},
-        lighting: {pos:{x: 0, y: -1, z: 0.33}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 5, z: 0}, intensity: 3.5,  specular: {intensity: 4, power: 1.75}}
     },
     {text: "Catenoïd twisted", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 96,
         fx: "cosh(v/2)cu", fy: "(1/6)piv", fz: "cosh(v/2)su", alpha: "G(c(vct)+1)", beta:"t", theta: "t", check: false,
-        orient: {distance: 12.5, axis: "X", direction: 1, alpha: PI/2, beta: -PI/6}},
+        orient: {distance: 12.5, axis: "X", direction: 1, alpha: PI/2, beta: -PI/6},
+        lighting: {pos:{x: 0, y: 5, z: 0}, intensity: 3.5,  specular: {intensity: 4, power: 1.75}}
+    },
     {text: "CosSin", typeCoords: 'cartesian', udef: 6*PI, vdef: 6*PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: ".125u", fy: ".125v", fz: ".125s(u+t)c(v+t)", check: false,
         orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 10},
@@ -24,16 +26,18 @@ const formsToselect = [
     },
     {text: "Curve tetra", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: "c(u+.001)", fy: "cv", fz: "cupv", check: false,
-        orient: {axis: "X", direction: -1, alpha: PI/3, beta: -PI/4, distance: 8} },
+        orient: {axis: "X", direction: -1, alpha: PI/3, beta: -PI/4, distance: 8},
+        lighting: {pos:{x: 0, y: 0, z: 1}, intensity: 1,  specular: {intensity: 4, power: 1.75}}
+    },
     {text: "Helix", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32,
         fx: "(1/3)sinh(v)su", fy: "u", fz: "-(1/3)sinh(v)cu", check: false,
         orient: {distance: 20, axis: "X", direction: 1, alpha: -PI/4, beta: -PI/4},
-        lighting: {pos:{x: 1, y: 3.5, z: 0}, intensity: 2.5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 3.5, z: 0}, intensity: 2.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Hourglass", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: ".3u", fy: ".3usv", fz: ".3ucvsu", check: false,
         orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 20},
-        lighting: {pos:{x: 3.5, y: -3.5, z: 2}, intensity: 5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: -3, y: 3, z: 2}, intensity: 5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Hypotenuse", typeCoords: 'cartesian', udef: 4*PI, vdef: PI, nb_steps_u: 512, nb_steps_v: 32,
         fx: ".125uc(0.5v)/2", fy: "-(.125(h(u,v)+sv - 3)-0.66)", fz: ".125h(u,v)u/12", beta: "h(u,v)/G", check: false,
@@ -50,12 +54,12 @@ const formsToselect = [
     },
     {text: "Saddle", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 16, nb_steps_v: 64,
         fx: ".25u", fy: ".25v", fz: ".25uv", check: false, orient:{distance: 8, alpha: 9*PI/16, beta: -2*PI/7},
-        lighting: {pos:{x: 0, y: 0, z: 0.8}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 0, z: 1.25}, intensity: 2.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "2cucv", fy: "2sucv", fz: "2sv", check: false,
         orient:{distance: 10},
-        lighting: {pos:{x: 0, y: 0, z: 1.33}, intensity: 2, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 0, z: 1.75}, intensity: 2.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32,
         fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", check: true,
@@ -65,7 +69,7 @@ const formsToselect = [
     {text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 64,
         fx: "(cv + e)(cu)***2", fy: "(cv + e)(su)***2", fz: "(sv)***2", check: false,
         orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/4, distance: 16.66},
-        lighting: {pos:{x: 0, y: 0, z: 0.8}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 2.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Torus Meta", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 164, nb_steps_v: 32,
         fx: ".125(cv + 10)cu", fy: ".125(cv + 10)su", fz: ".125sv", beta: "u", check: false,
@@ -75,12 +79,12 @@ const formsToselect = [
     {text: "Twisted Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: "(cv + 2)cu", fy: "(cv + 2)su", fz: "sv", alpha: "G(cv)", beta:"G(cv)", theta: "", check: false,
         orient: {axis: "X", direction: 1, alpha: PI/2, beta: 0, distance: 15},
-        lighting: {pos:{x: 0, y: 3.5, z: 0.75}, intensity: 2, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 1.5, y: 3.5, z: -0.25}, intensity: 2, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Waves", typeCoords: 'cartesian', udef: 9*PI, vdef: 9*PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: ".125u", fy: ".125v", fz: ".375(s(h(u,v)+6t))c.5t", theta: "xc.5t", check: false,
         orient: {distance: 15, axis: "Y", direction: -1, alpha: -PI/2, beta: 0},
-        lighting: {pos:{x: 0, y: 0, z: 1}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 4.25, y: 0, z: 0}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "(cucv)***2", fy: "(svcu)***2", fz: "Q/2s(u)", alpha: "", beta: "", check: false, suit: true,
@@ -174,38 +178,38 @@ const formsToselect = [
     },
     {text: "Sphere meridians", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "1", fy: "v", fz: "u", check: false,
-        orient: {distance: 7, axis: "Y", direction: 1, alpha: 0, beta: -PI/6},
+        orient: {distance: 7, axis: "Y", direction: 1, alpha: 0, beta: -PI/5},
         lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 3, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Sphere parallels", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: "1", fy: "u", fz: "v", check: false,
-        orient: {distance: 7, axis: "Y", direction: 1, alpha: -PI/8, beta: -PI/8},
+        orient: {distance: 7, axis: "Y", direction: 1, alpha: -PI/8, beta: -PI/5},
         lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 3, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Sphere rosette", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "1", fy: "u-v", fz: "u+v", check: false,
-        orient: {distance: 7, axis:"Y", direction : 1 , alpha : -PI/8 , beta : -PI/8},
+        orient: {distance: 7, axis:"Y", direction : 1 , alpha : -PI/8 , beta : -PI/5},
         lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 3, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Spiral triple", typeCoords: 'spheric', udef: PI, vdef: PI, nb_steps_u: 96, nb_steps_v: 3/4,
         fx:"u" , fy:"pi/4" , fz:"u+v" , check:false ,
         orient:{distance :15 , axis :"Y" , direction :1, alpha :PI/4 , beta :-PI/8},
-        lighting: {pos:{x: 0, y: 0, z: 2}, intensity: 5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 3.5, y: 3.5, z: 3.5}, intensity: 25, specular: {intensity: 4, power: 1.75}}
     },
     {text:"Spiral penta curve" , typeCoords :"spheric" , udef :PI , vdef :PI , nb_steps_u :256 , nb_steps_v :5/4 ,
         fx :"u" , fy :"pi/4" , fz :"2(u+v)" , alpha :"a(u/(3+2/3))+pi/(2**0.5)" , check:false,
         orient:{distance :15,axis :"Y" , direction :1, alpha :PI/4 , beta :-PI/8},
-        lighting: {pos:{x: 0, y: 0, z: 2}, intensity: 5, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 3.5, y: 3.5, z: 3.5}, intensity: 25, specular: {intensity: 4, power: 1.75}}
     },
     {text:"Twisted weathercock" , typeCoords :"spheric" , udef :PI/2,vdef :PI,nb_steps_u :128,nb_steps_v :256,
         fx :".2pi+c(12(u+v))", fy :"u", fz :"v", alpha :"", beta :"u/1.1", theta:"", check:false,
         orient:{distance :10,axis :"X",direction :1,alpha :PI/16,beta :-PI/16},
-        lighting: {pos:{x: 0, y: 3, z: 0}, intensity: 4, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 3, y: 3, z: 3}, intensity: 20, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Ouroboros", typeCoords: 'spheric', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
         fx: "u", fy: "v", fz:"2picv²su²", alpha: "0.707cv", beta: "0.707cv", check: false,
         orient: {distance: 15, axis: "X", direction: 1, alpha: PI/2, beta: -PI/12},
-        lighting: {pos:{x: 0, y: 3, z: 0}, intensity: 4, specular: {intensity: 4, power: 1.75}}
+        lighting: {pos:{x: 0, y: 5, z: 0}, intensity: 5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Rosette", typeCoords: 'spheric', udef: PI/2, vdef: PI, nb_steps_u: 128, nb_steps_v: 256,
         fx: "c(12(u+v))", fy: "u", fz: "v", alpha: "", beta: "", check: false, suit: true,
@@ -215,12 +219,12 @@ const formsToselect = [
     {text: "Cylinder", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 88, nb_steps_v: 88,  
         fx: "1", fy: "v", fz: "u", check: false,
         orient: {distance: 15, axis: "X", direction: 1, alpha: PI/4, beta: -PI/12},
-        lighting: {pos:{x: 2.5, y: 1, z: 0.15}, intensity: 2.5, specular: {intensity: 4, power: 2}}
+        lighting: {pos:{x: 2.5, y: 2.5, z: 2.5}, intensity: 15, specular: {intensity: 4, power: 2}}
     },
     {text: "Hyperbola", typeCoords: 'cylindrical', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128,
         fx: ".33v²", fy: "u", fz: "v", check: false,
-        orient: {distance: 37.5, axis: "X", direction: -1, alpha: 0, beta: -PI/12},
-        lighting: {pos:{x: 2.5, y: 1, z: 0.15}, intensity: 2.5, specular: {intensity: 4, power: 2}}
+        orient: {distance: 20, axis: "X", direction: -1, alpha: 0, beta: -PI/12},
+        lighting: {pos:{x: 3.5, y: 3.5, z: 3.5}, intensity: 39, specular: {intensity: 4, power: 1.75}}
     },
     {text:"Moebius" , typeCoords :"cylindrical" , udef :PI,vdef :1,nb_steps_u :128,nb_steps_v :128 ,
         fx :"(1+ 0.5vc(0.5u))cu", fy :"(1+ 0.5vc(0.5u))su", fz :"0.5vs(0.5u)", check:false ,

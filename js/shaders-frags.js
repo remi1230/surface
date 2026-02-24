@@ -625,8 +625,7 @@ fragmentShaderFooter = `
 
 	// Éclairage si bouton avec une lampe actif
 	if(islight == 1.0){
-		vec3 lamp1 = light(lampPosition, col);
-		col*= lamp1;
+		col*= (light(lampPosition, col) + light(-lampPosition, col));
 		col = col / (col + vec3(1.0));
 		col = pow(col, vec3(1.0 / 2.2));
 	}
@@ -673,9 +672,7 @@ normalShaderHeader = `float computeDeformation(float u, float v, vec3 pos, vec3 
 	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
 	float p = k < 0.0 ? -u : u;
-	float t = d < 0.0 ? -v : v;
-
-	float g = xN * yN * zN;
+	float w = d < 0.0 ? -v : v;
 
 	float result = 0.0;
 `;

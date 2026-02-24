@@ -290,6 +290,69 @@ function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth')
   return panelCtrl;
 }
 
+function addInput(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 354, isInPx = true){
+  var header = new BABYLON.GUI.TextBlock();
+  parmamControl(header, "header_" + name, classNameHeader, {text: textHeader, hAlign: 'center'});
+  
+  if(parent.name === 'inputsEquations'){ header.paddingLeft = "-6.85%"; }
+  parent.addControl(header);
+
+  var input = new BABYLON.GUI.InputText();
+  parmamControl(input, name, classNameInput, {w: width, fontWeight: "500", fontSize: "19", text: textField, h:25}, isInPx);
+
+  async function inputChangeEvent(){
+    await remakeRibbon();
+
+    glo.advancedTexture.moveFocusToControl(input);
+  }
+
+  if(withEvent){
+    input.onKeyboardEventProcessedObservable.add((event) => {
+      let key  = event.key;
+      let text = input.text;
+
+      if(key != "Control" && key != "c" && key != "v" && key != "F12"){
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      if (key != "Tab" && !key.match(/Arrow/, g)) {
+        glo['params'][gloPropToModify] = text;
+        if(event){
+          inputChangeEvent();
+        }
+      }
+      else if (key == "Tab") {
+        var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
+        var inputsEquationsLastIndex = inputsEquations.length - 1;
+        var newIndex = 0;
+        if(!event.shiftKey){
+          if(input.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = input.inputsEquationsIndex + 1; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
+        else{
+          if(input.inputsEquationsIndex > 0){ newIndex = input.inputsEquationsIndex - 1; }
+          else{ newIndex = inputsEquationsLastIndex; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
+      }
+    });
+    input.onTextPasteObservable.add((event) => {
+      var text = input.text;
+      if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
+      else{ glo['params']['normale'][gloPropToModify] = text; }
+      
+      if(event){ inputChangeEvent(); }
+      glo.advancedTexture.moveFocusToControl(input);
+    });
+  }
+
+  parent.addControl(input);
+
+  glo[gloPropToAssignInput] = input;
+}
+
+
 function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, numUI = 'eighth', classes = 'right', eventUp = false, fontSize = 14){
   var header = new BABYLON.GUI.TextBlock();
   parmamControl(header, "header_" + name,  `header ${classes} ${numUI} noAutoParam`, { text: text + ": " + val, fontSize: fontSize, h: 20, pT: 4, }, true);
@@ -454,7 +517,198 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
       else if(typeof eventRight === 'function'){ eventRight(); }
     });
     panel.addControl(button);
+}
+
+function add_shaders_ctrl(){
+  const paramsPanels = {
+    shaders: {
+      title: {name: "Shaders", text: "Shaders", top: 24.25, numUI: 'fourth noAutoParam'},
+      ctrl: { name: "Shaders", top: 27.25, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam'}
+    },
+    normEquation: {
+      title: {name: "normalDeformation", text: "Normal Deformation", top: 74.5, numUI: 'fourth noAutoParam'},
+      ctrl: false,
+    },
+    lighting: {
+      title:{ name: "Lighting", text: "Lighting", top: 24, numUI: 'seventh'},
+      ctrl: { name: "Lighting", top: 30, numUI: 'seventh', paddingLeft: 9.25, isVertical: false, height: 5 }
+    },
+    light: {
+      title: false,
+      ctrl: { name: "LightSliders", top: 27.5, numUI: 'seventh', paddingLeft: 0.0, isVertical: true, height: 32 }
+    },
+    grid: {
+      title:{ name: "GridParams", text: "Grid", top: 59.5, numUI: 'sixth', numUI: 'sixth noAutoParam'},
+      ctrl: { name: "gridParamsSliders", top: 62.5, paddingLeft: 0.0, isVertical: true, height: 10, numUI: 'sixth noAutoParam' }
+    },
+    video: {
+      title: {name: "Video", text: "Video", top: 65, numUI: 'fourth noAutoParam' },
+      ctrl: { name: "Video", top: 65.5, paddingLeft: 0.5, isVertical: false, height: 10, numUI: 'fourth noAutoParam' }
+    },
+  };
+
+  let panels = makePanelsTitles(paramsPanels);
+
+  makePanelTitle('shadersVariablesPanelTitle', 'Shaders variables', 59.5, 'seventh noAutoParam title');
+
+  let panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo;
+
+  [panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo] = panels;
+
+  addButton("fourth noAutoParam", panelButtons, "openShaderEditorButton", "Color", "17.5%", 30, 10, 0, async function(){
+      glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
+      if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
+  });
+  addButton("fourth noAutoParam", panelButtons, "openNormalEditorButton", "Norm", "17.5%", 30, 10, 0, async function(){
+      glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
+      if(glo.editorWindowNormal.style.display === 'flex'){
+          normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
+          openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
+      }
+  });
+  addButton("fourth noAutoParam", panelButtons, "nextShaderEditorButton", "Next", "17.5%", 30, 10, 0, function(){
+      switchShader();
+  }, function(){ switchShader(false); });
+  addButton("fourth noAutoParam", panelButtons, "invcolShaderEditorButton", "Inv", "17.5%", 30, 10, 0, async function(){
+      glo.shaders.params.invcol = !glo.shaders.params.invcol;
+      swapControlBackground("invcolShaderEditorButton");
+      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
+  });
+  addButton("fourth noAutoParam", panelButtons, "shaderLightButton", "💡", "17.5%", 30, 10, 0, async function(){
+      glo.shaders.params.islight = !glo.shaders.params.islight;
+      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
+  }, false, 'fourth noAutoParam');
+  addButton("fourth noAutoParam", panelVideo, "videoButton", "►", "13.75%", 30, 0, 0, async function(){
+      switchRecordingVideo();
+
+      glo.allControls.getByName('videoButton').textBlock.text = glo.video.recording ? "⏹" : "►";
+
+  });
+
+  function addHorizontalSlider(parent, name, text, val, decimalPrecision, min, max, step, event, upEvent = false) {
+    // Créer un conteneur vertical pour ce slider
+    var container = new BABYLON.GUI.StackPanel();
+    container.isVertical = true;
+    container.width  = "86.5%"; // Pour en mettre 2 côte à côte
+    //container.height = "50%";
+    
+    var header = new BABYLON.GUI.TextBlock();
+    parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { 
+      text: text + ": " + val, 
+      color: 'white', 
+      fontSize: 14, 
+      h: 20, 
+      pR: 47.5 
+    }, true);
+    container.addControl(header);
+
+    var slider = new BABYLON.GUI.Slider();
+    var options = {
+      minimum: min, 
+      maximum: max, 
+      value: val, 
+      lastValue: val, 
+      startValue: val, 
+      step: step, 
+      h: 18.5, 
+      background: 'grey'
+    };
+    parmamControl(slider, name, 'slider right fourth', options, true);
+    slider.startValue = val;
+
+    slider.onValueChangedObservable.add(function(value) {
+      if(!glo.rightButton){
+        header.text = text + ": " + value.toFixed(decimalPrecision);
+        event(value);
+      }
+      glo.rightButton = false;
+    });
+    
+    slider.onPointerClickObservable.add(function (e) {
+      if(e.buttonIndex == 2){
+        glo.rightButton = true;
+        header.text = text + ": " + slider.startValue;
+        slider.value = slider.startValue;
+        event(slider.value);
+      }
+    });
+
+    if(upEvent){
+      slider.onPointerUpObservable.add(function() {
+        upEvent();
+      });
+    }
+
+    container.addControl(slider);
+    parent.addControl(container);
   }
+
+  function updLightingFloat(varName, shaderVarName, varValue){
+    glo.shaders.light[varName] = varValue;
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
+  }
+  function updLightingVec3(axis, value){
+    glo.shaders.light.direction[axis] = value;
+    
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
+      let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
+      let direction = glo.shaders.light.direction;
+
+      shaderMeshInstance._vecLampPos.set(direction.x, direction.y, direction.z);
+      shaderMeshInstance.shaderMaterial.setVector3("lampPosition", shaderMeshInstance._vecLampPos);
+    }
+  }
+  function updLightingSpecularFloat(varName, shaderVarName, varValue){
+    glo.shaders.light.specular[varName] = varValue;
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
+  }
+
+  const lightInfos = glo.shaders.light;
+  const dirRange   = 5;
+
+  addSlider(panelLight, "lightIntensity", "Intensity", glo.shaders.light.intensity, 2, 0, dirRange, 0.01, async function(value){
+    updLightingFloat('intensity', 'lampIntensity', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightDirectionX", "Direction X", glo.shaders.light.direction.x, 2, -dirRange, dirRange, 0.01, async function(value){
+    updLightingVec3('x', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightDirectionY", "Direction Y", glo.shaders.light.direction.y, 2, -dirRange, dirRange, 0.01, async function(value){
+    updLightingVec3('y', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightDirectionZ", "Direction Z", glo.shaders.light.direction.z, 2, -dirRange, dirRange, 0.01, async function(value){
+    updLightingVec3('z', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){
+    updLightingFloat('radius', 'lampRadius', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 4, 0.01, async function(value){
+    updLightingSpecularFloat('intensity', 'lampSpecularIntensity', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){
+    updLightingSpecularFloat('power', 'lampSpecularPower', value);
+  }, 'seventh');
+  addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
+    glo.params.gridScaleValue = value;
+    glo.planSize  = value;
+    glo.axis_size = value;
+
+    glo.grid_visible = true;
+    glo.axis_visible = true;
+    glo.first_axis_visible = false;
+
+    showAxis(glo.axis_size, 1);
+
+    glo.planes_visible = true;
+    make_planes();
+
+    showGrid(value, value, value, 1);
+  }, 'sixth');
+
+  addHorizontalSlider(panelVideo, "videoBoxRange", "Box range", glo.videoBoxRange, 2, 0, 2.375, 0.01, async function(value){
+    glo.videoBoxRange = value;
+    updateVideoCropBox();
+  }, function(){ hideVideoCropBox(); });
+}
 
 function add_switch_and_help_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
@@ -502,7 +756,7 @@ function add_switch_and_help_buttons(){
 }
 function add_axis_and_rot_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 19.5, pL: -2.5 };
+  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 18.75, pL: -2.5 };
   parmamControl(panel, 'axisAndRotButton', 'panel right first noAutoParam', options);
   panel.isVertical = false;
   glo.advancedTexture.addControl(panel);
@@ -641,7 +895,7 @@ function add_switchForm_buttons(){
 
 function add_views_buttons(){
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 14.5, pL: 5.5  };
+  var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 14.25, pL: 5.5  };
   parmamControl(panel, 'viewsButtonsPanel', 'panel right first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
@@ -844,12 +1098,12 @@ function add_inputs_equations(){
 
   parmamControl(panel, "inputsEquations", 'panel left first noAutoParam', {hAlign: 'left', vAlign: 'top', w: 21, pR: 0, t: 14.25, h: 30, pL: 0.375});
 
-  var options = {hAlign: 'right', vAlign: 'top', w: 19.5, t: 30, pL: 0, pR: 0.5};
+  var options = {hAlign: 'right', vAlign: 'top', w: 19.5, t: 27.5, pL: 0, pR: 0.5};
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
-  options = {hAlign: 'right', vAlign: 'top', w: 19.125, t: 83, l: -0.375, pR: 0, pL:0};
+  options = {hAlign: 'right', vAlign: 'top', w: 19.125, t: 82, l: -0.375, pR: 0, pL:0};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
-  makePanelTitle("macrosVariables", "Macros variables", 25.5, "sixth noAutoParam");
+  makePanelTitle("macrosVariables", "Macros variables", 24, "sixth noAutoParam");
 
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelSymsEquations);
@@ -858,85 +1112,17 @@ function add_inputs_equations(){
   glo.text_input_alpha = "";
   glo.text_input_beta  = "";
 
-  var indexInInputsEquations = 0;
+  addInput(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x", true, 366);
+  addInput(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y", true, 366);
+  addInput(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z", true, 366);
+  addInput(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta", true, 366);
+  addInput(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta", true, 366);
+  addInput(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha", true, 366);
 
-  function add_input(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 354){
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, classNameHeader, {text: textHeader, hAlign: 'center'});
-    //if(parent.name !== 'inputsEquations' && parent.name !== 'panelEvalY'){ header.paddingLeft = "20%"; }
-    //else{ header.paddingLeft = "-4%"; }
-    if(parent.name === 'inputsEquations'){ header.paddingLeft = "-6.85%"; }
-    parent.addControl(header);
+  addInput(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, "100%");
 
-    var input = new BABYLON.GUI.InputText();
-    parmamControl(input, name, classNameInput, {w: width, fontWeight: "500", fontSize: "19", text: textField, h:25}, true);
-
-    input.inputsEquationsIndex = indexInInputsEquations;
-    indexInInputsEquations++;
-
-    async function inputChangeEvent(){
-      await remakeRibbon();
-
-      glo.advancedTexture.moveFocusToControl(input);
-    }
-
-    if(withEvent){
-      input.onKeyboardEventProcessedObservable.add((event) => {
-        let key  = event.key;
-        let text = input.text;
-
-        if(key != "Control" && key != "c" && key != "v" && key != "F12"){
-          event.stopPropagation();
-          event.preventDefault();
-        }
-
-        if (key != "Tab" && !key.match(/Arrow/, g)) {
-          glo['params'][gloPropToModify] = text;
-          if(event){
-            inputChangeEvent();
-          }
-        }
-        else if (key == "Tab") {
-          var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
-          var inputsEquationsLastIndex = inputsEquations.length - 1;
-          var newIndex = 0;
-          if(!event.shiftKey){
-            if(input.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = input.inputsEquationsIndex + 1; }
-            glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-          }
-          else{
-            if(input.inputsEquationsIndex > 0){ newIndex = input.inputsEquationsIndex - 1; }
-            else{ newIndex = inputsEquationsLastIndex; }
-            glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-          }
-        }
-      });
-      input.onTextPasteObservable.add((event) => {
-        var text = input.text;
-        if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
-        else{ glo['params']['normale'][gloPropToModify] = text; }
-        
-        if(event){ inputChangeEvent(); }
-        glo.advancedTexture.moveFocusToControl(input);
-      });
-    }
-
-    parent.addControl(input);
-
-    glo[gloPropToAssignInput] = input;
-  }
-
-  add_input(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x", false, 366);
-  add_input(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y", false, 366);
-  add_input(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z", false, 366);
-  add_input(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta", false, 366);
-  add_input(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta", false, 366);
-  add_input(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha", false, 366);
-
-  add_input(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, "100%");
-
-  add_input(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x", false, "100%");
-  add_input(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y", false, "100%");
+  addInput(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x", true, "100%");
+  addInput(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y", true, "100%");
 
   // Ajouter un événement personnalisé pour R Symmetrize
   glo.input_sym_r.onKeyboardEventProcessedObservable.add(async (event) => {
@@ -1008,31 +1194,31 @@ function add_color_pickers(){
   var panelTitleMeshBg      = new BABYLON.GUI.StackPanel();
   var panelTitleMeshLine    = new BABYLON.GUI.StackPanel();
 
-  var top     = {panel1: 34, panel2: 55, panel3: 60, panelButtons: 73};
+  var top     = {panel1: 32, panel2: 51, panel3: 56.5, panelButtons: 68};
   var options = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
 
   const paramsPanels = {
     section: {
-      title: {name: "colorHeaderPan", text: "Colors", top: 25.5, numUI: 'first onlyMainGui noAutoParam', titleLevel: 1},
+      title: {name: "colorHeaderPan", text: "Colors", top: 24, numUI: 'first onlyMainGui noAutoParam', titleLevel: 1},
     },
     ui: {
-      title: {name: "colorHeaderTitleUI", text: "UI", top: 29.5, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
+      title: {name: "colorHeaderTitleUI", text: "UI", top: 28, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
     },
     mesh: {
-      title: {name: "colorHeaderTitleMesh", text: "Mesh", top: 50.5, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
+      title: {name: "colorHeaderTitleMesh", text: "Mesh", top: 47, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
     },
     random: {
-      title: {name: "colorHeaderTitleRandom", text: "Random", top: 70.5, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
+      title: {name: "colorHeaderTitleRandom", text: "Random", top: 66, numUI: 'first onlyMainGui noAutoParam', fontSize: 18},
     },
   };
 
   makePanelsTitles(paramsPanels);
   
   const hTest = 2;
-  parmamControl(panelTitleUIBg, 'colorTitleUIBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 34, pL: 4.666, isVertical: false});
-  parmamControl(panelTitleUIButton, 'colorTitleUIButton', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 34, pL: 11.25, isVertical: false});
-  parmamControl(panelTitleMeshBg, 'colorTitleMeshBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 4.666, isVertical: false});
-  parmamControl(panelTitleMeshLine, 'colorTitleMeshLine', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 55, pL: 11.5, isVertical: false});
+  parmamControl(panelTitleUIBg, 'colorTitleUIBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 32, pL: 4.666, isVertical: false});
+  parmamControl(panelTitleUIButton, 'colorTitleUIButton', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 32, pL: 11.25, isVertical: false});
+  parmamControl(panelTitleMeshBg, 'colorTitleMeshBg', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 51, pL: 4.666, isVertical: false});
+  parmamControl(panelTitleMeshLine, 'colorTitleMeshLine', 'panel right first noAutoParam onlyMainGui', {hAlign: 'right', vAlign: 'top', w: 20, h: hTest, t: 51, pL: 11.5, isVertical: false});
 
   options.pL = 4.5;
   parmamControl(panel1, 'pickerColorPan1', 'panel right first noAutoParam onlyMainGui', options);
@@ -1176,206 +1362,15 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelTitleMeshLine);
 }
 
-function add_shaders_ctrl(){
-  const paramsPanels = {
-    shaders: {
-      title: {name: "Shaders", text: "Shaders", top: 25.5, numUI: 'fourth noAutoParam'},
-      ctrl: { name: "Shaders", top: 28.5, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam'}
-    },
-    normEquation: {
-      title: {name: "normalDeformation", text: "Normal Deformation", top: 75, numUI: 'fourth noAutoParam'},
-      ctrl: false,
-    },
-    lighting: {
-      title:{ name: "Lighting", text: "Lighting", top: 25.5, numUI: 'seventh'},
-      ctrl: { name: "Lighting", top: 31.5, numUI: 'seventh', paddingLeft: 9.25, isVertical: false, height: 5 }
-    },
-    light: {
-      title: false,
-      ctrl: { name: "LightSliders", top: 29.5, numUI: 'seventh', paddingLeft: 0.0, isVertical: true, height: 32 }
-    },
-    grid: {
-      title:{ name: "GridParams", text: "Grid", top: 64, numUI: 'sixth', numUI: 'sixth noAutoParam'},
-      ctrl: { name: "gridParamsSliders", top: 67.5, paddingLeft: 0.0, isVertical: true, height: 10, numUI: 'sixth noAutoParam' }
-    },
-    video: {
-      title: {name: "Video", text: "Video", top: 66, numUI: 'fourth noAutoParam' },
-      ctrl: { name: "Video", top: 67, paddingLeft: 0.5, isVertical: false, height: 10, numUI: 'fourth noAutoParam' }
-    },
-  };
-
-  let panels = makePanelsTitles(paramsPanels);
-
-  makePanelTitle('shadersVariablesPanelTitle', 'Shaders variables', 62, 'seventh noAutoParam title');
-
-  let panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo;
-
-  [panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo] = panels;
-
-  addButton("fourth noAutoParam", panelButtons, "openShaderEditorButton", "Color", "17.5%", 30, 10, 0, async function(){
-      glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
-      if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
-  });
-  addButton("fourth noAutoParam", panelButtons, "openNormalEditorButton", "Norm", "17.5%", 30, 10, 0, async function(){
-      glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
-      if(glo.editorWindowNormal.style.display === 'flex'){
-          normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
-          openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
-      }
-  });
-  addButton("fourth noAutoParam", panelButtons, "nextShaderEditorButton", "Next", "17.5%", 30, 10, 0, function(){
-      switchShader();
-  }, function(){ switchShader(false); });
-  addButton("fourth noAutoParam", panelButtons, "invcolShaderEditorButton", "Inv", "17.5%", 30, 10, 0, async function(){
-      glo.shaders.params.invcol = !glo.shaders.params.invcol;
-      swapControlBackground("invcolShaderEditorButton");
-      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
-  });
-  addButton("fourth noAutoParam", panelButtons, "shaderLightButton", "💡", "17.5%", 30, 10, 0, async function(){
-      glo.shaders.params.islight = !glo.shaders.params.islight;
-      glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
-  }, false, 'fourth noAutoParam');
-  addButton("fourth noAutoParam", panelVideo, "videoButton", "►", "13.75%", 30, 0, 0, async function(){
-      switchRecordingVideo();
-
-      glo.allControls.getByName('videoButton').textBlock.text = glo.video.recording ? "⏹" : "►";
-
-  });
-
-  function addHorizontalSlider(parent, name, text, val, decimalPrecision, min, max, step, event, upEvent = false) {
-    // Créer un conteneur vertical pour ce slider
-    var container = new BABYLON.GUI.StackPanel();
-    container.isVertical = true;
-    container.width  = "86.5%"; // Pour en mettre 2 côte à côte
-    //container.height = "50%";
-    
-    var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, "header_" + name, 'header right fourth noAutoParam', { 
-      text: text + ": " + val, 
-      color: 'white', 
-      fontSize: 14, 
-      h: 20, 
-      pR: 47.5 
-    }, true);
-    container.addControl(header);
-
-    var slider = new BABYLON.GUI.Slider();
-    var options = {
-      minimum: min, 
-      maximum: max, 
-      value: val, 
-      lastValue: val, 
-      startValue: val, 
-      step: step, 
-      h: 18.5, 
-      background: 'grey'
-    };
-    parmamControl(slider, name, 'slider right fourth', options, true);
-    slider.startValue = val;
-
-    slider.onValueChangedObservable.add(function(value) {
-      if(!glo.rightButton){
-        header.text = text + ": " + value.toFixed(decimalPrecision);
-        event(value);
-      }
-      glo.rightButton = false;
-    });
-    
-    slider.onPointerClickObservable.add(function (e) {
-      if(e.buttonIndex == 2){
-        glo.rightButton = true;
-        header.text = text + ": " + slider.startValue;
-        slider.value = slider.startValue;
-        event(slider.value);
-      }
-    });
-
-    if(upEvent){
-      slider.onPointerUpObservable.add(function() {
-        upEvent();
-      });
-    }
-
-    container.addControl(slider);
-    parent.addControl(container);
-  }
-
-  function updLightingFloat(varName, shaderVarName, varValue){
-    glo.shaders.light[varName] = varValue;
-    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
-  }
-  function updLightingVec3(axis, value){
-    glo.shaders.light.direction[axis] = value;
-    
-    if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
-      let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
-      let direction = glo.shaders.light.direction;
-
-      shaderMeshInstance._vecLampPos.set(direction.x, direction.y, direction.z);
-      shaderMeshInstance.shaderMaterial.setVector3("lampPosition", shaderMeshInstance._vecLampPos);
-    }
-  }
-  function updLightingSpecularFloat(varName, shaderVarName, varValue){
-    glo.shaders.light.specular[varName] = varValue;
-    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
-  }
-
-  const lightInfos = glo.shaders.light;
-  const dirRange   = 5;
-
-  addSlider(panelLight, "lightIntensity", "Intensity", glo.shaders.light.intensity, 2, 0, dirRange, 0.01, async function(value){
-    updLightingFloat('intensity', 'lampIntensity', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightDirectionX", "Direction X", glo.shaders.light.direction.x, 2, -dirRange, dirRange, 0.01, async function(value){
-    updLightingVec3('x', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightDirectionY", "Direction Y", glo.shaders.light.direction.y, 2, -dirRange, dirRange, 0.01, async function(value){
-    updLightingVec3('y', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightDirectionZ", "Direction Z", glo.shaders.light.direction.z, 2, -dirRange, dirRange, 0.01, async function(value){
-    updLightingVec3('z', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){
-    updLightingFloat('radius', 'lampRadius', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 4, 0.01, async function(value){
-    updLightingSpecularFloat('intensity', 'lampSpecularIntensity', value);
-  }, 'seventh');
-  addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){
-    updLightingSpecularFloat('power', 'lampSpecularPower', value);
-  }, 'seventh');
-  addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
-    glo.params.gridScaleValue = value;
-    glo.planSize  = value;
-    glo.axis_size = value;
-
-    glo.grid_visible = true;
-    glo.axis_visible = true;
-    glo.first_axis_visible = false;
-
-    showAxis(glo.axis_size, 1);
-
-    glo.planes_visible = true;
-    make_planes();
-
-    showGrid(value, value, value, 1);
-  }, 'sixth');
-
-  addHorizontalSlider(panelVideo, "videoBoxRange", "Box range", glo.videoBoxRange, 2, 0, 2.375, 0.01, async function(value){
-    glo.videoBoxRange = value;
-    updateVideoCropBox();
-  }, function(){ hideVideoCropBox(); });
-}
-
 function add_step_ABCD_sliders(){
-  makePanelTitle('paramEquationsSliders', 'Mesh variables', 26, 'second noAutoParam title');
+  makePanelTitle('paramEquationsSliders', 'Mesh variables', 24, 'second noAutoParam title');
 
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramEquationsSlidersPanel', 'panel right second', {hAlign: 'right', vAlign: 'top', w: 20, t: 30});
+  parmamControl(panel, 'paramEquationsSlidersPanel', 'panel right second', {hAlign: 'right', vAlign: 'top', w: 20, t: 27});
   glo.advancedTexture.addControl(panel);
 
   var panelShadersVariables = new BABYLON.GUI.StackPanel();
-  parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 66, pL: 0});
+  parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 63, pL: 0});
   glo.advancedTexture.addControl(panelShadersVariables);
 
   const updFloatParam       = (param, val) => { glo.ribbon.shaderMeshInstance.updateFloatParam(param, val); }
@@ -1407,10 +1402,10 @@ function add_symmetrize_sliders(){
   var panelButton    = new BABYLON.GUI.StackPanel();
   var panelCheckB    = new BABYLON.GUI.StackPanel();
   var panelScaleNorm = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 37});
-  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 16, t: 55, left:-66.67});
-  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 61.5, pR: 0});
-  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 78.5, pR: 0});
+  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 35.5});
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 16, t: 53, left:-66.67});
+  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 59.25, pR: 0});
+  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 77.5, pR: 0});
 
   glo.advancedTexture.addControl(panel);
   glo.advancedTexture.addControl(panelCheckB);
@@ -1419,7 +1414,7 @@ function add_symmetrize_sliders(){
 
   const paramsPanels = {
     shaders: {
-      title: {name: "SymmetrizePanelTitle", text: "Symmetrize", top: 34, numUI: 'fourth noAutoParam'},
+      title: {name: "SymmetrizePanelTitle", text: "Symmetrize", top: 32.5, numUI: 'fourth noAutoParam'},
     },
   };
 
@@ -1466,10 +1461,10 @@ function add_symmetrize_sliders(){
 
 function add_blender_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 29.5, pR: 0, pL: 0.5});
+  parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 27.5, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
-  makePanelTitle('BlenderPanelTitle', 'Blend', 25.5, 'eighth noAutoParam');
+  makePanelTitle('BlenderPanelTitle', 'Blend', 24, 'eighth noAutoParam');
 
   function updateBlender() {
     if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
@@ -1509,13 +1504,13 @@ function add_sixth_panel_sliders(){
       return count;
     };
   }
-  addPanel(panelButton, 'panelButtonUvToXy', 41, true, 19.125, undefined, 'sixth', -0.33);
-  addPanel(panelSliders, 'panelSliders', 50, true, 20, undefined, 'sixth', -0.5, 0.5);
-  const posPanel = createIncrementer(55, 5);
+  addPanel(panelButton, 'panelButtonUvToXy', 38, true, 19.125, undefined, 'sixth', -0.33);
+  addPanel(panelSliders, 'panelSliders', 45.5, true, 20, undefined, 'sixth', -0.5, 0.5);
+  const posPanel = createIncrementer(57.5, 5);
 
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
-  addPanel(panelTimeButtons, 'panelTimeButtons', posPanel()+4, false, 20, 4, 'eleventh', 1.42);
+  addPanel(panelTimeButtons, 'panelTimeButtons', 50, false, 20, 4, 'eleventh', 1.42);
 
   function add_slider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
@@ -1570,7 +1565,7 @@ function add_sixth_panel_sliders(){
     parent.addControl(slider);
   }
 
-  addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 80, 30, 0, 0, function(value){
+  addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 79.5, 30, 0, 0, function(value){
     glo.params.uvToXy = !glo.params.uvToXy;
 
     glo.allControls.getByName("uvToXyButton").textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
@@ -1579,7 +1574,7 @@ function add_sixth_panel_sliders(){
     remakeRibbon();
   });
 
-  makePanelTitle("firstPointOffset", "First point offset", 46, "sixth noAutoParam");
+  makePanelTitle("firstPointOffset", "First point offset", 42.5, "sixth noAutoParam");
 
   add_slider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
   add_slider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
@@ -1604,7 +1599,7 @@ function add_sixth_panel_sliders(){
 
     remakeRibbon();
   });
-  addButton("eleventh", panelButtonSlidersUVOnOneSignU,"slidersUVOnOneSignV", "Slider V sign : OUI", buttonSizes.width+30, buttonSizes.height, 32, 0, function(value){
+  addButton("eleventh", panelButtonSlidersUVOnOneSignU,"slidersUVOnOneSignV", "Slider V sign : OUI", buttonSizes.width+35, buttonSizes.height, 35, 0, function(value){
     glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
     let slidersUVOnOneSignV  = glo.allControls.getByName('slidersUVOnOneSignV');
 
@@ -1627,13 +1622,13 @@ function add_sixth_panel_sliders(){
     invElemInInput("cv", "sv");
     
   });
-  addButton("eleventh", panelButtonSlidersUVOnOneSignV, "InvFormulaUV", "Inv UV", buttonSizes.width+30, buttonSizes.height, 32, 0, async function(value){
+  addButton("eleventh", panelButtonSlidersUVOnOneSignV, "InvFormulaUV", "Inv UV", buttonSizes.width+35, buttonSizes.height, 35, 0, async function(value){
     await invElemInInput("u", "v");
   });
   addButton("eleventh", panelTimeButtons, "minusTimeButton", "Time -", 95, buttonSizes.height, 0, 0, async function(value){
     glo.timeCoeff /= 2;
   });
-  addButton("eleventh", panelTimeButtons, "resetTimeButton", "Stop", 122, buttonSizes.height, 28, 0, async function(value){
+  addButton("eleventh", panelTimeButtons, "resetTimeButton", "Stop", 120, buttonSizes.height, 25, 0, async function(value){
     glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
     glo.pause          = !glo.pause;
 
@@ -1641,7 +1636,7 @@ function add_sixth_panel_sliders(){
 
     glo.allControls.getByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
   });
-  addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 122, buttonSizes.height, 28, 0, async function(value){
+  addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 120, buttonSizes.height, 25, 0, async function(value){
     glo.timeCoeff *= 2;
   });
 }
@@ -1653,8 +1648,8 @@ function add_eleventh_panel_sliders(){
   let panelButton6      = new BABYLON.GUI.StackPanel();
   let panelRotateCamera = new BABYLON.GUI.StackPanel();
 
-  function addPanel(panel, name, top, isVertical = true, width = 20, height = 5){
-    parmamControl(panel, name, 'panel right eleventh noAutoParam', {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
+  function addPanel(panel, name, top, isVertical = true, width = 20, height = 5, numUI = 'eleventh'){
+    parmamControl(panel, name, `panel right ${numUI} noAutoParam`, {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
     glo.advancedTexture.addControl(panel);
   }
   function createIncrementer(start, increment) {
@@ -1665,15 +1660,17 @@ function add_eleventh_panel_sliders(){
     };
   }
 
-  const topPanels = 28;
+  makePanelTitle("miscellaneous", "Miscellaneous", 24, 'eleventh', 2);
+
+  const topPanels = 27.5;
 
   const posPanel = createIncrementer(topPanels, 5);
 
   addPanel(panelButton2, 'panelButtonEleventh2', posPanel(), false);
   addPanel(panelButton3, 'panelButtonEleventh3', posPanel(), false);
   addPanel(panelButton4, 'panelButtonEleventh4', posPanel(), false);
-  addPanel(panelButton6, 'panelButtonEleventh6', 46, false);
-  addPanel(panelRotateCamera, 'panelRotateCamera', 79, true, 18.95, 10);
+  addPanel(panelButton6, 'panelButtonEleventh6', 45, false);
+  addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 10, 'sixth');
 
   const buttonSizes = {width: 120, height: 33};
 
@@ -1730,27 +1727,27 @@ function add_eleventh_panel_sliders(){
     viewOnAxis();
   });
 
-  makePanelTitle("rotateSpeed", "Rotate", 75, "eleventh", 2);
+  makePanelTitle("rotateSpeed", "Rotate", 68, "sixth", 2);
   addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotate_speed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){
     glo.rotate_speed = value;
-  }, "eleventh", "eleventh");
+  }, "sixth", "sixth");
 }
 
 function add_transformation_sliders(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 56, pR: 0, pL: 0.5});
+  parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 54.75, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   var panelVarColor = new BABYLON.GUI.StackPanel();
-  parmamControl(panelVarColor, 'panelVarColor', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 78.5, pR: 0, pL: 0.5});
+  parmamControl(panelVarColor, 'panelVarColor', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 77.75, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panelVarColor);
 
   var panelVarColorTint = new BABYLON.GUI.StackPanel();
   parmamControl(panelVarColorTint, 'panelVarColorTint', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 82, pR: 0, pL: 0, pT: 1});
   glo.advancedTexture.addControl(panelVarColorTint);
 
-  makePanelTitle('TransformationPanelTitle', 'Transformations', 52.5, 'eighth noAutoParam');
-  makePanelTitle('panelVarColorTitle', 'Colors', 75, 'eighth noAutoParam');
+  makePanelTitle('TransformationPanelTitle', 'Transformations', 51.25, 'eighth noAutoParam');
+  makePanelTitle('panelVarColorTitle', 'Colors', 74.25, 'eighth noAutoParam');
 
   function updParamsTrans(baseName, axis, value) {
     glo.params[baseName + axis.toUpperCase()] = value;
@@ -1815,10 +1812,10 @@ function add_transformation_sliders(){
 
 function add_ninethPanel_controls(){
   var panel = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 42.75, pR: 0, pL: 0.5});
+  parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 41, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
-  makePanelTitle("waveTitlePanel", "Waves", 39, "eighth noAutoParam");
+  makePanelTitle("waveTitlePanel", "Waves", 37.5, "eighth noAutoParam");
 
   // Slider combiné XYZ avec slider secondaire lié (n)
   function addLinkedXYZSliders(parent, baseName, textMain, textSecondary, valMain, valSecondary, decimalPrecision, minMain, maxMain, stepMain, minSecondary, maxSecondary, stepSecondary, getMainValue, setMainValue, getSecondaryValue, setSecondaryValue){

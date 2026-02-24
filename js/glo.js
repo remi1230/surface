@@ -721,7 +721,7 @@ var glo = {
 			},
 		},
 		button: {
-			height: 30,
+			height: 27,
 		},
 	},
 	tubes: {

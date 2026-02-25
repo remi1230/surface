@@ -204,6 +204,9 @@ function parmamControl(control, name, className, options = {}, px = false, ident
     control.name = name;
     control.class = className;
   }
+
+  for(var prop in options){ control[prop] = options[prop] }
+
   if(typeof(options.hAlign) != 'undefined'){
     switch (options.hAlign) {
       case 'left':
@@ -230,8 +233,6 @@ function parmamControl(control, name, className, options = {}, px = false, ident
         break;
     }
   }
-
-  for(var prop in options){ control[prop] = options[prop] }
 
   var unit = '%';
   if(px){ unit = 'px'; }
@@ -1237,7 +1238,7 @@ function add_color_pickers(){
   parmamControl(panelButtons, 'uiColorButtons', 'panel right first noAutoParam onlyMainGui', options);
   options.t = top.panelLightLevel; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
   parmamControl(panelLightLevel, 'panelLightLevel', 'panel right first noAutoParam onlyMainGui', options);
-  options.t = top.panelThemeButton; options.pL = 3.666; options.isVertical = false; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
+  options.t = top.panelThemeButton; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
   parmamControl(panelThemeButton, 'panelThemeButton', 'panel right first noAutoParam onlyMainGui', options);
 
   function paramHeader(panel, header, text, options){

@@ -36,6 +36,8 @@ $( document ).ready(async function() {
    otherDesigns();
    paramRadios();
    styleUI();
+
+   glo.allControls.getByName('themeButton').horizontalAlignment = 2;
 });
 
 window.addEventListener('resize', () => {

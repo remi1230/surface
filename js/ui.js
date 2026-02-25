@@ -429,6 +429,8 @@ function param_special_controls(){
 
 	glo.allControls.getByName('header_inputRSymmetrize').fontSize = '14px';
 	glo.allControls.getByName('header_inputRSymmetrize').color    = 'white';
+
+	glo.allControls.getByName('themeButton').horizontalAlignment = 2;
 }
 
 function paramRadios(){

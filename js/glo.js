@@ -732,6 +732,86 @@ var glo = {
 			height: 27,
 		},
 	},
+	uiThemes: {
+		themeSelectIndex: 0,
+		themes:[
+			{name: "Default", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1, 0.1, 0.133),
+					pickerColorButton: new BABYLON.Color3(0.098, 0.5686, 0.5686),
+					pickerColorMeshBg: new BABYLON.Color3(0.7782, 0.8, 0.7),
+					pickerColorLine: new BABYLON.Color3(0.1, 0.1, 0.133),
+				}
+			},
+			{name: "Redwine", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.2514, 0.1353, 0.1903),
+					pickerColorButton: new BABYLON.Color3(0.8232, 0.7266, 0.8672),
+					pickerColorMeshBg: new BABYLON.Color3(0.7486, 0.8647, 0.8096),
+					pickerColorLine: new BABYLON.Color3(0.2514, 0.1353, 0.1903),
+				}
+			},
+			{name: "Darkwood", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1704, 0.1415, 0.1106),
+					pickerColorButton: new BABYLON.Color3(0.8057, 0.7967, 0.7474),
+					pickerColorMeshBg: new BABYLON.Color3(0.8296, 0.8584, 0.8894),
+					pickerColorLine: new BABYLON.Color3(0.1704, 0.1415, 0.1106),
+				}
+			},
+			{name: "Indigo", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1321, 0.1421, 0.2281),
+					pickerColorButton: new BABYLON.Color3(0.7801, 0.8860, 0.7704),
+					pickerColorMeshBg: new BABYLON.Color3(0.8678, 0.8579, 0.7719),
+					pickerColorLine: new BABYLON.Color3(0.1321, 0.1421, 0.2281),
+				}
+			},
+			{name: "Lime", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.6469, 0.7431, 0.6523),
+					pickerColorButton: new BABYLON.Color3(0.2165, 0.2798, 0.264),
+					pickerColorMeshBg: new BABYLON.Color3(0.3531, 0.2569, 0.3477),
+					pickerColorLine: new BABYLON.Color3(0.6469, 0.7431, 0.6523),
+				}
+			},
+			{name: "Bluesky", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.7126, 0.7777, 0.8161),
+					pickerColorButton: new BABYLON.Color3(0.1531, 0.2096, 0.2839),
+					pickerColorMeshBg: new BABYLON.Color3(0.2874, 0.2223, 0.1839),
+					pickerColorLine: new BABYLON.Color3(0.7126, 0.7777, 0.8161),
+				}
+			},
+		],
+		getNextTheme: function(next = true) {
+			const length = this.themes.length;
+
+			if (next) {
+				this.themeSelectIndex = (this.themeSelectIndex + 1) % length;
+			} else {
+				this.themeSelectIndex = (this.themeSelectIndex - 1 + length) % length;
+			}
+
+			return this.themes[this.themeSelectIndex];
+		},
+		activateNextTheme: function(next = true) {
+			const themeSelect       = this.getNextTheme(next);
+			const themeSelectColors = themeSelect.colors;
+
+			glo.allControls.getByName('pickerColorBackground').value = themeSelectColors.pickerColorBackground;
+			glo.allControls.getByName('pickerColorButton').value     = themeSelectColors.pickerColorButton;
+			glo.allControls.getByName('pickerColorMeshBg').value     = themeSelectColors.pickerColorMeshBg;
+			glo.allControls.getByName('pickerColorLine').value       = themeSelectColors.pickerColorLine;
+
+			if(themeSelect.name === 'Default'){
+				intiColorUI();
+      			styleUI(0);
+			}
+
+			return themeSelect.name;
+		},
+	},
 	tubes: {
 		radius: 0.05,
 		coeffRadiusVariation: Math.pow(2, 1/3),

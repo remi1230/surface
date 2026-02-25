@@ -508,14 +508,19 @@ function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_
   bt.color = color; bt.cornerRadius = cornerRadius; bt.background = background; bt.textBlock.fontSize = fontSize;
 }
 
-function addButton(numUI, panel, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft, side = 'right'){
+function addButton(numUI, panel, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft, side = 'right', hAlign = false){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
-    parmamControl(button, name, `button ${side} ${numUI}`, {w: width, h: height, pL: paddingLeft, pR: paddingRight}, true);
+    const options = {w: width, h: height, pL: paddingLeft, pR: paddingRight};
+    if(hAlign){ options.hAlign = hAlign; }
+    parmamControl(button, name, `button ${side} ${numUI}`, options, true);
     designButton(button);
     button.onPointerUpObservable.add(function(event) {
       if (event.buttonIndex !== 2){ if(typeof eventLeft === 'function'){eventLeft();} }
       else if(typeof eventRight === 'function'){ eventRight(); }
     });
+
+    //if(hAlign){ button.horizontalAlignment = hAlign; }
+
     panel.addControl(button);
 }
 
@@ -1185,17 +1190,18 @@ function add_step_uv_slider(){
 }
 
 function add_color_pickers(){
-  var panel1          = new BABYLON.GUI.StackPanel();
-  var panel2          = new BABYLON.GUI.StackPanel();
-  var panelButtons    = new BABYLON.GUI.StackPanel();
-  var panelLightLevel = new BABYLON.GUI.StackPanel();
+  var panel1           = new BABYLON.GUI.StackPanel();
+  var panel2           = new BABYLON.GUI.StackPanel();
+  var panelButtons     = new BABYLON.GUI.StackPanel();
+  var panelLightLevel  = new BABYLON.GUI.StackPanel();
+  var panelThemeButton = new BABYLON.GUI.StackPanel();
 
   var panelTitleUIBg        = new BABYLON.GUI.StackPanel();
   var panelTitleUIButton    = new BABYLON.GUI.StackPanel();
   var panelTitleMeshBg      = new BABYLON.GUI.StackPanel();
   var panelTitleMeshLine    = new BABYLON.GUI.StackPanel();
 
-  var top     = {panel1: 32, panel2: 51, panel3: 56.5, panelButtons: 68, panelLightLevel: 74};
+  var top     = {panel1: 32, panel2: 51, panel3: 56.5, panelButtons: 68, panelLightLevel: 74, panelThemeButton: 80};
   var options = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
 
   const paramsPanels = {
@@ -1231,6 +1237,8 @@ function add_color_pickers(){
   parmamControl(panelButtons, 'uiColorButtons', 'panel right first noAutoParam onlyMainGui', options);
   options.t = top.panelLightLevel; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
   parmamControl(panelLightLevel, 'panelLightLevel', 'panel right first noAutoParam onlyMainGui', options);
+  options.t = top.panelThemeButton; options.pL = 3.666; options.isVertical = false; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
+  parmamControl(panelThemeButton, 'panelThemeButton', 'panel right first noAutoParam onlyMainGui', options);
 
   function paramHeader(panel, header, text, options){
     header.text = text;
@@ -1300,7 +1308,7 @@ function add_color_pickers(){
   });
 
   var picker3 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker3, 'pickerColorEmissive', "picker right first onlyMainGui", { value: glo.emissiveColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker3, 'pickerColorMeshBg', "picker right first onlyMainGui", { value: glo.emissiveColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     
@@ -1354,6 +1362,14 @@ function add_color_pickers(){
     special_randomize_colors_app();
   }, "first");
 
+  addButton("first onlyMainGui noAutoParam", panelThemeButton, "themeButton", "Theme: Default", "50%", 30, 0, 0, async function(){
+    glo.allControls.getByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme()}`;
+  },  async function(){
+    glo.allControls.getByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme(false)}`;
+  }, 'right', 'center');panelThemeButton.background='orange';
+
+  //glo.allControls.getByName('themeButton').horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+
   panel1.addControl(picker);
   panel1.addControl(picker5);
   panel2.addControl(picker3);
@@ -1369,6 +1385,7 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelTitleMeshBg);
   glo.advancedTexture.addControl(panelTitleMeshLine);
   glo.advancedTexture.addControl(panelLightLevel);
+  glo.advancedTexture.addControl(panelThemeButton);
 }
 
 function add_step_ABCD_sliders(){

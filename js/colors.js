@@ -4,21 +4,22 @@ function randomize_colors_app(){
 	});
 }
 function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel){
+	const range = 0.2;
 	const lightLevelMinLight = lightLevel / 10;
-	const lightLevelMaxLight = lightLevelMinLight + 0.1;
+	const lightLevelMaxLight = lightLevelMinLight + range;
 
 	//UI
 	glo.allControls.getByName('pickerColorBackground').value = getRndBabylonColorInRange(lightLevelMinLight, lightLevelMaxLight);
 	glo.allControls.getByName('pickerColorButton').value     = getRndBabylonColorInRange(1.0-lightLevelMaxLight, 1.0-lightLevelMinLight);
 
 	//Mesh
-	glo.allControls.getByName('pickerColorEmissive').value   = glo.allControls.getByName('pickerColorBackground').value.inv();
+	glo.allControls.getByName('pickerColorMeshBg').value   = glo.allControls.getByName('pickerColorBackground').value.inv();
 	glo.allControls.getByName('pickerColorLine').value       = glo.allControls.getByName('pickerColorBackground').value;
 }
 
 function intiColorUI(){
 	glo.allControls.getByName('pickerColorBackground').value = glo.initialColor.backgroundColor;
-	glo.allControls.getByName('pickerColorEmissive').value   = glo.initialColor.emissiveColor;
+	glo.allControls.getByName('pickerColorMeshBg').value   = glo.initialColor.emissiveColor;
 	glo.allControls.getByName('pickerColorButton').value     = hexToRgbNormalized(glo.buttons_background);
 	glo.allControls.getByName('pickerColorLine').value       = glo.initialColor.lineColor;
 
@@ -114,4 +115,27 @@ function hexToRgbNormalized(hex) {
 			parseInt(hex.slice(4, 6), 16) / 255
 		)
     ;
+}
+
+function whatColors(){
+	const arround = (val, n) => Math.round(val * Math.pow(10, n), n) / Math.pow(10, n);
+
+	const roundColor = (color, n) => new BABYLON.Color3(
+		arround(color.r, n),
+		arround(color.g, n),
+		arround(color.b, n)
+	);
+
+	const decimalPrecision = 4;
+	const UiBg     = roundColor(glo.allControls.getByName('pickerColorBackground').value, decimalPrecision);
+	const UiButton = roundColor(glo.allControls.getByName('pickerColorButton').value, decimalPrecision);
+	const MeshBg   = roundColor(glo.allControls.getByName('pickerColorMeshBg').value, decimalPrecision);
+	const MeshLine = roundColor(glo.allControls.getByName('pickerColorLine').value, decimalPrecision);
+
+	console.log(
+		`pickerColorBackground: ${UiBg}\n`,
+		`pickerColorButton: ${UiButton}\n`,
+		`pickerColorMeshBg: ${MeshBg}\n`,
+		`pickerColorLine: ${MeshLine}\n`,
+	);
 }

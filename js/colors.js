@@ -133,9 +133,9 @@ function whatColors(){
 	const MeshLine = roundColor(glo.allControls.getByName('pickerColorLine').value, decimalPrecision);
 
 	console.log(
-		`pickerColorBackground: ${UiBg}\n`,
-		`pickerColorButton: ${UiButton}\n`,
-		`pickerColorMeshBg: ${MeshBg}\n`,
-		`pickerColorLine: ${MeshLine}\n`,
+		`pickerColorBackground: new BABYLON.Color3(${UiBg.r}, ${UiBg.g}, ${UiBg.b}),\n`,
+		`pickerColorButton: new BABYLON.Color3(${UiButton.r}, ${UiButton.g}, ${UiButton.b}),\n`,
+		`pickerColorMeshBg: new BABYLON.Color3(${MeshBg.r}, ${MeshBg.g}, ${MeshBg.b}),\n`,
+		`pickerColorLine: new BABYLON.Color3(${MeshLine.r}, ${MeshLine.g}, ${MeshLine.b}),\n`,
 	);
 }

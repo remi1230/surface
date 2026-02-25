@@ -767,20 +767,20 @@ var glo = {
 					pickerColorLine: new BABYLON.Color3(0.1321, 0.1421, 0.2281),
 				}
 			},
-			{name: "Lime", colors: 
+			{name: "Bluegrey", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.6469, 0.7431, 0.6523),
-					pickerColorButton: new BABYLON.Color3(0.2165, 0.2798, 0.264),
-					pickerColorMeshBg: new BABYLON.Color3(0.3531, 0.2569, 0.3477),
-					pickerColorLine: new BABYLON.Color3(0.6469, 0.7431, 0.6523),
+					pickerColorBackground: new BABYLON.Color3(0.2973, 0.3265, 0.3441),
+					pickerColorButton: new BABYLON.Color3(0.6815, 0.7844, 0.7085),
+					pickerColorMeshBg: new BABYLON.Color3(0.7027, 0.6735, 0.6559),
+					pickerColorLine: new BABYLON.Color3(0.0092, 0.1794, 0.2820),
 				}
 			},
-			{name: "Bluesky", colors: 
+			{name: "Gray", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.7126, 0.7777, 0.8161),
-					pickerColorButton: new BABYLON.Color3(0.1531, 0.2096, 0.2839),
-					pickerColorMeshBg: new BABYLON.Color3(0.2874, 0.2223, 0.1839),
-					pickerColorLine: new BABYLON.Color3(0.7126, 0.7777, 0.8161),
+					pickerColorBackground: new BABYLON.Color3(0.7619, 0.7639, 0.7626),
+					pickerColorButton: new BABYLON.Color3(0.246, 0.3749, 0.3932),
+					pickerColorMeshBg: new BABYLON.Color3(0.2381, 0.2361, 0.2374),
+					pickerColorLine: new BABYLON.Color3(0.7619, 0.7639, 0.7626),
 				}
 			},
 		],

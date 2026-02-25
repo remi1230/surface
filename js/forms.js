@@ -97,8 +97,8 @@ const formsToselect = [
         lighting: {pos:{x: 0, y: 0, z: 1.5}, intensity: 3, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Egg", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
-        fx: "", fy: "((pow(36 - su², 0.5) + cu)cu)/4-0.225", fz: "su", beta: "v", check: false, suit: true,
-        orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8, distance: 15},
+        fx: "0", fy: "((pow(36 - su², 0.5) + cu)cu)/4-0.225", fz: "su", beta: "v", check: false, suit: true,
+        orient: {axis: "X", direction: 1, alpha: 0, beta: -PI/8, distance: 7},
         lighting: {pos:{x: 0, y: 2.5, z: 0}, intensity: 1.5, specular: {intensity: 4, power: 1.75}}
     },
     {text: "Glass", typeCoords: 'cartesian', udef: PI, vdef: 3*PI/8, nb_steps_u: 128, nb_steps_v: 128,

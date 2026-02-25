@@ -44,6 +44,15 @@ fragmentShaders = [
     col = palette(d * 3.0 + time + vPosition.x); 
 `,
 `
+    //Curvatures
+    float lnpos = length(vNormal*(npos()));
+    
+    vec3 col1 = palette(lnpos);
+    vec3 col2 = rainbow(lnpos);
+
+    col = mix(col1, col2, 0.5);
+`,
+`
     //Norm&Pos
     float coeff = 1.0+Ts(0.25);
     float lnpos = coeff*length(vNormal*(npos()));
@@ -57,11 +66,20 @@ fragmentShaders = [
     else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
 `,
 `
+    //Norm&Pos2
+    float lnpos = length(vNormal*(npos()));
+    
+    vec3 col1 = palette(3.0*lnpos+time*0.125);
+    vec3 col2 = rainbow(8.0*lnpos+time*0.25);
+
+    col = mix(col1, col2, 0.5);
+`,
+`
     //CosPos
     vec3 pos = npos();
 
-    float c     = P / 2.0;
-    float val   = o(pos, c + Ts(1.0));
+    float c     = P * -2.25 * 16.0 / 64.0;
+    float val   = o(pos, c+0.125*time);
     vec3 valCol = cpalette(val, palette(val));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);

@@ -1185,16 +1185,17 @@ function add_step_uv_slider(){
 }
 
 function add_color_pickers(){
-  var panel1         = new BABYLON.GUI.StackPanel();
-  var panel2         = new BABYLON.GUI.StackPanel();
-  var panelButtons   = new BABYLON.GUI.StackPanel();
+  var panel1          = new BABYLON.GUI.StackPanel();
+  var panel2          = new BABYLON.GUI.StackPanel();
+  var panelButtons    = new BABYLON.GUI.StackPanel();
+  var panelLightLevel = new BABYLON.GUI.StackPanel();
 
   var panelTitleUIBg        = new BABYLON.GUI.StackPanel();
   var panelTitleUIButton    = new BABYLON.GUI.StackPanel();
   var panelTitleMeshBg      = new BABYLON.GUI.StackPanel();
   var panelTitleMeshLine    = new BABYLON.GUI.StackPanel();
 
-  var top     = {panel1: 32, panel2: 51, panel3: 56.5, panelButtons: 68};
+  var top     = {panel1: 32, panel2: 51, panel3: 56.5, panelButtons: 68, panelLightLevel: 74};
   var options = {hAlign: 'right', vAlign: 'top', w: 20, h:15, t: top.panel1, pL: 2, isVertical: false};
 
   const paramsPanels = {
@@ -1228,6 +1229,8 @@ function add_color_pickers(){
   
   options.t = top.panelButtons; options.pL = 3.666;
   parmamControl(panelButtons, 'uiColorButtons', 'panel right first noAutoParam onlyMainGui', options);
+  options.t = top.panelLightLevel; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
+  parmamControl(panelLightLevel, 'panelLightLevel', 'panel right first noAutoParam onlyMainGui', options);
 
   function paramHeader(panel, header, text, options){
     header.text = text;
@@ -1346,6 +1349,11 @@ function add_color_pickers(){
       styleUI(0);
   });
 
+  addSlider(panelLightLevel, "sliderLightLevel", "Light level", glo.randomizeColorLightLevel, 0, 0, 9, 1, function(value){
+    glo.randomizeColorLightLevel = value;
+    special_randomize_colors_app();
+  }, "first");
+
   panel1.addControl(picker);
   panel1.addControl(picker5);
   panel2.addControl(picker3);
@@ -1360,6 +1368,7 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelTitleUIButton);
   glo.advancedTexture.addControl(panelTitleMeshBg);
   glo.advancedTexture.addControl(panelTitleMeshLine);
+  glo.advancedTexture.addControl(panelLightLevel);
 }
 
 function add_step_ABCD_sliders(){

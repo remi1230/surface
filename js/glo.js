@@ -828,6 +828,7 @@ var glo = {
 		lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	},
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
+	randomizeColorLightLevel: 5,
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
 	angleToUpdateRibbon: {x: 0, y: 0},
 	pickers_size: 107,

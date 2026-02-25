@@ -3,24 +3,17 @@ function randomize_colors_app(){
 		picker_color.value = BABYLON.Color3.Random();
 	});
 }
-function special_randomize_colors_app(first = false){
-	if(!first){
-		var backColor     = getRndLightColor(4);
-		var emissiveColor = getComplementaryColor(backColor, 0.58);
-		var diffuseColor  = getComplementaryColor(emissiveColor, 0.58);
-		var lineColor     = getComplementaryColor(backColor);
+function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel){
+	const lightLevelMinLight = lightLevel / 10;
+	const lightLevelMaxLight = lightLevelMinLight + 0.1;
 
-		glo.allControls.getByName('pickerColorBackground').value = backColor;
-		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
-		glo.allControls.getByName('pickerColorDiffuse').value    = new BABYLON.Color3(diffuseColor.r, diffuseColor.g, diffuseColor.b);
-		glo.allControls.getByName('pickerColorLine').value       = lineColor;
-	}
-	else{
-		glo.allControls.getByName('pickerColorBackground').value = new BABYLON.Color3(0.1, 0.1, 0.1);
-		glo.allControls.getByName('pickerColorEmissive').value   = new BABYLON.Color3(0.3, 0.5, 0.5);
-		glo.allControls.getByName('pickerColorDiffuse').value 	 = new BABYLON.Color3(0.6, 0.5, 0.5);
-		glo.allControls.getByName('pickerColorLine').value 		 = new BABYLON.Color3(1, 1, 1);
-	}
+	//UI
+	glo.allControls.getByName('pickerColorBackground').value = getRndBabylonColorInRange(lightLevelMinLight, lightLevelMaxLight);
+	glo.allControls.getByName('pickerColorButton').value     = getRndBabylonColorInRange(1.0-lightLevelMaxLight, 1.0-lightLevelMinLight);
+
+	//Mesh
+	glo.allControls.getByName('pickerColorEmissive').value   = glo.allControls.getByName('pickerColorBackground').value.inv();
+	glo.allControls.getByName('pickerColorLine').value       = glo.allControls.getByName('pickerColorBackground').value;
 }
 
 function intiColorUI(){
@@ -33,8 +26,12 @@ function intiColorUI(){
       button.background = glo.buttons_background;
 	  button.color      = glo.buttons_color;
     });
-	
-	
+}
+
+function getRndBabylonColorInRange(min = 0, max = 1){
+	const rndCol = {r: min + (max-min)*Math.random(), g: min + (max-min)*Math.random(), b: min + (max-min)*Math.random()};
+
+	return new BABYLON.Color3(rndCol.r, rndCol.g, rndCol.b);
 }
 
 function getComplementaryColor(color3, darkForce = 1){

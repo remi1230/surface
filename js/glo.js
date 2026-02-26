@@ -164,6 +164,10 @@ var glo = {
 			var sel = this.select[num];
 			await this.setFormeSelect(sel.text, coordsType);
 		},
+		setStartForm: async function() { 
+			const startForm = getStartForm();
+			await this.setFormeSelect(startForm.text, startForm.typeCoords); 
+		},
 		getFormSelect: function(){
 			var coordsType = glo.coordsType;
 			var selectsLength = this.select.length;
@@ -742,7 +746,7 @@ var glo = {
 		themes:[
 			{name: "Default", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.1, 0.1, 0.133),
+					pickerColorBackground: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
 					pickerColorButton: new BABYLON.Color3(0.098, 0.5686, 0.5686),
 					pickerColorMeshBg: new BABYLON.Color3(0.7782, 0.8, 0.7),
 					pickerColorLine: new BABYLON.Color3(0.1, 0.1, 0.133),
@@ -820,6 +824,14 @@ var glo = {
 					pickerColorLine: new BABYLON.Color3(0.6386, 0.766, 0.6193),
 				}
 			},
+			{name: "Golf", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0, 0.183, 0.1454),
+					pickerColorButton: new BABYLON.Color3(0.2935, 0.3149, 0.3128),
+					pickerColorMeshBg: new BABYLON.Color3(0.9015, 0.8019, 0.7661),
+					pickerColorLine: new BABYLON.Color3(0.1846, 0.2241, 0.2349),
+				}
+			},
 			{name: "Black&White", colors: 
 				{
 					pickerColorBackground: new BABYLON.Color3(1, 0.9694, 0.9292),
@@ -829,6 +841,7 @@ var glo = {
 				}
 			},
 		],
+		getCurrentTheme: function(){ return this.themes[this.themeSelectIndex]; },
 		getNextTheme: function(next = true) {
 			const length = this.themes.length;
 
@@ -838,7 +851,7 @@ var glo = {
 				this.themeSelectIndex = (this.themeSelectIndex - 1 + length) % length;
 			}
 
-			return this.themes[this.themeSelectIndex];
+			return this.getCurrentTheme();
 		},
 		activateNextTheme: function(next = true) {
 			const themeSelect       = this.getNextTheme(next);
@@ -944,12 +957,12 @@ var glo = {
 	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-	backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.133),
+	backgroundColor: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
 	lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	initialColor:{
 		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 		emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-		backgroundColor: new BABYLON.Color3(0.1, 0.1, 0.133),
+		backgroundColor: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
 		lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	},
 	color_line_grid: new BABYLON.Color3(0, 0, 0),

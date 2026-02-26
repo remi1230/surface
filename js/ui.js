@@ -216,26 +216,49 @@ function slidersAnim(name, speed = 1, dir = 1){
 	slider.value += valToAdd * dir;
 }
 
-function startAnim(duration, nb_turns){
-	var rot_animation = new BABYLON.Animation("startAnimation", "alpha", 30, BABYLON.Animation.ANIMATIONTYPE_FLOAT, BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE);
+function startAnim(durationRot, durationDist, nb_turns) {
+    var rot_animation = new BABYLON.Animation("rotAnim", "alpha", 30,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE);
 
-  var keys_rot = [];
-  keys_rot.push({
-      frame: 0,
-      value: 0
-  });
-  keys_rot.push({
-      frame: duration,
-      value: nb_turns*Math.PI,
-  });
-  rot_animation.setKeys(keys_rot);
+    rot_animation.setKeys([
+        { frame: 0, value: 0 },
+        { frame: durationRot, value: nb_turns * Math.PI }
+    ]);
 
-	glo.scene.beginDirectAnimation(glo.camera, [rot_animation], 0, duration, true, 1, afterAnimation);
+    var dist_animation = new BABYLON.Animation("distAnim", "radius", 30,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
+
+	const startForm   = getStartForm();	
+    var currentRadius = startForm.orient ? (startForm.orient.distance || 16.66) : 16.66;
+    dist_animation.setKeys([
+        { frame: 0, value: 0 },
+        { frame: durationDist, value: currentRadius },
+    ]);
+
+    glo.rotAnim  = glo.scene.beginDirectAnimation(glo.camera, [rot_animation], 0, durationRot, true, 1);
+    glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [dist_animation], 0, durationDist, false, 1);
 }
 
-var afterAnimation = function() {
+function stopRotAnim() {
+    if (glo.rotAnim) {
+        glo.rotAnim.stop();
+        glo.rotAnim = null;
+    }
+}
 
-};
+function stopDistAnim() {
+    if (glo.distAnim) {
+        glo.distAnim.stop();
+        glo.distAnim = null;
+    }
+}
+
+function stopAllCameraAnims() {
+    stopRotAnim();
+    stopDistAnim();
+}
 
 function paramsToControls(){
 	glo.skipRebuild = true;
@@ -370,10 +393,14 @@ function cameraOnPos(pos){
 	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 }
 
-function swapControlBackground(controlName, background = glo.controlConfig.background, backgroundActived = glo.controlConfig.backgroundActived){
+function swapControlBackground(controlName){
 	let control = glo.allControls.getByName(controlName);
 
-	control.background = control.background === background ? backgroundActived : background;
+	const currentButtonBg = glo.allControls.getByName('pickerColorButton').value;
+	const buttonBg        = rgbNormalizedToHex(currentButtonBg);
+	const buttonBgActived = rgbNormalizedToHex(currentButtonBg.scale(0.5));
+
+	control.background = control.background === buttonBg ? buttonBgActived : buttonBg;
 }
 
 function otherDesigns(){
@@ -801,7 +828,7 @@ function applyHeightToButtons(height = glo.theme.button.height){
 }
 
 function styleUI(fontSizeToAdd = -1){		
-	applyFontToHeaders('Poppins', 300, fontSizeToAdd);
+	applyFontToHeaders('Poppins', 400, fontSizeToAdd);
     applyFontToButtons('Poppins', 400, fontSizeToAdd);
     applyHeightToButtons();
     applyFontToInputs('Inter', 400, fontSizeToAdd);

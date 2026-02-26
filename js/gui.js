@@ -1056,7 +1056,7 @@ function add_radios(suit = false){
 
     var textBlock = header.children[1];
     textBlock.fontFamily = "Manrope";
-    textBlock.fontWeight = 300;
+    textBlock.fontWeight = 400;
     textBlock.fontSize = "14px";
 
     glo.radios_formes.push({button: button, header: header});

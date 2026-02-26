@@ -5,9 +5,9 @@ $( document ).ready(async function() {
    // Forcer le chargement de toutes les variantes Poppins avant de créer les contrôles GUI
    await Promise.all([
       //document.fonts.load('200 1em Manrope'),
-      document.fonts.load('300 1em Manrope'),
-      /*document.fonts.load('400 1em Manrope'),
-      document.fonts.load('500 1em Manrope'),
+      //document.fonts.load('300 1em Manrope'),
+      document.fonts.load('400 1em Manrope'),
+      /*document.fonts.load('500 1em Manrope'),
       document.fonts.load('600 1em Manrope'),
       document.fonts.load('700 1em Manrope'),
       document.fonts.load('800 1em Manrope'),*/
@@ -30,8 +30,8 @@ $( document ).ready(async function() {
    initImportModal();
    $('.modal').not('#exportModal').not('#importModal').modal();
    $('select').formSelect();
-   glo.formes.setFormeSelect(...glo.formes.selected);
-   startAnim(20, 1);
+   glo.formes.setStartForm();
+   startAnim(100, 15, 1);
    getPathsInfos();
    otherDesigns();
    paramRadios();
@@ -54,8 +54,9 @@ $("#univers_div").click(function(){
 
 $("#renderCanvas").on('pointermove', function(e){
     glo.n++;
-    glo.scene.stopAllAnimations();
-    if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
+    stopRotAnim();
+    $("#renderCanvas").off("pointermove");
+    //if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
 });
 
 document.getElementById('resetBtn')?.addEventListener('click', () => {

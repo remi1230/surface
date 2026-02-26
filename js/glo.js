@@ -136,7 +136,12 @@ var glo = {
 								glo.allControls.getByName('lightDirectionZ').value = glo.shaders.lightOrigin.direction.z;
 							}
 							if(glo.shaders.light.intensity !== glo.shaders.lightOrigin.intensity){
-								glo.allControls.getByName('lightIntensity').value = glo.shaders.lightOrigin.intensity;
+								const lightIntensity = glo.shaders.lightOrigin.intensity;
+
+								while(glo.allControls.getByName('lightIntensity').maximum < lightIntensity){
+									glo.allControls.getByName('lightIntensity').maximum *= 2;
+								}
+								glo.allControls.getByName('lightIntensity').value = lightIntensity;
 							}
 							if(glo.shaders.light.specular.intensity !== glo.shaders.lightOrigin.specular.intensity){
 								glo.allControls.getByName('lightSpecularIntensity').value = glo.shaders.lightOrigin.specular.intensity;
@@ -745,10 +750,10 @@ var glo = {
 			},
 			{name: "Redwine", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.2514, 0.1353, 0.1903),
-					pickerColorButton: new BABYLON.Color3(0.8232, 0.7266, 0.8672),
-					pickerColorMeshBg: new BABYLON.Color3(0.7486, 0.8647, 0.8096),
-					pickerColorLine: new BABYLON.Color3(0.2514, 0.1353, 0.1903),
+					pickerColorBackground: new BABYLON.Color3(0.2092, 0.0524, 0.1147),
+					pickerColorButton: new BABYLON.Color3(0.8173, 0.8802, 0.8497),
+					pickerColorMeshBg: new BABYLON.Color3(0.7908, 0.9476, 0.8853),
+					pickerColorLine: new BABYLON.Color3(0.2092, 0.0524, 0.1147),
 				}
 			},
 			{name: "Darkwood", colors: 
@@ -767,12 +772,12 @@ var glo = {
 					pickerColorLine: new BABYLON.Color3(0.1321, 0.1421, 0.2281),
 				}
 			},
-			{name: "Bluegrey", colors: 
+			{name: "Bluesky", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.2973, 0.3265, 0.3441),
-					pickerColorButton: new BABYLON.Color3(0.6815, 0.7844, 0.7085),
-					pickerColorMeshBg: new BABYLON.Color3(0.7027, 0.6735, 0.6559),
-					pickerColorLine: new BABYLON.Color3(0.0092, 0.1794, 0.2820),
+					pickerColorBackground: new BABYLON.Color3(0.8403, 0.841, 0.8861),
+					pickerColorButton: new BABYLON.Color3(0.3581, 0.344, 0.1018),
+					pickerColorMeshBg: new BABYLON.Color3(0.1597, 0.159, 0.1139),
+					pickerColorLine: new BABYLON.Color3(0.8403, 0.841, 0.8861),
 				}
 			},
 			{name: "Gray", colors: 
@@ -781,6 +786,46 @@ var glo = {
 					pickerColorButton: new BABYLON.Color3(0.246, 0.3749, 0.3932),
 					pickerColorMeshBg: new BABYLON.Color3(0.2381, 0.2361, 0.2374),
 					pickerColorLine: new BABYLON.Color3(0.7619, 0.7639, 0.7626),
+				}
+			},
+			{name: "Bisk", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.8298, 0.79, 0.7502),
+					pickerColorButton: new BABYLON.Color3(0.2555, 0.2305, 0.2194),
+					pickerColorMeshBg: new BABYLON.Color3(0.1702, 0.21, 0.2498),
+					pickerColorLine: new BABYLON.Color3(0.8298, 0.79, 0.7502),
+				}
+			},
+			{name: "Pink", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.851, 0.7103, 0.679),
+					pickerColorButton: new BABYLON.Color3(0.3038, 0.1202, 0.3044),
+					pickerColorMeshBg: new BABYLON.Color3(0.149, 0.2897, 0.321),
+					pickerColorLine: new BABYLON.Color3(0.851, 0.7103, 0.679),
+				}
+			},
+			{name: "LightPink", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.7938, 0.5657, 0.5524),
+					pickerColorButton: new BABYLON.Color3(1, 1, 1),
+					pickerColorMeshBg: new BABYLON.Color3(0.2062, 0.4343, 0.4476),
+					pickerColorLine: new BABYLON.Color3(0.7938, 0.5657, 0.5524),
+				}
+			},
+			{name: "LightGreen", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.6386, 0.766, 0.6193),
+					pickerColorButton: new BABYLON.Color3(0.3673, 0.111, 0.1532),
+					pickerColorMeshBg: new BABYLON.Color3(0.3614, 0.234, 0.3807),
+					pickerColorLine: new BABYLON.Color3(0.6386, 0.766, 0.6193),
+				}
+			},
+			{name: "Black&White", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(1, 0.9694, 0.9292),
+					pickerColorButton: new BABYLON.Color3(0, 0.067, 0),
+					pickerColorMeshBg: new BABYLON.Color3(0, 0.0306, 0.0708),
+					pickerColorLine: new BABYLON.Color3(1, 0.9694, 0.9292),
 				}
 			},
 		],
@@ -830,16 +875,16 @@ var glo = {
 			U: 2,
 		},
 		light:{
-			direction: {x: -0.4, y: -0.4, z: 0.8},
-			intensity: 1.0,
+			direction: {x: 5, y: 5, z: 5},
+			intensity: 60,
 			radius: 100.0,
-			specular: {power: 2.0, intensity: 4.0},
+			specular: {power: 1.75, intensity: 4.0},
 		},
 		lightOrigin:{
-			direction: {x: -0.4, y: -0.4, z: 0.8},
-			intensity: 1.0,
+			direction: {x: 5, y: 5, z: 5},
+			intensity: 60,
 			radius: 100.0,
-			specular: {power: 2.0, intensity: 4.0},
+			specular: {power: 1.75, intensity: 4.0},
 		},
 		colors:{
 			toAdd:{r: 0, g: 0, b: 0},

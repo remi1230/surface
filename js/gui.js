@@ -672,7 +672,7 @@ function add_shaders_ctrl(){
   const lightInfos = glo.shaders.light;
   const dirRange   = 5;
 
-  addSlider(panelLight, "lightIntensity", "Intensity", glo.shaders.light.intensity, 2, 0, dirRange, 0.01, async function(value){
+  addSlider(panelLight, "lightIntensity", "Intensity", glo.shaders.light.intensity, 2, 0, 100, 0.01, async function(value){
     updLightingFloat('intensity', 'lampIntensity', value);
   }, 'seventh');
   addSlider(panelLight, "lightDirectionX", "Direction X", glo.shaders.light.direction.x, 2, -dirRange, dirRange, 0.01, async function(value){
@@ -687,7 +687,7 @@ function add_shaders_ctrl(){
   addSlider(panelLight, "lightRadius", "Radius", lightInfos.radius, 2, 0, 100, 0.01, async function(value){
     updLightingFloat('radius', 'lampRadius', value);
   }, 'seventh');
-  addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 4, 0.01, async function(value){
+  addSlider(panelLight, "lightSpecularIntensity", "Specular intesity", lightInfos.specular.intensity, 2, 0, 6, 0.01, async function(value){
     updLightingSpecularFloat('intensity', 'lampSpecularIntensity', value);
   }, 'seventh');
   addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){

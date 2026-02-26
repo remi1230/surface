@@ -55,8 +55,8 @@ $("#univers_div").click(function(){
 $("#renderCanvas").on('pointermove', function(e){
     glo.n++;
     stopRotAnim();
-    $("#renderCanvas").off("pointermove");
-    //if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
+    //$("#renderCanvas").off("pointermove");
+    if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
 });
 
 document.getElementById('resetBtn')?.addEventListener('click', () => {

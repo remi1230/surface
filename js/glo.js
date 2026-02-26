@@ -832,6 +832,22 @@ var glo = {
 					pickerColorLine: new BABYLON.Color3(0.1846, 0.2241, 0.2349),
 				}
 			},
+			{name: "Land", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.3436, 0.1748, 0.0452),
+					pickerColorButton: new BABYLON.Color3(0.6304, 0.7189, 0.4101),
+					pickerColorMeshBg: new BABYLON.Color3(0.1338, 0.0612, 0),
+					pickerColorLine: new BABYLON.Color3(0.3589, 0.2979, 0.2511),
+				}
+			},
+			{name: "Sienna", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1073, 0.0527, 0.0573),
+					pickerColorButton: new BABYLON.Color3(0.7842, 0.5451, 0.2274),
+					pickerColorMeshBg: new BABYLON.Color3(0.4258, 0.665, 0.5812),
+					pickerColorLine: new BABYLON.Color3(0.2692, 0.1908, 0.1974),
+				}
+			},
 			{name: "Black&White", colors: 
 				{
 					pickerColorBackground: new BABYLON.Color3(1, 0.9694, 0.9292),

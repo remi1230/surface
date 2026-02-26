@@ -1,11 +1,107 @@
+/**
+ * Génère un thème coloré cohérent à partir d'un lightLevel (0-10).
+ * 
+ * Principe : on travaille en HSL pour contrôler indépendamment
+ * la teinte (aléatoire), la saturation, et la luminosité (pilotée par lightLevel).
+ */
+function generateColorTheme(lightLevel = glo.randomizeColorLightLevel) {
+    const t = clamp01(lightLevel / 10); // 0 = très sombre, 1 = très clair
+
+    // Teinte aléatoire partagée (cohérence visuelle)
+    const baseHue = Math.random() * 360;
+
+    // --- Fond ---
+    // Luminosité directement liée au lightLevel
+    const bgLightness = 0.08 + t * 0.75; // de 0.08 (quasi noir) à 0.83 (très clair)
+    const bgSaturation = 0.15 + Math.random() * 0.25; // sobre, pas criard
+    const bgColor = hslToBabylonColor3(baseHue, bgSaturation, bgLightness);
+
+    // --- Boutons : contraste fort garanti ---
+    // Si fond clair → boutons sombres, et inversement
+    const btnLightness = t > 0.5
+        ? bgLightness - 0.4 - Math.random() * 0.15  // fond clair → boutons sombres
+        : bgLightness + 0.4 + Math.random() * 0.15; // fond sombre → boutons clairs
+    const btnHueShift = 20 + Math.random() * 40; // légère variation de teinte
+    const btnColor = hslToBabylonColor3(
+        baseHue + btnHueShift,
+        0.3 + Math.random() * 0.4,
+        clamp01(btnLightness)
+    );
+
+    // --- Mesh : complémentaire au fond ---
+    const meshLightness = t > 0.5
+        ? bgLightness - 0.25 - Math.random() * 0.2
+        : bgLightness + 0.25 + Math.random() * 0.2;
+    const meshColor = hslToBabylonColor3(
+        baseHue + 180 + (Math.random() - 0.5) * 40, // complémentaire ± variation
+        0.4 + Math.random() * 0.4,
+        clamp01(meshLightness)
+    );
+
+    // --- Lignes : proche du fond mais visible ---
+    const lineLightnessOffset = t > 0.5 ? -0.15 : 0.15;
+    const lineColor = hslToBabylonColor3(
+        baseHue,
+        bgSaturation * 0.5,
+        clamp01(bgLightness + lineLightnessOffset)
+    );
+
+    return { bgColor, btnColor, meshColor, lineColor };
+}
+
+/**
+ * Conversion HSL → BABYLON.Color3
+ * h: 0-360, s: 0-1, l: 0-1
+ */
+function hslToBabylonColor3(h, s, l) {
+    h = ((h % 360) + 360) % 360; // normaliser la teinte
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+
+    let r, g, b;
+    if      (h < 60)  { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else              { r = c; g = 0; b = x; }
+
+    return new BABYLON.Color3(
+        clamp01(r + m),
+        clamp01(g + m),
+        clamp01(b + m)
+    );
+}
+
+/**
+ * Applique le thème à l'UI
+ */
+function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel) {
+    const theme = generateColorTheme(lightLevel);
+
+    // Vérification de sécurité du contraste bouton/fond
+    if (contrastRatio(theme.bgColor, theme.btnColor) < 3.0) {
+        const bgLum = relativeLuminance(theme.bgColor);
+        theme.btnColor = bgLum > 0.5
+            ? new BABYLON.Color3(0.1, 0.1, 0.1)
+            : new BABYLON.Color3(0.95, 0.95, 0.95);
+    }
+
+    glo.allControls.getByName('pickerColorBackground').value = theme.bgColor;
+    glo.allControls.getByName('pickerColorButton').value     = theme.btnColor;
+    glo.allControls.getByName('pickerColorMeshBg').value     = theme.meshColor;
+    glo.allControls.getByName('pickerColorLine').value       = theme.lineColor;
+}
+
 function randomize_colors_app(){
 	glo.allControls.haveThisClass('picker').map(picker_color => {
 		picker_color.value = BABYLON.Color3.Random();
 	});
 }
 
-function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel) {
-    const range = 0.3;
+function special_randomize_colors_app_old(lightLevel = glo.randomizeColorLightLevel) {
+    const range = lightLevel < 4 ? 0.1 : lightLevel < 7 ? 0.2 : 0.3;
     const minLight = clamp01(lightLevel / 10);
     const maxLight = clamp01(minLight + range);
 
@@ -64,15 +160,32 @@ function contrastRatio(color1, color2) {
  * Génère une couleur de bouton avec contraste garanti par rapport au fond.
  * Regénère jusqu'à maxAttempts fois, puis fallback noir ou blanc.
  */
-function getRndButtonColorWithContrast(bgColor, minLight, maxLight, minContrast = 4.5, maxAttempts = 20) {
+function getRndButtonColorWithContrast(bgColor, minLight, maxLight, minContrast = 4.5, maxAttempts = 30) {
+    // Élargir la plage pour garantir qu'un contraste suffisant est possible
+    const bgLum = relativeLuminance(bgColor);
+    
+    // Si le fond est sombre, les boutons doivent être clairs (et inversement)
+    let adjMin = minLight;
+    let adjMax = maxLight;
+    if (bgLum < 0.2) {
+        adjMin = Math.max(adjMin, 0.6);
+        adjMax = Math.max(adjMax, 1.0);
+    } else if (bgLum > 0.5) {
+        adjMin = Math.min(adjMin, 0.0);
+        adjMax = Math.min(adjMax, 0.3);
+    } else {
+        // Zone grise : on force les extrêmes
+        adjMin = 0.75;
+        adjMax = 1.0;
+    }
+
     for (let i = 0; i < maxAttempts; i++) {
-        const candidate = getRndBabylonColorInRange(minLight, maxLight);
+        const candidate = getRndBabylonColorInRange(adjMin, adjMax);
         if (contrastRatio(bgColor, candidate) >= minContrast) {
             return candidate;
         }
     }
-    // Fallback : noir ou blanc selon la luminance du fond
-    const bgLum = relativeLuminance(bgColor);
+
     return bgLum > 0.5 ? new BABYLON.Color3(0, 0, 0) : new BABYLON.Color3(1, 1, 1);
 }
 

@@ -100,20 +100,6 @@ function randomize_colors_app(){
 	});
 }
 
-function special_randomize_colors_app_old(lightLevel = glo.randomizeColorLightLevel) {
-    const range = lightLevel < 4 ? 0.1 : lightLevel < 7 ? 0.2 : 0.3;
-    const minLight = clamp01(lightLevel / 10);
-    const maxLight = clamp01(minLight + range);
-
-    const bgColor  = getRndBabylonColorInRange(minLight, maxLight);
-    const btnColor = getRndButtonColorWithContrast(bgColor, 1.0 - maxLight, 1.0 - minLight);
-
-    glo.allControls.getByName('pickerColorBackground').value = bgColor;
-    glo.allControls.getByName('pickerColorButton').value     = btnColor;
-    glo.allControls.getByName('pickerColorMeshBg').value     = bgColor.inv();
-    glo.allControls.getByName('pickerColorLine').value       = bgColor;
-}
-
 function intiColorUI(){
 	glo.allControls.getByName('pickerColorBackground').value = glo.initialColor.backgroundColor;
 	glo.allControls.getByName('pickerColorMeshBg').value     = glo.initialColor.emissiveColor;

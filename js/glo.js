@@ -778,10 +778,18 @@ var glo = {
 			},
 			{name: "Bluesky", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.8403, 0.841, 0.8861),
-					pickerColorButton: new BABYLON.Color3(0.3581, 0.344, 0.1018),
-					pickerColorMeshBg: new BABYLON.Color3(0.1597, 0.159, 0.1139),
-					pickerColorLine: new BABYLON.Color3(0.8403, 0.841, 0.8861),
+					pickerColorBackground: new BABYLON.Color3(0.234, 0.3825, 0.526),
+					pickerColorButton: new BABYLON.Color3(0.8777, 0.8775, 0.9421),
+					pickerColorMeshBg: new BABYLON.Color3(0.9568, 0.7085, 0.6359),
+					pickerColorLine: new BABYLON.Color3(1, 0.3008, 0),
+				}
+			},
+			{name: "Vermillon", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.885, 0.2556, 0),
+					pickerColorButton: new BABYLON.Color3(0.7051, 0.7564, 0.7931),
+					pickerColorMeshBg: new BABYLON.Color3(0.0716, 0.2165, 0.3661),
+					pickerColorLine: new BABYLON.Color3(0.4332, 0.3575, 0.3268),
 				}
 			},
 			{name: "Gray", colors: 
@@ -947,7 +955,7 @@ var glo = {
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
 	centerSymmetry: {x: 0, y: 0, z: 0},
-	rotate_speed: 0.5/180 * PI,
+	rotate_speed: 1/540 * PI,
 	ribbon_alpha: 1,
 	rot_z: 0,
 	rotateType: 'none',

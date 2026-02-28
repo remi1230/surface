@@ -218,6 +218,83 @@ function importOBJMesh() {
 	input.click();
 }
 
+async function importOBJWithBabylon(file, fileName) {
+	try {
+		const blobUrl = URL.createObjectURL(file);
+
+		const result = await BABYLON.SceneLoader.ImportMeshAsync("", "", blobUrl, glo.scene, null, ".obj");
+		URL.revokeObjectURL(blobUrl);
+
+		if (!result.meshes || result.meshes.length === 0) {
+			console.error("No meshes found in OBJ file");
+			return;
+		}
+
+		const validMeshes = result.meshes.filter(m => m.getTotalVertices() > 0);
+		let importedMesh;
+		if (validMeshes.length === 1) {
+			importedMesh = validMeshes[0];
+		} else {
+			importedMesh = BABYLON.Mesh.MergeMeshes(validMeshes, true, true);
+		}
+
+		if (!importedMesh) {
+			console.error("Failed to process imported OBJ meshes");
+			result.meshes.forEach(m => m.dispose());
+			return;
+		}
+
+		importedMesh.bakeCurrentTransformIntoVertices();
+
+		const positions = importedMesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
+		let normals     = importedMesh.getVerticesData(BABYLON.VertexBuffer.NormalKind);
+		const indices   = importedMesh.getIndices();
+
+		importedMesh.dispose();
+
+		if (!positions || !indices) {
+			console.error("Failed to extract vertex data from OBJ");
+			return;
+		}
+
+		if (!normals) {
+			normals = new Float32Array(positions.length);
+			BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+		}
+
+		const numVertices = positions.length / 3;
+		const stepsU = Math.round(Math.sqrt(numVertices)) - 1;
+		const stepsV = Math.ceil(numVertices / (stepsU + 1)) - 1;
+		glo.params.steps_u = stepsU;
+		glo.params.steps_v = stepsV;
+
+		const coordsType = glo.coordsType || 'cartesian';
+		const MeshClass  = getShaderMeshClass(coordsType);
+		const shaderMesh = new MeshClass();
+
+		const mesh = shaderMesh.createFromImportedMesh(
+			new Float32Array(positions),
+			new Float32Array(normals),
+			new Uint32Array(indices),
+			stepsU,
+			stepsV
+		);
+
+		if (mesh) {
+			glo.ribbon = mesh;
+			glo.fromShader = true;
+			glo.ribbon.refreshBoundingInfo();
+			setTimeout(() => { glo.camera.focusOn([glo.ribbon], true); }, 0);
+			console.log("OBJ imported successfully: " + fileName);
+			console.log("Vertices: " + numVertices + ", Triangles: " + (indices.length / 3));
+		} else {
+			console.error("Failed to create shader mesh from OBJ");
+		}
+	} catch (error) {
+		console.error("Error importing OBJ:", error);
+	}
+}
+
 function parseOBJFile(text) {
 	const vertices = [];
 	const faces = [];

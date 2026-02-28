@@ -219,8 +219,9 @@ function importOBJMesh() {
 }
 
 async function importOBJWithBabylon(file, fileName) {
-	const prevSkip = LOADERS.OBJFileLoader.SKIP_MATERIALS;
-	LOADERS.OBJFileLoader.SKIP_MATERIALS = true;
+	const OBJLoader = BABYLON.SceneLoader.GetPluginForExtension(".obj").constructor;
+	const prevSkip = OBJLoader.SKIP_MATERIALS;
+	OBJLoader.SKIP_MATERIALS = true;
 	try {
 		const blobUrl = URL.createObjectURL(file);
 
@@ -295,7 +296,7 @@ async function importOBJWithBabylon(file, fileName) {
 	} catch (error) {
 		console.error("Error importing OBJ:", error);
 	} finally {
-		LOADERS.OBJFileLoader.SKIP_MATERIALS = prevSkip;
+		OBJLoader.SKIP_MATERIALS = prevSkip;
 	}
 }
 

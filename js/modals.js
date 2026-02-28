@@ -70,8 +70,7 @@ function download_JSON_mesh(event){
 		var fileContent = e.target.result;
 
 		if (fileExtension === 'obj') {
-			// Détecter si l'OBJ vient de l'app (g object0) ou d'un outil externe (mtllib, # Blender...)
-			const isAppExport = /^(g object|o object_)/m.test(fileContent) && !/^mtllib /m.test(fileContent);
+			const isAppExport = fileName.toLowerCase().endsWith('.surface.obj');
 			if (isAppExport) {
 				importAppOBJ(fileContent, fileName);
 			} else {
@@ -209,7 +208,11 @@ async function exportMesh(exportFormat) {
     }
 
     var filename = $("#filename").val();
-    if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
+    if (exportFormat === "obj") {
+        if (!filename.toLowerCase().endsWith(".surface.obj")) {
+            filename = filename.replace(/\.(surface\.)?obj$/i, "") + ".surface.obj";
+        }
+    } else if (filename.toLowerCase().lastIndexOf("." + exportFormat) !== filename.length - exportFormat.length || filename.length < exportFormat.length + 1) {
         filename += "." + exportFormat;
     }
 

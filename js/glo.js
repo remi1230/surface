@@ -18,6 +18,8 @@ const deepCopy = (inObject) => {
 
 const getById = function (id) { return document.getElementById(id); };
 
+const uiBg = new BABYLON.Color3(0.0069, 0.0069, 0.1412);
+
 let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
 let fragmentShaders = [];
@@ -746,7 +748,7 @@ var glo = {
 		themes:[
 			{name: "Default", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
+					pickerColorBackground: uiBg,
 					pickerColorButton: new BABYLON.Color3(0.098, 0.5686, 0.5686),
 					pickerColorMeshBg: new BABYLON.Color3(0.7782, 0.8, 0.7),
 					pickerColorLine: new BABYLON.Color3(0.1, 0.1, 0.133),
@@ -778,10 +780,10 @@ var glo = {
 			},
 			{name: "Bluesky", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.234, 0.3825, 0.526),
-					pickerColorButton: new BABYLON.Color3(0.8777, 0.8775, 0.9421),
-					pickerColorMeshBg: new BABYLON.Color3(0.9568, 0.7085, 0.6359),
-					pickerColorLine: new BABYLON.Color3(1, 0.3008, 0),
+					pickerColorBackground: new BABYLON.Color3(0.7319, 0.8057, 0.7784),
+					pickerColorButton: new BABYLON.Color3(0.098, 0.5686, 0.5686),
+					pickerColorMeshBg: new BABYLON.Color3(0.7782, 0.8, 0.7),
+					pickerColorLine: new BABYLON.Color3(0.1, 0.1, 0.133),
 				}
 			},
 			{name: "Vermillon", colors: 
@@ -798,6 +800,14 @@ var glo = {
 					pickerColorButton: new BABYLON.Color3(0.246, 0.3749, 0.3932),
 					pickerColorMeshBg: new BABYLON.Color3(0.2381, 0.2361, 0.2374),
 					pickerColorLine: new BABYLON.Color3(0.7619, 0.7639, 0.7626),
+				}
+			},
+			{name: "Mint", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1872, 0.2047, 0.2728),
+					pickerColorButton: new BABYLON.Color3(0.6421, 0.8191, 0.7335),
+					pickerColorMeshBg: new BABYLON.Color3(0.3364, 0.8608, 0.7901),
+					pickerColorLine: new BABYLON.Color3(0.3446, 0.3591, 0.4154),
 				}
 			},
 			{name: "Bisk", colors: 
@@ -818,10 +828,10 @@ var glo = {
 			},
 			{name: "LightPink", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(0.7938, 0.5657, 0.5524),
-					pickerColorButton: new BABYLON.Color3(1, 1, 1),
-					pickerColorMeshBg: new BABYLON.Color3(0.2062, 0.4343, 0.4476),
-					pickerColorLine: new BABYLON.Color3(0.7938, 0.5657, 0.5524),
+					pickerColorBackground: new BABYLON.Color3(0.8345, 0.7029, 0.6755),
+					pickerColorButton: new BABYLON.Color3(0.9002, 0.6681, 0.6681),
+					pickerColorMeshBg: new BABYLON.Color3(0.11, 0.5095, 0.4574),
+					pickerColorLine: new BABYLON.Color3(0.6691, 0.563, 0.5409),
 				}
 			},
 			{name: "LightGreen", colors: 
@@ -858,10 +868,18 @@ var glo = {
 			},
 			{name: "Black&White", colors: 
 				{
-					pickerColorBackground: new BABYLON.Color3(1, 0.9694, 0.9292),
-					pickerColorButton: new BABYLON.Color3(0, 0.067, 0),
-					pickerColorMeshBg: new BABYLON.Color3(0, 0.0306, 0.0708),
-					pickerColorLine: new BABYLON.Color3(1, 0.9694, 0.9292),
+					pickerColorBackground: new BABYLON.Color3(1, 1, 1),
+					pickerColorButton: new BABYLON.Color3(0, 0, 0),
+					pickerColorMeshBg: new BABYLON.Color3(0, 0, 0),
+					pickerColorLine: new BABYLON.Color3(1, 1, 1),
+				}
+			},
+			{name: "White&Black", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0, 0, 0),
+					pickerColorButton: new BABYLON.Color3(1, 1, 1),
+					pickerColorMeshBg: new BABYLON.Color3(1, 1, 1),
+					pickerColorLine: new BABYLON.Color3(0, 0, 0),
 				}
 			},
 		],
@@ -955,7 +973,7 @@ var glo = {
 	bgActivedButtons: ['GridScale', 'updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
 	centerSymmetry: {x: 0, y: 0, z: 0},
-	rotate_speed: 1/540 * PI,
+	rotate_speed: 1/450 * PI,
 	ribbon_alpha: 1,
 	rot_z: 0,
 	rotateType: 'none',
@@ -981,12 +999,12 @@ var glo = {
 	buttons_fontsize: "16px",
 	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 	emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-	backgroundColor: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
+	backgroundColor: uiBg,
 	lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	initialColor:{
 		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
 		emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-		backgroundColor: new BABYLON.Color3(0.0068, 0.0068, 0.1532),
+		backgroundColor: uiBg,
 		lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
 	},
 	color_line_grid: new BABYLON.Color3(0, 0, 0),

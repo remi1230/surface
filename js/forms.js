@@ -51,7 +51,7 @@ const formsToselect = [
         orient:{distance: 10},
     },
     {text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 32,
-        fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", start: true,
+        fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", start: true, check : true,
         orient: {axis: "X", direction: -1, alpha: PI/4, beta: -PI/5, distance: 16.66},
     },
     {text: "Torus square", typeCoords: 'cartesian', udef: PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 64,

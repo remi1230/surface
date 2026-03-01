@@ -215,58 +215,18 @@ fragmentShaders = [
 
 `,
 `
-    //Mean Curvature
+    //Curvature
     vec3 N = normalize(vNormal);
-    vec3 V = normalize(cameraPosition - vWorldPosition);
 
-    // Orient normal toward camera to get consistent sign
-    if(dot(N, V) < 0.0) N = -N;
+    // Curvature = how fast the normal changes across the surface
+    float curv = length(fwidth(N)) / max(length(fwidth(vPosition)), 1e-6);
 
-    // Screen-space derivatives of position and normal
-    vec3 dPdx = dFdx(vPosition);
-    vec3 dPdy = dFdy(vPosition);
-    vec3 dNdx = dFdx(N);
-    vec3 dNdy = dFdy(N);
+    // P scales the range
+    float c = curv * P;
 
-    // First fundamental form (I)
-    float E = dot(dPdx, dPdx);
-    float F = dot(dPdx, dPdy);
-    float G = dot(dPdy, dPdy);
-    float detI = E * G - F * F;
-
-    // Second fundamental form (II)
-    float L = -dot(dNdx, dPdx);
-    float M = -0.5 * (dot(dNdx, dPdy) + dot(dNdy, dPdx));
-    float NN = -dot(dNdy, dPdy);
-
-    // Mean curvature H = (LG - 2MF + NE) / (2 det(I))
-    float H = 0.5 * (L * G - 2.0 * M * F + NN * E) / max(abs(detI), 1e-10);
-
-    // Smooth sigmoid mapping: P controls sensitivity
-    // For a sphere R=5, H=0.2 -> H*P = 1.6 with default P~8
-    float mapped = H * P / (1.0 + abs(H * P));
-
-    // Diverging colormap: blue (H<0 concave) -> white (H~0 flat) -> red (H>0 convex)
-    vec3 concaveCol = vec3(0.1, 0.3, 0.9);
-    vec3 flatCol    = vec3(0.95);
-    vec3 convexCol  = vec3(0.9, 0.15, 0.1);
-
-    if(mapped < 0.0) {
-        col = mix(flatCol, concaveCol, -mapped);
-    } else {
-        col = mix(flatCol, convexCol, mapped);
-    }
-
-    // opt1: overlay curvature iso-lines (Q controls frequency)
-    if(opt1 == 1.0) {
-        float iso = abs(fract(H * P * Q) - 0.5) * 2.0;
-        col *= 0.3 + 0.7 * smoothstep(0.02, 0.1, iso);
-    }
-
-    // opt2: palette+rainbow blend instead of diverging map
-    if(opt2 == 1.0) {
-        col = mix(palette(mapped * 2.0), rainbow(abs(mapped)), 0.4);
-    }
+    vec3 col1 = palette(c);
+    vec3 col2 = rainbow(c);
+    col = mix(col1, col2, 0.5);
 `
 ];
 

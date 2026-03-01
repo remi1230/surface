@@ -213,6 +213,63 @@ fragmentShaders = [
 
     if(length(col) > T+0.85){ discard; }
 
+`,
+`
+    //Gaussian Curvature
+    vec3 N = normalize(vNormal);
+    vec3 pos = vPosition;
+
+    // Screen-space derivatives of position and normal
+    vec3 dPdx = dFdx(pos);
+    vec3 dPdy = dFdy(pos);
+    vec3 dNdx = dFdx(N);
+    vec3 dNdy = dFdy(N);
+
+    // First fundamental form coefficients (I)
+    float E = dot(dPdx, dPdx);
+    float F = dot(dPdx, dPdy);
+    float G = dot(dPdy, dPdy);
+
+    // Second fundamental form coefficients (II)
+    float e = -dot(dNdx, dPdx);
+    float f = -0.5 * (dot(dNdx, dPdy) + dot(dNdy, dPdx));
+    float g = -dot(dNdy, dPdy);
+
+    // Gaussian curvature K = det(II) / det(I)
+    float detI  = E * G - F * F;
+    float detII = e * g - f * f;
+    float K = detII / max(abs(detI), 1e-8);
+
+    // Scale and map: P controls sensitivity
+    float sensitivity = P * 100.0;
+    float kMapped = clamp(K * sensitivity, -1.0, 1.0);
+
+    // Diverging colormap: blue (K<0 saddle) -> white (K=0 flat) -> red (K>0 elliptic)
+    vec3 negative = vec3(0.1, 0.3, 0.9);  // blue - saddle points
+    vec3 zero     = vec3(0.95);            // near-white - flat/cylindrical
+    vec3 positive = vec3(0.9, 0.15, 0.1); // red - elliptic (sphere-like)
+
+    if(kMapped < 0.0) {
+        col = mix(zero, negative, -kMapped);
+    } else {
+        col = mix(zero, positive, kMapped);
+    }
+
+    // opt1: overlay iso-lines of curvature
+    if(opt1 == 1.0) {
+        float isoFreq = Q * 20.0;
+        float iso = abs(fract(K * sensitivity * isoFreq) - 0.5) * 2.0;
+        float line = smoothstep(0.02, 0.08, iso);
+        col *= 0.3 + 0.7 * line;
+    }
+
+    // opt2: use palette+rainbow blend instead of diverging map
+    if(opt2 == 1.0) {
+        float absK = abs(kMapped);
+        vec3 col1 = palette(kMapped * 2.0);
+        vec3 col2 = rainbow(absK);
+        col = mix(col1, col2, 0.4);
+    }
 `
 ];
 

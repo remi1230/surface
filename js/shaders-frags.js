@@ -218,11 +218,24 @@ fragmentShaders = [
     //Curvature
     vec3 N = normalize(vNormal);
 
-    // Curvature = how fast the normal changes across the surface
-    float curv = length(fwidth(N)) / max(length(fwidth(vPosition)), 1e-6);
+    // dN/dU and dN/dV in object space (via UV chain rule)
+    // dN/dU = dN/dx * dx/dU + dN/dy * dy/dU  (inverse of the screen->UV Jacobian)
+    vec3 dNdx = dFdx(N);
+    vec3 dNdy = dFdy(N);
+    vec2 dUVdx = dFdx(vUV);
+    vec2 dUVdy = dFdy(vUV);
+
+    // Invert 2x2 Jacobian [dUVdx | dUVdy] to get dN/dU, dN/dV
+    float det = dUVdx.x * dUVdy.y - dUVdx.y * dUVdy.x;
+    float invDet = 1.0 / max(abs(det), 1e-10) * sign(det);
+    vec3 dNdU = (dNdx * dUVdy.y - dNdy * dUVdx.y) * invDet;
+    vec3 dNdV = (dNdy * dUVdx.x - dNdx * dUVdy.x) * invDet;
+
+    // Curvature magnitude in parametric space (camera-independent)
+    float curv = length(dNdU) + length(dNdV);
 
     // P scales the range
-    float c = curv * P;
+    float c = curv * P * 0.1;
 
     vec3 col1 = palette(c);
     vec3 col2 = rainbow(c);

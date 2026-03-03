@@ -1,16 +1,16 @@
 fragmentShaders = [
 `
-   //Line
+   //Default
     float coeffLine = S/3.0;
 
 	// Grille
-	float gu = fract(vUV.x * P);
-	float gv = fract(vUV.y * Q * 0.5);
+	float gu = fract(vUV.x * P * uvCoeff.x);
+	float gv = fract(vUV.y * Q * uvCoeff.y);
 
-	float edgeU = 1.0 - (lineWidth * coeffLine) / P;
-    float edgeV = 1.0 - (lineWidth * coeffLine * 2.0) / Q;
+	float edgeU = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / P;
+    float edgeV = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / Q;
     float fw = fwidth(vUV.x * P); // largeur d'un pixel en espace UV
-    float fh = fwidth(vUV.y * Q * 0.5);
+    float fh = fwidth(vUV.y * Q);
     float lineU = smoothstep(edgeU - fw, edgeU + fw, gu);
     float lineV = smoothstep(edgeV - fh, edgeV + fh, gv);
     float line = min(lineU + lineV, 1.0);
@@ -109,6 +109,15 @@ fragmentShaders = [
 `
     //Normal
     col = vNormal;
+
+    
+`,
+`
+    //Atmosphere
+    vec3 col1 = palette(1.0 - abs(dot(normalize(vNormal), normalize(cameraPosition - vWorldPosition)))); 
+    vec3 col2 = rainbow(1.0 - abs(dot(normalize(vNormal), normalize(cameraPosition - vWorldPosition))));
+
+    col = mix(col1, col2, vPosition);
 
     
 `,
@@ -213,7 +222,8 @@ fragmentShaders = [
 
     if(length(col) > T+0.85){ discard; }
 
-`
+`,
+
 ];
 
 
@@ -609,6 +619,7 @@ uniform float S;
 uniform float T;
 uniform float U;
 uniform float lineWidth;
+uniform vec2 uvCoeff;
 uniform float invcol;
 uniform float islight;
 uniform float opt1;

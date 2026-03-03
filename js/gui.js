@@ -505,8 +505,8 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   return { header, slider, axisState };
 }
 
-function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_radius, background = glo.buttons_background, fontSize = glo.buttons_fontsize){
-  bt.color = color; bt.cornerRadius = cornerRadius; bt.background = background; bt.textBlock.fontSize = fontSize;
+function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_radius, background = defaultTheme.pickerColorButton, fontSize = glo.buttons_fontsize){
+  bt.color = color; bt.cornerRadius = cornerRadius; bt.background = rgbNormalizedToHex(background); bt.textBlock.fontSize = fontSize;
 }
 
 function addButton(numUI, panel, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft, side = 'right', hAlign = false){
@@ -746,15 +746,11 @@ function add_switch_and_help_buttons(){
       buthide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
       buthide.width        = '50px';
       buthide.paddingRight = '1px';
-      buthide.background   = "#191921";
-      buthide.color        = "#191921";
     }
     else{
       buthide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
       buthide.width        = '90px';
       buthide.paddingRight = '1px';
-      buthide.background   = glo.buttons_background;
-      buthide.color        = glo.buttons_color;
     }
 
     glo.gui_suit_visible = !glo.gui_suit_visible;
@@ -1275,7 +1271,7 @@ function add_color_pickers(){
 
 
   var picker = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: glo.backgroundColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: defaultTheme.pickerColorBackground, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker.onValueChangedObservable.add(function(value) {
     glo.scene.clearColor = value;
     glo.backgroundColor = value;
@@ -1309,7 +1305,7 @@ function add_color_pickers(){
   });
 
   var picker3 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker3, 'pickerColorMeshBg', "picker right first onlyMainGui", { value: glo.emissiveColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker3, 'pickerColorMeshBg', "picker right first onlyMainGui", { value: defaultTheme.pickerColorMeshBg, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     
@@ -1325,14 +1321,14 @@ function add_color_pickers(){
   });
 
   var picker4 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: glo.lineColor, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: defaultTheme.pickerColorLine, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker4.onValueChangedObservable.add(function(value) {
       glo.lineColor = value;
       glo.ribbon.shaderMeshInstance.updateColors();
   });
 
   var picker5 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: hexToRgbNormalized(glo.buttons_background), hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: defaultTheme.pickerColorButton, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker5.onValueChangedObservable.add(function(value) {
     glo.allControls.haveThisClass('button').forEach(button => {
       button.background = rgbNormalizedToHex(value);

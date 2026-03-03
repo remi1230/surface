@@ -18,7 +18,14 @@ const deepCopy = (inObject) => {
 
 const getById = function (id) { return document.getElementById(id); };
 
-const uiBg = new BABYLON.Color3(0.0069, 0.0069, 0.1412);
+const defaultTheme = {
+	pickerColorBackground: new BABYLON.Color3(0.1269, 0.1269, 0.1669),
+	pickerColorButton: new BABYLON.Color3(0.1, 0.6, 0.6),
+	pickerColorMeshBg: new BABYLON.Color3(0.3379, 0.4685, 0.5605),
+	pickerColorLine: new BABYLON.Color3(0.5575, 0.2964, 0)
+};
+
+defaultTheme.pickerColorLine = defaultTheme.pickerColorMeshBg.inv();
 
 let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
@@ -45,6 +52,7 @@ var glo = {
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
+					glo.uvCoeff = sel.uvCoeff || {x: 1, y: 1};
 					if(draw){
 						glo.HDstepUV = false;
 
@@ -224,6 +232,7 @@ var glo = {
 			return n;
 		},
 	},
+	uvCoeff: {x: 1, y: 1},
 	nbSymIter: 1,
 	formule: [],
 	controls_grid: [],
@@ -746,14 +755,7 @@ var glo = {
 	uiThemes: {
 		themeSelectIndex: 0,
 		themes:[
-			{name: "Default", colors: 
-				{
-					pickerColorBackground: uiBg,
-					pickerColorButton: new BABYLON.Color3(0.098, 0.5686, 0.5686),
-					pickerColorMeshBg: new BABYLON.Color3(0.7782, 0.8, 0.7),
-					pickerColorLine: new BABYLON.Color3(0.1, 0.1, 0.133),
-				}
-			},
+			{name: "Default", colors: defaultTheme},
 			{name: "Redwine", colors: 
 				{
 					pickerColorBackground: new BABYLON.Color3(0.2092, 0.0524, 0.1147),
@@ -768,6 +770,14 @@ var glo = {
 					pickerColorButton: new BABYLON.Color3(0.8057, 0.7967, 0.7474),
 					pickerColorMeshBg: new BABYLON.Color3(0.8296, 0.8584, 0.8894),
 					pickerColorLine: new BABYLON.Color3(0.1704, 0.1415, 0.1106),
+				}
+			},
+			{name: "Army", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.1269, 0.1269, 0.1616),
+					pickerColorButton: new BABYLON.Color3(0.3262, 0.5246, 0.5246),
+					pickerColorMeshBg: new BABYLON.Color3(0.1321, 0.1358, 0.176),
+					pickerColorLine: new BABYLON.Color3(0.4996, 0.3091, 0),
 				}
 			},
 			{name: "Indigo", colors: 
@@ -992,21 +1002,14 @@ var glo = {
 	shiftRadios: 0.88,
 	resolutionCoeff: 4,
 	color_text_input: "rgb(255,255,245)",
-	buttons_background: "#199191",
 	buttons_color: "#e1cdb7",
 	labelGridColor: "white",
 	buttons_radius: 6.33,
 	buttons_fontsize: "16px",
-	diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
-	emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-	backgroundColor: uiBg,
-	lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
-	initialColor:{
-		diffuseColor: new BABYLON.Color3(0.6, 0.5, 0.5),
-		emissiveColor: new BABYLON.Color3(0.7782, 0.8, 0.7),
-		backgroundColor: uiBg,
-		lineColor: new BABYLON.Color3(0.1, 0.1, 0.133),
-	},
+	diffuseColor: defaultTheme.pickerColorMeshBg,
+	emissiveColor: defaultTheme.pickerColorMeshBg,
+	backgroundColor: defaultTheme.pickerColorBackground,
+	lineColor: defaultTheme.pickerColorLine,
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	randomizeColorLightLevel: 5,
 	firstPoint: new BABYLON.Vector3(1, 0, 0),

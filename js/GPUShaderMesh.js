@@ -305,6 +305,7 @@ class ShaderMeshBase {
 		this._vecLampPos = new BABYLON.Vector3(0, 0, 0);
 		this._colorsToAdd = new BABYLON.Vector3(0, 0, 0);
 		this._backgroundCanvasColor = new BABYLON.Vector3(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
+		this._uvCoeff = new BABYLON.Vector2(glo.uvCoeff.x, glo.uvCoeff.y);
 	}
 
 	/**
@@ -340,6 +341,8 @@ class ShaderMeshBase {
 	getUtilityFunctionsGLSL() {
 		return `
 // Fonctions mathématiques
+float cyclicNumber(float n, float cycle){ return mod(n, cycle) + (n >= 0.0 ? 0.0 : cycle); }
+
 float cpow(float val, float p) {
 	return sign(val) * pow(abs(val), p);
 }
@@ -760,6 +763,7 @@ uniform float invcol;
 uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
+uniform vec2 uvCoeff;
 uniform float t;
 uniform float islight;
 uniform float opt1;
@@ -810,7 +814,7 @@ void main() {
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor', 'backgroundColor',
-					"gridU", "gridV", "lineWidth", "invcol", "islight"
+					"gridU", "gridV", "lineWidth", "uvCoeff", "invcol", "islight"
 				]
 			}
 		);
@@ -975,6 +979,8 @@ void main() {
 		mat.setFloat("gridU", glo.params.steps_u);
 		mat.setFloat("gridV", glo.params.steps_v);
 		mat.setFloat("lineWidth", 1.0);
+		this._uvCoeff.set(glo.uvCoeff.x, glo.uvCoeff.y);
+		mat.setVector2("uvCoeff", this._uvCoeff);
 	}
 
 	/**

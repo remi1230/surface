@@ -101,14 +101,13 @@ function randomize_colors_app(){
 }
 
 function intiColorUI(){
-	glo.allControls.getByName('pickerColorBackground').value = glo.initialColor.backgroundColor;
-	glo.allControls.getByName('pickerColorMeshBg').value     = glo.initialColor.emissiveColor;
-	glo.allControls.getByName('pickerColorButton').value     = hexToRgbNormalized(glo.buttons_background);
-	glo.allControls.getByName('pickerColorLine').value       = glo.initialColor.lineColor;
+	glo.allControls.getByName('pickerColorBackground').value = defaultTheme.pickerColorBackground;
+	glo.allControls.getByName('pickerColorMeshBg').value     = defaultTheme.pickerColorMeshBg;
+	glo.allControls.getByName('pickerColorButton').value     = defaultTheme.pickerColorButton;
+	glo.allControls.getByName('pickerColorLine').value       = defaultTheme.pickerColorLine;
 
 	glo.allControls.haveThisClass('button').forEach(button => {
-      button.background = glo.buttons_background;
-	  button.color      = glo.buttons_color;
+	  button.color = glo.buttons_color;
     });
 }
 

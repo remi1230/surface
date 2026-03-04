@@ -39,6 +39,7 @@ function initImportModal(){
 	M.Modal.init(elems, {
 		onOpenStart: function() {
 			M.FormSelect.init(document.querySelector('#importFormat'));
+			M.FormSelect.init(document.querySelector('#importJsonExemple'));
 		},
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
@@ -80,32 +81,56 @@ function download_JSON_mesh(event){
 		}
 
 		if (fileExtension === 'json') {
-			var contentJsonFile = JSON.parse(fileContent);
-			for(var prop in contentJsonFile){
-				if(prop === 'meshTransformations'){
-					Object.assign(glo.params.meshTransformations, contentJsonFile.meshTransformations);
-				} else {
-					glo.params[prop] = contentJsonFile[prop];
-				}
-			}
-
-			paramsToControls();
-			var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
-			var formName = glo.params.formName;
-			if(glo.coordsType != glo.params.coordsType){
-				glo.coordsType = glo.params.coordsType;
-			}
-
-			glo.radios_formes.setCheckByName("Radio " + formName);
-			glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
-
-			if(!sameAsRadioCheck){
-				make_curves();
-			}
+			applyImportedJSON(fileContent);
 		}
 	};
 
 	fileread.readAsText(file_to_read);
+}
+
+function applyImportedJSON(fileContent) {
+	var contentJsonFile = JSON.parse(fileContent);
+	for(var prop in contentJsonFile){
+		if(prop === 'meshTransformations'){
+			Object.assign(glo.params.meshTransformations, contentJsonFile.meshTransformations);
+		} else {
+			glo.params[prop] = contentJsonFile[prop];
+		}
+	}
+
+	paramsToControls();
+	var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
+	var formName = glo.params.formName;
+	if(glo.coordsType != glo.params.coordsType){
+		glo.coordsType = glo.params.coordsType;
+	}
+
+	glo.radios_formes.setCheckByName("Radio " + formName);
+	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
+
+	if(!sameAsRadioCheck){
+		make_curves();
+	}
+}
+
+function loadExampleJSON(selectElement) {
+	var fileName = selectElement.value;
+	if (fileName === 'none') return;
+
+	fetch('json/import-exemples/' + fileName)
+		.then(function(response) {
+			if (!response.ok) throw new Error('Failed to load example file');
+			return response.text();
+		})
+		.then(function(fileContent) {
+			$('#importModal').modal('close');
+			applyImportedJSON(fileContent);
+			selectElement.value = 'none';
+			M.FormSelect.init(selectElement);
+		})
+		.catch(function(err) {
+			console.error('Error loading example file:', err);
+		});
 }
 
 function importAppOBJ(fileContent, fileName) {

@@ -1051,7 +1051,7 @@ function add_radios(suit = false){
     for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
 
     var textBlock = header.children[1];
-    textBlock.fontFamily = "Manrope";
+    textBlock.fontFamily = "Poppins";
     textBlock.fontWeight = 400;
     textBlock.fontSize = "14px";
 

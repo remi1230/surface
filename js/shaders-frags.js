@@ -20,14 +20,14 @@ fragmentShaders = [
 `
    //Grille
     float epaisseur = 0.1;
-    vec2 uv = fract(vUV * P * 0.5) - 0.5;
+    vec2 uv = fract(uvCoeff * vUV * P) - 0.5;
     float tube = min(abs(uv.x*2.0), abs(uv.y));
     if(tube > epaisseur) discard;
     col = 1.0-backgroundColor;  
 `,
 `
     // Grille hex
-    vec2 hexUV = vec2(vUV.x, vUV.y * 0.5) * P;
+    vec2 hexUV = vec2(vUV.x * uvCoeff.x, vUV.y * uvCoeff.y) * P;
     float row = floor(hexUV.y);
     if(mod(row, 2.0) > 0.5) hexUV.x += 1.0;
     vec2 cell = fract(hexUV) - 0.5;
@@ -45,7 +45,9 @@ fragmentShaders = [
 `,
 `
     //Curvatures
-    float lnpos = length(vNormal*(npos()));
+    vec3 pos = opt1 == 1.0 ? vPosition : npos(); 
+
+    float lnpos = length(vNormal*pos);
     
     vec3 col1 = palette(lnpos);
     vec3 col2 = rainbow(lnpos);
@@ -117,7 +119,7 @@ fragmentShaders = [
     vec3 col1 = palette(1.0 - abs(dot(normalize(vNormal), normalize(cameraPosition - vWorldPosition)))); 
     vec3 col2 = rainbow(1.0 - abs(dot(normalize(vNormal), normalize(cameraPosition - vWorldPosition))));
 
-    col = mix(col1, col2, vPosition);
+    col = mix(fract(col1*col2), col2, vPosition);
 
     
 `,
@@ -134,7 +136,7 @@ fragmentShaders = [
 `,
 `   
     //Hexagone
-    vec2 hexUV = vec2(vUV.x, vUV.y*0.5) * 24.0;
+    vec2 hexUV = vec2(vUV.x * uvCoeff.x, vUV.y*uvCoeff.y) * P * 0.5;
     float row = floor(hexUV.y);
 
     vec2 cell = fract(hexUV) - 0.5;
@@ -149,29 +151,21 @@ fragmentShaders = [
 `,
 `   
     //Truchet
-    vec2 scale  = vec2(48.0, 24.0);
+    vec2 scale  = vec2(P*uvCoeff.x, P*uvCoeff.y);
     vec2 cell   = floor(vUV * scale);
-    vec2 uv     = fract(vUV*scale)-0.5;
+    vec2 uv     = fract(vUV * scale)-0.5;
     float d     = length(uv);
     float index = hash21(cell);
 
     float rad = 0.5;
-    float thickness = 0.14;
+    float thickness = 0.1;
 
     col   = vec3(truchet(uv, index, rad, thickness));
     float lCol = length(col);
 
-    float c      = 0.0625*time+4.0*length(npos());
-    vec3 valCol  = palette(c);
-    vec3 valCol2 = rainbow(c);
-    vec3 valCol3 = mix(valCol, valCol2, Ts(1.0));
+    if(lCol < 0.125){ discard; }
 
-    col *= valCol3;
-
-    if(lCol == 0.0) col = 1.0-valCol3;
-    else{
-        col = smoothstep(0.833, 1.166-0.166*Ts(1.0), valCol3); 
-    }
+    col = meshFg;
 
 
 `,

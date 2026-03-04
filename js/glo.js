@@ -820,6 +820,14 @@ var glo = {
 					pickerColorLine: new BABYLON.Color3(0.3446, 0.3591, 0.4154),
 				}
 			},
+			{name: "SweetMint", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.2515, 0.3574, 0.3585),
+					pickerColorButton: new BABYLON.Color3(0.6885, 0.7041, 0.9234),
+					pickerColorMeshBg: new BABYLON.Color3(0.9377, 0.4685, 0.4943),
+					pickerColorLine: new BABYLON.Color3(0.4151, 0.4941, 0.4949),
+				}
+			},
 			{name: "Bisk", colors: 
 				{
 					pickerColorBackground: new BABYLON.Color3(0.8298, 0.79, 0.7502),

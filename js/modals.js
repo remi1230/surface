@@ -39,7 +39,7 @@ function initImportModal(){
 	M.Modal.init(elems, {
 		onOpenStart: function() {
 			M.FormSelect.init(document.querySelector('#importFormat'));
-			M.FormSelect.init(document.querySelector('#importJsonExemple'));
+			populateExampleSelect();
 		},
 		onCloseEnd: function() {
 			if(glo.fullScreen){ glo.engine.switchFullscreen(); }
@@ -111,6 +111,28 @@ function applyImportedJSON(fileContent) {
 	if(!sameAsRadioCheck){
 		make_curves();
 	}
+}
+
+function populateExampleSelect() {
+	var select = document.querySelector('#importJsonExemple');
+	fetch('json/import-exemples/manifest.json')
+		.then(function(response) { return response.json(); })
+		.then(function(files) {
+			select.innerHTML = '<option value="none" selected>None</option>';
+			files.forEach(function(file) {
+				var label = file.replace('.json', '').replace(/([A-Z])/g, ' $1').trim();
+				label = label.charAt(0).toUpperCase() + label.slice(1);
+				var option = document.createElement('option');
+				option.value = file;
+				option.textContent = label;
+				select.appendChild(option);
+			});
+			M.FormSelect.init(select);
+		})
+		.catch(function(err) {
+			console.error('Error loading example manifest:', err);
+			M.FormSelect.init(select);
+		});
 }
 
 function loadExampleJSON(selectElement) {

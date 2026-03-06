@@ -123,18 +123,18 @@ function applyImportedJSON(fileContent) {
 
 		if(contentJsonFile.shaderCustomCode){
 			// L'utilisateur avait un shader personnalisé (différent du shader sélectionné)
-			fragmentShader = fragmentShaderHeader + contentJsonFile.shaderCustomCode + fragmentShaderFooter;
-			if(glo.editor){
-				glo.editor.setValue(fragmentShader);
-			}
-			var compileBtn = document.getElementById('compileBtn');
-			if(compileBtn) compileBtn.click();
-		} else {
-			// Shader standard : on compile le shader sélectionné
-			ShaderCRUD.compileCurrentShader();
-			if(glo.editor){
-				ShaderCRUD.loadShaderInEditor(glo.numShaderSelect);
-			}
+			fragmentShaders[glo.numShaderSelect] = contentJsonFile.shaderCustomCode;
+		}
+
+		// Recomposer le shader complet et mettre à jour l'éditeur si ouvert
+		fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+		if(glo.editor){
+			glo.editor.setValue(fragmentShader);
+		}
+
+		// Compiler directement via l'instance GPU (fonctionne même sans Monaco)
+		if(glo.ribbon && glo.ribbon.shaderMeshInstance){
+			glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
 		}
 	}
 }

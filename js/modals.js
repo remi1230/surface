@@ -103,10 +103,12 @@ function applyImportedJSON(fileContent) {
 	var formName = glo.params.formName;
 	if(glo.coordsType != glo.params.coordsType){
 		glo.coordsType = glo.params.coordsType;
+        add_radios();
 	}
 
 	glo.radios_formes.setCheckByName("Radio " + formName);
 	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
+    glo.radios_formes.setCheckByName(`Radio-${formName}`);
 
 	if(!sameAsRadioCheck){
 		make_curves();

@@ -111,6 +111,32 @@ function applyImportedJSON(fileContent) {
 	if(!sameAsRadioCheck){
 		make_curves();
 	}
+
+	// Restauration du shader de couleurs
+	if(contentJsonFile.shaderSelectIndex !== undefined){
+		var shaderIndex = parseInt(contentJsonFile.shaderSelectIndex);
+		if(!isNaN(shaderIndex) && shaderIndex >= 0 && shaderIndex < fragmentShaders.length){
+			glo.numShaderSelect = shaderIndex;
+			ShaderCRUD.currentShaderIndex = shaderIndex;
+			ShaderCRUD.updateSelectValue();
+		}
+
+		if(contentJsonFile.shaderCode){
+			// Restaurer le code fragment (inclut les éventuelles modifications utilisateur)
+			fragmentShaders[glo.numShaderSelect] = contentJsonFile.shaderCode;
+		}
+
+		// Recomposer le shader complet et mettre à jour l'éditeur si ouvert
+		fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+		if(glo.editor){
+			glo.editor.setValue(fragmentShader);
+		}
+
+		// Compiler directement via l'instance GPU (fonctionne même sans Monaco)
+		if(glo.ribbon && glo.ribbon.shaderMeshInstance){
+			glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
+		}
+	}
 }
 
 function populateExampleSelect() {
@@ -269,6 +295,14 @@ async function exportMesh(exportFormat) {
         glo.params.coordsType = glo.coordsType;
         var objForm = glo.formes.getFormSelect();
         glo.params.formName = !objForm ? "" : objForm.form.text;
+
+        // Export du shader de couleurs sélectionné
+        glo.params.shaderSelectIndex = glo.numShaderSelect;
+
+        // Toujours exporter le code fragment actuel (qui inclut les modifications utilisateur
+        // si le shader a été compilé via l'éditeur)
+        glo.params.shaderCode = fragmentShaders[glo.numShaderSelect];
+
         strMesh = JSON.stringify(glo.params);
     } 
     else {

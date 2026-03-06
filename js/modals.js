@@ -121,9 +121,9 @@ function applyImportedJSON(fileContent) {
 			ShaderCRUD.updateSelectValue();
 		}
 
-		if(contentJsonFile.shaderCustomCode){
-			// L'utilisateur avait un shader personnalisé (différent du shader sélectionné)
-			fragmentShaders[glo.numShaderSelect] = contentJsonFile.shaderCustomCode;
+		if(contentJsonFile.shaderCode){
+			// Restaurer le code fragment (inclut les éventuelles modifications utilisateur)
+			fragmentShaders[glo.numShaderSelect] = contentJsonFile.shaderCode;
 		}
 
 		// Recomposer le shader complet et mettre à jour l'éditeur si ouvert
@@ -299,17 +299,9 @@ async function exportMesh(exportFormat) {
         // Export du shader de couleurs sélectionné
         glo.params.shaderSelectIndex = glo.numShaderSelect;
 
-        // Si l'utilisateur a modifié le shader dans l'éditeur (code différent du shader sélectionné),
-        // on exporte aussi le code personnalisé
-        var currentFragmentCode = null;
-        if (glo.editor) {
-            currentFragmentCode = ShaderCRUD.extractFragmentCode();
-        }
-        if (currentFragmentCode && currentFragmentCode.trim() !== fragmentShaders[glo.numShaderSelect].trim()) {
-            glo.params.shaderCustomCode = currentFragmentCode;
-        } else {
-            delete glo.params.shaderCustomCode;
-        }
+        // Toujours exporter le code fragment actuel (qui inclut les modifications utilisateur
+        // si le shader a été compilé via l'éditeur)
+        glo.params.shaderCode = fragmentShaders[glo.numShaderSelect];
 
         strMesh = JSON.stringify(glo.params);
     } 

@@ -4,19 +4,9 @@
 $( document ).ready(async function() {
    // Forcer le chargement de toutes les variantes Poppins avant de créer les contrôles GUI
    await Promise.all([
-      //document.fonts.load('200 1em Manrope'),
-      //document.fonts.load('300 1em Manrope'),
-      //document.fonts.load('400 1em Manrope'),
-      /*document.fonts.load('500 1em Manrope'),
-      document.fonts.load('600 1em Manrope'),
-      document.fonts.load('700 1em Manrope'),
-      document.fonts.load('800 1em Manrope'),*/
-      //document.fonts.load('100 1em Poppins'),
       document.fonts.load('300 1em Poppins'),
       document.fonts.load('400 1em Poppins'),
-      //document.fonts.load('500 1em Poppins'),
       document.fonts.load('600 1em Poppins'),
-      //document.fonts.load('700 1em Poppins'),
    ]);
 
    add_gui_controls();
@@ -25,7 +15,6 @@ $( document ).ready(async function() {
       if(panelClass !== glo.guiSelect){ toggleGuiControlsByClass(false, panelClass); }
    });
 
-   //gui_resize();
    initExportModal();
    initImportModal();
    $('.modal').not('#exportModal').not('#importModal').modal();
@@ -243,630 +232,174 @@ document.getElementById('toggleFullscreenNormal')?.addEventListener('click', fun
    }
 });
 
+document.getElementById('filename').addEventListener("keydown", function (e) {
+   if(e.key === 'Enter'){ $("#exportButton").trigger('click'); }
+});
+
 document.getElementById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 
-   if(glo.modalOpen){ 
+   if(e.ctrlKey){
       switch (key) {
-         case "Enter":
-            $("#exportButton").trigger('click');
+         case "q": 
+            //FREE
          break;
-      } 
-   }
-   else{ 
-      if(e.ctrlKey){
-         switch (key) {
-            case "q": 
-               //FREE
-            break;
-         }
       }
-      else if(!e.shiftKey){
-         if(!e.altKey){
-            switch (key) {
-               case "g":
-                  glo.ribbon.curveByStep.next();
-
-                  break;
-               case "r":
-                  //FREE
-
-                  break;
-               case "w":
-                  glo.anim_construct_mesh = !glo.anim_construct_mesh;
-
-                  break;
-               case "h":
-                  randomize_colors_app();
-
-                  break;
-               case "e":
-                  glo.params.normByFace = !glo.params.normByFace;
-                  remakeRibbon();
-
-                  break;
-               case "p":
-                  importModal();
-
-                  break;
-               case "+":
-                  glo.camera.radius/=1.125;
-
-                  break;
-               case "-":
-                  glo.camera.radius*=1.125;
-
-                  break;
-               case "7":
-                  slidersAnim('u', 0, -0.01);
-
-                  break;
-               case "8":
-                  slidersAnim('u', 0, 0.01);
-
-                  break;
-               case "4":
-                  slidersAnim('v', 0, -0.01);
-
-                  break;
-               case "5":
-                  slidersAnim('v', 0, 0.01);
-
-                  break;
-               case "ç":
-                  glo.rotateByMeshCenter = !glo.rotateByMeshCenter;
-
-                  remakeRibbon();
-                  break;
-               case "à":
-                  glo.params.NaNToZero = !glo.params.NaNToZero;
-                  remakeRibbon();
-
-                  break;
-               case "k":
-                  glo.skipRebuild = true;
-                  glo.slider_nb_steps_u.maximum/=2;
-                  glo.slider_nb_steps_v.maximum/=2;
-
-                  if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
-                     glo.slider_nb_steps_u.value/=2;
-                     glo.slider_nb_steps_v.value/=2;
-                     glo.skipRebuild = false;
-
-                     remakeRibbon();
-                  }
-                  else{ glo.skipRebuild = false; }
-                  break;
-               case "l":
-                  glo.skipRebuild = true;
-                  glo.slider_nb_steps_u.maximum*=2;
-                  glo.slider_nb_steps_v.maximum*=2;
-
-                  if(glo.params.symmetrizeX < 2 && glo.params.symmetrizeY < 2 && glo.params.symmetrizeZ < 2){
-                     glo.slider_nb_steps_u.value*=2;
-                     glo.slider_nb_steps_v.value*=2;
-                     glo.skipRebuild = false;
-
-                     remakeRibbon();
-                  }
-                  else{ glo.skipRebuild = false; }
-
-                  break;
-               case ";":
-                  switchWritingType(false);
-
-                  break;
-               case ",":
-                  switchWritingType(true);
-
-                  break;
-               case "x":
-                  glo.planeXYvisible = !glo.planeXYvisible;
-                  showPlane(glo.planeXYvisible, 'xy');
-
-                  break;
-               case "y":
-                  glo.planeYZvisible = !glo.planeYZvisible;
-                  showPlane(glo.planeYZvisible, 'yz');
-
-                  break;
-               case "z":
-                  glo.planeXZvisible = !glo.planeXZvisible;
-                  showPlane(glo.planeXZvisible, 'xz');
-
-                  break;
-               case "s":
-                  glo.params.curvaturetoZero = !glo.params.curvaturetoZero;
-                  remakeRibbon();
-
-                  break;
-               case "t":
-                  glo.params.doubleLineSystem = !glo.params.doubleLineSystem;
-                  remakeRibbon();
-
-                  break;
-               case "d":
-                  darkTheme();
-
-                  break;
-               case "f":
-                  glo.timeCoeff *= 2;
-
-                  break;
-               case "q":
-                  glo.timeCoeff /= 2;
-
-                  break;
-               case "a":
-                  glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
-                  glo.pause          = !glo.pause;
-
-                  glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
-
-                  glo.allControls.getByName('resetTimeButton').text = glo.pause ? 'PLAY' : 'STOP';
+   }
+   else if(!e.shiftKey){
+      if(!e.altKey){
+         switch (key) {
+            case "h":
+               randomize_colors_app();
 
                break;
-               case "ù":
-                  //FREE
-                  
-                  break;
-               case "'":
-                  glo.params.uvToXy = !glo.params.uvToXy;
-                  uvToXy();
-
-                  break;
-               case "(":
-                  glo.deformWithMat = !glo.deformWithMat;
-
-                  break;
-               case ")":
-                  glo.editorGeometryIsOpened = !glo.editorGeometryIsOpened;
-
-                  if (glo.editorGeometryIsOpened) {
-                     openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, combinedVertexShader, getById('editor-geometry-container'));
-                     
-                  } else {
-                     glo.editorWindowGeometry.style.display = 'none';
-                  }
+            case "p":
+               importModal();
 
                break;
-               case '"':
-                  special_randomize_colors_app();
-
-                  break;
-               case '$':
-                  makeRndSurface();
-
-                  break;
-               case '*':
-                  intiColorUI();
-
-                  break;
-               case '<':
-                  glo.formesSuit = !glo.formesSuit;
-                  add_radios(true);
-                  paramRadios();
-
-                  break;
-               case 'a':
-                  //FREE
-
-                  break;
-               case 'b':
-                  glo.params.playWithColors = !glo.params.playWithColors;
-                  remakeRibbon();
-
-                  break;
-               case ',':
-                  remakeRibbon();
-
-                  break;
-               case 'u':
-                  changeResolution('increase');
-
-                  break;
-               case 'j':
-                  changeResolution('decrease');
-
-                  break;
-               case 'm':
-                  //FREE
-
-                  break;
-               case "n":
-                  glo.voronoiMode = !glo.voronoiMode;
-                  remakeRibbon();
+            case "+":
+               glo.camera.radius/=1.125;
 
                break;
-               case '0':
-                  slidersAnim('u', 0, -0.001);
-
-                  break;
-               case '1':
-                  slidersAnim('u', 0, 0.001);
-
-                  break;
-               case '2':
-                  //FREE
-
-                  break;
-               case "3":
-                  glo.onlyTubes = !glo.onlyTubes;
-                  remakeRibbon();
-
-                  break;
-               case "6":
-                  slidersAnim('v', 0, -0.001);
-
-                  break;
-               case "9":
-                  slidersAnim('v', 0, 0.001);
-
-                  break;
-               case ":":
-                  //FREE
-               break;
-               case "!":
-                  //FREE
+            case "-":
+               glo.camera.radius*=1.125;
 
                break;
-               case "PageUp":
-                  glo.allControls.getByName('symmetrizeX').maximum*=2;
-                  glo.allControls.getByName('symmetrizeY').maximum*=2;
-                  glo.allControls.getByName('symmetrizeZ').maximum*=2;
-                  glo.allControls.getByName('symmetrizeX').value*=2;
-                  glo.allControls.getByName('symmetrizeY').value*=2;
-                  glo.allControls.getByName('symmetrizeZ').value*=2;
+            case "7":
+               slidersAnim('u', 0, -0.01);
 
                break;
-               case "PageDown":
-                  glo.allControls.getByName('symmetrizeX').maximum/=2;
-                  glo.allControls.getByName('symmetrizeY').maximum/=2;
-                  glo.allControls.getByName('symmetrizeZ').maximum/=2;
-                  glo.allControls.getByName('symmetrizeX').value/=2;
-                  glo.allControls.getByName('symmetrizeY').value/=2;
-                  glo.allControls.getByName('symmetrizeZ').value/=2;
+            case "8":
+               slidersAnim('u', 0, 0.01);
 
                break;
-               case "Home":
-                  showRibonFacets();
+            case "4":
+               slidersAnim('v', 0, -0.01);
 
                break;
-               case "F8":
-                  /*glo.allControls.forEach(ctrl => { ctrl.dispose(); });
-                  glo.advancedTexture.dispose();
-
-                  add_gui_controls();*/
-
-                  glo.engine.resize();
-                  glo.advancedTexture.scaleTo(
-                     glo.engine.getRenderWidth(), 
-                     glo.engine.getRenderHeight()
-                  );
-
-                  glo.allControls.haveTheseClasses('header radio').forEach(label => {
-                           label.children[1].fontSize = '17px';
-                        });
+            case "5":
+               slidersAnim('v', 0, 0.01);
 
                break;
-               case "F12":
-                  /*setTimeout(() => {
-                     glo.engine.resize();
-
-                     glo.devTollsOpened = !glo.devTollsOpened;
-                     if(glo.devTollsOpened){
-                        
-                     }
-                     else{
-                        glo.allControls.haveTheseClasses('header radio').forEach(label => {
-                           label.children[1].fontSize = '17px';
-                        });
-                     }
-
-                  }, 100);
-                  glo.engine.resize();*/
-               break;
-            }
-         }
-         else{
-            switch (key) {
-               case "+":
-                  glo.rotate_speed*=1.2;
-
-                  break;
-               case "-":
-                  glo.rotate_speed/=1.2;
-
-                  break;
-               case "1":
-                  glo.camera.radius/=1.2;
-
-                  break;
-               case "2":
-                  glo.camera.radius*=1.2;
-
-                  break;
-               case "3":
-                  //FREE
-
-                  break;
-               case "4":
-                  glo.shaders.params.islight = !glo.shaders.params.islight;
-                  glo.light.direction.z = glo.shaders.params.islight ? 0.5 : 0;
-                  glo.allControls.getByName("lightDirectionZ").value = glo.light.direction.z;
-                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
-                  }
-
-                  break;
-               case "5":
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-                     glo.ribbon.shaderMeshInstance.updateFragmentShader();
-                  }
-
-                  break;
-               case "6":
-                  e.preventDefault();
-                  e.stopPropagation();
-                  glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
-                  if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
-
-                  break;
-               case "7":
-                  glo.shaders.params.invcol = !glo.shaders.params.invcol;
-                  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-                     glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
-                  }
-
-                  break;
-               case "8":
-                  switchShader();
-
-                  break;
-               case "0":
-                  //FREE
-
-                  break;
-               case "9":
-                  e.preventDefault();
-                  e.stopPropagation();
-                  glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
-                  if(glo.editorWindowNormal.style.display === 'flex'){
-                     normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
-                     openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
-                  }
-
-                  break;
-               case "!":
-                  //FREE
-                  break;
-               case "g":
-                  //FREE
-
-                  break;
-               case "PageUp":
-                  //FREE
+            case ";":
+               switchWritingType(false);
 
                break;
-               case "PageDown":
-                  //FREE
+            case ",":
+               switchWritingType(true);
 
                break;
-               case "c":
-                  wstep/=2;
+            case "f":
+               glo.timeCoeff *= 2;
 
                break;
-               case "v":
-                  w = 0;
+            case "q":
+               glo.timeCoeff /= 2;
 
                break;
-               case "b":
-                  wstep*=2;
+            case "a":
+               glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
+               glo.pause          = !glo.pause;
+
+               glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
+
+               glo.allControls.getByName('resetTimeButton').text = glo.pause ? 'PLAY' : 'STOP';
+
+            break;
+            case "'":
+               glo.params.uvToXy = !glo.params.uvToXy;
+               uvToXy();
 
                break;
-               case "j":
-                  $('#rotationConventionsModal').modal('open');
+            case '"':
+               special_randomize_colors_app();
 
                break;
-               case "s":
-                  glo.mergeMeshesByIntersect = !glo.mergeMeshesByIntersect;
-                  remakeRibbon();
+            case '$':
+               makeRndSurface();
 
                break;
-               case "r":
-                  glo.additiveSurface = !glo.additiveSurface;
-                  remakeRibbon();
+            case '*':
+               intiColorUI();
 
                break;
-               case "i":
-                  //FREE
+            case '<':
+               glo.formesSuit = !glo.formesSuit;
+               add_radios(true);
+               paramRadios();
 
                break;
-               case "x":
-                  //FREE
+            case ',':
+               remakeRibbon();
 
                break;
-               case "y":
-                  //FREE
+            case 'u':
+               changeResolution('increase');
 
                break;
-               case "z":
-                  //FREE
+            case 'j':
+               changeResolution('decrease');
 
                break;
-               case "t":
-                  //FREE
+            case '0':
+               slidersAnim('u', 0, -0.001);
 
                break;
-               case "q":
-                  window.open(location.href  + "stats/", '_blank');
+            case '1':
+               slidersAnim('u', 0, 0.001);
 
                break;
-               case "k":
-                  glo.allControls.getByName('checkerboard').maximum/=2;
+            case "6":
+               slidersAnim('v', 0, -0.001);
 
-                  break;
-               case "l":
-                  glo.allControls.getByName('checkerboard').maximum*=2;
+               break;
+            case "9":
+               slidersAnim('v', 0, 0.001);
 
-                  break;
-            }
+               break;
          }
       }
       else{
          switch (key) {
-            case "w":
-            case "W":
-            //FREE
+            case "+":
+               glo.rotate_speed*=1.2;
 
                break;
-            case "C":
-               glo.invPointsByDistToOrigin = !glo.invPointsByDistToOrigin;
-
-               remakeRibbon();
+            case "-":
+               glo.rotate_speed/=1.2;
 
                break;
-            case "a":
-            case "A":
-            //FREE
-
-               break;
-            case "p":
-            case "P":
-               glo.closeFirstWithLastPath = !glo.closeFirstWithLastPath;
-               remakeRibbon();
-
-               break;
-            case "z":
-            case "Z":
-               //FREE
-
-               break;
-            case "x":
-            case "X":
-               fibonacciSphereRibbon();
-
-               break;
-            case "y":
-            case "Y":
-               //FREE
-
-               break;
-            case "z":
-            case "Z":
-               //FREE
-
-               break;
-            case "H":
-            case "h":
-               cameraOnPos({x: 0, y: 0, z: 0});
-
-               break;
-            case "S":
-            case "s":
-               //FREE
-
-               break;
-            case "T":
-            case "t":
-               //FREE
-               
-               break;
-            case "E":
-            case "e":
-               //FREE
-
-               break;
-            case "D":
-            case "d":
-               !glo.scene.debugLayer.isVisible() ? glo.scene.debugLayer.show() : glo.scene.debugLayer.hide();
-
-               break;
-            case "F":
-            case "f":
-               //FREE
-
-               break;
-            case "I":
-            case "i":
-               //FREE
-
-               break;
-            case "R":
-            case "r":
-               gridToCenterMesh();
-
-               break;
-            case "U":
-            case "u":
-            //FREE
-            break;
-            case "B":
-            case "b":
-               glo.wireframe = !glo.wireframe;
-               glo.ribbon.material.wireframe = glo.wireframe;
-
-            break;
-            case "L":
-            case "l":
-               glo.slider_u.maximum*=2;
-               glo.slider_v.maximum*=2;
-
-            break;
-            case "K":
-            case "K":
-               glo.slider_u.maximum/=2;
-               glo.slider_v.maximum/=2;
-
-            break;
-            case "O":
-            case "o":
-               //FREE
-
-            break;
-            case "V":
-            case "v":
-               viewOnAxis();
-
-            break;
-            case "Y":
-            case "y":
-               //FREE
-
-            break;
-            case "Q":
-            case "q":
-               firstInputToOthers();
-
-            break;
-            case "N":
-            case "n":
-               glo.stepByStepFast = !glo.stepByStepFast;
-
-            break;
-            case "?":
-            //FREE
-
-               break;
-            case ".":
-            //FREE
-
-               break;
-            case "§":
-            //FREE
-
-               break;
-            case "PageUp":
-               //FREE
-
-            break;
-            case "PageDown":
-               //FREE
+            case "j":
+               $('#rotationConventionsModal').modal('open');
 
             break;
          }
       }
    }
+   else{
+      switch (key) {
+         case "H":
+         case "h":
+            cameraOnPos({x: 0, y: 0, z: 0});
+
+            break;
+         case "B":
+         case "b":
+            glo.wireframe = !glo.wireframe;
+            glo.ribbon.material.wireframe = glo.wireframe;
+
+         break;
+         case "V":
+         case "v":
+            viewOnAxis();
+
+         break;
+         case "Q":
+         case "q":
+            firstInputToOthers();
+
+         break;
+      }
+   }
+   
 });

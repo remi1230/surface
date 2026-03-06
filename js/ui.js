@@ -279,14 +279,6 @@ function paramsToControls(){
 	glo.allControls.getByName('K').value = glo.params.K;
 	glo.allControls.getByName('L').value = glo.params.L;
 	glo.allControls.getByName('M').value = glo.params.M;
-	glo.allControls.getByName('saturationSlider').value = glo.params.saturation;
-	glo.allControls.getByName('tintSlider').value = glo.params.tint;
-	glo.allControls.getByName('rotAlphaSlider').value = glo.params.rotAlpha;
-	glo.allControls.getByName('rotBetaSlider').value = glo.params.rotBeta;
-	glo.allControls.getByName('rColorSlider').value = glo.params.rColor;
-	glo.allControls.getByName('gColorSlider').value = glo.params.gColor;
-	glo.allControls.getByName('bColorSlider').value = glo.params.bColor;
-	glo.allControls.getByName('itColorsSlider').value = glo.params.itColors;
 
 	glo.allControls.getByName('inputX').text = glo.params.text_input_x;
 	glo.allControls.getByName('inputY').text = glo.params.text_input_y;
@@ -465,19 +457,6 @@ function paramRadios(){
 	glo.allControls.haveTheseClasses('radio', 'left', 'first').haveNotThisClass('header').map(radio => {
 		for(const prop in glo.theme.radio.button){ radio[prop] = glo.theme.radio.button[prop]; }
 	});
-}
-
-function gui_resize(){
-	var w = window.screen.width;
-	var h = window.screen.height;
-	var coeff = glo.coeff_gui_resize.width_1920;
-	if(w < 1367){ coeff = glo.coeff_gui_resize.width_1366; }
-	else if(w < 1601){ coeff = glo.coeff_gui_resize.width_1600; }
-
-	coeff/=Math.pow(window.devicePixelRatio, 0.75);
-
-	glo.advancedTexture.idealWidth = w / coeff;
-	glo.advancedTexture.idealHeight = h / coeff;
 }
 
 function changeResolution(change = 'increase'){

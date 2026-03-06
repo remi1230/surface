@@ -8,8 +8,6 @@ async function make_curves(){
 
 	makeOnlyCurves();
 
-	if(!glo.first_rot){ glo.scene.meshes.map(mesh => { mesh.rotation.z = glo.rot_z; }); }
-
 	glo.params.meshTransformations.run();
 }
 

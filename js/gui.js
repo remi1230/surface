@@ -340,8 +340,7 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
     });
     input.onTextPasteObservable.add((event) => {
       var text = input.text;
-      if(!glo.normalMode){ glo['params'][gloPropToModify] = text; }
-      else{ glo['params']['normale'][gloPropToModify] = text; }
+      glo['params'][gloPropToModify] = text;
       
       if(event){ inputChangeEvent(); }
       glo.advancedTexture.moveFocusToControl(input);
@@ -1138,7 +1137,7 @@ function add_inputs_equations(){
 
       glo.params.text_input_sym_r = text;
 
-      if (key === "Enter" || (!glo.normalOnNormalMode && key !== "Tab" && !key.match(/Arrow/g))) {
+      if (key === "Enter" || (key !== "Tab" && !key.match(/Arrow/g))) {
           glo.ribbon.shaderMeshInstance.updateDeformationExpression();
       }
   });

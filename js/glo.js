@@ -353,9 +353,6 @@ var glo = {
 		{ exp: /t\*an/g, upd: "tan" },
 		{ exp: /tan\*\(/g, upd: "tan(" },
 		{ exp: /sign\*/g, upd: "sign" },
-		{ exp: /logte\*n\*/g, upd: "logten" },
-		{ exp: /hy\*pot/g, upd: "hypot" },
-		{ exp: /fact_de\*c/g, upd: "fact_dec" },
 		{ exp: /p\*o/g, upd: "po" },
 		{ exp: /cp\*/g, upd: "cp" },
 		{ exp: /p\*c/g, upd: "pc" },
@@ -369,59 +366,12 @@ var glo = {
 		{ exp: /ep\*i/g, upd: "e*pi" },
 		{ exp: /e\*p/g, upd: "ep" },
 	],
-	draw_type: function* (){
-	  var index = 0;
-	  var tab = ['LINES', 'CLEAN', 'NONE', 'FULL'];
-	  while(true){
-			switch (tab[index]) {
-				case 'LINES':
-					this.lines_visible = true;
-					this.ribbon_visible = false;
-					break;
-				case 'CLEAN':
-					this.lines_visible = false;
-					this.ribbon_visible = true;
-					break;
-				case 'NONE':
-					this.lines_visible = false;
-					this.ribbon_visible = false;
-					break;
-				case 'FULL':
-					this.lines_visible = true;
-					this.ribbon_visible = true;
-					break;
-			}
-			index++;
-			if(index == tab.length){ index = 0; }
-	    yield tab[index];
-	  }
-	},
-	vertexsType: 'normal',
-	vertexsTypes: function* (){
-		const vertexs = ['uv', 'position', 'normal'];
-		while (true) {
-			for (const vertex of vertexs) {
-				this.vertexsType = vertex;
-				yield vertex;
-			}
-		}
-	},
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
 		const coordinates = ['spheric', 'cylindrical', 'cartesian'];
 		while (true) {
 			for (const coord of coordinates) {
 				this.coordsType = coord;
-				yield coord;
-			}
-		}
-	},
-	coordsNomrType: 'cartesian',
-	coordinatesNomrType: function* (){
-		const coordinates = ['spheric', 'cylindrical', 'cartesian'];
-		while (true) {
-			for (const coord of coordinates) {
-				this.coordsNomrType = coord;
 				yield coord;
 			}
 		}
@@ -436,58 +386,6 @@ var glo = {
 			}
 		}
 	},
-	permutSign: '',
-	permutSigns: function* (){
-		const permutsigns = ['xy', 'xz', 'yz', ''];
-		while (true) {
-			for (const permutsign of permutsigns) {
-				this.permutSign = permutsign;
-				yield permutsign;
-			}
-		}
-	},
-	invPosIf: '',
-	invPosIfs: function* (){
-		const invposifs = ['xy', 'yx', 'xz', 'zx', 'yz', 'zy', ''];
-		while (true) {
-			for (const invposif of invposifs) {
-				this.invPosIf = invposif;
-				yield invposif;
-			}
-		}
-	},
-	fractalizeOrient: '',
-	fractalizeOrients: function* (){
-		const orients = [new BABYLON.Vector3(1, 0, 0), new BABYLON.Vector3(0, 1, 0), new BABYLON.Vector3(0, 0, 1), ''];
-		while (true) {
-			for (const orient of orients) {
-				this.fractalizeOrient = orient;
-				yield orient;
-			}
-		}
-	},
-	colorByCurve: '',
-	colorByCurves: function* (){
-		//const curveKinds = ['azit', 'elev', 'elevMoy', 'color', ''];
-		const curveKinds = ['phi', ''];
-		while (true) {
-			for (const curveKind of curveKinds) {
-				this.colorByCurve = curveKind;
-				yield curveKind;
-			}
-		}
-	},
-	colorsType: 'none',
-	colorType: function* (){
-	  var index = 0;
-	  var tab = ['none', 'edge'];
-	  while(true){
-			index++;
-			if(index == tab.length){ index = 0; }
-			this.colorsType = tab[index];
-	    yield tab[index];
-	  }
-	},
 	planSelect: 'none',
 	planSelects: function* (){
 	  var index = 0;
@@ -499,22 +397,10 @@ var glo = {
 	    yield tab[index];
 	  }
 	},
-	fontUI: 'none',
-	fontUIs: function* (){
-	  var index = 0;
-	  var tab = ["Manrope", "Poppins"];
-	  while(true){
-			index++;
-			if(index == tab.length){ index = 0; }
-			this.fontUI = tab[index];
-	    yield tab[index];
-	  }
-	},
 	guiSelect: 'fourth',
 	switchGuiSelect: function* (){
 	  var index = 0;
 	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'];
-	  //var tab = ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'];
 	  while(true){
 			index++;
 			if(index == tab.length){ index = 0; }
@@ -547,23 +433,7 @@ var glo = {
 	    yield index;
 	  }
 	},
-	coeff_gui_resize: {
-		width_1920: 1.125,
-		width_1600: 1,
-		width_1366: 0.9,
-	},
-	guiAnims: {
-		sliderU: false,
-		sliderV: false,
-		sliderStepU: false,
-		sliderStepV: false,
-	},
-	voronoi:{
-		nbPoints: 256,
-	},
 	cam_pose: 60,
-	sliderGain: 0,
-	is_sliderGainPos: false,
 	slidersUVOnOneSign: {u: false, v: false},
 	meshChannel: new BroadcastChannel('mesh_channel'),
 	params:{
@@ -584,16 +454,6 @@ var glo = {
 		K: 1,
 		L: 1,
 		M: 64,
-		invPtsPowCoeff: 0.00,
-		saturation: 0,
-		tint: 0,
-		rotAlpha: 0,
-		rotBeta: 0,
-		rColor: 0,
-		gColor: 0,
-		bColor: 0,
-		itColors: 1,
-		toColR: 0,
 		text_input_x: "u",
 		text_input_y: "u*sin(v)",
 		text_input_z: "u*cos(v)*sin(u)",
@@ -608,57 +468,15 @@ var glo = {
 		symmetrizeAngle: PI,
 		checkerboard: 0,
 		checkerboardNbSteps: 2,
-		playWithColorMode: "xyz",
-		playWithColors: false,
-		playWithColorsAll: false,
-		colors2: false,
-		colorsByRotate: false,
-		invCol: false,
-		transCol: false,
-		isTimeVariable: false,
-		normale:{
-			text_input_x: "",
-			text_input_y: "",
-			text_input_z: "",
-			text_input_alpha: "",
-			text_input_beta: "",
-		},
 		blender: {
-			force: 1,
 			u:{
-				x: 0, y: 0, z: 0,
-			},
-			v:{
 				x: 0, y: 0, z: 0,
 			},
 			O:{
 				x: 0, y: 0, z: 0,
 			},
-			cu:{
-				x: 0, y: 0, z: 0,
-			},
-			cv:{
-				x: 0, y: 0, z: 0,
-			},
 		},
 		functionIt:{
-			cpow:{x: 1, y: 1, z: 1, toZero: {x: false, y: false, z: false}},
-			sin:{x: 0, y: 0, z: 0, nx: 1, ny: 1, nz: 1, toZero: {x: false, y: false, z: false}},
-			rotLine: {alpha: 0, beta: 0, theta: 0},
-			expend: 0,
-			flat: {x: {up: 100, bottom: 100}, y: {up: 100, bottom: 100}, z: {up: 100, bottom: 100}},
-			rotatePaths:{centerOffset: {x: 1, y: 1, z: 1}},
-			r: 
-				{
-					u: 
-						{
-							sin: {val:0, nb: 1},
-						},
-					$T: 
-						{
-							cos: {val:0, nb: 1},
-						},
-				},
 			norm:{
 				x:  0,
 				nx: 0.3,
@@ -693,23 +511,9 @@ var glo = {
 				}
 			},
 		},
-		invPos: {x: false, y: false, z: false},
-		quaternionByRotR: false,
-		wOnXYZ: true,
-		gridScale: true,
 		gridScaleValue: 5,
 		gridScaleValueOrigin: 4,
-		curvaturetoZero: true,
 		updateRots: true,
-		centerIsLocal: false,
-		scalingX: 1,
-		scalingY: 1,
-		scalingZ: 1,
-		lastPathEqualFirstPath: false,
-		normByFace: true,
-		coeffPhi: 10,
-		symmAngle: {x: 0, y: 0},
-		distDel: 5,
 	},
 	theme:{
 		header:{
@@ -780,6 +584,14 @@ var glo = {
 					pickerColorButton: new BABYLON.Color3(0.3262, 0.5246, 0.5246),
 					pickerColorMeshBg: new BABYLON.Color3(0.1321, 0.1358, 0.176),
 					pickerColorLine: new BABYLON.Color3(0.4996, 0.3091, 0),
+				}
+			},
+			{name: "Makeup", colors: 
+				{
+					pickerColorBackground: new BABYLON.Color3(0.5103, 0.9105, 0.7561),
+					pickerColorButton: new BABYLON.Color3(0.7648, 0.1676, 0.4823),
+					pickerColorMeshBg: new BABYLON.Color3(0.2531, 0.1416, 0.8328),
+					pickerColorLine: new BABYLON.Color3(0.4319, 0.4239, 0.2233),
 				}
 			},
 			{name: "Indigo", colors: 
@@ -932,10 +744,6 @@ var glo = {
 			return themeSelect.name;
 		},
 	},
-	tubes: {
-		radius: 0.05,
-		coeffRadiusVariation: Math.pow(2, 1/3),
-	},
 	shaders: {
 		params:{
 			invcol: 0,
@@ -995,7 +803,6 @@ var glo = {
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotate_speed: 1/450 * PI,
 	ribbon_alpha: 1,
-	rot_z: 0,
 	rotateType: 'none',
 	axis_size: 5,
 	planSize: 5,
@@ -1011,7 +818,6 @@ var glo = {
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,
 	resolutionCoeff: 4,
-	color_text_input: "rgb(255,255,245)",
 	buttons_color: "#e1cdb7",
 	labelGridColor: "white",
 	buttons_radius: 6.33,
@@ -1032,9 +838,7 @@ var glo = {
 	gui_visible: true,
 	gui_suit_visible: false,
 	all_visible: true,
-	ribbon_visible: true,
 	coloredRibbon: false,
-	lines_visible: true,
 	axis_visible: false,
 	grid_visible: false,
 	first_axis_visible: true,
@@ -1067,7 +871,6 @@ var glo = {
 	equationsParamSliders: [],
 	radios_formes: [],
 	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'],
-	//rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'nineth', 'fifth', 'sixth', 'onlyMainGui', 'second', 'third', 'tenth', 'eleventh'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',
@@ -1149,29 +952,8 @@ glo.radios_formes.changeColor = function (newColor){
 	});
 };
 
-glo.params.isTimeVar = function(varName = 'w'){
-	const timeVars = [this.text_input_x, this.text_input_y,
-		              this.text_input_z, this.text_input_alpha, this.text_input_beta, this.text_input_suit_x,
-		              this.text_input_suit_y, this.text_input_suit_z, this.text_input_suit_alpha,
-		              this.text_input_suit_beta, this.text_input_suit_theta];
-	this.isTimeVariable = timeVars.some(timeVar => timeVar.includes(varName));
-}
-
 glo.switchGuiSelect 	= glo.switchGuiSelect();
-glo.colorType 			= glo.colorType();
-glo.drawType 		    = glo.draw_type();
-glo.vertexsTypes 	    = glo.vertexsTypes();
-glo.coordinatesType 	= glo.coordinatesType();
-glo.coordinatesNomrType = glo.coordinatesNomrType();
 glo.rotType             = glo.rotateTypeGen();
+glo.coordinatesType 	= glo.coordinatesType();
 glo.symmetrizeOrders    = glo.symmetrizeOrders();
-glo.permutSigns         = glo.permutSigns();
-glo.invPositionIfs      = glo.invPosIfs();
-glo.fractalizeOrients   = glo.fractalizeOrients();
-glo.colorByCurves       = glo.colorByCurves();
 glo.planSelects         = glo.planSelects();
-glo.fontUIs       		= glo.fontUIs();
-
-let dataTableBody = document.getElementById('dataTableBody');
-
-glosSave = [];

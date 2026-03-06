@@ -99,6 +99,8 @@ function applyImportedJSON(fileContent) {
 	}
 
 	paramsToControls();
+    if(!contentJsonFile.text_input_sym_r){ glo.input_sym_r.text = ''; }
+
 	var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
 	var formName = glo.params.formName;
 	if(glo.coordsType != glo.params.coordsType){
@@ -106,7 +108,6 @@ function applyImportedJSON(fileContent) {
         add_radios();
 	}
 
-	glo.radios_formes.setCheckByName("Radio " + formName);
 	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
     glo.radios_formes.setCheckByName(`Radio-${formName}`);
 

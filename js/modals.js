@@ -111,6 +111,32 @@ function applyImportedJSON(fileContent) {
 	if(!sameAsRadioCheck){
 		make_curves();
 	}
+
+	// Restauration du shader de couleurs
+	if(contentJsonFile.shaderSelectIndex !== undefined){
+		var shaderIndex = parseInt(contentJsonFile.shaderSelectIndex);
+		if(!isNaN(shaderIndex) && shaderIndex >= 0 && shaderIndex < fragmentShaders.length){
+			glo.numShaderSelect = shaderIndex;
+			ShaderCRUD.currentShaderIndex = shaderIndex;
+			ShaderCRUD.updateSelectValue();
+		}
+
+		if(contentJsonFile.shaderCustomCode){
+			// L'utilisateur avait un shader personnalisé (différent du shader sélectionné)
+			fragmentShader = fragmentShaderHeader + contentJsonFile.shaderCustomCode + fragmentShaderFooter;
+			if(glo.editor){
+				glo.editor.setValue(fragmentShader);
+			}
+			var compileBtn = document.getElementById('compileBtn');
+			if(compileBtn) compileBtn.click();
+		} else {
+			// Shader standard : on compile le shader sélectionné
+			ShaderCRUD.compileCurrentShader();
+			if(glo.editor){
+				ShaderCRUD.loadShaderInEditor(glo.numShaderSelect);
+			}
+		}
+	}
 }
 
 function populateExampleSelect() {
@@ -269,6 +295,22 @@ async function exportMesh(exportFormat) {
         glo.params.coordsType = glo.coordsType;
         var objForm = glo.formes.getFormSelect();
         glo.params.formName = !objForm ? "" : objForm.form.text;
+
+        // Export du shader de couleurs sélectionné
+        glo.params.shaderSelectIndex = glo.numShaderSelect;
+
+        // Si l'utilisateur a modifié le shader dans l'éditeur (code différent du shader sélectionné),
+        // on exporte aussi le code personnalisé
+        var currentFragmentCode = null;
+        if (glo.editor) {
+            currentFragmentCode = ShaderCRUD.extractFragmentCode();
+        }
+        if (currentFragmentCode && currentFragmentCode.trim() !== fragmentShaders[glo.numShaderSelect].trim()) {
+            glo.params.shaderCustomCode = currentFragmentCode;
+        } else {
+            delete glo.params.shaderCustomCode;
+        }
+
         strMesh = JSON.stringify(glo.params);
     } 
     else {

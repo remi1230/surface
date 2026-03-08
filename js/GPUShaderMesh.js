@@ -801,6 +801,7 @@ void main() {
 				fragmentSource: fragmentShader
 			},
 			{
+				needAlphaBlending: false,
 				attributes: ["position", "normal", "aIndex"],
 				uniforms: [
 					"worldViewProjection", "world",

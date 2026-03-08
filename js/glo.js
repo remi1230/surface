@@ -437,7 +437,7 @@ var glo = {
 	slidersUVOnOneSign: {u: false, v: false},
 	meshChannel: new BroadcastChannel('mesh_channel'),
 	params:{
-		u: 4*PI,
+		u: PI,
 		v: PI,
 		steps_u: 132,
 		steps_v: 132,

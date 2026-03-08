@@ -347,7 +347,7 @@ function changeHeaderText(headerName, newText){
 }
 
 function resetEquationsParamSliders(){
-	glo.allControls.haveThisClass('input').forEach(input => {
+	glo.advancedTexture.getControlsByType('Button').forEach(input => {
 		input.text = '';
 	});
 	for(let prop in glo.params){

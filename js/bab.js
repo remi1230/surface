@@ -89,7 +89,6 @@ Game.prototype = {
 g = new Game('renderCanvas');
 
 function rotate_camera() {
-  if (glo.ribbon) {
     // Sauvegarde l'inertie souris, la neutralise le temps d'appliquer la
     // vitesse de rotation, puis la restaure pour que Babylon.js puisse
     // continuer à la décroître naturellement sans interférer avec la rotation.
@@ -115,5 +114,4 @@ function rotate_camera() {
 
     glo.camera.inertialAlphaOffset = savedAlpha;
     glo.camera.inertialBetaOffset  = savedBeta;
-  }
 }

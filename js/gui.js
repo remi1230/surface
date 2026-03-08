@@ -586,7 +586,7 @@ function add_shaders_ctrl(){
   addButton("fourth noAutoParam", panelVideo, "videoButton", "►", "13.75%", 30, 0, 0, async function(){
       switchRecordingVideo();
 
-      glo.allControls.getByName('videoButton').textBlock.text = glo.video.recording ? "⏹" : "►";
+      glo.advancedTexture.getControlByName('videoButton').textBlock.text = glo.video.recording ? "⏹" : "►";
 
   });
 
@@ -735,7 +735,7 @@ function add_switch_and_help_buttons(){
              function(){ switchRightPanel(true); }, function(){ switchRightPanel(false); } );
 
   addButton("first", panel, "but_hide", "HIDE", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
-    const buthide = glo.allControls.getByName('but_hide');
+    const buthide = glo.advancedTexture.getControlByName('but_hide');
     buthide.textBlock.text = glo.gui_suit_visible ? "HIDE" : "👁️";
 
     toggle_gui_controls(glo.gui_suit_visible);
@@ -773,16 +773,16 @@ function add_axis_and_rot_buttons(){
   function switchRotateTypeText(rotType = glo.rotateType.current){
     switch(rotType){
       case 'alpha':
-        glo.allControls.getByName("but_rot").textBlock.text = "Rot α";
+        glo.advancedTexture.getControlByName("but_rot").textBlock.text = "Rot α";
       break;
       case 'beta' :
-        glo.allControls.getByName("but_rot").textBlock.text = "Rot β";
+        glo.advancedTexture.getControlByName("but_rot").textBlock.text = "Rot β";
       break;
       case 'teta' :
-        glo.allControls.getByName("but_rot").textBlock.text = "Rot θ";
+        glo.advancedTexture.getControlByName("but_rot").textBlock.text = "Rot θ";
       break;
       case 'none' :
-        glo.allControls.getByName("but_rot").textBlock.text = "ROT";
+        glo.advancedTexture.getControlByName("but_rot").textBlock.text = "ROT";
       break;
     }
   }
@@ -835,10 +835,10 @@ function add_axis_and_rot_buttons(){
 
   addButton("first", panel, "but_resolution", `Rx${glo.resolutionCoeff}`, 70, 30, 10, 0, function(){
     changeResolution('increase');
-    glo.allControls.getByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
+    glo.advancedTexture.getControlByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   }, function(){
     changeResolution('decrease');
-    glo.allControls.getByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
+    glo.advancedTexture.getControlByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   });
 }
 function add_lines_and_dim_buttons(){
@@ -904,7 +904,7 @@ function add_views_buttons(){
     var namesButtons = ["but_viewX", "but_viewY", "but_viewZ"];
     var n = 0;
     texts.map(text => {
-      glo.allControls.getByName(namesButtons[n]).textBlock.text = text;
+      glo.advancedTexture.getControlByName(namesButtons[n]).textBlock.text = text;
       n++;
     });
   }
@@ -1060,8 +1060,8 @@ function add_radios(suit = false){
   }
 
   if(!glo.first_radio){
-    var panel = glo.allControls.getByName('panelRadios');
-    glo.allControls.getByName('panelRadios').top = top_panel + '%';
+    var panel = glo.advancedTexture.getControlByName('panelRadios');
+    glo.advancedTexture.getControlByName('panelRadios').top = top_panel + '%';
     glo.formes.select.map( forme => {
         var radio_form = glo.radios_formes.getByName("Radio-" + forme.text);
         if(radio_form != false){
@@ -1329,7 +1329,7 @@ function add_color_pickers(){
   var picker5 = new BABYLON.GUI.ColorPicker();
   parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: defaultTheme.pickerColorButton, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
   picker5.onValueChangedObservable.add(function(value) {
-    glo.allControls.haveThisClass('button').forEach(button => {
+    glo.advancedTexture.getControlsByType('Button').forEach(button => {
       button.background = rgbNormalizedToHex(value);
       if(value.r + value.g + value.b < 1.5){
         button.color = "white";
@@ -1359,12 +1359,12 @@ function add_color_pickers(){
   }, "first");
 
   addButton("first onlyMainGui noAutoParam", panelThemeButton, "themeButton", "Theme: Default", "66.67%", 30, 0, 0, async function(){
-    glo.allControls.getByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme()}`;
+    glo.advancedTexture.getControlByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme()}`;
   },  async function(){
-    glo.allControls.getByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme(false)}`;
+    glo.advancedTexture.getControlByName('themeButton').textBlock.text = `Theme: ${glo.uiThemes.activateNextTheme(false)}`;
   }, 'right', 'center');
 
-  //glo.allControls.getByName('themeButton').horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+  //glo.advancedTexture.getControlByName('themeButton').horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
 
   panel1.addControl(picker);
   panel1.addControl(picker5);
@@ -1476,7 +1476,7 @@ function add_symmetrize_sliders(){
 
   addButton("fourth noAutoParam", panelButton,"symmetrizeAdding", "S ADD", 127, 30, 10, 0, function(value){
     glo.addSymmetry = !glo.addSymmetry;
-    glo.allControls.getByName('symmetrizeAdding').textBlock.text = "S " + (glo.addSymmetry ? 'ADD' : 'MUL');
+    glo.advancedTexture.getControlByName('symmetrizeAdding').textBlock.text = "S " + (glo.addSymmetry ? 'ADD' : 'MUL');
     remakeRibbon();
   });
 }
@@ -1590,7 +1590,7 @@ function add_sixth_panel_sliders(){
   addButton("sixth", panelButton, "uvToXyButton", "UV → XY", 79.5, 30, 0, 0, function(value){
     glo.params.uvToXy = !glo.params.uvToXy;
 
-    glo.allControls.getByName("uvToXyButton").textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
+    glo.advancedTexture.getControlByName("uvToXyButton").textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
 
     uvToXy();
     remakeRibbon();
@@ -1606,7 +1606,7 @@ function add_sixth_panel_sliders(){
 
   addButton("eleventh", panelButtonSlidersUVOnOneSignU,"slidersUVOnOneSignU", "Slider U sign : OUI", buttonSizes.width, buttonSizes.height, 0, 0, function(value){
     glo.slidersUVOnOneSign.u = !glo.slidersUVOnOneSign.u;
-    let slidersUVOnOneSignU  = glo.allControls.getByName('slidersUVOnOneSignU');
+    let slidersUVOnOneSignU  = glo.advancedTexture.getControlByName('slidersUVOnOneSignU');
 
     slidersUVOnOneSignU.textBlock.text = "Slider U sign : " + (glo.slidersUVOnOneSign.u ? 'NON' : 'OUI');
 
@@ -1617,13 +1617,13 @@ function add_sixth_panel_sliders(){
       slidersUVOnOneSignU.min = -glo.params.u;
     }
 
-    glo.allControls.getByName('uvSliderHeader-u').text = 'U : ' + (Math.round(100 * slidersUVOnOneSignU.min, 2) / 100) + ' - ' + (Math.round(100 * glo.params.u, 2) / 100);
+    glo.advancedTexture.getControlByName('uvSliderHeader-u').text = 'U : ' + (Math.round(100 * slidersUVOnOneSignU.min, 2) / 100) + ' - ' + (Math.round(100 * glo.params.u, 2) / 100);
 
     remakeRibbon();
   });
   addButton("eleventh", panelButtonSlidersUVOnOneSignU,"slidersUVOnOneSignV", "Slider V sign : OUI", buttonSizes.width+35, buttonSizes.height, 35, 0, function(value){
     glo.slidersUVOnOneSign.v = !glo.slidersUVOnOneSign.v;
-    let slidersUVOnOneSignV  = glo.allControls.getByName('slidersUVOnOneSignV');
+    let slidersUVOnOneSignV  = glo.advancedTexture.getControlByName('slidersUVOnOneSignV');
 
     slidersUVOnOneSignV.textBlock.text = "Slider V sign : " + (glo.slidersUVOnOneSign.v ? 'NON' : 'OUI');
 
@@ -1634,7 +1634,7 @@ function add_sixth_panel_sliders(){
       slidersUVOnOneSignV.min = -glo.params.v;
     }
 
-    glo.allControls.getByName('uvSliderHeader-v').text = 'V : ' + (Math.round(100 * slidersUVOnOneSignV.min, 2) / 100) + ' - ' + (Math.round(100 * glo.params.v, 2) / 100);
+    glo.advancedTexture.getControlByName('uvSliderHeader-v').text = 'V : ' + (Math.round(100 * slidersUVOnOneSignV.min, 2) / 100) + ' - ' + (Math.round(100 * glo.params.v, 2) / 100);
 
     remakeRibbon();
   });
@@ -1656,7 +1656,7 @@ function add_sixth_panel_sliders(){
 
     glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
 
-    glo.allControls.getByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
+    glo.advancedTexture.getControlByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
   });
   addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 120, buttonSizes.height, 25, 0, async function(value){
     glo.timeCoeff *= 2;

@@ -37,13 +37,6 @@ fragmentShaders = [
     col = 1.0-backgroundColor;
 `,
 `
-    // Disco
-    vec2 uv = fract(vUV * vec2(P, Q*0.5)) - 0.5;
-    float d = length(uv);
-    if(d > 0.33+T) discard;
-    col = palette(d * 3.0 + time + vPosition.x); 
-`,
-`
     //Curvatures
     vec3 pos = opt1 == 1.0 ? vPosition : npos(); 
 

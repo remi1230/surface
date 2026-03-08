@@ -347,10 +347,10 @@ async function exportMesh(exportFormat) {
     return false;
 }
 
-require.config({ 
-    paths: { 
-        vs: './cdn/js/monaco/vs'
-    } 
+require.config({
+    paths: {
+        vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs'
+    }
 });
 
 function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')){

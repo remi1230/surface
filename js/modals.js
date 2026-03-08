@@ -347,12 +347,6 @@ async function exportMesh(exportFormat) {
     return false;
 }
 
-require.config({ 
-    paths: { 
-        vs: './cdn/js/monaco/vs'
-    } 
-});
-
 function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')){
 	editWindow.style.display = 'flex';
 
@@ -481,8 +475,25 @@ makeDraggable(glo.editorWindowNormal);
 makeResizable();
 makeResizable(glo.editorWindowNormal, glo, 'editorNormal');
 
+function loadMonacoLoader() {
+    return new Promise((resolve) => {
+        if (window.require && window.require.config) return resolve();
+        const savedM = window.M;
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs/loader.min.js';
+        script.onload = () => { window.M = savedM; resolve(); };
+        document.head.appendChild(script);
+    });
+}
+
 function initMonacoEditor(container = document.getElementById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader, compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')) {
-    require(['vs/editor/editor.main'], function() {
+    loadMonacoLoader().then(() => {
+        const savedM = window.M;
+        require.config({
+            paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs' }
+        });
+        require(['vs/editor/editor.main'], function() {
+        window.M = savedM;
         monaco.languages.register({ id: 'glsl' });
 
         monaco.languages.setMonarchTokensProvider('glsl', {
@@ -556,6 +567,7 @@ function initMonacoEditor(container = document.getElementById('editor-container'
         });
 
         updateStatus('Prêt', false, statusEl);
+    });
     });
 }
 

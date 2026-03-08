@@ -34,10 +34,6 @@ let fragmentShaders = [];
 let normalShader, normalShaderHeader, normalShaderFooter;
 let normalShaders = [];
 
-let g     = 0;
-let w     = 0;
-let wstep = 0.008;
-
 let isFullscreen = false;
 
 var num_mesh = 0;

@@ -1,3 +1,11 @@
+// Ensure Materialize M.keys is always defined (can be lost if M is overwritten by another lib)
+document.addEventListener('keydown', function(e) {
+    if (!window.M || !window.M.keys) {
+        window.M = window.M || {};
+        window.M.keys = { TAB: 9, ENTER: 13, ESC: 27, ARROW_UP: 38, ARROW_DOWN: 40 };
+    }
+}, true);
+
 const PI = Math.PI;
 const e  = Math.E;
 const Z  = (1+Math.sqrt(5))*0.5;

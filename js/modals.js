@@ -60,7 +60,7 @@ function importModal(){
 
 function download_JSON_mesh(event){
 	$('#importModal').modal('close');
-	var file_to_read = document.getElementById("jsonFileUpload").files[0];
+	var file_to_read = getById("jsonFileUpload").files[0];
 	$("#jsonFileUpload").val("");
 
 	const fileName      = file_to_read.name;
@@ -347,7 +347,7 @@ async function exportMesh(exportFormat) {
     return false;
 }
 
-function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')){
+function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = getById('editorStatus')){
 	editWindow.style.display = 'flex';
 
 	if (!target[key]) {
@@ -486,7 +486,7 @@ function loadMonacoLoader() {
     });
 }
 
-function initMonacoEditor(container = document.getElementById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader, compileBtnId = 'compileBtn', statusEl = document.getElementById('editorStatus')) {
+function initMonacoEditor(container = getById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader, compileBtnId = 'compileBtn', statusEl = getById('editorStatus')) {
     loadMonacoLoader().then(() => {
         const savedM = window.M;
         require.config({
@@ -551,7 +551,7 @@ function initMonacoEditor(container = document.getElementById('editor-container'
             label: 'Compiler le shader',
             keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
             run: function() {
-                document.getElementById(compileBtnId)?.click();
+                getById(compileBtnId)?.click();
             }
         });
 
@@ -571,7 +571,7 @@ function initMonacoEditor(container = document.getElementById('editor-container'
     });
 }
 
-function updateStatus(message, isError = false, status = document.getElementById('editorStatus')) {
+function updateStatus(message, isError = false, status = getById('editorStatus')) {
     if (status) {
         status.textContent = message;
         status.style.color = isError ? '#ef5350' : '#4caf50';

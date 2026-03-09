@@ -48,11 +48,11 @@ $("#renderCanvas").on('pointermove', function(e){
     if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
 });
 
-document.getElementById('resetBtn')?.addEventListener('click', () => {
+getById('resetBtn')?.addEventListener('click', () => {
    w = 0;
 });
 
-document.getElementById('compileBtn')?.addEventListener('click', () => {
+getById('compileBtn')?.addEventListener('click', () => {
    // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
     monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', []);
     
@@ -126,13 +126,13 @@ document.getElementById('compileBtn')?.addEventListener('click', () => {
 });
 
 // Fermer l'éditeur
-document.getElementById('closeEditor')?.addEventListener('click', () => {
+getById('closeEditor')?.addEventListener('click', () => {
    glo.editorIsOpened = false;
    glo.editorWindow.style.display = 'none';
 });
 
 // Plein écran
-document.getElementById('toggleFullscreen')?.addEventListener('click', function() {
+getById('toggleFullscreen')?.addEventListener('click', function() {
    const icon = this.querySelector('i');
    
    if (!isFullscreen) {
@@ -165,13 +165,13 @@ shaderOpt3.addEventListener("change", () => { updShaderOpt('opt3', shaderOpt3.ch
 // ==================== NORMAL SHADER EDITOR EVENTS ====================
 
 // Reset du temps pour l'éditeur normal
-document.getElementById('resetBtnNormal')?.addEventListener('click', () => {
+getById('resetBtnNormal')?.addEventListener('click', () => {
    w = 0;
 });
 
 // Compiler le shader normal
-document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
-   const statusEl = document.getElementById('editorStatusNormal');
+getById('compileBtnNormal')?.addEventListener('click', () => {
+   const statusEl = getById('editorStatusNormal');
 
    if (!glo.editorNormal) return;
 
@@ -207,14 +207,14 @@ document.getElementById('compileBtnNormal')?.addEventListener('click', () => {
 });
 
 // Fermer l'éditeur normal
-document.getElementById('closeEditorNormal')?.addEventListener('click', () => {
+getById('closeEditorNormal')?.addEventListener('click', () => {
    glo.editorNormalIsOpened = false;
    glo.editorWindowNormal.style.display = 'none';
 });
 
 // Plein écran éditeur normal
 let isFullscreenNormal = false;
-document.getElementById('toggleFullscreenNormal')?.addEventListener('click', function() {
+getById('toggleFullscreenNormal')?.addEventListener('click', function() {
    const icon = this.querySelector('i');
 
    if (!isFullscreenNormal) {
@@ -232,11 +232,11 @@ document.getElementById('toggleFullscreenNormal')?.addEventListener('click', fun
    }
 });
 
-document.getElementById('filename').addEventListener("keydown", function (e) {
+getById('filename').addEventListener("keydown", function (e) {
    if(e.key === 'Enter'){ $("#exportButton").trigger('click'); }
 });
 
-document.getElementById('univers_div').addEventListener("keydown", function (e) {
+getById('univers_div').addEventListener("keydown", function (e) {
    const key = e.key;
 
    if(e.ctrlKey){

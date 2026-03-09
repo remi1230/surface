@@ -33,7 +33,7 @@ const ShaderCRUD = {
      * Met à jour l'indicateur de stockage local
      */
     updateStorageIndicator: function() {
-        const indicator = document.getElementById('storageIndicator');
+        const indicator = getById('storageIndicator');
         if (indicator) {
             if (ShaderLoader.hasLocalChanges) {
                 indicator.textContent = '💾 Local';
@@ -107,7 +107,7 @@ const ShaderCRUD = {
      * Peuple le select avec les shaders disponibles (avec leurs noms)
      */
     populateSelect: function() {
-        const select = document.getElementById('shaderSelect');
+        const select = getById('shaderSelect');
         if (!select) return;
 
         select.innerHTML = '';
@@ -132,7 +132,7 @@ const ShaderCRUD = {
      * Met à jour la valeur du select
      */
     updateSelectValue: function() {
-        const select = document.getElementById('shaderSelect');
+        const select = getById('shaderSelect');
         if (select && !this.isCreatingNew) {
             select.value = this.currentShaderIndex;
         }
@@ -142,12 +142,12 @@ const ShaderCRUD = {
      * Attache les événements aux éléments du DOM
      */
     bindEvents: function() {
-        const select = document.getElementById('shaderSelect');
+        const select = getById('shaderSelect');
         if (select) {
             select.addEventListener('change', (e) => this.onSelectChange(e));
         }
 
-        const newBtn = document.getElementById('newShaderBtn');
+        const newBtn = getById('newShaderBtn');
         if (newBtn) {
             newBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -155,7 +155,7 @@ const ShaderCRUD = {
             });
         }
 
-        const saveBtn = document.getElementById('saveShaderBtn');
+        const saveBtn = getById('saveShaderBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -163,7 +163,7 @@ const ShaderCRUD = {
             });
         }
 
-        const deleteBtn = document.getElementById('deleteShaderBtn');
+        const deleteBtn = getById('deleteShaderBtn');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -171,7 +171,7 @@ const ShaderCRUD = {
             });
         }
 
-        const exportBtn = document.getElementById('exportShadersBtn');
+        const exportBtn = getById('exportShadersBtn');
         if (exportBtn) {
             exportBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -179,21 +179,21 @@ const ShaderCRUD = {
             });
         }
 
-        const importBtn = document.getElementById('importShadersBtn');
+        const importBtn = getById('importShadersBtn');
         if (importBtn) {
             importBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.getElementById('importShadersFile').click();
+                getById('importShadersFile').click();
             });
         }
 
-        const importFile = document.getElementById('importShadersFile');
+        const importFile = getById('importShadersFile');
         if (importFile) {
             importFile.addEventListener('change', (e) => this.importFromFile(e));
         }
 
         // Indicateur de stockage (clic pour recharger depuis le serveur)
-        const storageIndicator = document.getElementById('storageIndicator');
+        const storageIndicator = getById('storageIndicator');
         if (storageIndicator) {
             storageIndicator.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -408,7 +408,7 @@ const ShaderCRUD = {
     compileCurrentShader: function() {
         fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
-        const compileBtn = document.getElementById('compileBtn');
+        const compileBtn = getById('compileBtn');
         if (compileBtn) {
             compileBtn.click();
         }
@@ -437,7 +437,7 @@ const ShaderCRUDNormal = {
     },
 
     populateSelect: function() {
-        const select = document.getElementById('shaderSelectNormal');
+        const select = getById('shaderSelectNormal');
         if (!select) return;
 
         select.innerHTML = '';
@@ -458,47 +458,47 @@ const ShaderCRUDNormal = {
     },
 
     updateSelectValue: function() {
-        const select = document.getElementById('shaderSelectNormal');
+        const select = getById('shaderSelectNormal');
         if (select && !this.isCreatingNew) {
             select.value = this.currentShaderIndex;
         }
     },
 
     bindEvents: function() {
-        const select = document.getElementById('shaderSelectNormal');
+        const select = getById('shaderSelectNormal');
         if (select) {
             select.addEventListener('change', (e) => this.onSelectChange(e));
         }
 
-        const newBtn = document.getElementById('newShaderBtnNormal');
+        const newBtn = getById('newShaderBtnNormal');
         if (newBtn) {
             newBtn.addEventListener('click', (e) => { e.preventDefault(); this.createNew(); });
         }
 
-        const saveBtn = document.getElementById('saveShaderBtnNormal');
+        const saveBtn = getById('saveShaderBtnNormal');
         if (saveBtn) {
             saveBtn.addEventListener('click', (e) => { e.preventDefault(); this.save(); });
         }
 
-        const deleteBtn = document.getElementById('deleteShaderBtnNormal');
+        const deleteBtn = getById('deleteShaderBtnNormal');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', (e) => { e.preventDefault(); this.delete(); });
         }
 
-        const exportBtn = document.getElementById('exportShadersBtnNormal');
+        const exportBtn = getById('exportShadersBtnNormal');
         if (exportBtn) {
             exportBtn.addEventListener('click', (e) => { e.preventDefault(); this.exportAll(); });
         }
 
-        const importBtn = document.getElementById('importShadersBtnNormal');
+        const importBtn = getById('importShadersBtnNormal');
         if (importBtn) {
             importBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                document.getElementById('importShadersFileNormal').click();
+                getById('importShadersFileNormal').click();
             });
         }
 
-        const importFile = document.getElementById('importShadersFileNormal');
+        const importFile = getById('importShadersFileNormal');
         if (importFile) {
             importFile.addEventListener('change', (e) => this.importFromFile(e));
         }
@@ -525,7 +525,7 @@ const ShaderCRUDNormal = {
         if (glo.editorNormal) {
             const fullShader = normalShaderHeader + normalShaders[index] + normalShaderFooter;
             glo.editorNormal.setValue(fullShader);
-            updateStatus(this.getShaderName(normalShaders[index], index) + ' chargé', false, document.getElementById('editorStatusNormal'));
+            updateStatus(this.getShaderName(normalShaders[index], index) + ' chargé', false, getById('editorStatusNormal'));
         }
     },
 
@@ -563,7 +563,7 @@ const ShaderCRUDNormal = {
         if (glo.editorNormal) {
             const fullShader = normalShaderHeader + newCode + normalShaderFooter;
             glo.editorNormal.setValue(fullShader);
-            updateStatus('Mode création - Modifier et sauvegarder', false, document.getElementById('editorStatusNormal'));
+            updateStatus('Mode création - Modifier et sauvegarder', false, getById('editorStatusNormal'));
         }
     },
 
@@ -571,7 +571,7 @@ const ShaderCRUDNormal = {
         const normCode = this.extractNormCode();
 
         if (!normCode.trim()) {
-            updateStatus('Erreur: Code shader vide', true, document.getElementById('editorStatusNormal'));
+            updateStatus('Erreur: Code shader vide', true, getById('editorStatusNormal'));
             return;
         }
 
@@ -586,7 +586,7 @@ const ShaderCRUDNormal = {
 
         this.saveToStorage();
         const name = this.getShaderName(normCode, this.currentShaderIndex);
-        updateStatus(name + ' sauvegardé (local)', false, document.getElementById('editorStatusNormal'));
+        updateStatus(name + ' sauvegardé (local)', false, getById('editorStatusNormal'));
 
         this.populateSelect();
         this.updateSelectValue();
@@ -619,7 +619,7 @@ const ShaderCRUDNormal = {
 
     delete: function() {
         if (normalShaders.length <= 1) {
-            updateStatus('Erreur: Impossible de supprimer le dernier shader', true, document.getElementById('editorStatusNormal'));
+            updateStatus('Erreur: Impossible de supprimer le dernier shader', true, getById('editorStatusNormal'));
             return;
         }
 
@@ -627,7 +627,7 @@ const ShaderCRUDNormal = {
             this.isCreatingNew = false;
             this.populateSelect();
             this.loadShaderInEditor(this.currentShaderIndex);
-            updateStatus('Création annulée', false, document.getElementById('editorStatusNormal'));
+            updateStatus('Création annulée', false, getById('editorStatusNormal'));
             return;
         }
 
@@ -641,7 +641,7 @@ const ShaderCRUDNormal = {
         glo.numNormalShaderSelect = this.currentShaderIndex;
 
         this.saveToStorage();
-        updateStatus(shaderName + ' supprimé', false, document.getElementById('editorStatusNormal'));
+        updateStatus(shaderName + ' supprimé', false, getById('editorStatusNormal'));
 
         this.populateSelect();
         this.updateSelectValue();
@@ -666,7 +666,7 @@ const ShaderCRUDNormal = {
         a.click();
         URL.revokeObjectURL(url);
 
-        updateStatus('Fichier shaders-normal.js téléchargé', false, document.getElementById('editorStatusNormal'));
+        updateStatus('Fichier shaders-normal.js téléchargé', false, getById('editorStatusNormal'));
     },
 
     importFromFile: function(e) {
@@ -708,9 +708,9 @@ const ShaderCRUDNormal = {
                 this.loadShaderInEditor(this.currentShaderIndex);
                 this.compileCurrentShader();
 
-                updateStatus('Import réussi: ' + shaders.length + ' shaders', false, document.getElementById('editorStatusNormal'));
+                updateStatus('Import réussi: ' + shaders.length + ' shaders', false, getById('editorStatusNormal'));
             } catch (err) {
-                updateStatus('Erreur import: ' + err.message, true, document.getElementById('editorStatusNormal'));
+                updateStatus('Erreur import: ' + err.message, true, getById('editorStatusNormal'));
             }
         };
         reader.readAsText(file);
@@ -720,7 +720,7 @@ const ShaderCRUDNormal = {
     compileCurrentShader: function() {
         normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
 
-        const compileBtn = document.getElementById('compileBtnNormal');
+        const compileBtn = getById('compileBtnNormal');
         if (compileBtn) {
             compileBtn.click();
         }

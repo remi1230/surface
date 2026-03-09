@@ -40,7 +40,7 @@ Player.prototype = {
 };
 
 Game = function(canvasId) {
-  var canvas = document.getElementById(canvasId);
+  var canvas = getById(canvasId);
   
   var engine = new BABYLON.Engine(canvas, true, {
     doNotHandleContextLost: true,

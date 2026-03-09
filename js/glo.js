@@ -284,8 +284,8 @@ var glo = {
 		{ exp: /c([^u\(vw]*)u/g, upd: "cos($1u)" },
 		{ exp: /c([^v\(uw]*)v/g, upd: "cos($1v)" },
 		{ exp: /c([^t\(auvp]*)t/g, upd: "cos($1t)" },
-		{ exp: /ca([^t\(auvp]*)t/g, upd: "0.5*cos($1t)+0.5" },
-		{ exp: /sa([^t\(auvp]*)t/g, upd: "0.5*sin($1t)+0.5" },
+		{ exp: /ca([^t\(auvp]*)t/g, upd: "(0.5*cos($1t)+0.5)" },
+		{ exp: /sa([^t\(auvp]*)t/g, upd: "(0.5*sin($1t)+0.5)" },
 		{ exp: /s([^u\(vw]*)u/g, upd: "sin($1u)" },
 		{ exp: /s([^v\(uw]*)v/g, upd: "sin($1v)" },
 		{ exp: /s([^t\(uv]*)t/g, upd: "sin($1t)" },
@@ -552,7 +552,7 @@ var glo = {
 			},
 		},
 		button: {
-			height: 27,
+			height: 25,
 		},
 	},
 	uiThemes: {

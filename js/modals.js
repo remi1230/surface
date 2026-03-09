@@ -108,8 +108,22 @@ function applyImportedJSON(fileContent) {
         add_radios();
 	}
 
+	var importedStepsU = glo.params.steps_u;
+	var importedStepsV = glo.params.steps_v;
+
 	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
     glo.radios_formes.setCheckByName(`Radio-${formName}`);
+
+	// Restaurer la résolution importée (setFormeSelect l'écrase avec les valeurs par défaut de la forme)
+	if(sameAsRadioCheck){
+		glo.params.steps_u = importedStepsU;
+		glo.params.steps_v = importedStepsV;
+		glo.slider_nb_steps_u.value = importedStepsU;
+		glo.slider_nb_steps_v.value = importedStepsV;
+
+		if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
+		if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
+	}
 
 	if(!sameAsRadioCheck){
 		make_curves();

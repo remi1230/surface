@@ -301,6 +301,10 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
   var input = new BABYLON.GUI.InputText();
   parmamControl(input, name, classNameInput, {w: width, fontWeight: "500", fontSize: "19", text: textField, h:25}, isInPx);
 
+  if(parent.name === 'inputsEquations' || parent.name === 'panelSymsEquations'){
+    input.inputsEquationsIndex = glo.inputsEquationsIndex++;
+  }
+
   async function inputChangeEvent(){
     await remakeRibbon();
 
@@ -325,10 +329,11 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
       }
       else if (key == "Tab") {
         var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
-        var inputsEquationsLastIndex = inputsEquations.length - 1;
+        var inputsEquationsLastIndex = inputsEquations.length - 3;
         var newIndex = 0;
         if(!event.shiftKey){
           if(input.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = input.inputsEquationsIndex + 1; }
+          else{ newIndex = 0; }
           glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
         }
         else{
@@ -1139,6 +1144,21 @@ function add_inputs_equations(){
 
       if (key === "Enter" || (key !== "Tab" && !key.match(/Arrow/g))) {
           glo.ribbon.shaderMeshInstance.updateDeformationExpression();
+      }
+      else if (key == "Tab") {
+        var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
+        var inputsEquationsLastIndex = inputsEquations.length - 3;
+        var newIndex = 0;
+        if(!event.shiftKey){
+          if(glo.input_sym_r.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = glo.input_sym_r.inputsEquationsIndex + 1; }
+          else{ newIndex = 0; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
+        else{
+          if(glo.input_sym_r.inputsEquationsIndex > 0){ newIndex = glo.input_sym_r.inputsEquationsIndex - 1; }
+          else{ newIndex = inputsEquationsLastIndex; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
       }
   });
 

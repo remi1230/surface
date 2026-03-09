@@ -228,6 +228,7 @@ var glo = {
 			return n;
 		},
 	},
+	inputsEquationsIndex: 0,
 	uvCoeff: {x: 1, y: 1},
 	nbSymIter: 1,
 	formule: [],

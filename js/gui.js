@@ -50,9 +50,55 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     }.bind(this));
 };
 
+function createSuperPanels(){
+  glo.superPanels = {};
+
+  // Super panel for "fourth" class controls (Shaders, Symmetrize, Video)
+  var superPanelFourth = new BABYLON.GUI.StackPanel();
+  superPanelFourth.isVertical = true;
+  parmamControl(superPanelFourth, 'superPanelFourth', 'superPanel right fourth', {hAlign: 'right', vAlign: 'top', w: 20, t: 24});
+  superPanelFourth.adaptHeightToChildren = true;
+  glo.advancedTexture.addControl(superPanelFourth);
+  glo.superPanels.fourth = superPanelFourth;
+}
+
+function reorderSuperPanelFourth(){
+  const sp4 = glo.superPanels.fourth;
+  const children = [...sp4.children];
+
+  // Desired visual order (top to bottom)
+  const order = [
+    'panelTitle-Shaders',
+    'panelCtrl-Shaders',
+    'panelTitle-SymmetrizePanelTitle',
+    'paramSymmetrizeSlidersPanel',
+    'paramSymmetrizeSlidersPanelButton',
+    'paramSymmetrizeSlidersPanelChekB',
+    'panelTitle-Video',
+    'panelCtrl-Video',
+    'panelTitle-normalDeformation',
+    'paramSymmetrizeSlidersPanelScaleNorm',
+    'panelSymsEquations',
+  ];
+
+  children.forEach(child => sp4.removeControl(child));
+
+  order.forEach(name => {
+    const child = children.find(c => c.name === name);
+    if(child) sp4.addControl(child);
+  });
+
+  // Add any remaining children not in the order list
+  children.forEach(child => {
+    if(!order.includes(child.name)) sp4.addControl(child);
+  });
+}
+
 function add_gui_controls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
   glo.advancedTexture.useSmallestIdeal = false;
+
+  createSuperPanels();
 
   add_switch_and_help_buttons();
   add_axis_and_rot_buttons();
@@ -76,6 +122,8 @@ function add_gui_controls(){
   add_sixth_panel_sliders();
   add_ninethPanel_controls();
   add_eleventh_panel_sliders();
+
+  reorderSuperPanelFourth();
 
   guiControls_AddIdentificationFunctions();
 
@@ -246,9 +294,12 @@ function parmamControl(control, name, className, options = {}, px = false, ident
   if(typeof(options.pT) != 'undefined'){ control.paddingTop = options.pT + unit; }
 }
 
-function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
+function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2, parent = null){
   var panelTitle = new BABYLON.GUI.StackPanel();
-  parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
+  var panelOptions = {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t};
+  if(parent){ delete panelOptions.t; delete panelOptions.h; panelOptions.w = 100; }
+  parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, panelOptions);
+  if(parent){ panelTitle.height = "30px"; }
   panelTitle.isVertical = false;
 
   titleLevels = ['22px', '20px', '17px', '16px'];
@@ -263,18 +314,19 @@ function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
   parmamControl(header, "headerTitle-" + name, `title header right ${numUI} noAutoParam`);
   panelTitle.addControl(header);
 
-  glo.advancedTexture.addControl(panelTitle);
+  (parent || glo.advancedTexture).addControl(panelTitle);
 }
 
-function makePanelsTitles(paramsPanels){
+function makePanelsTitles(paramsPanels, parent = null){
   let panels = [];
   for(const prop in paramsPanels){
     for(const sprop in paramsPanels[prop]){
       const params = paramsPanels[prop][sprop];
-      
-      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.titleLevel);
+      const parentForThis = params && params.parent !== undefined ? params.parent : parent;
+
+      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI, params.titleLevel, parentForThis);
       if(sprop === 'ctrl'  && params){
-        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI));
+        panels.push(makePanelCtrl(params.name, params.top, params.paddingLeft, params.isVertical, params.height, params.numUI, parentForThis));
       }
     }
   }
@@ -282,11 +334,14 @@ function makePanelsTitles(paramsPanels){
   return panels;
 }
 
-function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
+function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth', parent = null){
   var panelCtrl = new BABYLON.GUI.StackPanel();
-  parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
+  var ctrlOptions = {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL};
+  if(parent){ delete ctrlOptions.t; delete ctrlOptions.h; ctrlOptions.w = 100; }
+  parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, ctrlOptions);
   panelCtrl.isVertical = isVertical;
-  glo.advancedTexture.addControl(panelCtrl);
+  if(parent){ panelCtrl.adaptHeightToChildren = true; }
+  (parent || glo.advancedTexture).addControl(panelCtrl);
 
   return panelCtrl;
 }
@@ -530,13 +585,15 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
 }
 
 function add_shaders_ctrl(){
+  const sp4 = glo.superPanels.fourth;
+
   const paramsPanels = {
     shaders: {
-      title: {name: "Shaders", text: "Shaders", top: 24.25, numUI: 'fourth noAutoParam'},
-      ctrl: { name: "Shaders", top: 27.25, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam'}
+      title: {name: "Shaders", text: "Shaders", top: 24.25, numUI: 'fourth noAutoParam', parent: sp4},
+      ctrl: { name: "Shaders", top: 27.25, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam', parent: sp4}
     },
     normEquation: {
-      title: {name: "normalDeformation", text: "Normal Deformation", top: 74.5, numUI: 'fourth noAutoParam'},
+      title: {name: "normalDeformation", text: "Normal Deformation", top: 74.5, numUI: 'fourth noAutoParam', parent: sp4},
       ctrl: false,
     },
     lighting: {
@@ -552,8 +609,8 @@ function add_shaders_ctrl(){
       ctrl: { name: "gridParamsSliders", top: 62.5, paddingLeft: 0.0, isVertical: true, height: 10, numUI: 'sixth noAutoParam' }
     },
     video: {
-      title: {name: "Video", text: "Video", top: 65, numUI: 'fourth noAutoParam' },
-      ctrl: { name: "Video", top: 65.5, paddingLeft: 0.5, isVertical: false, height: 10, numUI: 'fourth noAutoParam' }
+      title: {name: "Video", text: "Video", top: 65, numUI: 'fourth noAutoParam', parent: sp4},
+      ctrl: { name: "Video", top: 65.5, paddingLeft: 0.5, isVertical: false, height: 10, numUI: 'fourth noAutoParam', parent: sp4}
     },
   };
 
@@ -1106,13 +1163,13 @@ function add_inputs_equations(){
 
   var options = {hAlign: 'right', vAlign: 'top', w: 19.5, t: 27.5, pL: 0, pR: 0.5};
   parmamControl(panelEvalY, "panelEvalY", 'panel right sixth noAutoParam', options);
-  options = {hAlign: 'right', vAlign: 'top', w: 19.125, t: 82, l: -0.375, pR: 0, pL:0};
+  options = {w: 100, pR: 0, pL:0};
   parmamControl(panelSymsEquations, "panelSymsEquations", 'panel right fourth noAutoParam', options);
 
   makePanelTitle("macrosVariables", "Macros variables", 24, "sixth noAutoParam");
 
   glo.advancedTexture.addControl(panel);
-  glo.advancedTexture.addControl(panelSymsEquations);
+  glo.superPanels.fourth.addControl(panelSymsEquations);
   glo.advancedTexture.addControl(panelEvalY);
 
   glo.text_input_alpha = "";
@@ -1440,33 +1497,23 @@ function add_step_ABCD_sliders(){
 }
 
 function add_symmetrize_sliders(){
+  const sp4 = glo.superPanels.fourth;
+
   var panel          = new BABYLON.GUI.StackPanel();
   var panelButton    = new BABYLON.GUI.StackPanel();
   var panelCheckB    = new BABYLON.GUI.StackPanel();
   var panelScaleNorm = new BABYLON.GUI.StackPanel();
-  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 35.5});
-  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, hAlign: 'right', vAlign: 'top', w: 16, t: 53, left:-66.67});
-  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 59.25, pR: 0});
-  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {hAlign: 'right', vAlign: 'top', h: 5, w: 20, t: 77.5, pR: 0});
+  parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {w: 100});
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 40}, true);
+  parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {w: 100, pR: 0});
+  parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {w: 100, pR: 0});
 
-  glo.advancedTexture.addControl(panel);
-  glo.advancedTexture.addControl(panelCheckB);
-  glo.advancedTexture.addControl(panelScaleNorm);
-  glo.advancedTexture.addControl(panelButton);
+  sp4.addControl(panel);
+  sp4.addControl(panelCheckB);
+  sp4.addControl(panelScaleNorm);
+  sp4.addControl(panelButton);
 
-  const paramsPanels = {
-    shaders: {
-      title: {name: "SymmetrizePanelTitle", text: "Symmetrize", top: 32.5, numUI: 'fourth noAutoParam'},
-    },
-  };
-
-  for(const prop in paramsPanels){
-    for(const sprop in paramsPanels[prop]){
-      const params = paramsPanels[prop][sprop];
-      
-      if(sprop === 'title' && params) makePanelTitle(params.name, params.text, params.top, params.numUI);
-    }
-  }
+  makePanelTitle("SymmetrizePanelTitle", "Symmetrize", 32.5, 'fourth noAutoParam', 2, sp4);
 
   async function remakeRibbonBeforeSymm(){
     getPathsInfos();
@@ -2122,12 +2169,14 @@ function param_controls(){
     parmamControl(inp, '', '', { hAlign: 'left', vAlign: 'top', h: 22.5, background: 'grey', }, true, false);
     inp.paddingLeft = '1%';
   });
+  // Fourth panels are now inside superPanelFourth (StackPanel vertical),
+  // so we skip absolute top repositioning and use 100% width instead
   glo.allControls.haveTheseClasses('panel', 'right', 'fourth').haveNotThisClass('noAutoParam').map(pr => {
-    parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', t: 33, }, false, false);
+    parmamControl(pr, '', '', { w: 100, }, false, false);
     if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }
   });
   glo.allControls.haveTheseClasses('input', 'right', 'fourth').map(inp => {
-    parmamControl(inp, '', '', { hAlign: 'right', vAlign: 'top', h: 22.5, background: 'grey', }, true, false);
+    parmamControl(inp, '', '', { h: 22.5, background: 'grey', }, true, false);
   });
   glo.allControls.haveThisClass('slider').map(slider => { slider.subscribeToKeyEventsOnHover(); });
   glo.allControls.haveThisClass('input').map(input => { input.subscribeToFocusAndBlurEvents(); });
@@ -2147,5 +2196,11 @@ function toggle_gui_controls_suit(state){
   glo.allControls.haveThisClass('second').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }
 function toggleGuiControlsByClass(state, theClass){
+  // If a super panel exists for this class, toggle only the super panel
+  if(glo.superPanels && glo.superPanels[theClass]){
+    glo.superPanels[theClass].isVisible = state;
+    glo.superPanels[theClass].isEnabled = state;
+    return;
+  }
   glo.allControls.haveThisClass(theClass).map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }

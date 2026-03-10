@@ -236,170 +236,70 @@ getById('filename').addEventListener("keydown", function (e) {
    if(e.key === 'Enter'){ $("#exportButton").trigger('click'); }
 });
 
+// Declarative keyboard shortcuts registry
+// Each entry: { key, ctrl, shift, alt, action }
+// Modifiers default to false when omitted.
+const keyboardShortcuts = [
+   // --- No modifier ---
+   { key: "h",  action: () => randomize_colors_app() },
+   { key: "p",  action: () => importModal() },
+   { key: "+",  action: () => glo.camera.radius /= 1.125 },
+   { key: "-",  action: () => glo.camera.radius *= 1.125 },
+   { key: "7",  action: () => slidersAnim('u', 0, -0.01) },
+   { key: "8",  action: () => slidersAnim('u', 0, 0.01) },
+   { key: "4",  action: () => slidersAnim('v', 0, -0.01) },
+   { key: "5",  action: () => slidersAnim('v', 0, 0.01) },
+   { key: "0",  action: () => slidersAnim('u', 0, -0.001) },
+   { key: "1",  action: () => slidersAnim('u', 0, 0.001) },
+   { key: "6",  action: () => slidersAnim('v', 0, -0.001) },
+   { key: "9",  action: () => slidersAnim('v', 0, 0.001) },
+   { key: ";",  action: () => switchWritingType(false) },
+   { key: ",",  action: () => switchWritingType(true) },
+   { key: "f",  action: () => glo.timeCoeff *= 2 },
+   { key: "q",  action: () => glo.timeCoeff /= 2 },
+   { key: "a",  action: () => {
+      glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
+      glo.pause          = !glo.pause;
+      glo.timeCoeff      = glo.pause ? 0 : glo.savedTimeCoeff;
+      glo.allControls.getByName('resetTimeButton').text = glo.pause ? 'PLAY' : 'STOP';
+   }},
+   { key: "'",  action: () => { glo.params.uvToXy = !glo.params.uvToXy; uvToXy(); } },
+   { key: '"',  action: () => special_randomize_colors_app() },
+   { key: '$',  action: () => makeRndSurface() },
+   { key: '*',  action: () => intiColorUI() },
+   { key: '<',  action: () => { glo.formesSuit = !glo.formesSuit; add_radios(true); paramRadios(); } },
+   { key: 'u',  action: () => changeResolution('increase') },
+   { key: 'j',  action: () => changeResolution('decrease') },
+
+   // --- Alt ---
+   { key: "+",  alt: true, action: () => glo.rotate_speed *= 1.2 },
+   { key: "-",  alt: true, action: () => glo.rotate_speed /= 1.2 },
+   { key: "j",  alt: true, action: () => $('#rotationConventionsModal').modal('open') },
+
+   // --- Shift (keys matched case-insensitively) ---
+   { key: "h",  shift: true, action: () => cameraOnPos({x: 0, y: 0, z: 0}) },
+   { key: "b",  shift: true, action: () => { glo.wireframe = !glo.wireframe; glo.ribbon.material.wireframe = glo.wireframe; } },
+   { key: "v",  shift: true, action: () => viewOnAxis() },
+   { key: "q",  shift: true, action: () => firstInputToOthers() },
+];
+
 getById('univers_div').addEventListener("keydown", function (e) {
-   const key = e.key;
+   const pressedKey  = e.key.toLowerCase();
+   const pressedCtrl  = !!e.ctrlKey;
+   const pressedShift = !!e.shiftKey;
+   const pressedAlt   = !!e.altKey;
 
-   if(e.ctrlKey){
-      switch (key) {
-         case "q": 
-            //FREE
-         break;
+   for (const shortcut of keyboardShortcuts) {
+      const wantCtrl  = !!shortcut.ctrl;
+      const wantShift = !!shortcut.shift;
+      const wantAlt   = !!shortcut.alt;
+
+      if (shortcut.key.toLowerCase() === pressedKey &&
+          wantCtrl  === pressedCtrl &&
+          wantShift === pressedShift &&
+          wantAlt   === pressedAlt) {
+         shortcut.action();
+         return;
       }
    }
-   else if(!e.shiftKey){
-      if(!e.altKey){
-         switch (key) {
-            case "h":
-               randomize_colors_app();
-
-               break;
-            case "p":
-               importModal();
-
-               break;
-            case "+":
-               glo.camera.radius/=1.125;
-
-               break;
-            case "-":
-               glo.camera.radius*=1.125;
-
-               break;
-            case "7":
-               slidersAnim('u', 0, -0.01);
-
-               break;
-            case "8":
-               slidersAnim('u', 0, 0.01);
-
-               break;
-            case "4":
-               slidersAnim('v', 0, -0.01);
-
-               break;
-            case "5":
-               slidersAnim('v', 0, 0.01);
-
-               break;
-            case ";":
-               switchWritingType(false);
-
-               break;
-            case ",":
-               switchWritingType(true);
-
-               break;
-            case "f":
-               glo.timeCoeff *= 2;
-
-               break;
-            case "q":
-               glo.timeCoeff /= 2;
-
-               break;
-            case "a":
-               glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
-               glo.pause          = !glo.pause;
-
-               glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
-
-               glo.allControls.getByName('resetTimeButton').text = glo.pause ? 'PLAY' : 'STOP';
-
-            break;
-            case "'":
-               glo.params.uvToXy = !glo.params.uvToXy;
-               uvToXy();
-
-               break;
-            case '"':
-               special_randomize_colors_app();
-
-               break;
-            case '$':
-               makeRndSurface();
-
-               break;
-            case '*':
-               intiColorUI();
-
-               break;
-            case '<':
-               glo.formesSuit = !glo.formesSuit;
-               add_radios(true);
-               paramRadios();
-
-               break;
-            case ',':
-               remakeRibbon();
-
-               break;
-            case 'u':
-               changeResolution('increase');
-
-               break;
-            case 'j':
-               changeResolution('decrease');
-
-               break;
-            case '0':
-               slidersAnim('u', 0, -0.001);
-
-               break;
-            case '1':
-               slidersAnim('u', 0, 0.001);
-
-               break;
-            case "6":
-               slidersAnim('v', 0, -0.001);
-
-               break;
-            case "9":
-               slidersAnim('v', 0, 0.001);
-
-               break;
-         }
-      }
-      else{
-         switch (key) {
-            case "+":
-               glo.rotate_speed*=1.2;
-
-               break;
-            case "-":
-               glo.rotate_speed/=1.2;
-
-               break;
-            case "j":
-               $('#rotationConventionsModal').modal('open');
-
-            break;
-         }
-      }
-   }
-   else{
-      switch (key) {
-         case "H":
-         case "h":
-            cameraOnPos({x: 0, y: 0, z: 0});
-
-            break;
-         case "B":
-         case "b":
-            glo.wireframe = !glo.wireframe;
-            glo.ribbon.material.wireframe = glo.wireframe;
-
-         break;
-         case "V":
-         case "v":
-            viewOnAxis();
-
-         break;
-         case "Q":
-         case "q":
-            firstInputToOthers();
-
-         break;
-      }
-   }
-   
 });

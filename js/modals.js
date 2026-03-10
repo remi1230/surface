@@ -214,78 +214,7 @@ function importAppOBJ(fileContent, fileName) {
 			return;
 		}
 
-		const stepsU = paths.length - 1;
-		const stepsV = paths[0].length - 1;
-		glo.params.steps_u = stepsU;
-		glo.params.steps_v = stepsV;
-
-		const numVertices = paths.length * paths[0].length;
-		const positions = new Float32Array(numVertices * 3);
-		const normals   = new Float32Array(numVertices * 3);
-
-		for (let i = 0; i <= stepsU; i++) {
-			for (let j = 0; j <= stepsV; j++) {
-				const idx = i * (stepsV + 1) + j;
-				const v = paths[i][j];
-				positions[idx * 3]     = v.x;
-				positions[idx * 3 + 1] = v.y;
-				positions[idx * 3 + 2] = v.z;
-			}
-		}
-
-		for (let i = 0; i <= stepsU; i++) {
-			for (let j = 0; j <= stepsV; j++) {
-				const idx = i * (stepsV + 1) + j;
-				const p   = paths[i][j];
-				const pi1 = (i < stepsU) ? paths[i + 1][j] : paths[i][j];
-				const pi0 = (i > 0)      ? paths[i - 1][j] : paths[i][j];
-				const tu  = pi1.subtract(pi0);
-				const pj1 = (j < stepsV) ? paths[i][j + 1] : paths[i][j];
-				const pj0 = (j > 0)      ? paths[i][j - 1] : paths[i][j];
-				const tv  = pj1.subtract(pj0);
-				let n = BABYLON.Vector3.Cross(tu, tv);
-				const len = n.length();
-				if (len > 0.0001) {
-					n.scaleInPlace(1.0 / len);
-				} else {
-					const pl = p.length();
-					n = pl > 0.001 ? p.scale(1.0 / pl) : new BABYLON.Vector3(0, 1, 0);
-				}
-				normals[idx * 3]     = n.x;
-				normals[idx * 3 + 1] = n.y;
-				normals[idx * 3 + 2] = n.z;
-			}
-		}
-
-		const triangleIndices = [];
-		for (let i = 0; i < stepsU; i++) {
-			for (let j = 0; j < stepsV; j++) {
-				const idx00 = i * (stepsV + 1) + j;
-				const idx10 = (i + 1) * (stepsV + 1) + j;
-				const idx01 = i * (stepsV + 1) + (j + 1);
-				const idx11 = (i + 1) * (stepsV + 1) + (j + 1);
-				triangleIndices.push(idx00, idx10, idx01);
-				triangleIndices.push(idx01, idx10, idx11);
-			}
-		}
-
-		const coordsType = glo.coordsType || 'cartesian';
-		const MeshClass  = getShaderMeshClass(coordsType);
-		const shaderMesh = new MeshClass();
-		const mesh = shaderMesh.createFromImportedMesh(
-			positions, normals, new Uint32Array(triangleIndices), stepsU, stepsV
-		);
-
-		if (mesh) {
-			glo.ribbon = mesh;
-			glo.fromShader = true;
-			glo.ribbon.refreshBoundingInfo();
-			setTimeout(() => { glo.camera.focusOn([glo.ribbon], true); }, 0);
-			console.log("OBJ imported successfully (app): " + fileName);
-			console.log("Grid: " + (stepsU + 1) + " x " + (stepsV + 1));
-		} else {
-			console.error("Failed to create shader mesh from OBJ");
-		}
+		buildMeshFromPaths(paths, fileName);
 	} catch (error) {
 		console.error("Error importing app OBJ:", error);
 	}

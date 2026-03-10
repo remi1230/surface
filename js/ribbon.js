@@ -78,6 +78,102 @@ async function exportMeshToSTL(mesh){
 	document.body.removeChild(link);
 }
 
+/**
+ * Builds positions, normals, triangle indices from a grid of paths,
+ * creates a shader mesh, and assigns it to glo.ribbon.
+ * Shared by importOBJMesh() and importAppOBJ().
+ */
+function buildMeshFromPaths(paths, fileName) {
+	const stepsU = paths.length - 1;
+	const stepsV = paths[0].length - 1;
+	glo.params.steps_u = stepsU;
+	glo.params.steps_v = stepsV;
+
+	const numVertices = paths.length * paths[0].length;
+	const positions = new Float32Array(numVertices * 3);
+	const normals   = new Float32Array(numVertices * 3);
+
+	// Fill positions from paths grid
+	for (let i = 0; i <= stepsU; i++) {
+		for (let j = 0; j <= stepsV; j++) {
+			const idx = i * (stepsV + 1) + j;
+			const v = paths[i][j];
+			positions[idx * 3]     = v.x;
+			positions[idx * 3 + 1] = v.y;
+			positions[idx * 3 + 2] = v.z;
+		}
+	}
+
+	// Compute normals by finite differences on the grid
+	for (let i = 0; i <= stepsU; i++) {
+		for (let j = 0; j <= stepsV; j++) {
+			const idx = i * (stepsV + 1) + j;
+			const p   = paths[i][j];
+			const pi1 = (i < stepsU) ? paths[i + 1][j] : paths[i][j];
+			const pi0 = (i > 0)      ? paths[i - 1][j] : paths[i][j];
+			const tu  = pi1.subtract(pi0);
+			const pj1 = (j < stepsV) ? paths[i][j + 1] : paths[i][j];
+			const pj0 = (j > 0)      ? paths[i][j - 1] : paths[i][j];
+			const tv  = pj1.subtract(pj0);
+			let n = BABYLON.Vector3.Cross(tu, tv);
+			const len = n.length();
+			if (len > 0.0001) {
+				n.scaleInPlace(1.0 / len);
+			} else {
+				const pl = p.length();
+				n = pl > 0.001 ? p.scale(1.0 / pl) : new BABYLON.Vector3(0, 1, 0);
+			}
+			normals[idx * 3]     = n.x;
+			normals[idx * 3 + 1] = n.y;
+			normals[idx * 3 + 2] = n.z;
+		}
+	}
+
+	// Triangle indices
+	const triangleIndices = [];
+	for (let i = 0; i < stepsU; i++) {
+		for (let j = 0; j < stepsV; j++) {
+			const idx00 = i * (stepsV + 1) + j;
+			const idx10 = (i + 1) * (stepsV + 1) + j;
+			const idx01 = i * (stepsV + 1) + (j + 1);
+			const idx11 = (i + 1) * (stepsV + 1) + (j + 1);
+			triangleIndices.push(idx00, idx10, idx01);
+			triangleIndices.push(idx01, idx10, idx11);
+		}
+	}
+
+	return assignImportedShaderMesh(
+		positions, normals, new Uint32Array(triangleIndices),
+		stepsU, stepsV, fileName,
+		"Grid: " + (stepsU + 1) + " x " + (stepsV + 1)
+	);
+}
+
+/**
+ * Creates a shader mesh from raw buffers and assigns it to glo.ribbon.
+ * Shared by buildMeshFromPaths() and importOBJWithBabylon().
+ */
+function assignImportedShaderMesh(positions, normals, indices, stepsU, stepsV, fileName, logInfo) {
+	const coordsType = glo.coordsType || 'cartesian';
+	const MeshClass  = getShaderMeshClass(coordsType);
+	const shaderMesh = new MeshClass();
+
+	const mesh = shaderMesh.createFromImportedMesh(positions, normals, indices, stepsU, stepsV);
+
+	if (mesh) {
+		glo.ribbon = mesh;
+		glo.fromShader = true;
+		glo.ribbon.refreshBoundingInfo();
+		setTimeout(() => { glo.camera.focusOn([glo.ribbon], true); }, 0);
+		console.log("OBJ imported successfully: " + fileName);
+		if (logInfo) console.log(logInfo);
+		return true;
+	} else {
+		console.error("Failed to create shader mesh from OBJ");
+		return false;
+	}
+}
+
 function importOBJMesh() {
 	const input = document.createElement('input');
 	input.type = 'file';
@@ -115,96 +211,7 @@ function importOBJMesh() {
 				return;
 			}
 
-			const stepsU = paths.length - 1;
-			const stepsV = paths[0].length - 1;
-
-			glo.params.steps_u = stepsU;
-			glo.params.steps_v = stepsV;
-
-			// Construire les Float32Array positions, normales et indices
-			const numVertices = paths.length * paths[0].length;
-			const positions = new Float32Array(numVertices * 3);
-			const normals = new Float32Array(numVertices * 3);
-
-			// Remplir les positions depuis la grille de paths
-			for (let i = 0; i <= stepsU; i++) {
-				for (let j = 0; j <= stepsV; j++) {
-					const idx = i * (stepsV + 1) + j;
-					const v = paths[i][j];
-					positions[idx * 3]     = v.x;
-					positions[idx * 3 + 1] = v.y;
-					positions[idx * 3 + 2] = v.z;
-				}
-			}
-
-			// Calculer les normales par différences finies sur la grille
-			for (let i = 0; i <= stepsU; i++) {
-				for (let j = 0; j <= stepsV; j++) {
-					const idx = i * (stepsV + 1) + j;
-					const p = paths[i][j];
-
-					// Tangente en U
-					const pi1 = (i < stepsU) ? paths[i + 1][j] : paths[i][j];
-					const pi0 = (i > 0) ? paths[i - 1][j] : paths[i][j];
-					const tu = pi1.subtract(pi0);
-
-					// Tangente en V
-					const pj1 = (j < stepsV) ? paths[i][j + 1] : paths[i][j];
-					const pj0 = (j > 0) ? paths[i][j - 1] : paths[i][j];
-					const tv = pj1.subtract(pj0);
-
-					// Normale = cross(tu, tv)
-					let n = BABYLON.Vector3.Cross(tu, tv);
-					const len = n.length();
-					if (len > 0.0001) {
-						n.scaleInPlace(1.0 / len);
-					} else {
-						const pl = p.length();
-						n = pl > 0.001 ? p.scale(1.0 / pl) : new BABYLON.Vector3(0, 1, 0);
-					}
-
-					normals[idx * 3]     = n.x;
-					normals[idx * 3 + 1] = n.y;
-					normals[idx * 3 + 2] = n.z;
-				}
-			}
-
-			// Indices de triangulation
-			const triangleIndices = [];
-			for (let i = 0; i < stepsU; i++) {
-				for (let j = 0; j < stepsV; j++) {
-					const idx00 = i * (stepsV + 1) + j;
-					const idx10 = (i + 1) * (stepsV + 1) + j;
-					const idx01 = i * (stepsV + 1) + (j + 1);
-					const idx11 = (i + 1) * (stepsV + 1) + (j + 1);
-					triangleIndices.push(idx00, idx10, idx01);
-					triangleIndices.push(idx01, idx10, idx11);
-				}
-			}
-
-			// Créer le shader mesh importé
-			const coordsType = glo.coordsType || 'cartesian';
-			const MeshClass = getShaderMeshClass(coordsType);
-			const shaderMesh = new MeshClass();
-
-			const mesh = shaderMesh.createFromImportedMesh(
-				positions, normals, new Uint32Array(triangleIndices), stepsU, stepsV
-			);
-
-			if (mesh) {
-				glo.ribbon = mesh;
-				glo.fromShader = true;
-
-				glo.ribbon.refreshBoundingInfo();
-				setTimeout(() => {
-					glo.camera.focusOn([glo.ribbon], true);
-				}, 0);
-
-				console.log("OBJ imported successfully: " + fileName);
-				console.log("Grid: " + (stepsU + 1) + " x " + (stepsV + 1));
-			} else {
-				console.error("Failed to create shader mesh from OBJ");
-			}
+			buildMeshFromPaths(paths, fileName);
 
 		} catch (error) {
 			console.error("Error importing OBJ:", error);
@@ -269,28 +276,13 @@ async function importOBJWithBabylon(file, fileName) {
 		glo.params.steps_u = stepsU;
 		glo.params.steps_v = stepsV;
 
-		const coordsType = glo.coordsType || 'cartesian';
-		const MeshClass  = getShaderMeshClass(coordsType);
-		const shaderMesh = new MeshClass();
-
-		const mesh = shaderMesh.createFromImportedMesh(
+		assignImportedShaderMesh(
 			new Float32Array(positions),
 			new Float32Array(normals),
 			new Uint32Array(indices),
-			stepsU,
-			stepsV
+			stepsU, stepsV, fileName,
+			"Vertices: " + numVertices + ", Triangles: " + (indices.length / 3)
 		);
-
-		if (mesh) {
-			glo.ribbon = mesh;
-			glo.fromShader = true;
-			glo.ribbon.refreshBoundingInfo();
-			setTimeout(() => { glo.camera.focusOn([glo.ribbon], true); }, 0);
-			console.log("OBJ imported successfully: " + fileName);
-			console.log("Vertices: " + numVertices + ", Triangles: " + (indices.length / 3));
-		} else {
-			console.error("Failed to create shader mesh from OBJ");
-		}
 	} catch (error) {
 		console.error("Error importing OBJ:", error);
 	} finally {

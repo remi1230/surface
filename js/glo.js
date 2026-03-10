@@ -897,56 +897,36 @@ glo.meshChannel.onmessage = (event) => {
 };
 
 function getByName(name){
-	var elemToReturn = false;
-	this.map(elem => {
-		if(typeof(elem) != 'undefined' && typeof(elem.name) != 'undefined' && elem.name == name){ elemToReturn = elem; }
-	});
-	return elemToReturn;
+	return this.find(elem => elem?.name === name) ?? false;
 }
 function changeColor(color){
-	this.map(elem => {
-		elem.color = color;
-	});
+	this.forEach(elem => { elem.color = color; });
 }
 function haveThisClass(className){
-	var elemsToReturn = [];
 	var reg = new RegExp("\\b" + className + "\\b");
-	this.map(elem => {
-		if(typeof(elem) != 'undefined' && typeof(elem.class) != 'undefined' && elem.class.match(reg) != null){ elemsToReturn.push(elem); }
-	});
-
-	var elemsToReturnLength = elemsToReturn.length;
-	if(elemsToReturnLength == 0){ return false; }
-	if(elemsToReturnLength == 1){ return elemsToReturn[0]; }
-	else{ return elemsToReturn; }
+	var result = this.filter(elem => elem?.class?.match(reg));
+	if(result.length === 0){ return false; }
+	if(result.length === 1){ return result[0]; }
+	return result;
 }
 
 glo.radios_formes.getByName = function (name){
-	var elemToReturn = false;
-	this.map(elem => {
-		if(typeof(elem) != 'undefined' && typeof(elem.button.name) != 'undefined' && elem.button.name == name){ elemToReturn = elem; }
-	});
-	return elemToReturn;
+	return this.find(elem => elem?.button?.name === name) ?? false;
 };
 glo.radios_formes.getCheck = function (){
-	var elemToReturn = false;
-	this.map(elem => {
-		if(typeof(elem) != 'undefined' && elem.button.isChecked){ elemToReturn = elem; }
-	});
-	return elemToReturn;
+	return this.find(elem => elem?.button?.isChecked) ?? false;
 };
 glo.radios_formes.setCheckByName = function (name){
-	var elemToReturn = false;
-	this.map(elem => {
-		if(typeof(elem) != 'undefined' && typeof(elem.button.name) != 'undefined' && elem.button.name == name){ elem.button.isChecked = true; elemToReturn = elem; }
-		else if(typeof(elem) != 'undefined'){ elem.button.isChecked = false; }
+	var found = false;
+	this.forEach(elem => {
+		if(!elem) return;
+		if(elem.button?.name === name){ elem.button.isChecked = true; found = elem; }
+		else{ elem.button.isChecked = false; }
 	});
-	return elemToReturn;
+	return found;
 };
 glo.radios_formes.changeColor = function (newColor){
-	this.map(elem => {
-		elem.header.color = newColor;
-	});
+	this.forEach(elem => { elem.header.color = newColor; });
 };
 
 glo.switchGuiSelect 	= glo.switchGuiSelect();

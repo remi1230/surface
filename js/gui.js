@@ -1507,6 +1507,7 @@ function add_symmetrize_sliders(){
   parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 45});
   panelButton.height = "45px";
   parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {w: 100, pR: 0});
+  panelCheckB.paddingBottom = "25px";
   parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {w: 100, pR: 0});
 
   sp4.addControl(panel);

@@ -337,10 +337,10 @@ function makePanelsTitles(paramsPanels, parent = null){
 function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth', parent = null){
   var panelCtrl = new BABYLON.GUI.StackPanel();
   var ctrlOptions = {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL};
-  if(parent){ delete ctrlOptions.t; delete ctrlOptions.h; ctrlOptions.w = 100; }
+  if(parent){ delete ctrlOptions.t; delete ctrlOptions.h; ctrlOptions.w = 100; ctrlOptions.hAlign = 'center'; }
   parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, ctrlOptions);
   panelCtrl.isVertical = isVertical;
-  if(parent){ panelCtrl.adaptHeightToChildren = true; panelCtrl.paddingBottom = "5px"; }
+  if(parent){ panelCtrl.adaptHeightToChildren = true; panelCtrl.paddingBottom = "25px"; }
   (parent || glo.advancedTexture).addControl(panelCtrl);
 
   return panelCtrl;
@@ -590,7 +590,7 @@ function add_shaders_ctrl(){
   const paramsPanels = {
     shaders: {
       title: {name: "Shaders", text: "Shaders", top: 24.25, numUI: 'fourth noAutoParam', parent: sp4},
-      ctrl: { name: "Shaders", top: 27.25, paddingLeft: 1.75, isVertical: false, height: 5, numUI: 'fourth noAutoParam', parent: sp4}
+      ctrl: { name: "Shaders", top: 27.25, paddingLeft: 0, isVertical: false, height: 5, numUI: 'fourth noAutoParam', parent: sp4}
     },
     normEquation: {
       title: {name: "normalDeformation", text: "Normal Deformation", top: 74.5, numUI: 'fourth noAutoParam', parent: sp4},
@@ -1504,7 +1504,8 @@ function add_symmetrize_sliders(){
   var panelCheckB    = new BABYLON.GUI.StackPanel();
   var panelScaleNorm = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {w: 100});
-  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 45}, true);
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 45});
+  panelButton.height = "45px";
   parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {w: 100, pR: 0});
   parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {w: 100, pR: 0});
 

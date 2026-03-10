@@ -299,7 +299,7 @@ function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2, parent
   var panelOptions = {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t};
   if(parent){ delete panelOptions.t; delete panelOptions.h; panelOptions.w = 100; }
   parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, panelOptions);
-  if(parent){ panelTitle.height = "30px"; }
+  if(parent){ panelTitle.height = "30px"; panelTitle.paddingTop = "10px"; }
   panelTitle.isVertical = false;
 
   titleLevels = ['22px', '20px', '17px', '16px'];
@@ -340,7 +340,7 @@ function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth',
   if(parent){ delete ctrlOptions.t; delete ctrlOptions.h; ctrlOptions.w = 100; }
   parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, ctrlOptions);
   panelCtrl.isVertical = isVertical;
-  if(parent){ panelCtrl.adaptHeightToChildren = true; }
+  if(parent){ panelCtrl.adaptHeightToChildren = true; panelCtrl.paddingBottom = "5px"; }
   (parent || glo.advancedTexture).addControl(panelCtrl);
 
   return panelCtrl;
@@ -1504,7 +1504,7 @@ function add_symmetrize_sliders(){
   var panelCheckB    = new BABYLON.GUI.StackPanel();
   var panelScaleNorm = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramSymmetrizeSlidersPanel', 'panel right fourth noAutoParam', {w: 100});
-  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 40}, true);
+  parmamControl(panelButton, 'paramSymmetrizeSlidersPanelButton', 'panel right fourth noAutoParam', {isVertical: false, w: 100, h: 45}, true);
   parmamControl(panelCheckB, 'paramSymmetrizeSlidersPanelChekB', 'panel right fourth noAutoParam', {w: 100, pR: 0});
   parmamControl(panelScaleNorm, 'paramSymmetrizeSlidersPanelScaleNorm', 'panel right fourth noAutoParam', {w: 100, pR: 0});
 

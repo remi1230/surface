@@ -230,7 +230,7 @@ function startAnim(durationRot, durationDist, nb_turns) {
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
 
-	const startForm   = getStartForm();	
+	const startForm   = glo.formes.getStartForm();	
     var currentRadius = startForm.orient ? (startForm.orient.distance || 16.66) : 16.66;
     dist_animation.setKeys([
         { frame: 0, value: 0 },

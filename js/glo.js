@@ -68,15 +68,13 @@ var glo = {
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
 
-						if(!glo.normalMode){
-							glo.input_x.text = sel.fx;
-							glo.input_y.text = sel.fy;
-							glo.input_z.text = sel.fz;
-							if(glo.params.updateRots){
-								glo.input_alpha.text = falpha;
-								glo.input_beta.text  = fbeta;
-								glo.input_theta.text = ftheta;
-							}
+						glo.input_x.text = sel.fx;
+						glo.input_y.text = sel.fy;
+						glo.input_z.text = sel.fz;
+						if(glo.params.updateRots){
+							glo.input_alpha.text = falpha;
+							glo.input_beta.text  = fbeta;
+							glo.input_theta.text = ftheta;
 						}
 
 						glo.skipRebuild = true;
@@ -170,8 +168,11 @@ var glo = {
 			var sel = this.select[num];
 			await this.setFormeSelect(sel.text, coordsType);
 		},
+		getStartForm: function(){
+			return this.select.find(form => form.start);
+		},
 		setStartForm: async function() { 
-			const startForm = getStartForm();
+			const startForm = this.getStartForm();
 			await this.setFormeSelect(startForm.text, startForm.typeCoords); 
 		},
 		getFormSelect: function(){
@@ -795,7 +796,7 @@ var glo = {
 	editorNormalIsOpened: false,
 	numNormalShaderSelect: 0,
 	videoBoxRange: 1.414,
-	bgActivedButtons: ['GridScale', 'updateRots'],
+	bgActivedButtons: ['updateRots'],
 	cutRibbon: {x: false, y: false, z: false},
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotate_speed: 1/450 * PI,
@@ -826,64 +827,30 @@ var glo = {
 	color_line_grid: new BABYLON.Color3(0, 0, 0),
 	randomizeColorLightLevel: 5,
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
-	angleToUpdateRibbon: {x: 0, y: 0},
 	pickers_size: 107,
-	numRibbon: 0,
-	scaleVertex: 1,
 	fullScreen: false,
 	skipRebuild: false,
 	gui_visible: true,
 	gui_suit_visible: false,
-	all_visible: true,
-	coloredRibbon: false,
 	axis_visible: false,
 	grid_visible: false,
 	first_axis_visible: true,
 	first_grid_visible: true,
-	first_rot: true,
 	first_radio: true,
-	rotate_z: false,
-	dim_one: false,
-	selection: false,
 	negatif: true,
 	planes_visible: false,
-	planeXYvisible: false,
-	planeYZvisible: false,
-	planeXZvisible: false,
 	viewXpos: true,
 	viewYpos: true,
 	viewZpos: true,
-	anim_construct_mesh: false,
-	deg: false,
-	switchedSliderNoChange: false,
-	voronoiMode: false,
-	normalMode: false,
-	normalOnNormalMode: false,
-	fromSlider: false,
 	wireframe: false,
-	normalColorMode: true,
 	addSymmetry: true,
-	savePos: {x: 0, y: 0, z: 0},
 	pathsInfos: {u: 0, v: 0},
-	equationsParamSliders: [],
 	radios_formes: [],
 	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'],
 	controlConfig:{
 		background: '#199191',
 		backgroundActived: '#196969',
 	},
-	dblLines: [],
-	currentCurveInfos:{
-		currentPath: [],
-		u: 0,
-		v: 0,
-		n: 0,
-		index_u: 0,
-		index_v: 0,
-	},
-	onePoint: BABYLON.Vector3.Zero(),
-	lineStep: {},
-	linesStep: [],
 };
 
 glo.gl = glo.canvasTest.getContext('webgl2') || glo.canvasTest.getContext('webgl');
@@ -892,23 +859,9 @@ glo.meshChannel.onmessage = (event) => {
 	const { action, rotType } = event.data;
 
 	if (action === 'setRotateType') {
-		glo.rotType.next();
-	}
+        glo.rotateType = rotType;
+    }
 };
-
-function getByName(name){
-	return this.find(elem => elem?.name === name) ?? false;
-}
-function changeColor(color){
-	this.forEach(elem => { elem.color = color; });
-}
-function haveThisClass(className){
-	var reg = new RegExp("\\b" + className + "\\b");
-	var result = this.filter(elem => elem?.class?.match(reg));
-	if(result.length === 0){ return false; }
-	if(result.length === 1){ return result[0]; }
-	return result;
-}
 
 glo.radios_formes.getByName = function (name){
 	return this.find(elem => elem?.button?.name === name) ?? false;

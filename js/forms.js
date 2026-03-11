@@ -211,5 +211,3 @@ const formsToselect = [
         orient:{distance :15,axis :"X" , direction :1,alpha :PI/4,beta :-PI/8},
     },
 ];
-
-const getStartForm = () => formsToselect.find(form => form.start);

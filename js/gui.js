@@ -1038,14 +1038,12 @@ function add_radios(suit = false){
       button.isChecked = true;
     }
 
-    // Ajout du gestionnaire pour les clics gauche et droit
     button.onPointerClickObservable.add(async function(e) {
-      // Gestion du clic gauche (buttonIndex 0 correspond au clic gauche)
       if (e.buttonIndex === 0) {
-
         await glo.formes.setFormeSelect(text, glo.coordsType);
-
-        // button.onPointerClickObservable.remove(this);
+      }
+      else{
+        inputEquaToMorphing(glo.formes.getFormSelect().form.text);
       }
     });
 
@@ -2095,6 +2093,40 @@ function add_ninethPanel_controls(){
   );
 }
 
+function inputEquaToMorphing(targetFormName){
+  const originFormName = glo.radios_formes.getCheck().header.getDescendants()[1].text;
+  const targetForm     = glo.formes.getFormByName(targetFormName, glo.coordsType);
+  const originForm     = glo.formes.getFormByName(originFormName, glo.coordsType);
+
+  /*const originForm = {
+    fx: glo.params.text_input_x,
+    fy: glo.params.text_input_y,
+    fz: glo.params.text_input_z,
+    alpha: glo.params.text_input_alpha,
+    beta: glo.params.text_input_beta,
+    theta: glo.params.text_input_theta,
+  };*/
+
+  const fields = [
+    {equa: 'fx', code: 'x'}, 
+    {equa: 'fy', code: 'y'},
+    {equa: 'fz', code: 'z'},
+    {equa: 'alpha', code: 'alpha'},
+    {equa: 'beta', code: 'beta'},
+    {equa: 'theta', code: 'theta'},
+  ];
+
+  fields.forEach(field => { if(!targetForm[field.equa]){ targetForm[field.equa] = '0'; } });
+  fields.forEach(field => { if(!originForm[field.equa]){ originForm[field.equa] = '0'; } });
+
+  fields.forEach(field => {
+    glo['input_' + field.code].text = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
+    glo.params['text_input_' + field.code] = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
+  });
+
+  remakeRibbon();
+}
+
 function param_buttons(){
   glo.allControls.haveThisClass('button').haveNotThisClass('noAutoParam').map(bt => { designButton(bt); });
 }
@@ -2106,7 +2138,7 @@ function param_controls(){
   glo.allControls.haveTheseClasses('panel', 'right', 'first').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', w: 20, t: pr_top, }, false, false);
     pr_top += glo.mainTopShift;
-  });;
+  });
   pr_top = 1.5;
   glo.allControls.haveTheseClasses('panel', 'left', 'first').haveNotThisClass('noAutoParam').map(pr => {
     parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 21, t: pr_top, pL: 1, }, false, false);

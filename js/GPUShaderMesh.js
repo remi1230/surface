@@ -220,13 +220,11 @@ class ShaderMeshBase {
 	 * @param {object} parametres - {u: {min, max, nb_steps}, v: {min, max, nb_steps}}
 	 * @param {object} equa - Équations {x, y, z, alpha, beta}
 	 * @param {object} equa2 - Équations secondaires (pour suit)
-	 * @param {boolean} dimOne - Mode 1D
-	 * @param {boolean} fractalize - Mode fractal
 	 */
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
 		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
-	}, equa = {}, equa2 = {}, dimOne = glo.dim_one, fractalize = false) {
+	}, equa = {}, equa2 = {}) {
 
 		this.computer = getShaderMeshComputer();
 		this.mesh = null;
@@ -1842,8 +1840,8 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 		alpha: glo.params.text_input_alpha,  // ROT Z
 		beta: glo.params.text_input_beta,    // ROT Y
 		theta: glo.params.text_input_theta,    // ROT X
-	}, equa2, dimOne, fractalize) {
-		super(parametres, equa, equa2, dimOne, fractalize);
+	}, equa2) {
+		super(parametres, equa, equa2);
 		this.coordSystem = 'cartesian';
 	}
 
@@ -1926,8 +1924,8 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
 		beta2: glo.params.text_input_beta,   // ROT Y secondaire
 		theta: glo.params.text_input_theta,   // ROT Y secondaire
-	}, equa2, dimOne, fractalize) {
-		super(parametres, equa, equa2, dimOne, fractalize);
+	}, equa2) {
+		super(parametres, equa, equa2);
 		this.coordSystem = 'spheric';
 	}
 
@@ -2018,8 +2016,8 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
 		beta2: glo.params.text_input_beta,    // ROT Y secondaire
 		theta: glo.params.text_input_theta,    // ROT Y secondaire
-	}, equa2, dimOne, fractalize) {
-		super(parametres, equa, equa2, dimOne, fractalize);
+	}, equa2) {
+		super(parametres, equa, equa2);
 		this.coordSystem = 'cylindrical';
 	}
 
@@ -2110,9 +2108,9 @@ function getShaderMeshClass(coordsType) {
 /**
  * Crée un ShaderMesh selon le type de coordonnées
  */
-function createShaderMesh(coordsType, parametres, equa, equa2, dimOne, fractalize) {
+function createShaderMesh(coordsType, parametres, equa, equa2) {
 	const MeshClass = getShaderMeshClass(coordsType);
-	return new MeshClass(parametres, equa, equa2, dimOne, fractalize);
+	return new MeshClass(parametres, equa, equa2);
 }
 
 /**

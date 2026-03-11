@@ -104,7 +104,7 @@ function applyImportedJSON(fileContent) {
 	var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
 	var formName = glo.params.formName;
 	if(glo.coordsType != glo.params.coordsType){
-		glo.coordsType = glo.params.coordsType;
+		while(glo.coordsType !== glo.params.coordsType){ glo.coordinatesType.next(); }
         add_radios();
 	}
 

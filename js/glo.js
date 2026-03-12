@@ -1,28 +1,12 @@
 //*****************************************************************************************************//
 //**********************************************GLOBAL VAR*********************************************//
 //*****************************************************************************************************//
-const deepCopy = (inObject) => {
-  let outObject, value, ke
-  if (typeof inObject !== "object" || inObject === null) {
-    return inObject // Return the value if inObject is not an object
-  }
-
-  outObject = Array.isArray(inObject) ? [] : {}
-
-  for (key in inObject) {
-    value = inObject[key]
-    outObject[key] = deepCopy(value)
-  }
-  return outObject
-}
-
 const getById = function (id) { return document.getElementById(id); };
 
 const defaultTheme = {
 	pickerColorBackground: new BABYLON.Color3(0.1269, 0.1269, 0.1669),
 	pickerColorButton: new BABYLON.Color3(0.1, 0.6, 0.6),
-	pickerColorMeshBg: new BABYLON.Color3(0.3379, 0.4685, 0.5605),
-	pickerColorLine: new BABYLON.Color3(0.5575, 0.2964, 0)
+	pickerColorMeshBg: new BABYLON.Color3(0.3379, 0.4685, 0.5605)
 };
 
 defaultTheme.pickerColorLine = defaultTheme.pickerColorMeshBg.inv();
@@ -231,8 +215,6 @@ var glo = {
 	},
 	inputsEquationsIndex: 0,
 	uvCoeff: {x: 1, y: 1},
-	nbSymIter: 1,
-	formule: [],
 	controls_grid: [],
 	regs: [
 		{
@@ -270,7 +252,7 @@ var glo = {
 		{ exp: /c([^*\(Y\)]*)Y/g, upd: "cos($1Y)" },
 		{ exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
-		{ exp: /m(?![\(xyz])/g, upd: "m()" },
+		{ exp: /m(?!od)/g, upd: "m()" },
 		{ exp: /ù(?![\(])/g, upd: "ù()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
@@ -322,7 +304,7 @@ var glo = {
 		{ exp: /B([^,%*+-/)])/g, upd: "B*$1" },
 		{ exp: /C([^,%*+-/o)])/g, upd: "C*$1" },
 		{ exp: /D([^,%*+-/)])/g, upd: "D*$1" },
-		{ exp: /d([^,%*+-/)])/g, upd: "d*$1" },
+		{ exp: /(?<!mo)d([^,%*+-/)])/g, upd: "d*$1" },
 		{ exp: /E([^,%*+-/)])/g, upd: "E*$1" },
 		{ exp: /F([^,%*+-/)])/g, upd: "F*$1" },
 		{ exp: /G([^,%*+-/)])/g, upd: "G*$1" },
@@ -354,15 +336,14 @@ var glo = {
 		{ exp: /p\*o/g, upd: "po" },
 		{ exp: /cp\*/g, upd: "cp" },
 		{ exp: /p\*c/g, upd: "pc" },
-		{ exp: /mx\*/g, upd: "mx" },
-		{ exp: /my\*/g, upd: "my" },
-		{ exp: /mz\*/g, upd: "mz" },
 		{ exp: /e\*x/g, upd: "ex" },
 		{ exp: /ex\*/g, upd: "ex" },
 		{ exp: /exp\*/g, upd: "exp" },
 		{ exp: /p\*i/g, upd: "pi" },
 		{ exp: /ep\*i/g, upd: "e*pi" },
 		{ exp: /e\*p/g, upd: "ep" },
+		{ exp: /m\(\)\*o\(\)\*d/g, upd: "mod" },
+		{ exp: /mod\*\(/g, upd: "mod(" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
@@ -797,10 +778,8 @@ var glo = {
 	numNormalShaderSelect: 0,
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['updateRots'],
-	cutRibbon: {x: false, y: false, z: false},
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotate_speed: 1/450 * PI,
-	ribbon_alpha: 1,
 	rotateType: 'none',
 	axis_size: 5,
 	planSize: 5,
@@ -810,8 +789,6 @@ var glo = {
 	buttonBottomHeight: 30,
 	buttonBottomPaddingLeft: 12,
 	panelBottomButtonTop: 44.25,
-	topRadiosStart: 67,
-	topLineDimStart: 3.75,
 	mainTopShift: 6.66,
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,

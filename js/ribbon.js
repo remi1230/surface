@@ -12,8 +12,6 @@ async function make_curves(){
 }
 
 function makeOnlyCurves() {
-	glo.formule = [];
-
 	// Utiliser GPUShaderMesh
 	const meshResult = createShaderMeshFromGlo();
 	glo.ribbon = meshResult ? meshResult : glo.ribbon;

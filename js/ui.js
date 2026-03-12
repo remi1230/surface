@@ -498,8 +498,6 @@ function reg(f) {
         if(f[prop]){ f[prop] = regOne(f[prop]); }
     }
 
-	glo.formule.push(f);
-
     return f;
 }
 

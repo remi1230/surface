@@ -101,9 +101,6 @@ function applyImportedJSON(fileContent) {
     var importedStepsU = glo.params.steps_u;
 	var importedStepsV = glo.params.steps_v;
 
-    if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
-	if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
-
 	paramsToControls();
     if(!contentJsonFile.text_input_sym_r){ glo.input_sym_r.text = ''; }
 
@@ -118,15 +115,14 @@ function applyImportedJSON(fileContent) {
     glo.radios_formes.setCheckByName(`Radio-${formName}`);
 
 	// Restaurer la résolution importée (setFormeSelect l'écrase avec les valeurs par défaut de la forme)
-	/*if(sameAsRadioCheck){
-		glo.params.steps_u = importedStepsU;
-		glo.params.steps_v = importedStepsV;
-		glo.slider_nb_steps_u.value = importedStepsU;
-		glo.slider_nb_steps_v.value = importedStepsV;
-
-		//if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
-		//if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
-	}*/
+	glo.params.steps_u = importedStepsU;
+	glo.params.steps_v = importedStepsV;
+	glo.skipRebuild = true;
+	if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
+	if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
+	glo.slider_nb_steps_u.value = importedStepsU;
+	glo.slider_nb_steps_v.value = importedStepsV;
+	glo.skipRebuild = false;
 
 	if(!sameAsRadioCheck){
 		make_curves();

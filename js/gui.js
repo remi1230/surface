@@ -50,6 +50,12 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     }.bind(this));
 };
 
+BABYLON.GUI.Slider.prototype.subscribeToDoubleMax = function () {
+    this.onValueChangedObservable.add(function (value) {
+        if(this.maximum < this.value){ this.maximum = this.value * 2; }
+    }.bind(this));
+};
+
 function add_gui_controls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
   glo.advancedTexture.useSmallestIdeal = false;
@@ -1195,6 +1201,8 @@ function add_step_uv_slider(){
       var val = e.y < 0 ? val = 1 : val = -1; slider.value += val;
     });
     panel.addControl(slider);
+
+    //slider.subscribeToDoubleMax();
 
     glo[gloPropToAssignInput] = slider;
   }

@@ -28,7 +28,7 @@ var glo = {
 	formes:{
 		selected:['Torus', 'cartesian'],
 		select: formsToselect,
-		setFormeSelect: async function(txt, coordsType, draw = true){
+		setFormeSelect: async function(txt, coordsType, draw = true, overrideSteps = null){
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
@@ -63,8 +63,11 @@ var glo = {
 
 						glo.skipRebuild = true;
 
-						glo.slider_nb_steps_u.maximum = sel.nb_steps_u * 2;
-						glo.slider_nb_steps_v.maximum = sel.nb_steps_v * 2;
+						var baseStepsU = overrideSteps ? overrideSteps.u : sel.nb_steps_u;
+						var baseStepsV = overrideSteps ? overrideSteps.v : sel.nb_steps_v;
+
+						glo.slider_nb_steps_u.maximum = baseStepsU * 2;
+						glo.slider_nb_steps_v.maximum = baseStepsV * 2;
 						glo.slider_u.maximum          = sel.udef * 2;
 						glo.slider_v.maximum          = sel.vdef * 2;
 
@@ -73,14 +76,15 @@ var glo = {
 						if(glo.slider_u.maximum < 2*Math.PI){ glo.slider_u.maximum = 2*Math.PI; }
 						if(glo.slider_v.maximum < 2*Math.PI){ glo.slider_v.maximum = 2*Math.PI; }
 
-						glo.params.steps_u = sel.nb_steps_u;
-						glo.params.steps_v = sel.nb_steps_v;
+						glo.params.steps_u = baseStepsU;
+						glo.params.steps_v = baseStepsV;
 
-						glo.params.steps_u *= glo.resolutionCoeff;
-						glo.params.steps_v *= glo.resolutionCoeff;
-
-						glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
-						glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
+						if(!overrideSteps){
+							glo.params.steps_u *= glo.resolutionCoeff;
+							glo.params.steps_v *= glo.resolutionCoeff;
+							glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
+						    glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
+						}
 
 						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
 						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;

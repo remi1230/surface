@@ -101,9 +101,6 @@ function applyImportedJSON(fileContent) {
     var importedStepsU = glo.params.steps_u;
 	var importedStepsV = glo.params.steps_v;
 
-    if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
-	if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
-
 	paramsToControls();
     if(!contentJsonFile.text_input_sym_r){ glo.input_sym_r.text = ''; }
 
@@ -114,19 +111,8 @@ function applyImportedJSON(fileContent) {
         add_radios();
 	}
 
-	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck);
+	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck, {u: importedStepsU, v: importedStepsV});
     glo.radios_formes.setCheckByName(`Radio-${formName}`);
-
-	// Restaurer la résolution importée (setFormeSelect l'écrase avec les valeurs par défaut de la forme)
-	/*if(sameAsRadioCheck){
-		glo.params.steps_u = importedStepsU;
-		glo.params.steps_v = importedStepsV;
-		glo.slider_nb_steps_u.value = importedStepsU;
-		glo.slider_nb_steps_v.value = importedStepsV;
-
-		//if(glo.slider_nb_steps_u.maximum < importedStepsU){ glo.slider_nb_steps_u.maximum = importedStepsU * 2; }
-		//if(glo.slider_nb_steps_v.maximum < importedStepsV){ glo.slider_nb_steps_v.maximum = importedStepsV * 2; }
-	}*/
 
 	if(!sameAsRadioCheck){
 		make_curves();

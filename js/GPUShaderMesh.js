@@ -347,6 +347,8 @@ float cpow(float val, float p) {
 
 float c(float val) { return cos(val); }
 float s(float val) { return sin(val); }
+float ca(float val) { return 0.5 * cos(val) + 0.5; }
+float sa(float val) { return 0.5 * sin(val) + 0.5; }
 
 // Rotation autour d'un axe arbitraire
 mat3 rotateAxis(vec3 axis, float angle) {
@@ -388,6 +390,24 @@ float m() {
 }
 vec3 m(vec3 pos) {
 	return vec3(m(pos.x), m(pos.y), m(pos.z));
+}
+
+float f(float nc, float np){
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(nc * gx * deformCoeff1 + np) * cos(nc * gy * deformCoeff1 + np) * cos(nc * gz * deformCoeff1 + np);
+}
+
+float f(float nc, float npx, float npy, float npz){
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(nc * gx * deformCoeff1 + npx) * cos(nc * gy * deformCoeff1 + npy) * cos(nc * gz * deformCoeff1 + npz);
+}
+
+float f(float ncx, float npx, float ncy, float npy, float ncz, float npz){
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(ncx * gx * deformCoeff1 + npx) * cos(ncy * gy * deformCoeff1 + npy) * cos(ncz * gz * deformCoeff1 + npz);
 }
 
 // Fonctions de déformation o()
@@ -456,11 +476,6 @@ vec3  q(vec3 aa, vec3 bb, float t)   { return mix(aa, bb, t); }
 float r(float e0, float e1, float x) { return smoothstep(e0, e1, x); }
 
 float g(float edge, float x) { return step(edge, x); }
-
-float f(float n){
-	if (n < 0.5) return 1.0;
-    return sqrt(6.2831853 * n) * pow(n / 2.7182818, n);	
-}
 
 vec3 cr(float x1, float y1, float z1, float x2, float y2, float z2){
 	return cross(vec3(x1, y1, z1), vec3(x2, y2, z2));

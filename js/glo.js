@@ -246,6 +246,10 @@ var glo = {
 			upd: 'cpow($1,$2)'
 		},
 		{ exp: /\s/g, upd: "" },
+		{ exp: /(.+)ù(.+)/g, upd: "$1*3mct*$2" },
+		{ exp: /(.+)ù/g, upd: "$1*3mct" },
+		{ exp: /ù(.+)/g, upd: "3mct*$1" },
+		{ exp: /ù/g, upd: "3mct" },
 		{ exp: /(?<![cs])a(?![\(bs])/g, upd: "a()" },
 		{ exp: /b(?![\(s])/g, upd: "b()" },
 		{ exp: /(?<![cp])o(?![\(])/g, upd: "o()" },
@@ -257,7 +261,6 @@ var glo = {
 		{ exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
 		{ exp: /m(?!od)/g, upd: "m()" },
-		{ exp: /ù(?![\(])/g, upd: "ù()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
 		{ exp: /sudv|svdu/g, upd: "sin(u/v)" },
@@ -348,6 +351,8 @@ var glo = {
 		{ exp: /e\*p/g, upd: "ep" },
 		{ exp: /m\(\)\*o\(\)\*d/g, upd: "mod" },
 		{ exp: /mod\*\(/g, upd: "mod(" },
+		{ exp: /\(\*/g, upd: "(" },
+		{ exp: /\)\*\)/g, upd: "))" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){

@@ -71,11 +71,18 @@ fragmentShaders = [
 `,
 `
     //CosPos
-    vec3 pos = npos();
-
-    float c     = P * -2.25 * 16.0 / 64.0;
-    float val   = o(pos, c+0.125*time);
+    vec3 pos    = vPosition-npos()*0.75;
+    float c     = P/4.0;
+    float val   = hc(pos, o(pos, c));
     vec3 valCol = cpalette(val, palette(val));
+
+    col = vec3(val > 0.0 ? valCol : 1.0-valCol);
+
+`,
+`
+    //Checkerboard
+    float val   = f(vPosition, P/32.0, time);
+    vec3 valCol = cpalette(val*4.0, cpalette(1.0/3.0, heatmap(val*4.0)));
 
     col = vec3(val > 0.0 ? valCol : 1.0-valCol);
 
@@ -526,6 +533,12 @@ float m(float x, float y, float z){
 }
 float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
+}
+
+float f(vec3 p, float nc, float np){
+	float deformCoeff1 = 6.0;
+	float deformCoeff2 = 1.0/deformCoeff1;
+	return deformCoeff2*cos(nc * p.x * deformCoeff1 + np) * cos(nc * p.y * deformCoeff1 + np) * cos(nc * p.z * deformCoeff1 + np);
 }
 
 float o(vec3 p){

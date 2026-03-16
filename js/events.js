@@ -1,7 +1,7 @@
 //*****************************************************************************************************//
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
-$( document ).ready(async function() {
+document.addEventListener('DOMContentLoaded', async function() {
    // Forcer le chargement de toutes les variantes Poppins avant de créer les contrôles GUI
    await Promise.all([
       document.fonts.load('300 1em Poppins'),
@@ -17,8 +17,8 @@ $( document ).ready(async function() {
 
    initExportModal();
    initImportModal();
-   $('.modal').not('#exportModal').not('#importModal').modal();
-   $('select').formSelect();
+   document.querySelectorAll('.modal:not(#exportModal):not(#importModal)').forEach(el => M.Modal.init(el));
+   document.querySelectorAll('select').forEach(el => M.FormSelect.init(el));
    glo.formes.setStartForm();
    startAnim(100, 15, 1);
    getPathsInfos();
@@ -31,22 +31,22 @@ window.addEventListener('resize', () => {
    glo.engine.resize();
 });
 
-$("#univers_div").mouseenter(function(){
-	$("#univers_div").css('cursor', 'pointer');
+getById('univers_div').addEventListener('mouseenter', function(){
+	this.style.cursor = 'pointer';
 });
-$("#univers_div").mouseleave(function(){
-	$("#univers_div").css('cursor', 'auto');
+getById('univers_div').addEventListener('mouseleave', function(){
+	this.style.cursor = 'auto';
 });
-$("#univers_div").click(function(){
+getById('univers_div').addEventListener('click', function(){
 	glo.modalOpen = false;
 });
 
-$("#renderCanvas").on('pointermove', function(e){
+function onCanvasPointerMove(e){
     glo.n++;
     stopRotAnim();
-    //$("#renderCanvas").off("pointermove");
-    if(glo.n > 20){ $("#renderCanvas").off("pointermove"); delete glo.n; }
-});
+    if(glo.n > 20){ getById('renderCanvas').removeEventListener('pointermove', onCanvasPointerMove); delete glo.n; }
+}
+getById('renderCanvas').addEventListener('pointermove', onCanvasPointerMove);
 
 getById('resetBtn')?.addEventListener('click', () => {
    w = 0;
@@ -233,7 +233,7 @@ getById('toggleFullscreenNormal')?.addEventListener('click', function() {
 });
 
 getById('filename').addEventListener("keydown", function (e) {
-   if(e.key === 'Enter'){ $("#exportButton").trigger('click'); }
+   if(e.key === 'Enter'){ getById('exportButton').click(); }
 });
 
 // Declarative keyboard shortcuts registry
@@ -274,7 +274,7 @@ const keyboardShortcuts = [
    // --- Alt ---
    { key: "+",  alt: true, action: () => glo.rotate_speed *= 1.2 },
    { key: "-",  alt: true, action: () => glo.rotate_speed /= 1.2 },
-   { key: "j",  alt: true, action: () => $('#rotationConventionsModal').modal('open') },
+   { key: "j",  alt: true, action: () => M.Modal.getInstance(getById('rotationConventionsModal')).open() },
 
    // --- Shift (keys matched case-insensitively) ---
    { key: "h",  shift: true, action: () => cameraOnPos({x: 0, y: 0, z: 0}) },

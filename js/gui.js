@@ -735,11 +735,13 @@ function add_switch_and_help_buttons(){
 
   addButton("first", panel, "but_help", "HELP", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     if(glo.fullScreen){ glo.engine.switchFullscreen(); }
-    $('#helpModal').modal('open', {
+    var helpEl = getById('helpModal');
+    M.Modal.init(helpEl, {
       onCloseEnd: function() {
         if(glo.fullScreen){ glo.engine.switchFullscreen(); }
       }
     });
+    M.Modal.getInstance(helpEl).open();
   });
 
   addButton("first", panel, "but_switch", "SWITCH", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0,

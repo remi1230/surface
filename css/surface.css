@@ -193,3 +193,8 @@ kbd.functions_list {
   color: #b4b4b4;
 }
 
+.modal {
+  width: 80%;
+  max-width: 1500px;
+}
+

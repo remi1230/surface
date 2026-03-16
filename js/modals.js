@@ -4,7 +4,7 @@ function initExportModal(){
         onOpenEnd: function() {
             glo.modalOpen = true;
             document.querySelector('#weightToDownload').textContent = glo.ribbon.weightToDownload();
-			$('#filename').focus();
+			getById('filename').focus();
         },
         onCloseEnd: function() {
 			glo.modalOpen = false;
@@ -29,9 +29,9 @@ function exportModal(){
 	var instance = M.Modal.getInstance(document.querySelector('#exportModal'));
     instance.open();
 
-	let {filename, fileNumber} = extraireTexteEtNombre($("#filename").val());
+	let {filename, fileNumber} = extraireTexteEtNombre(getById('filename').value);
 	if(fileNumber){
-		$("#filename").val(filename + (fileNumber + 1));
+		getById('filename').value = filename + (fileNumber + 1);
 	}
 }
 function initImportModal(){
@@ -59,9 +59,9 @@ function importModal(){
 }
 
 function download_JSON_mesh(event){
-	$('#importModal').modal('close');
+	M.Modal.getInstance(getById('importModal')).close();
 	var file_to_read = getById("jsonFileUpload").files[0];
-	$("#jsonFileUpload").val("");
+	getById('jsonFileUpload').value = '';
 
 	const fileName      = file_to_read.name;
 	const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1);
@@ -177,7 +177,7 @@ function loadExampleJSON(selectElement) {
 			return response.text();
 		})
 		.then(function(fileContent) {
-			$('#importModal').modal('close');
+			M.Modal.getInstance(getById('importModal')).close();
 			applyImportedJSON(fileContent);
 			selectElement.value = 'none';
 			M.FormSelect.init(selectElement);
@@ -215,7 +215,7 @@ async function exportMesh(exportFormat) {
         window.URL.revokeObjectURL(objectUrl);
     }
 
-    var filename = $("#filename").val();
+    var filename = getById('filename').value;
     if (exportFormat === "obj") {
         if (!filename.toLowerCase().endsWith(".surface.obj")) {
             filename = filename.replace(/\.(surface\.)?obj$/i, "") + ".surface.obj";
@@ -267,11 +267,12 @@ async function exportMesh(exportFormat) {
     objectUrl = (window.webkitURL || window.URL).createObjectURL(blob);
 
     // Mettre à jour le lien de téléchargement caché
-    $("#downloadLink").attr("href", objectUrl);
-    $("#downloadLink").attr("download", filename);
+    var downloadLink = getById('downloadLink');
+    downloadLink.href = objectUrl;
+    downloadLink.download = filename;
 
     // Déclencher le téléchargement en cliquant sur le lien caché
-    $("#downloadLink")[0].click();
+    downloadLink.click();
 
     // Fermer le modal
     M.Modal.getInstance(document.querySelector('#exportModal')).close();

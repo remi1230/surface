@@ -193,3 +193,135 @@ kbd.functions_list {
   color: #b4b4b4;
 }
 
+/* ============================================================
+   Materialize replacements — lightweight vanilla CSS
+   ============================================================ */
+
+/* --- Modal overlay & panel --------------------------------- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity .25s;
+  pointer-events: none;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+.modal {
+  display: none;
+  position: fixed;
+  top: 10%; left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 4px;
+  z-index: 1000;
+  max-height: 80vh;
+  width: 55%;
+  max-width: 700px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.3);
+  overflow-y: auto;
+}
+.modal.open { display: block; }
+.modal.overflow-hidden { overflow: hidden; }
+
+.modal-content { padding: 24px; }
+.modal-footer {
+  padding: 4px 24px;
+  text-align: right;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* --- Grid (minimal) --------------------------------------- */
+.row { display: flex; flex-wrap: wrap; margin: 0 -0.75rem; }
+.row::after { content: ''; display: table; clear: both; }
+.col { padding: 0 0.75rem; box-sizing: border-box; }
+.s4  { width: 33.333%; } .s8  { width: 66.666%; } .s12 { width: 100%; }
+@media (min-width: 601px) {
+  .m6  { width: 50%; } .m10 { width: 83.333%; }
+  .offset-m1 { margin-left: 8.333%; }
+}
+
+/* --- Buttons ---------------------------------------------- */
+.btn, .btn-small, .btn-flat, .btn-floating {
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 2px;
+  cursor: pointer; text-decoration: none;
+  font-size: 14px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .5px;
+  transition: background .2s, box-shadow .2s;
+  color: #fff; line-height: 1;
+  vertical-align: middle;
+}
+.btn, .btn-small { padding: 0 16px; height: 36px; }
+.btn-small { height: 30px; padding: 0 10px; font-size: 13px; }
+.btn-flat {
+  background: transparent; color: #343434;
+  box-shadow: none; padding: 0 16px; height: 36px;
+}
+.btn-flat:hover { background: rgba(0,0,0,.07); }
+.btn-floating {
+  width: 36px; height: 36px; border-radius: 50%; padding: 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,.25);
+}
+.btn-floating.btn-small { width: 30px; height: 30px; }
+
+/* icon alignment inside buttons */
+.btn i.material-icons.left,
+.btn-flat i.material-icons.left,
+.btn-small i.material-icons.left { margin-right: 6px; font-size: 18px; }
+
+/* colour helpers */
+.blue    { background-color: #2196F3 !important; }
+.red     { background-color: #f44336 !important; }
+.green   { background-color: #4CAF50 !important; }
+.teal    { background-color: #009688 !important; }
+.orange  { background-color: #ff9800 !important; }
+.purple  { background-color: #9c27b0 !important; }
+.btn:hover, .btn-small:hover, .btn-floating:hover { filter: brightness(1.12); }
+
+/* --- Form elements ---------------------------------------- */
+.input-field { position: relative; margin-top: 1rem; margin-bottom: 1rem; }
+.input-field label { font-size: 0.9rem; color: #9e9e9e; }
+.input-field input[type=text],
+.input-field select {
+  width: 100%; box-sizing: border-box;
+  border: none; border-bottom: 1px solid #9e9e9e;
+  background: transparent;
+  font-size: 1rem; padding: 6px 0;
+  outline: none; transition: border-color .2s;
+}
+.input-field input[type=text]:focus,
+.input-field select:focus { border-bottom-color: #2196F3; }
+
+/* file-field */
+.file-field { display: flex; align-items: center; gap: 12px; }
+.file-field .btn {
+  flex-shrink: 0; position: relative; overflow: hidden;
+  height: 36px; padding: 0 16px; background: #26a69a; color: #fff;
+}
+.file-field .btn input[type=file] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+}
+.file-field .file-path-wrapper { flex: 1; }
+.file-field .file-path-wrapper input { width: 100%; border: none; border-bottom: 1px solid #9e9e9e; padding: 6px 0; outline: none; font-size: 1rem; }
+
+/* --- Toast notification ----------------------------------- */
+.toast-container {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 10000; pointer-events: none;
+}
+.toast {
+  background: #323232; color: #fff; padding: 12px 24px;
+  border-radius: 4px; margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  pointer-events: auto; font-size: 14px;
+  animation: toastIn .3s ease;
+}
+.toast.red.darken-2 { background: #c62828; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- Utility classes -------------------------------------- */
+.center-align { text-align: center; }
+.browser-default { -webkit-appearance: auto; appearance: auto; }
+

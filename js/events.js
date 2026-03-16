@@ -31,26 +31,12 @@ window.addEventListener('resize', () => {
    glo.engine.resize();
 });
 
-getById('univers_div').addEventListener('mouseenter', function(){
-	this.style.cursor = 'pointer';
-});
-getById('univers_div').addEventListener('mouseleave', function(){
-	this.style.cursor = 'auto';
-});
-getById('univers_div').addEventListener('click', function(){
-	glo.modalOpen = false;
-});
-
 function onCanvasPointerMove(e){
     glo.n++;
     stopRotAnim();
     if(glo.n > 20){ getById('renderCanvas').removeEventListener('pointermove', onCanvasPointerMove); delete glo.n; }
 }
 getById('renderCanvas').addEventListener('pointermove', onCanvasPointerMove);
-
-getById('resetBtn')?.addEventListener('click', () => {
-   w = 0;
-});
 
 getById('compileBtn')?.addEventListener('click', () => {
    // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT

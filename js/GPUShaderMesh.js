@@ -457,6 +457,14 @@ float a() {
 	return cos(8.0 * gu) * sin(8.0 * gv);
 }
 
+float ce(float c) {
+	return cos(exp(c*abs(gx))) * cos(exp(c*abs(gy))) * cos(exp(c*abs(gz)));
+}
+
+float se(float c) {
+	return sin(exp(c*abs(gx))) * sin(exp(c*abs(gy))) * sin(exp(c*abs(gz)));
+}
+
 // Fonction h() - hypot
 float h(float x, float y) {
 	return length(vec2(x, y));

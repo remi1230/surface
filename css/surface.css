@@ -177,7 +177,7 @@ kbd.functions_list {
 }
 
 .checkbox input {
-  display: none;
+  
 }
 
 .checkmark {
@@ -193,6 +193,34 @@ kbd.functions_list {
 
 #optShaderTitle{
   color: #b4b4b4;
+}
+
+/* Masquer la checkbox native */
+input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #999;
+  border-radius: 3px;
+  background-color: white;
+  cursor: pointer;
+}
+
+/* État coché */
+input[type="checkbox"]:checked {
+  background-color: #2196F3;
+  border-color: #2196F3;
+}
+
+/* Coche visible (optionnel) */
+input[type="checkbox"]:checked::after {
+  content: '✓';
+  color: white;
+  font-size: 14px;
+  display: block;
+  text-align: center;
+  line-height: 18px;
 }
 
 /* ============================================================

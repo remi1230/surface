@@ -6,12 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>SURFACE</title>
   <link rel="icon" type="image/png" href="logo.png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
   <link rel="stylesheet" href="css/materialize-icons.css">
   <link rel="stylesheet" href="css/monaco.css">
   <link rel="stylesheet" href="css/surface.css">
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs/loader.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/7.30.0/babylon.js" defer></script>
   <script src="https://unpkg.com/babylonjs-gui@6.0.0/babylon.gui.min.js" defer></script>
@@ -20,6 +18,7 @@
   <script src="https://unpkg.com/babylonjs-loaders@7.30.0/babylonjs.loaders.min.js" defer></script>
   
 
+  <script src="js/ui-components.js" defer></script>
   <script src="js/forms.js" defer></script>
   <script src="js/prototypes.js" defer></script>
   <script src="js/glo.js" defer></script>
@@ -42,17 +41,17 @@
     <canvas id="renderCanvas" touch-action="none"></canvas>
   </div>
 
-  <div id="helpModal" class="modal overflow-hidden">
+  <div id="helpModal" class="modal" style="min-width: 75%;  margin-top: -2%; ">
     <div class="modal-content">
-      <h4 class="modal-title center-align" id="helpModalLabel" style="padding: 12px; ">HELP</h4>
+      <h1 class="modal-title center-align" id="helpModalLabel" style="padding: 12px; ">HELP</h1>
       <div id="intro">
-        <h5 class="center-align">Play with curved surfaces, write an equation f(u,v) in the x, y, z input fields</h5>
+        <h3 class="center-align">Play with curved surfaces, write an equation f(u,v) in the x, y, z input fields</h3>
       </div>
       <div class="row">
         <div class="col m10 s12 offset-m1">
           <div id="help_interface_container">
             <div id="fonctions">
-              <h5>List of normal deformation functions :</h5>
+              <h4>List of normal deformation functions :</h4>
               <div class="row" id="liste_fonctions">
                 <div class="col m6 s12">
                   <h6 class="fonction_title"><kbd class="functions_list">m(coeff)</kbd></h6>
@@ -91,7 +90,7 @@
                   <span>step(GenType, GenType)</span>
                 </div>
               </div>
-              <div class="row" ><h5>Normal deformation consists of displacing each vertex of a mesh in the direction perpendicular to its surface.</h5></div>
+              <div class="row" ><h4>Normal deformation consists of displacing each vertex of a mesh in the direction perpendicular to its surface.</h4></div>
             </div>
           </div>
         </div>
@@ -101,7 +100,7 @@
 
   <div id="exportModal" class="modal overflow-hidden">
     <div class="modal-content">
-      <h4 id="exportTitle"><span>Export mesh - Weight in OBJ </span><span id="weightToDownload"></span></h4>
+      <h3 id="exportTitle"><span>Export mesh - Weight in OBJ </span><span id="weightToDownload"></span></h3>
       <div class="row">
         <div class="input-field col s8">
           <input placeholder="Filename" id="filename" type="text">
@@ -123,7 +122,7 @@
 
   <div id="importModal" class="modal overflow-hidden">
     <div class="modal-content">
-      <h4 style="text-align:center;">Import mesh</h4>
+      <h2 style="text-align:center;">Import mesh</h2>
       <div class="row">
         <div class="input-field col s12">
           <select id="importFormat" onchange="document.getElementById('jsonFileUpload').accept = this.value === 'json' ? '.json' : '.obj'">

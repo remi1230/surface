@@ -353,6 +353,8 @@ var glo = {
 		{ exp: /mod\*\(/g, upd: "mod(" },
 		{ exp: /\(\*/g, upd: "(" },
 		{ exp: /\)\*\)/g, upd: "))" },
+		{ exp: /\*=/g, upd: "=" },
+		{ exp: /\*</g, upd: "<" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){

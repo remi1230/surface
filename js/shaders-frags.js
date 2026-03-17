@@ -81,10 +81,12 @@ fragmentShaders = [
 `,
 `
     //Checkerboard
-    float val   = f(vPosition, P/32.0, time);
-    vec3 valCol = cpalette(val*4.0, cpalette(1.0/3.0, heatmap(val*4.0)));
+    float val   = f(vPosition * (opt1 == 0.0 ? vec3(1.0) : vNormal), P/32.0, time);
+    float c     = S/2.0;
+    vec3 valCol = cpalette(val*c, cpalette(1.0/(c/2.0), heatmap(val*c)));
 
-    col = vec3(val > 0.0 ? valCol : 1.0-valCol);
+    col = vec3(val > 0.0 ? valCol : vec3(1.0)-valCol);
+
 
 `,
 `

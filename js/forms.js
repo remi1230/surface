@@ -87,7 +87,7 @@ const formsToselect = [
         fx: "c(u+1)c(v+1.2)", fy: "s(u+1)c(v+1.2)", fz: "(9/7)sv", alpha: "", suit: true,
         orient: {axis: "X", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 8},
     },
-    {text: "Heart", typeCoords: 'cartesian', udef: 2*PI, vdef: PI, nb_steps_u: 128, nb_steps_v: 128, uvCoeff: {x: 0.0625, y: 2},
+    {text: "Heart", typeCoords: 'cartesian', udef: 2*PI, vdef: PI, nb_steps_u: 64, nb_steps_v: 64, uvCoeff: {x: 0.0625, y: 2},
         fx: "sv**3", fy: "-(13cv-5c(2v)-2c(3v)-c(4v))/16", fz: "u/128", alpha: "", suit: true,
         orient: {axis: "Z", direction: -1, alpha: 3*PI/4, beta: -7*PI/6, distance: 5},
     },

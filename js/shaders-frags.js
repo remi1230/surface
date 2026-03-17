@@ -222,184 +222,8 @@ fragmentShaders = [
 `
     // Seascape - adapted from "Seascape" by Alexander Alekseev aka TDM - 2014
     // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
-    // Uses surface UV as screen coordinates for raymarched ocean rendering
-
-    const int SEA_NUM_STEPS = 32;
-    const float SEA_PI = 3.141592;
-    const float SEA_EPSILON = 1e-3;
-    const int SEA_ITER_GEOMETRY = 3;
-    const int SEA_ITER_FRAGMENT = 5;
-    const float SEA_HEIGHT = 0.6;
-    const float SEA_CHOPPY = 4.0;
-    const float SEA_SPEED = 0.8;
-    const float SEA_FREQ = 0.16;
-    const vec3 SEA_BASE = vec3(0.0, 0.09, 0.18);
-    const vec3 SEA_WATER_COLOR = vec3(0.8, 0.9, 0.6) * 0.6;
-    const mat2 sea_octave_m = mat2(1.6, 1.2, -1.2, 1.6);
-
-    float seaTime = 1.0 + time * SEA_SPEED;
-
-    float sea_hash(vec2 p) {
-        float h = dot(p, vec2(127.1, 311.7));
-        return fract(sin(h) * 43758.5453123);
-    }
-
-    float sea_noise(vec2 p) {
-        vec2 i = floor(p);
-        vec2 f = fract(p);
-        vec2 u = f * f * (3.0 - 2.0 * f);
-        return -1.0 + 2.0 * mix(
-            mix(sea_hash(i + vec2(0.0, 0.0)), sea_hash(i + vec2(1.0, 0.0)), u.x),
-            mix(sea_hash(i + vec2(0.0, 1.0)), sea_hash(i + vec2(1.0, 1.0)), u.x),
-            u.y
-        );
-    }
-
-    float sea_diffuse(vec3 n, vec3 l, float p) {
-        return pow(dot(n, l) * 0.4 + 0.6, p);
-    }
-
-    float sea_specular(vec3 n, vec3 l, vec3 e, float s) {
-        float nrm = (s + 8.0) / (SEA_PI * 8.0);
-        return pow(max(dot(reflect(e, n), l), 0.0), s) * nrm;
-    }
-
-    vec3 sea_getSkyColor(vec3 e) {
-        float ey = (max(e.y, 0.0) * 0.8 + 0.2) * 0.8;
-        return vec3(pow(1.0 - ey, 2.0), 1.0 - ey, 0.6 + (1.0 - ey) * 0.4) * 1.1;
-    }
-
-    float sea_octave(vec2 uv, float choppy) {
-        uv += sea_noise(uv);
-        vec2 wv = 1.0 - abs(sin(uv));
-        vec2 swv = abs(cos(uv));
-        wv = mix(wv, swv, wv);
-        return pow(1.0 - pow(wv.x * wv.y, 0.65), choppy);
-    }
-
-    float sea_map(vec3 p) {
-        float freq = SEA_FREQ;
-        float amp = SEA_HEIGHT;
-        float choppy = SEA_CHOPPY;
-        vec2 uv = p.xz;
-        uv.x *= 0.75;
-        float d, h = 0.0;
-        for (int i = 0; i < SEA_ITER_GEOMETRY; i++) {
-            d = sea_octave((uv + seaTime) * freq, choppy);
-            d += sea_octave((uv - seaTime) * freq, choppy);
-            h += d * amp;
-            uv *= sea_octave_m;
-            freq *= 1.9;
-            amp *= 0.22;
-            choppy = mix(choppy, 1.0, 0.2);
-        }
-        return p.y - h;
-    }
-
-    float sea_map_detailed(vec3 p) {
-        float freq = SEA_FREQ;
-        float amp = SEA_HEIGHT;
-        float choppy = SEA_CHOPPY;
-        vec2 uv = p.xz;
-        uv.x *= 0.75;
-        float d, h = 0.0;
-        for (int i = 0; i < SEA_ITER_FRAGMENT; i++) {
-            d = sea_octave((uv + seaTime) * freq, choppy);
-            d += sea_octave((uv - seaTime) * freq, choppy);
-            h += d * amp;
-            uv *= sea_octave_m;
-            freq *= 1.9;
-            amp *= 0.22;
-            choppy = mix(choppy, 1.0, 0.2);
-        }
-        return p.y - h;
-    }
-
-    vec3 sea_getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
-        float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
-        fresnel = min(fresnel * fresnel * fresnel, 0.5);
-        vec3 reflected = sea_getSkyColor(reflect(eye, n));
-        vec3 refracted = SEA_BASE + sea_diffuse(n, l, 80.0) * SEA_WATER_COLOR * 0.12;
-        vec3 color = mix(refracted, reflected, fresnel);
-        float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
-        color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.18 * atten;
-        color += sea_specular(n, l, eye, 600.0 * inversesqrt(dot(dist, dist)));
-        return color;
-    }
-
-    vec3 sea_getNormal(vec3 p, float eps) {
-        vec3 n;
-        n.y = sea_map_detailed(p);
-        n.x = sea_map_detailed(vec3(p.x + eps, p.y, p.z)) - n.y;
-        n.z = sea_map_detailed(vec3(p.x, p.y, p.z + eps)) - n.y;
-        n.y = eps;
-        return normalize(n);
-    }
-
-    float sea_heightMapTracing(vec3 ori, vec3 dir, out vec3 p) {
-        float tm = 0.0;
-        float tx = 1000.0;
-        float hx = sea_map(ori + dir * tx);
-        if (hx > 0.0) {
-            p = ori + dir * tx;
-            return tx;
-        }
-        float hm = sea_map(ori);
-        for (int i = 0; i < SEA_NUM_STEPS; i++) {
-            float tmid = mix(tm, tx, hm / (hm - hx));
-            p = ori + dir * tmid;
-            float hmid = sea_map(p);
-            if (hmid < 0.0) {
-                tx = tmid;
-                hx = hmid;
-            } else {
-                tm = tmid;
-                hm = hmid;
-            }
-            if (abs(hmid) < SEA_EPSILON) break;
-        }
-        return mix(tm, tx, hm / (hm - hx));
-    }
-
-    mat3 sea_fromEuler(vec3 ang) {
-        vec2 a1 = vec2(sin(ang.x), cos(ang.x));
-        vec2 a2 = vec2(sin(ang.y), cos(ang.y));
-        vec2 a3 = vec2(sin(ang.z), cos(ang.z));
-        mat3 m;
-        m[0] = vec3(a1.y*a3.y + a1.x*a2.x*a3.x, a1.y*a2.x*a3.x + a3.y*a1.x, -a2.y*a3.x);
-        m[1] = vec3(-a2.y*a1.x, a1.y*a2.y, a2.x);
-        m[2] = vec3(a3.y*a1.x*a2.x + a1.y*a3.x, a1.x*a3.x - a1.y*a3.y*a2.x, a2.y*a3.y);
-        return m;
-    }
-
-    // Main seascape rendering
-    float seaAspect = 16.0 / 9.0;
-    float seaTimeAnim = time * 0.3;
-    vec2 seaUV = vUV * 2.0 - 1.0;
-    seaUV.x *= seaAspect;
-
-    vec3 seaAng = vec3(sin(seaTimeAnim * 3.0) * 0.1, sin(seaTimeAnim) * 0.2 + 0.3, seaTimeAnim);
-    vec3 seaOri = vec3(0.0, 3.5, seaTimeAnim * 5.0);
-    vec3 seaDir = normalize(vec3(seaUV.xy, -2.0));
-    seaDir.z += length(seaUV) * 0.14;
-    seaDir = normalize(seaDir) * sea_fromEuler(seaAng);
-
-    vec3 seaP;
-    sea_heightMapTracing(seaOri, seaDir, seaP);
-    vec3 seaDist = seaP - seaOri;
-    float seaEpsNrm = 0.1 / 800.0;
-    vec3 seaN = sea_getNormal(seaP, dot(seaDist, seaDist) * seaEpsNrm);
-    vec3 seaLight = normalize(vec3(0.0, 1.0, 0.8));
-
-    col = mix(
-        sea_getSkyColor(seaDir),
-        sea_getSeaColor(seaP, seaN, seaLight, seaDir, seaDist),
-        pow(smoothstep(0.0, -0.02, seaDir.y), 0.2)
-    );
-
-    // Gamma correction
+    col = sea_getPixel(vUV, time * 0.3);
     col = pow(col, vec3(0.65));
-
 `,
 
 ];
@@ -775,6 +599,185 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 specular = spec * vec3(0.3) * att;
 
     return ambient + diffuse + specular;
+}
+
+// ==================== SEASCAPE FUNCTIONS ====================
+// Adapted from "Seascape" by Alexander Alekseev aka TDM - 2014
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
+
+const int SEA_NUM_STEPS = 32;
+const float SEA_PI = 3.141592;
+const float SEA_EPSILON = 1e-3;
+const int SEA_ITER_GEOMETRY = 3;
+const int SEA_ITER_FRAGMENT = 5;
+const float SEA_HEIGHT = 0.6;
+const float SEA_CHOPPY = 4.0;
+const float SEA_SPEED = 0.8;
+const float SEA_FREQ = 0.16;
+const vec3 SEA_BASE = vec3(0.0, 0.09, 0.18);
+const vec3 SEA_WATER_COLOR = vec3(0.8, 0.9, 0.6) * 0.6;
+const mat2 sea_octave_m = mat2(1.6, 1.2, -1.2, 1.6);
+
+float sea_getTime() { return 1.0 + time * SEA_SPEED; }
+
+float sea_hash(vec2 p) {
+    float h = dot(p, vec2(127.1, 311.7));
+    return fract(sin(h) * 43758.5453123);
+}
+
+float sea_noise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    return -1.0 + 2.0 * mix(
+        mix(sea_hash(i + vec2(0.0, 0.0)), sea_hash(i + vec2(1.0, 0.0)), u.x),
+        mix(sea_hash(i + vec2(0.0, 1.0)), sea_hash(i + vec2(1.0, 1.0)), u.x),
+        u.y
+    );
+}
+
+float sea_diffuse(vec3 n, vec3 l, float p) {
+    return pow(dot(n, l) * 0.4 + 0.6, p);
+}
+
+float sea_specular(vec3 n, vec3 l, vec3 e, float s) {
+    float nrm = (s + 8.0) / (SEA_PI * 8.0);
+    return pow(max(dot(reflect(e, n), l), 0.0), s) * nrm;
+}
+
+vec3 sea_getSkyColor(vec3 e) {
+    float ey = (max(e.y, 0.0) * 0.8 + 0.2) * 0.8;
+    return vec3(pow(1.0 - ey, 2.0), 1.0 - ey, 0.6 + (1.0 - ey) * 0.4) * 1.1;
+}
+
+float sea_octave(vec2 uv, float choppy) {
+    uv += sea_noise(uv);
+    vec2 wv = 1.0 - abs(sin(uv));
+    vec2 swv = abs(cos(uv));
+    wv = mix(wv, swv, wv);
+    return pow(1.0 - pow(wv.x * wv.y, 0.65), choppy);
+}
+
+float sea_map(vec3 p) {
+    float seaTime = sea_getTime();
+    float freq = SEA_FREQ;
+    float amp = SEA_HEIGHT;
+    float choppy = SEA_CHOPPY;
+    vec2 uv = p.xz;
+    uv.x *= 0.75;
+    float d, h = 0.0;
+    for (int i = 0; i < SEA_ITER_GEOMETRY; i++) {
+        d = sea_octave((uv + seaTime) * freq, choppy);
+        d += sea_octave((uv - seaTime) * freq, choppy);
+        h += d * amp;
+        uv *= sea_octave_m;
+        freq *= 1.9;
+        amp *= 0.22;
+        choppy = mix(choppy, 1.0, 0.2);
+    }
+    return p.y - h;
+}
+
+float sea_map_detailed(vec3 p) {
+    float seaTime = sea_getTime();
+    float freq = SEA_FREQ;
+    float amp = SEA_HEIGHT;
+    float choppy = SEA_CHOPPY;
+    vec2 uv = p.xz;
+    uv.x *= 0.75;
+    float d, h = 0.0;
+    for (int i = 0; i < SEA_ITER_FRAGMENT; i++) {
+        d = sea_octave((uv + seaTime) * freq, choppy);
+        d += sea_octave((uv - seaTime) * freq, choppy);
+        h += d * amp;
+        uv *= sea_octave_m;
+        freq *= 1.9;
+        amp *= 0.22;
+        choppy = mix(choppy, 1.0, 0.2);
+    }
+    return p.y - h;
+}
+
+vec3 sea_getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+    float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
+    fresnel = min(fresnel * fresnel * fresnel, 0.5);
+    vec3 reflected = sea_getSkyColor(reflect(eye, n));
+    vec3 refracted = SEA_BASE + sea_diffuse(n, l, 80.0) * SEA_WATER_COLOR * 0.12;
+    vec3 color = mix(refracted, reflected, fresnel);
+    float atten = max(1.0 - dot(dist, dist) * 0.001, 0.0);
+    color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.18 * atten;
+    color += sea_specular(n, l, eye, 600.0 * inversesqrt(dot(dist, dist)));
+    return color;
+}
+
+vec3 sea_getNormal(vec3 p, float eps) {
+    vec3 n;
+    n.y = sea_map_detailed(p);
+    n.x = sea_map_detailed(vec3(p.x + eps, p.y, p.z)) - n.y;
+    n.z = sea_map_detailed(vec3(p.x, p.y, p.z + eps)) - n.y;
+    n.y = eps;
+    return normalize(n);
+}
+
+float sea_heightMapTracing(vec3 ori, vec3 dir, out vec3 p) {
+    float tm = 0.0;
+    float tx = 1000.0;
+    float hx = sea_map(ori + dir * tx);
+    if (hx > 0.0) {
+        p = ori + dir * tx;
+        return tx;
+    }
+    float hm = sea_map(ori);
+    for (int i = 0; i < SEA_NUM_STEPS; i++) {
+        float tmid = mix(tm, tx, hm / (hm - hx));
+        p = ori + dir * tmid;
+        float hmid = sea_map(p);
+        if (hmid < 0.0) {
+            tx = tmid;
+            hx = hmid;
+        } else {
+            tm = tmid;
+            hm = hmid;
+        }
+        if (abs(hmid) < SEA_EPSILON) break;
+    }
+    return mix(tm, tx, hm / (hm - hx));
+}
+
+mat3 sea_fromEuler(vec3 ang) {
+    vec2 a1 = vec2(sin(ang.x), cos(ang.x));
+    vec2 a2 = vec2(sin(ang.y), cos(ang.y));
+    vec2 a3 = vec2(sin(ang.z), cos(ang.z));
+    mat3 m;
+    m[0] = vec3(a1.y*a3.y + a1.x*a2.x*a3.x, a1.y*a2.x*a3.x + a3.y*a1.x, -a2.y*a3.x);
+    m[1] = vec3(-a2.y*a1.x, a1.y*a2.y, a2.x);
+    m[2] = vec3(a3.y*a1.x*a2.x + a1.y*a3.x, a1.x*a3.x - a1.y*a3.y*a2.x, a2.y*a3.y);
+    return m;
+}
+
+vec3 sea_getPixel(vec2 uv, float seaTimeAnim) {
+    float seaAspect = 16.0 / 9.0;
+    uv = uv * 2.0 - 1.0;
+    uv.x *= seaAspect;
+
+    vec3 ang = vec3(sin(seaTimeAnim * 3.0) * 0.1, sin(seaTimeAnim) * 0.2 + 0.3, seaTimeAnim);
+    vec3 ori = vec3(0.0, 3.5, seaTimeAnim * 5.0);
+    vec3 dir = normalize(vec3(uv.xy, -2.0));
+    dir.z += length(uv) * 0.14;
+    dir = normalize(dir) * sea_fromEuler(ang);
+
+    vec3 p;
+    sea_heightMapTracing(ori, dir, p);
+    vec3 dist = p - ori;
+    float seaEpsNrm = 0.1 / 800.0;
+    vec3 n = sea_getNormal(p, dot(dist, dist) * seaEpsNrm);
+    vec3 light = normalize(vec3(0.0, 1.0, 0.8));
+
+    return mix(
+        sea_getSkyColor(dir),
+        sea_getSeaColor(p, n, light, dir, dist),
+        pow(smoothstep(0.0, -0.02, dir.y), 0.2)
+    );
 }
 `;
 }

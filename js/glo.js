@@ -11,6 +11,14 @@ const defaultTheme = {
 
 defaultTheme.pickerColorLine = defaultTheme.pickerColorMeshBg.inv();
 
+defaultTheme.apply = function() {
+    for (let themeName in this) {
+        if (typeof this[themeName] !== 'function') {
+            glo.allControls.getByName(themeName).value = defaultTheme[themeName];
+        }
+    }
+};
+
 let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
 let fragmentShaders = [];
@@ -357,6 +365,8 @@ var glo = {
 		{ exp: /\*</g, upd: "<" },
 		{ exp: /ce\*\(/g, upd: "ce(" },
 		{ exp: /se\*\(/g, upd: "se(" },
+		{ exp: /fra\(\)\*cos\(t\)\*\(/g, upd: "fract(" },
+		{ exp: /flogo\(\)\*o\(\)\*r/g, upd: "floor" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){
@@ -707,6 +717,7 @@ var glo = {
 				}
 			},
 		],
+		pickerColorsEndNames: ['Background', 'Button', 'MeshBg', 'Line'],
 		getCurrentTheme: function(){ return this.themes[this.themeSelectIndex]; },
 		getNextTheme: function(next = true) {
 			const length = this.themes.length;
@@ -719,14 +730,16 @@ var glo = {
 
 			return this.getCurrentTheme();
 		},
+		applyTheme: function(theme){
+			this.pickerColorsEndNames.forEach(pickerColorEndName => {
+				glo.allControls.getByName('pickerColor' + pickerColorEndName).value = theme['pickerColor' + pickerColorEndName];
+			});
+		},
 		activateNextTheme: function(next = true) {
 			const themeSelect       = this.getNextTheme(next);
 			const themeSelectColors = themeSelect.colors;
 
-			glo.allControls.getByName('pickerColorBackground').value = themeSelectColors.pickerColorBackground;
-			glo.allControls.getByName('pickerColorButton').value     = themeSelectColors.pickerColorButton;
-			glo.allControls.getByName('pickerColorMeshBg').value     = themeSelectColors.pickerColorMeshBg;
-			glo.allControls.getByName('pickerColorLine').value       = themeSelectColors.pickerColorLine;
+			this.applyTheme(themeSelectColors);
 
 			if(themeSelect.name === 'Default'){
 				intiColorUI();

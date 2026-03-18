@@ -74,6 +74,13 @@ function hslToBabylonColor3(h, s, l) {
     );
 }
 
+function applyTheme(theme){
+    glo.allControls.getByName('pickerColorBackground').value = theme.bgColor;
+    glo.allControls.getByName('pickerColorButton').value     = theme.btnColor;
+    glo.allControls.getByName('pickerColorMeshBg').value     = theme.meshColor;
+    glo.allControls.getByName('pickerColorLine').value       = theme.lineColor;
+}
+
 /**
  * Applique le thème à l'UI
  */
@@ -88,10 +95,7 @@ function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel)
             : new BABYLON.Color3(0.95, 0.95, 0.95);
     }
 
-    glo.allControls.getByName('pickerColorBackground').value = theme.bgColor;
-    glo.allControls.getByName('pickerColorButton').value     = theme.btnColor;
-    glo.allControls.getByName('pickerColorMeshBg').value     = theme.meshColor;
-    glo.allControls.getByName('pickerColorLine').value       = theme.lineColor;
+    applyTheme(theme);
 }
 
 function randomize_colors_app(){
@@ -101,10 +105,7 @@ function randomize_colors_app(){
 }
 
 function intiColorUI(){
-	glo.allControls.getByName('pickerColorBackground').value = defaultTheme.pickerColorBackground;
-	glo.allControls.getByName('pickerColorMeshBg').value     = defaultTheme.pickerColorMeshBg;
-	glo.allControls.getByName('pickerColorButton').value     = defaultTheme.pickerColorButton;
-	glo.allControls.getByName('pickerColorLine').value       = defaultTheme.pickerColorLine;
+	defaultTheme.apply();
 
 	glo.allControls.haveThisClass('button').forEach(button => {
 	  button.color = glo.buttons_color;

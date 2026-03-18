@@ -756,28 +756,24 @@ mat3 sea_fromEuler(vec3 ang) {
 }
 
 vec3 sea_getPixel(vec2 uv, float seaTimeAnim) {
-    float seaAspect = 16.0 / 9.0;
-    uv = uv * 2.0 - 1.0;
-    uv.x *= seaAspect;
+    // Map UV directly to world xz coordinates (flat top-down sampling)
+    float scale = 12.0;
+    vec2 worldXZ = (uv * 2.0 - 1.0) * scale;
+    worldXZ.y += seaTimeAnim * 5.0; // drift forward over time
 
-    vec3 ang = vec3(sin(seaTimeAnim * 3.0) * 0.1, sin(seaTimeAnim) * 0.2 + 0.3, seaTimeAnim);
-    vec3 ori = vec3(0.0, 3.5, seaTimeAnim * 5.0);
-    vec3 dir = normalize(vec3(uv.xy, -2.0));
-    dir.z += length(uv) * 0.14;
-    dir = normalize(dir) * sea_fromEuler(ang);
+    // Evaluate ocean height field directly (no raymarching)
+    vec3 p = vec3(worldXZ.x, 0.0, worldXZ.y);
+    p.y = -sea_map(p); // sea_map returns p.y - h, so at y=0 => -(-h) = h
 
-    vec3 p;
-    sea_heightMapTracing(ori, dir, p);
-    vec3 dist = p - ori;
-    float seaEpsNrm = 0.1 / 800.0;
-    vec3 n = sea_getNormal(p, dot(dist, dist) * seaEpsNrm);
+    // Normal and lighting
+    float eps = 0.002;
+    vec3 n = sea_getNormal(p, eps);
+    vec3 eye = normalize(vec3(0.0, 1.0, 0.3));  // looking down at slight angle
     vec3 light = normalize(vec3(0.0, 1.0, 0.8));
+    vec3 dist = vec3(0.0, 5.0, 0.0);
 
-    return mix(
-        sea_getSkyColor(dir),
-        sea_getSeaColor(p, n, light, dir, dist),
-        pow(smoothstep(0.0, -0.02, dir.y), 0.2)
-    );
+    // Ocean color only, no sky blend
+    return sea_getSeaColor(p, n, light, eye, dist);
 }
 `;
 }

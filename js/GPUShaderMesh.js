@@ -31,8 +31,8 @@ class GPUShaderMeshComputer {
 		let result = expr;
 
 		// Substituer X et Y par les expressions Eval X et Eval Y
-		const evalX = glo.params.text_input_eval_x;
-		const evalY = glo.params.text_input_eval_y;
+		const evalX = `(${glo.params.text_input_eval_x})`;
+		const evalY = `(${glo.params.text_input_eval_y})`;
 		if (evalX && evalX.trim() !== '') {
 			result = result.replace(/X/g, evalX);
 		}

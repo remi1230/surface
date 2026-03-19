@@ -535,6 +535,15 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
     panel.addControl(button);
 }
 
+function createSpacer(height = "20px") {
+    const spacer = new BABYLON.GUI.Rectangle();
+    spacer.width = "1px";
+    spacer.height = height;
+    spacer.thickness = 0;
+    spacer.background = "transparent";
+    return spacer;
+}
+
 function add_shaders_ctrl(){
   const paramsPanels = {
     shaders: {
@@ -1781,6 +1790,14 @@ function add_eleventh_panel_sliders(){
   addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotate_speed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){
     glo.rotate_speed = value;
   }, "sixth", "sixth");
+
+  panelRotateCamera.addControl(createSpacer("15px"));
+
+  addButton("'sixth'", panelRotateCamera, "rotateViewButton", "+ ROT", 79.5, buttonSizes.height, 0, 0, function(value){
+    glo.camera.alpha += PI/4;
+  }, function(value){
+    glo.camera.alpha -= PI/4;
+  });
 }
 
 function add_transformation_sliders(){

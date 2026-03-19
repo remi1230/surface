@@ -241,7 +241,7 @@ async function exportMesh(exportFormat) {
         strMesh = JSON.stringify(glo.params);
     }
     else if (exportFormat === "stl") {
-        await exportMeshToSTL(glo.ribbon);
+        await exportMeshToSTL(glo.ribbon, filename);
         M.Modal.getInstance(document.querySelector('#exportModal')).close();
         return false;
     }

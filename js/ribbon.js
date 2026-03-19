@@ -48,7 +48,7 @@ function getPathsInfos(){
 	glo.pathsInfos = {u: (glo.params.steps_u + 1) * coeffSym, v: glo.params.steps_v + 1};
 }
 
-async function exportMeshToSTL(mesh){
+async function exportMeshToSTL(mesh, filename){
 	let meshForSTL = mesh;
 
 	// Si c'est un shader mesh, extraire les positions réelles du GPU
@@ -60,7 +60,7 @@ async function exportMeshToSTL(mesh){
 		}
 	}
 
-	let stlString = BABYLON.STLExport.CreateSTL([meshForSTL], true, true);
+	let stlString = BABYLON.STLExport.CreateSTL([meshForSTL], false, true);
 
 	// Nettoyer le mesh temporaire d'export
 	if (meshForSTL !== mesh) {
@@ -70,7 +70,7 @@ async function exportMeshToSTL(mesh){
 	let blob = new Blob([stlString], { type: 'text/plain' });
 	let link = document.createElement('a');
 	link.href = URL.createObjectURL(blob);
-	link.download = 'export.stl';
+	link.download = filename;
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);

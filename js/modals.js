@@ -239,7 +239,12 @@ async function exportMesh(exportFormat) {
         glo.params.shaderCode = fragmentShaders[glo.numShaderSelect];
 
         strMesh = JSON.stringify(glo.params);
-    } 
+    }
+    else if (exportFormat === "stl") {
+        await exportMeshToSTL(glo.ribbon, filename);
+        M.Modal.getInstance(document.querySelector('#exportModal')).close();
+        return false;
+    }
     else {
         // Pour les shader meshes, extraire les positions réelles du GPU
         let exportMeshRef = null;
@@ -255,7 +260,7 @@ async function exportMesh(exportFormat) {
         await meshToExport.bakeCurrentTransformIntoVertices();
 
         strMesh = BABYLON.OBJExport.OBJ([meshToExport]);
-        
+
         // Nettoyer le mesh temporaire d'export
         if (exportMeshRef) {
             exportMeshRef.dispose();

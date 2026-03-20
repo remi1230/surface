@@ -230,20 +230,27 @@ fragmentShaders = [
 `,
 `
     //Starfield
-    vec2 M = vec2(0);
-    //M -= vec2(M.x+sin(time*0.22), M.y-cos(time*0.22));
+    vec3 blend = abs(normalize(vNormal));
+    blend = pow(blend, vec3(8.0));
+    blend /= (blend.x + blend.y + blend.z);
+
+    float NUM_LAYERS = 3.0;
     float t = time*0.005;
 
-    col = vec3 (0.0);
-    for(float i=0.; i<1.; i+=1./8.){
+    vec3 colXY = vec3(0.0);
+    vec3 colXZ = vec3(0.0);
+    vec3 colYZ = vec3(0.0);
+    for(float i=0.; i<1.; i+=1./NUM_LAYERS){
         float depth = fract(i+t);
         float scale = mix(20., .5, depth);
         float fade = depth*smoothstep(1.,.9,depth);
-        col += StarLayer(vUV*scale+i*453.2-time*.05+M)*fade;
+        float off = i*453.2-time*.05;
+        if(blend.z > 0.05) colXY += StarLayer(vPosition.xy*scale+off)*fade;
+        if(blend.y > 0.05) colXZ += StarLayer(vPosition.xz*scale+off)*fade;
+        if(blend.x > 0.05) colYZ += StarLayer(vPosition.yz*scale+off)*fade;
     }
 
-    col *= 1.37;
-
+    col = (colXY*blend.z + colXZ*blend.y + colYZ*blend.x) * 1.37 * (6.0/NUM_LAYERS);
 
 `,
 
@@ -462,6 +469,10 @@ vec2 random2( vec2 p ) {
 
 float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float hash31(vec3 p) {
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
 }
 
 float Star(vec2 uv, float flare){

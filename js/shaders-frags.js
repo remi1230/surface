@@ -246,6 +246,21 @@ fragmentShaders = [
 
 
 `,
+`
+    //Starfield 3D
+    float t3 = time*0.005;
+
+    col = vec3(0.0);
+    for(float i=0.; i<1.; i+=1./6.){
+        float depth = fract(i+t3);
+        float scale = mix(15., .5, depth);
+        float fade = depth*smoothstep(1.,.9,depth);
+        col += StarLayer3(vPosition*scale+i*453.2-time*.05)*fade;
+    }
+
+    col *= 1.37;
+
+`,
 
 ];
 
@@ -464,6 +479,10 @@ float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
+float hash31(vec3 p) {
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+
 float Star(vec2 uv, float flare){
     float d = length(uv);
   	float m = sin(0.025*1.2)/d;  
@@ -488,6 +507,40 @@ vec3 StarLayer(vec2 uv){
             color = color*vec3(.9,.59,.9+size);
             star *= sin(time*.6+n*TAU)*.5+.5;
             col += star*size*color;
+        }
+    }
+    return col;
+}
+
+float Star3(vec3 pos, float flare){
+    float d = length(pos);
+    float m = sin(0.025*1.2)/d;
+    float rays = max(0., .5-abs(pos.x*pos.y*1000.));
+    rays += max(0., .5-abs(pos.y*pos.z*1000.));
+    rays += max(0., .5-abs(pos.x*pos.z*1000.));
+    m += (rays*flare)*2.;
+    m *= smoothstep(1., .1, d);
+    return m;
+}
+
+vec3 StarLayer3(vec3 pos){
+    float TAU = 6.28318;
+    vec3 col = vec3(0);
+    vec3 gv = fract(pos);
+    vec3 id = floor(pos);
+    for(int z=-1;z<=1;z++){
+        for(int y=-1;y<=1;y++){
+            for(int x=-1; x<=1; x++){
+                vec3 offs = vec3(x,y,z);
+                float n = hash31(id+offs);
+                float size = fract(n);
+                vec3 starPos = gv - offs - vec3(n, fract(n*34.), fract(n*73.)) + .5;
+                float star = Star3(starPos, smoothstep(.1,.9,size)*.46);
+                vec3 color = sin(vec3(.2,.3,.9)*fract(n*2345.2)*TAU)*.25+.75;
+                color = color*vec3(.9,.59,.9+size);
+                star *= sin(time*.6+n*TAU)*.5+.5;
+                col += star*size*color;
+            }
         }
     }
     return col;

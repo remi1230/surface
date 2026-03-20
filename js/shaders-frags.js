@@ -219,6 +219,33 @@ fragmentShaders = [
     if(length(col) > T+0.85){ discard; }
 
 `,
+`
+    //Random Perlin
+    float c = noise_perlin(vPosition+time*0.25);
+    float k = S/4.0;
+    vec3 col1 = rainbow(c*k);
+    vec3 col2 = palette(c*k);
+
+    col = cross(col1, col2);
+`,
+`
+    //Starfield
+    vec2 M = vec2(0);
+    //M -= vec2(M.x+sin(time*0.22), M.y-cos(time*0.22));
+    float t = time*0.005;
+
+    col = vec3 (0.0);
+    for(float i=0.; i<1.; i+=1./8.){
+        float depth = fract(i+t);
+        float scale = mix(20., .5, depth);
+        float fade = depth*smoothstep(1.,.9,depth);
+        col += StarLayer(vUV*scale+i*453.2-time*.05+M)*fade;
+    }
+
+    col *= 1.37;
+
+
+`,
 
 ];
 
@@ -295,6 +322,37 @@ vec3 light(vec3 lampPos, vec3 baseColor) {
     vec3 ambient = vec3(0.05);
 
     return ambient + diffuse + specular;
+}
+
+vec3 random_perlin( vec3 p ) {
+    p = vec3(
+            dot(p,vec3(127.1,311.7,69.5)),
+            dot(p,vec3(269.5,183.3,132.7)), 
+            dot(p,vec3(247.3,108.5,96.5)) 
+            );
+    return -1.0 + 2.0*fract(sin(p)*43758.5453123);
+}
+
+float noise_perlin (vec3 p) {
+    vec3 i = floor(p);
+    vec3 s = fract(p);
+
+    float a = dot(random_perlin(i),s);
+    float b = dot(random_perlin(i + vec3(1, 0, 0)),s - vec3(1, 0, 0));
+    float c = dot(random_perlin(i + vec3(0, 1, 0)),s - vec3(0, 1, 0));
+    float d = dot(random_perlin(i + vec3(0, 0, 1)),s - vec3(0, 0, 1));
+    float e = dot(random_perlin(i + vec3(1, 1, 0)),s - vec3(1, 1, 0));
+    float f = dot(random_perlin(i + vec3(1, 0, 1)),s - vec3(1, 0, 1));
+    float g = dot(random_perlin(i + vec3(0, 1, 1)),s - vec3(0, 1, 1));
+    float h = dot(random_perlin(i + vec3(1, 1, 1)),s - vec3(1, 1, 1));
+
+    // Smooth Interpolation
+    vec3 u = smoothstep(0.,1.,s);
+
+    return mix(mix(mix( a, b, u.x),
+                mix( c, e, u.x), u.y),
+            mix(mix( d, f, u.x),
+                mix( g, h, u.x), u.y), u.z);
 }
 
 float cpow(float val, float p) {
@@ -404,6 +462,35 @@ vec2 random2( vec2 p ) {
 
 float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float Star(vec2 uv, float flare){
+    float d = length(uv);
+  	float m = sin(0.025*1.2)/d;  
+    float rays = max(0., .5-abs(uv.x*uv.y*1000.)); 
+    m += (rays*flare)*2.;
+    m *= smoothstep(1., .1, d);
+    return m;
+}
+
+vec3 StarLayer(vec2 uv){
+    float TAU = 6.28318;
+    vec3 col = vec3(0);
+    vec2 gv = fract(uv);
+    vec2 id = floor(uv);
+    for(int y=-1;y<=1;y++){
+        for(int x=-1; x<=1; x++){
+            vec2 offs = vec2(x,y);
+            float n = hash21(id+offs);
+            float size = fract(n);
+            float star = Star(gv-offs-vec2(n, fract(n*34.))+.5, smoothstep(.1,.9,size)*.46);
+            vec3 color = sin(vec3(.2,.3,.9)*fract(n*2345.2)*TAU)*.25+.75;
+            color = color*vec3(.9,.59,.9+size);
+            star *= sin(time*.6+n*TAU)*.5+.5;
+            col += star*size*color;
+        }
+    }
+    return col;
 }
 
 float noise(vec2 p) {

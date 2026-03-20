@@ -248,18 +248,26 @@ fragmentShaders = [
 `,
 `
     //Starfield 3D
-    vec2 uvPos = vPosition.xz;
+    vec3 blend = abs(normalize(vNormal));
+    blend = pow(blend, vec3(4.0));
+    blend /= (blend.x + blend.y + blend.z);
+
     float t = time*0.005;
 
-    col = vec3(0.0);
+    vec3 colXY = vec3(0.0);
+    vec3 colXZ = vec3(0.0);
+    vec3 colYZ = vec3(0.0);
     for(float i=0.; i<1.; i+=1./8.){
         float depth = fract(i+t);
         float scale = mix(20., .5, depth);
         float fade = depth*smoothstep(1.,.9,depth);
-        col += StarLayer(uvPos*scale+i*453.2-time*.05)*fade;
+        float off = i*453.2-time*.05;
+        colXY += StarLayer(vPosition.xy*scale+off)*fade;
+        colXZ += StarLayer(vPosition.xz*scale+off)*fade;
+        colYZ += StarLayer(vPosition.yz*scale+off)*fade;
     }
 
-    col *= 1.37;
+    col = (colXY*blend.z + colXZ*blend.y + colYZ*blend.x) * 1.37;
 
 `,
 

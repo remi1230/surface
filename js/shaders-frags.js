@@ -248,8 +248,7 @@ fragmentShaders = [
 `,
 `
     //Starfield 3D
-    vec3 nPos = normalize(vPosition);
-    vec2 uvPos = nPos.xy / (1.0 + abs(nPos.z));
+    vec2 uvPos = vPosition.xz;
     float t = time*0.005;
 
     col = vec3(0.0);

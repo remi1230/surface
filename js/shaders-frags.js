@@ -247,27 +247,25 @@ fragmentShaders = [
 
 `,
 `
-    //Starfield 3D
-    vec3 blend = abs(normalize(vNormal));
-    blend = pow(blend, vec3(4.0));
-    blend /= (blend.x + blend.y + blend.z);
+    //Starfield 3D – single dominant projection for performance
+    vec3 aN = abs(normalize(vNormal));
+    vec2 uvPos;
+    if(aN.y >= aN.x && aN.y >= aN.z)      uvPos = vPosition.xz;
+    else if(aN.x >= aN.y && aN.x >= aN.z) uvPos = vPosition.yz;
+    else                                    uvPos = vPosition.xy;
 
+    float NUM_LAYERS = 4.0;
     float t = time*0.005;
 
-    vec3 colXY = vec3(0.0);
-    vec3 colXZ = vec3(0.0);
-    vec3 colYZ = vec3(0.0);
-    for(float i=0.; i<1.; i+=1./8.){
+    col = vec3(0.0);
+    for(float i=0.; i<1.; i+=1./NUM_LAYERS){
         float depth = fract(i+t);
         float scale = mix(20., .5, depth);
         float fade = depth*smoothstep(1.,.9,depth);
-        float off = i*453.2-time*.05;
-        colXY += StarLayer(vPosition.xy*scale+off)*fade;
-        colXZ += StarLayer(vPosition.xz*scale+off)*fade;
-        colYZ += StarLayer(vPosition.yz*scale+off)*fade;
+        col += StarLayer(uvPos*scale+i*453.2-time*.05)*fade;
     }
 
-    col = (colXY*blend.z + colXZ*blend.y + colYZ*blend.x) * 1.37;
+    col *= 1.37 * (8.0/NUM_LAYERS);
 
 `,
 

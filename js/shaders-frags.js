@@ -743,6 +743,7 @@ void main(){
 `;
 
 fragmentShaderFooter = `
+    // __FOOTER_START__
     //Checkerboard
     if(U < 2.0 && length(col) > U){ discard; }
 

@@ -56,7 +56,7 @@ const ShaderCRUD = {
 
         // Chercher un commentaire en première ligne (après les espaces/sauts de ligne)
         const trimmed = shaderCode.trim();
-        const match = trimmed.match(/^\/\/\s*(.+)/);
+        const match = trimmed.match(/\/\/\s*(.+)/);
 
         if (match && match[1]) {
             return match[1].trim();
@@ -250,7 +250,7 @@ const ShaderCRUD = {
 
         const afterMain = fullCode.substring(mainPos + 12);
 
-        const footerPos = afterMain.indexOf('if(invcol');
+        const footerPos = afterMain.indexOf('col = mix(col, vec3(1.0)-col, invcol);');
         if (footerPos === -1) return '';
 
         return afterMain.substring(0, footerPos);
@@ -271,7 +271,7 @@ const ShaderCRUD = {
 
         const newFragment = `
     // ${shaderName}
-    vec3 col = palette(length(npos()));
+    col = vec3(1.0);
 `;
 
         this.populateSelect();

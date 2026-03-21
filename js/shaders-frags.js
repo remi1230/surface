@@ -221,10 +221,10 @@ fragmentShaders = [
 `,
 `
     //Random Perlin
-    float c = noise_perlin(vPosition+time*0.25);
+    float c = noise_perlin(S/12.0*2.7*vPosition+time*0.25);
     float k = S/4.0;
-    vec3 col1 = rainbow(c*k);
-    vec3 col2 = palette(c*k);
+    vec3 col1 = rainbow(c*k*0.75);
+    vec3 col2 = palette(c*k*0.5);
 
     col = cross(col1, col2);
 `,
@@ -743,6 +743,7 @@ void main(){
 `;
 
 fragmentShaderFooter = `
+    // __FOOTER_START__
     //Checkerboard
     if(U < 2.0 && length(col) > U){ discard; }
 

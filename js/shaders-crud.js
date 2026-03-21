@@ -250,7 +250,7 @@ const ShaderCRUD = {
 
         const afterMain = fullCode.substring(mainPos + 12);
 
-        const footerPos = afterMain.indexOf('col = mix(col, vec3(1.0)-col, invcol);');
+        const footerPos = afterMain.indexOf('// __FOOTER_START__');
         if (footerPos === -1) return '';
 
         return afterMain.substring(0, footerPos);
@@ -431,7 +431,7 @@ const ShaderCRUDNormal = {
     getShaderName: function(shaderCode, index) {
         if (!shaderCode) return `Normal ${index}`;
         const trimmed = shaderCode.trim();
-        const match = trimmed.match(/^\/\/\s*(.+)/);
+        const match = trimmed.match(/\/\/\s*(.+)/);
         if (match && match[1]) return match[1].trim();
         return `Normal ${index}`;
     },

@@ -72,7 +72,7 @@ const formsToselect = [
         orient: {distance: 15, axis: "Y", direction: -1, alpha: -PI/2, beta: 0},
     },
     {text: "Bicylinder S", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,
-        fx: "(cucv)***2", fy: "(svcu)***2", fz: "Q/2s(u)", alpha: "", beta: "", suit: true,
+        fx: "(cucv)***2", fy: "(svcu)***2", fz: "2/es(u+(Q-1)cusu)", alpha: "", beta: "", suit: true,
         orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 6},
     },
     {text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, nb_steps_u: 128, nb_steps_v: 128,

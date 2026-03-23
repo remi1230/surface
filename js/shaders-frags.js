@@ -37,6 +37,14 @@ fragmentShaders = [
     col = 1.0-backgroundColor;
 `,
 `
+    // Grille pos
+    float epaisseur = S/200.0;
+    vec3 pos = fract(vPosition * P/8.0) - 0.5;
+    float tube = min(abs(pos.x*2.0), min(abs(pos.y), abs(pos.z)));
+    if(tube > epaisseur) discard;
+    col = 1.0-backgroundColor;
+`,
+`
     //Curvatures
     vec3 pos = opt1 == 1.0 ? vPosition : npos(); 
 

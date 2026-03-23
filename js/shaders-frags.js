@@ -261,6 +261,15 @@ fragmentShaders = [
     col = (colXY*blend.z + colXZ*blend.y + colYZ*blend.x) * 1.37 * (6.0/NUM_LAYERS);
 
 `,
+`
+    //Grid uvParams
+    vec2 uv = vUVParams * uvParamsCoeff;
+    vec3 val1 = heatmap(cos(uv.x*P/2.0));
+    vec3 val2 = heatmap(cos(uv.y*P/2.0));
+
+    col = val1 + val2;
+
+`,
 
 ];
 
@@ -728,6 +737,7 @@ uniform float T;
 uniform float U;
 uniform float lineWidth;
 uniform vec2 uvCoeff;
+uniform vec2 uvParamsCoeff;
 uniform float invcol;
 uniform float islight;
 uniform float opt1;

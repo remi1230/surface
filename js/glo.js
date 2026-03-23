@@ -40,7 +40,8 @@ var glo = {
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
-					glo.uvCoeff = sel.uvCoeff || {x: 1, y: 1};
+					glo.uvCoeff       = sel.uvCoeff || {x: 1, y: 1};
+					glo.uvParamsCoeff = sel.uvParamsCoeff || sel.uvCoeff || {x: 1, y: 1};
 					if(draw){
 						glo.HDstepUV = false;
 
@@ -227,6 +228,7 @@ var glo = {
 	},
 	inputsEquationsIndex: 0,
 	uvCoeff: {x: 1, y: 1},
+	uvParamsCoeff: {x: 1, y: 1},
 	controls_grid: [],
 	regs: [
 		{ exp: /\s/g, upd: "" },
@@ -244,7 +246,7 @@ var glo = {
 		{ exp: /c([^*\(Y\)]*)Y/g, upd: "cos($1Y)" },
 		{ exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
-		{ exp: /m(?!od)/g, upd: "m()" },
+		{ exp: /m(?!od|\()/g, upd: "m()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
 		{ exp: /sudv|svdu/g, upd: "sin(u/v)" },
@@ -343,6 +345,8 @@ var glo = {
 		{ exp: /se\*\(/g, upd: "se(" },
 		{ exp: /fra\(\)\*cos\(t\)\*\(/g, upd: "fract(" },
 		{ exp: /flogo\(\)\*o\(\)\*r/g, upd: "floor" },
+		{ exp: /t\*a\(\)\*n\*\(/g, upd: "tan(" },
+		{ exp: /t\*a\(\)\*n\*h\(/g, upd: "tanh(" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){

@@ -557,7 +557,7 @@ function replaceCpow(str) {
 			let parenStart = i + 1; // position de la '('
 			// Inclure un identifiant précédant la '(' (ex: cos, sin)
 			let idStart = parenStart;
-			while (idStart > 0 && /[\w$]/.test(str[idStart - 1])) idStart--;
+			while (idStart > 0 && /[a-zA-Z_$]/.test(str[idStart - 1])) idStart--;
 			leftStart = idStart;
 		} else {
 			// Identifiant ou nombre

@@ -245,15 +245,16 @@ const ShaderCRUD = {
 
         const fullCode = glo.editor.getValue();
 
-        const mainPos = fullCode.indexOf('void main(){');
-        if (mainPos === -1) return '';
+        const startTag = 'vec3 col = meshBg;';
+        const startPos = fullCode.indexOf(startTag);
+        if (startPos === -1) return '';
 
-        const afterMain = fullCode.substring(mainPos + 12);
+        const afterStart = fullCode.substring(startPos + startTag.length);
 
-        const footerPos = afterMain.indexOf('// __FOOTER_START__');
+        const footerPos = afterStart.indexOf('// __FOOTER_START__');
         if (footerPos === -1) return '';
 
-        return afterMain.substring(0, footerPos);
+        return afterStart.substring(0, footerPos);
     },
 
     /**

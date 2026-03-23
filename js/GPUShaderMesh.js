@@ -304,6 +304,7 @@ class ShaderMeshBase {
 		this._colorsToAdd = new BABYLON.Vector3(0, 0, 0);
 		this._backgroundCanvasColor = new BABYLON.Vector3(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
 		this._uvCoeff = new BABYLON.Vector2(glo.uvCoeff.x, glo.uvCoeff.y);
+		this._uvParamsCoeff = new BABYLON.Vector2(glo.uvParamsCoeff.x, glo.uvParamsCoeff.y);
 	}
 
 	/**
@@ -785,6 +786,7 @@ uniform float gridU;
 uniform float gridV;
 uniform float lineWidth;
 uniform vec2 uvCoeff;
+uniform vec2 uvParamsCoeff;
 uniform float t;
 uniform float islight;
 uniform float opt1;
@@ -836,7 +838,7 @@ void main() {
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
 					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor', 'backgroundColor',
-					"gridU", "gridV", "lineWidth", "uvCoeff", "invcol", "islight"
+					"gridU", "gridV", "lineWidth", "uvCoeff", "uvParamsCoeff", "invcol", "islight"
 				]
 			}
 		);
@@ -1003,6 +1005,8 @@ void main() {
 		mat.setFloat("lineWidth", 1.0);
 		this._uvCoeff.set(glo.uvCoeff.x, glo.uvCoeff.y);
 		mat.setVector2("uvCoeff", this._uvCoeff);
+		this._uvParamsCoeff.set(glo.uvParamsCoeff.x, glo.uvParamsCoeff.y);
+		mat.setVector2("uvParamsCoeff", this._uvParamsCoeff);
 	}
 
 	/**

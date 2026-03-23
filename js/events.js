@@ -176,8 +176,10 @@ getById('compileBtnNormal')?.addEventListener('click', () => {
 
    const normCode = fullCode.slice(startIndex + startTag.length, endIndex);
 
-   // Sauvegarder dans le tableau
-   normalShaders[glo.numNormalShaderSelect] = normCode;
+   // Sauvegarder dans le tableau (sauf en mode création, géré par save())
+   if (!ShaderCRUDNormal.isCreatingNew) {
+      normalShaders[glo.numNormalShaderSelect] = normCode;
+   }
 
    // Tenter de recompiler le vertex shader via updateNormDeformGLSL
    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {

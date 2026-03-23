@@ -245,15 +245,16 @@ const ShaderCRUD = {
 
         const fullCode = glo.editor.getValue();
 
-        const mainPos = fullCode.indexOf('void main(){');
-        if (mainPos === -1) return '';
+        const startTag = 'vec3 col = meshBg;';
+        const startPos = fullCode.indexOf(startTag);
+        if (startPos === -1) return '';
 
-        const afterMain = fullCode.substring(mainPos + 12);
+        const afterStart = fullCode.substring(startPos + startTag.length);
 
-        const footerPos = afterMain.indexOf('// __FOOTER_START__');
+        const footerPos = afterStart.indexOf('// __FOOTER_START__');
         if (footerPos === -1) return '';
 
-        return afterMain.substring(0, footerPos);
+        return afterStart.substring(0, footerPos);
     },
 
     /**
@@ -421,11 +422,64 @@ const ShaderCRUDNormal = {
     currentShaderIndex: 0,
     isCreatingNew: false,
 
+    // Shader par défaut d'origine (pour réinitialisation)
+    defaultNormalShaders: null,
+
     init: function() {
+        // Sauvegarder les shaders par défaut au premier init
+        if (this.defaultNormalShaders === null) {
+            this.defaultNormalShaders = normalShaders.map(s => s);
+        }
         this.populateSelect();
         this.bindEvents();
         this.currentShaderIndex = glo.numNormalShaderSelect;
         this.updateSelectValue();
+        this.updateStorageIndicator();
+    },
+
+    hasLocalChanges: function() {
+        return localStorage.getItem('normalShaders') !== null;
+    },
+
+    updateStorageIndicator: function() {
+        const indicator = getById('storageIndicatorNormal');
+        if (indicator) {
+            if (this.hasLocalChanges()) {
+                indicator.textContent = '💾 Local';
+                indicator.title = 'Modifications sauvegardées localement. Cliquez pour recharger les shaders par défaut.';
+                indicator.style.display = 'inline-block';
+            } else {
+                indicator.textContent = '☁️ Défaut';
+                indicator.title = 'Shaders par défaut';
+                indicator.style.display = 'inline-block';
+            }
+        }
+    },
+
+    reloadDefaults: function() {
+        if (this.hasLocalChanges()) {
+            const confirm_reload = confirm(
+                'Vous avez des modifications locales.\n\n' +
+                'Recharger les shaders par défaut effacera ces modifications.\n\n' +
+                'Continuer ?'
+            );
+            if (!confirm_reload) return;
+        }
+
+        localStorage.removeItem('normalShaders');
+
+        // Restaurer les shaders par défaut
+        normalShaders.length = 0;
+        this.defaultNormalShaders.forEach(s => normalShaders.push(s));
+
+        this.currentShaderIndex = 0;
+        glo.numNormalShaderSelect = 0;
+        this.populateSelect();
+        this.updateSelectValue();
+        this.loadShaderInEditor(0);
+        this.compileCurrentShader();
+        this.updateStorageIndicator();
+        updateStatus('Shaders normaux réinitialisés', false, getById('editorStatusNormal'));
     },
 
     getShaderName: function(shaderCode, index) {
@@ -501,6 +555,14 @@ const ShaderCRUDNormal = {
         const importFile = getById('importShadersFileNormal');
         if (importFile) {
             importFile.addEventListener('change', (e) => this.importFromFile(e));
+        }
+
+        const storageIndicator = getById('storageIndicatorNormal');
+        if (storageIndicator) {
+            storageIndicator.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.reloadDefaults();
+            });
         }
     },
 
@@ -596,6 +658,7 @@ const ShaderCRUDNormal = {
     saveToStorage: function() {
         try {
             localStorage.setItem('normalShaders', JSON.stringify(normalShaders));
+            this.updateStorageIndicator();
             return true;
         } catch (e) {
             return false;

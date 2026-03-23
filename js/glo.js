@@ -40,7 +40,8 @@ var glo = {
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
 					sel.check = true;
-					glo.uvCoeff = sel.uvCoeff || {x: 1, y: 1};
+					glo.uvCoeff       = sel.uvCoeff || {x: 1, y: 1};
+					glo.uvParamsCoeff = sel.uvParamsCoeff || sel.uvCoeff || {x: 1, y: 1};
 					if(draw){
 						glo.HDstepUV = false;
 
@@ -227,6 +228,7 @@ var glo = {
 	},
 	inputsEquationsIndex: 0,
 	uvCoeff: {x: 1, y: 1},
+	uvParamsCoeff: {x: 1, y: 1},
 	controls_grid: [],
 	regs: [
 		{
@@ -367,6 +369,8 @@ var glo = {
 		{ exp: /se\*\(/g, upd: "se(" },
 		{ exp: /fra\(\)\*cos\(t\)\*\(/g, upd: "fract(" },
 		{ exp: /flogo\(\)\*o\(\)\*r/g, upd: "floor" },
+		{ exp: /t\*a\(\)\*n\*\(/g, upd: "tan(" },
+		{ exp: /t\*a\(\)\*n\*h\(/g, upd: "tanh(" },
 	],
 	coordsType: 'cartesian',
 	coordinatesType: function* (){

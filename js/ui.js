@@ -532,12 +532,105 @@ function regOneTest(expReg) {
 	return expReg;
 }
 
+/**
+ * Remplace l'opérateur *** par cpow() en gérant les parenthèses imbriquées.
+ * Ex: (cos(u))***2 → cpow(cos(u),2)
+ *     sin(u)***cos(v) → cpow(sin(u),cos(v))
+ *     u***(2+v) → cpow(u,2+v)
+ */
+function replaceCpow(str) {
+	let starIdx;
+	while ((starIdx = str.indexOf('***')) !== -1) {
+		// --- Opérande gauche : remonter depuis starIdx-1 ---
+		let leftEnd = starIdx - 1;
+		let leftStart;
+
+		if (str[leftEnd] === ')') {
+			// Groupe parenthésé : trouver la '(' correspondante
+			let depth = 1;
+			let i = leftEnd - 1;
+			while (i >= 0 && depth > 0) {
+				if (str[i] === ')') depth++;
+				else if (str[i] === '(') depth--;
+				i--;
+			}
+			let parenStart = i + 1; // position de la '('
+			// Inclure un identifiant précédant la '(' (ex: cos, sin)
+			let idStart = parenStart;
+			while (idStart > 0 && /[\w$]/.test(str[idStart - 1])) idStart--;
+			leftStart = idStart;
+		} else {
+			// Identifiant ou nombre
+			let i = leftEnd;
+			while (i > 0 && /[\w$.]/.test(str[i - 1])) i--;
+			leftStart = i;
+		}
+
+		// --- Opérande droit : avancer depuis starIdx+3 ---
+		let rightStart = starIdx + 3;
+		let rightEnd;
+
+		if (str[rightStart] === '(') {
+			// Groupe parenthésé
+			let depth = 1;
+			let i = rightStart + 1;
+			while (i < str.length && depth > 0) {
+				if (str[i] === '(') depth++;
+				else if (str[i] === ')') depth--;
+				i++;
+			}
+			rightEnd = i; // juste après la ')' fermante
+		} else {
+			// Identifiant ou nombre, potentiellement suivi de (...)
+			let i = rightStart;
+			while (i < str.length && /[\w$.]/.test(str[i])) i++;
+			// Si suivi de '(', inclure le groupe d'arguments
+			if (i < str.length && str[i] === '(') {
+				let depth = 1;
+				i++;
+				while (i < str.length && depth > 0) {
+					if (str[i] === '(') depth++;
+					else if (str[i] === ')') depth--;
+					i++;
+				}
+			}
+			rightEnd = i;
+		}
+
+		let left  = str.substring(leftStart, starIdx);
+		let right = str.substring(starIdx + 3, rightEnd);
+
+		// Retirer les parenthèses englobantes superflues sur les opérandes
+		if (left[0] === '(' && left[left.length - 1] === ')' && isBalancedWrap(left)) {
+			left = left.substring(1, left.length - 1);
+		}
+		if (right[0] === '(' && right[right.length - 1] === ')' && isBalancedWrap(right)) {
+			right = right.substring(1, right.length - 1);
+		}
+
+		str = str.substring(0, leftStart) + 'cpow(' + left + ',' + right + ')' + str.substring(rightEnd);
+	}
+	return str;
+}
+
+/** Vérifie que les parenthèses extérieures englobent bien toute l'expression */
+function isBalancedWrap(s) {
+	let depth = 0;
+	for (let i = 0; i < s.length - 1; i++) {
+		if (s[i] === '(') depth++;
+		else if (s[i] === ')') depth--;
+		if (depth === 0) return false; // la '(' initiale se ferme avant la fin
+	}
+	return true;
+}
+
 function regOne(expReg) {
 	if (expReg == "'") {
 		expReg = "0";
 	}
 	else if(expReg) {
 		expReg = expReg.toString();
+		expReg = replaceCpow(expReg);
 		for (let i = 0; i < glo.regs.length; i++) {
 			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
 		}

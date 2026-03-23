@@ -270,7 +270,7 @@ var glo = {
 		{ exp: /c([^*\(Y\)]*)Y/g, upd: "cos($1Y)" },
 		{ exp: /s([^*\(Y\)]*)Y/g, upd: "sin($1Y)" },
 		{ exp: /R/g, upd: "h(x,y,z)" },
-		{ exp: /m(?!od)/g, upd: "m()" },
+		{ exp: /m(?!od|\()/g, upd: "m()" },
 		{ exp: /cudv|cvdu/g, upd: "cos(u/v)" },
 		{ exp: /cufv|cvfu/g, upd: "cos(uv)" },
 		{ exp: /sudv|svdu/g, upd: "sin(u/v)" },

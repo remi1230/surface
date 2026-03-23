@@ -231,30 +231,6 @@ var glo = {
 	uvParamsCoeff: {x: 1, y: 1},
 	controls_grid: [],
 	regs: [
-		{
-			exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
-			upd: 'cpow($1,$2)'
-		},
-		// 2) (gauche) *** droiteSimple (identifiant ou nombre)
-		{
-			exp: /\(\s*([^()]+?)\s*\)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
-			upd: 'cpow($1,$2)'
-		},
-		// 3) identifiant(groupe) ***(identifiant|nombre|groupe)
-		{
-			exp: /([A-Za-z_$][\w$]*\(\s*[^()]+?\s*\))\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?|\(\s*[^()]+?\s*\))/g,
-			upd: 'cpow($1,$2)'
-		},
-		// 4) identifiant ***(groupe)
-		{
-			exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*\(\s*([^()]+?)\s*\)/g,
-			upd: 'cpow($1,$2)'
-		},
-		// 5) identifiant ***(identifiant|nombre)
-		{
-			exp: /([A-Za-z_$][\w$]*)\s*\*\*\*\s*([A-Za-z_$][\w$]*|\d+(?:\.\d+)?)/g,
-			upd: 'cpow($1,$2)'
-		},
 		{ exp: /\s/g, upd: "" },
 		{ exp: /(.+)ù(.+)/g, upd: "$1*3mct*$2" },
 		{ exp: /(.+)ù/g, upd: "$1*3mct" },

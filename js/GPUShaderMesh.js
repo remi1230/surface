@@ -40,7 +40,8 @@ class GPUShaderMeshComputer {
 			result = result.replace(/Y/g, evalY);
 		}
 
-		// Appliquer d'abord les regex de glo.regs
+		// Appliquer replaceCpow puis les regex de glo.regs
+		result = replaceCpow(result);
 		for (const reg of glo.regs) {
 			result = result.replace(reg.exp, reg.upd);
 		}
@@ -315,6 +316,7 @@ class ShaderMeshBase {
 
 		let result = expr;
 
+		result = replaceCpow(result);
 		for (const reg of glo.regs) {
 			result = result.replace(reg.exp, reg.upd);
 		}

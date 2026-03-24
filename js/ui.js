@@ -647,6 +647,12 @@ function uvToXy(){
 	 }
 }
 
+/**
+ * Applies regex-based equation normalization to all properties of the given object.
+ * Processes each non-falsy property through `regOne()`.
+ * @param {Object.<string, string>} f - An object whose string values are equation expressions to normalize.
+ * @returns {Object.<string, string>} The same object with all properties normalized.
+ */
 function reg(f) {
     for (var prop in f) {
         if(f[prop]){ f[prop] = regOne(f[prop]); }
@@ -655,47 +661,57 @@ function reg(f) {
     return f;
 }
 
+/**
+ * Debug/test version of `regOne()` that logs each regex transformation step to the console.
+ * Handles the special case of a lone apostrophe by replacing it with "0".
+ * @param {string} expReg - The equation expression string to normalize with verbose logging.
+ * @returns {string} The normalized expression.
+ */
 function regOneTest(expReg) {
 	console.log("=== regOne START ===");
 	console.log("Input:", expReg, "| Type:", typeof expReg);
 	
 	if (expReg == "'") {
-		console.log("Cas spécial: apostrophe détectée, remplacement par '0'");
+		console.log("Special case: apostrophe detected, replacing with '0'");
 		expReg = "0";
 	}
 	else if(expReg) {
 		expReg = expReg.toString();
-		console.log("Après toString():", expReg);
+		console.log("After toString():", expReg);
 		
 		for (let i = 0; i < glo.regs.length; i++) {
-			const avant = expReg;
+			const before = expReg;
 			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
-			if (avant !== expReg) {
-				console.log(`Regex #${i} a matché:`, glo.regs[i].exp);
-				console.log(`  Avant: "${avant}"`);
-				console.log(`  Après: "${expReg}"`);
+			if (before !== expReg) {
+				console.log(`Regex #${i} matched:`, glo.regs[i].exp);
+				console.log(`  Before: "${before}"`);
+				console.log(`  After: "${expReg}"`);
 			}
 		}
 	}
 	else {
-		console.log("expReg est falsy, aucune transformation");
+		console.log("expReg is falsy, no transformation applied");
 	}
 	
-	console.log("Output final:", expReg);
+	console.log("Final output:", expReg);
 	console.log("=== regOne END ===");
 	return expReg;
 }
 
 /**
- * Remplace l'opérateur *** par cpow() en gérant les parenthèses imbriquées.
- * Ex: (cos(u))***2 → cpow(cos(u),2)
- *     sin(u)***cos(v) → cpow(sin(u),cos(v))
- *     u***(2+v) → cpow(u,2+v)
+ * Replaces the `***` operator with `cpow()` function calls, handling nested parentheses.
+ * Examples:
+ *   - `(cos(u))***2` becomes `cpow(cos(u),2)`
+ *   - `sin(u)***cos(v)` becomes `cpow(sin(u),cos(v))`
+ *   - `u***(2+v)` becomes `cpow(u,2+v)`
+ * Strips superfluous wrapping parentheses from operands.
+ * @param {string} str - The expression string containing `***` operators.
+ * @returns {string} The expression with all `***` operators replaced by `cpow()` calls.
  */
 function replaceCpow(str) {
 	let starIdx;
 	while ((starIdx = str.indexOf('***')) !== -1) {
-		// --- Opérande gauche : remonter depuis starIdx-1 ---
+		// --- Left operand: scan backward from starIdx-1 ---
 		let leftEnd = starIdx - 1;
 		let leftStart;
 

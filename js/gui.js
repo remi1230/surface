@@ -203,12 +203,29 @@ function guiControls_AddIdentificationFunctions(){
       return elemsToReturn;
     }
   }
+  /**
+   * Filters the controls array to return only those having ALL the specified classes.
+   * @param {...string} classesNames - The class names that must all be present.
+   * @returns {Array<BABYLON.GUI.Control>|false} Matching controls, or false if none found.
+   */
   function haveTheseClasses(...classesNames){
   	return haveTheseClassesOrNot(this, classesNames, true);
   }
+  /**
+   * Filters the controls array to return those NOT having ALL the specified classes.
+   * @param {...string} classesNames - The class names to exclude.
+   * @returns {Array<BABYLON.GUI.Control>|false} Matching controls, or false if none found.
+   */
   function haveNotTheseClass(...classesNames){
   	return haveTheseClassesOrNot(this, classesNames, false);
   }
+  /**
+   * Filters an array of controls by whether they have or lack all given classes.
+   * @param {Array<BABYLON.GUI.Control>} arr - The array of controls to filter.
+   * @param {Array<string>} classesNames - The class names to test against.
+   * @param {boolean} have - If true, keep controls having all classes; if false, keep those missing at least one.
+   * @returns {Array<BABYLON.GUI.Control>|false} The filtered controls, or false if none match.
+   */
   function haveTheseClassesOrNot(arr, classesNames, have){
   	var elemsToReturn = [];
   	var regs = [];
@@ -246,6 +263,11 @@ function guiControls_AddIdentificationFunctions(){
 
   	else{ return elemsToReturn; }
   }
+  /**
+   * Checks whether a single control has the specified class.
+   * @param {string} className - The class name to check.
+   * @returns {boolean} True if the control has the class, false otherwise.
+   */
   function hasThisClass(className){
   	var elemsToReturn = [];
   	var reg = new RegExp("\\b" + className + "\\b");
@@ -261,6 +283,17 @@ function guiControls_AddIdentificationFunctions(){
   glo.allControls.map(control => { control.hasThisClass =  hasThisClass; });
 }
 
+/**
+ * Configures a BabylonJS GUI control with identification, alignment, sizing, and custom properties.
+ * Shorthand option keys: w=width, h=height, t=top, l=left, pL=paddingLeft, pR=paddingRight, pT=paddingTop,
+ * hAlign=horizontalAlignment ('left'|'right'|'center'), vAlign=verticalAlignment ('top'|'bottom'|'center').
+ * @param {BABYLON.GUI.Control} control - The GUI control to configure.
+ * @param {string} name - The control name for identification.
+ * @param {string} className - Space-separated class names for filtering/styling.
+ * @param {Object} [options={}] - Properties to set on the control, including shorthand keys.
+ * @param {boolean} [px=false] - If true, use pixels ('px') as the unit; otherwise use percentages ('%').
+ * @param {boolean} [ident=true] - If true, assign name and class to the control.
+ */
 function parmamControl(control, name, className, options = {}, px = false, ident = true){
   if(ident){
     control.name = name;
@@ -308,6 +341,14 @@ function parmamControl(control, name, className, options = {}, px = false, ident
   if(typeof(options.pT) != 'undefined'){ control.paddingTop = options.pT + unit; }
 }
 
+/**
+ * Creates a titled panel header and adds it to the fullscreen GUI overlay.
+ * @param {string} name - The unique name suffix for the panel and header controls.
+ * @param {string} title - The display text for the title.
+ * @param {number} t - The top position in percentage.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier (e.g., 'eighth', 'fourth noAutoParam').
+ * @param {number} [titleLevel=2] - The title level (0-3) controlling font size (22px, 20px, 17px, 16px).
+ */
 function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
   var panelTitle = new BABYLON.GUI.StackPanel();
   parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
@@ -328,6 +369,13 @@ function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
   glo.advancedTexture.addControl(panelTitle);
 }
 
+/**
+ * Creates multiple panel titles and control panels from a configuration object.
+ * Each entry in paramsPanels can have a 'title' sub-object (passed to makePanelTitle)
+ * and a 'ctrl' sub-object (passed to makePanelCtrl).
+ * @param {Object} paramsPanels - Configuration object where each key maps to {title, ctrl} definitions.
+ * @returns {Array<BABYLON.GUI.StackPanel>} Array of created control panels.
+ */
 function makePanelsTitles(paramsPanels){
   let panels = [];
   for(const prop in paramsPanels){
@@ -344,6 +392,16 @@ function makePanelsTitles(paramsPanels){
   return panels;
 }
 
+/**
+ * Creates a StackPanel control container and adds it to the fullscreen GUI overlay.
+ * @param {string} name - The unique name suffix for the panel.
+ * @param {number} t - The top position in percentage.
+ * @param {number} pL - The left padding in percentage.
+ * @param {boolean} [isVertical=false] - Whether the stack panel lays out children vertically.
+ * @param {number} [h=5] - The height in percentage.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier.
+ * @returns {BABYLON.GUI.StackPanel} The created stack panel.
+ */
 function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
   var panelCtrl = new BABYLON.GUI.StackPanel();
   parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
@@ -353,6 +411,22 @@ function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth')
   return panelCtrl;
 }
 
+/**
+ * Creates a labeled text input control with optional keyboard/paste event handling
+ * and adds it to a parent panel. Supports Tab navigation between equation inputs
+ * and triggers mesh rebuild on text changes.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the input to.
+ * @param {string} textHeader - The label text displayed above the input.
+ * @param {string} textField - The initial text content of the input field (compact equation notation, e.g. "2cucv" for "2*cos(u)*cos(v)").
+ * @param {string} name - The unique control name.
+ * @param {string} classNameHeader - Space-separated class names for the header label.
+ * @param {string} classNameInput - Space-separated class names for the input control.
+ * @param {string} gloPropToModify - The property key in glo.params to update on text change.
+ * @param {string} gloPropToAssignInput - The property key in glo to store a reference to the input control.
+ * @param {boolean} [withEvent=true] - Whether to attach keyboard and paste event handlers.
+ * @param {number|string} [width=354] - The width of the input (number for px, string for percentage).
+ * @param {boolean} [isInPx=true] - Whether width/height values use pixels.
+ */
 function addInput(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 354, isInPx = true){
   var header = new BABYLON.GUI.TextBlock();
   parmamControl(header, "header_" + name, classNameHeader, {text: textHeader, hAlign: 'center'});

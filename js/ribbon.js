@@ -1,6 +1,13 @@
 //*****************************************************************************************************//
 //********************************************MAIN FUNCTIONS*******************************************//
 //*****************************************************************************************************//
+
+/**
+ * Creates the parametric surface curves and applies mesh transformations.
+ * Disposes of any previously existing curves before rebuilding them.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function makeCurves(){
 	if(typeof(glo.curves) != "undefined"){
 		glo.curves = {}; delete glo.curves;
@@ -11,13 +18,19 @@ async function makeCurves(){
 	glo.params.meshTransformations.run();
 }
 
+/**
+ * Creates the surface mesh using the GPU shader pipeline.
+ * Uses {@link createShaderMeshFromGlo} to build the mesh, then applies
+ * any deformation expression from the symmetry input, and optionally
+ * enables the checkerboard pattern.
+ */
 function makeOnlyCurves() {
-	// Utiliser GPUShaderMesh
+	// Use GPUShaderMesh
 	const meshResult = createShaderMeshFromGlo();
 	glo.ribbon = meshResult ? meshResult : glo.ribbon;
 	glo.fromShader = true;
 
-	// Appliquer la déformation si une expression existe
+	// Apply deformation if an expression exists
 	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 		const deformText = glo.inputSymR ? glo.inputSymR.text : null;
 		if (deformText && deformText.trim()) {
@@ -27,6 +40,13 @@ function makeOnlyCurves() {
 	if (glo.params.checkerboard) { glo.ribbon.checkerboard(); }
 }
 
+/**
+ * Disposes of the current ribbon mesh and optionally all other scene meshes.
+ * Preserves axis lines, grid planes, the line system, and text planes.
+ * @param {boolean} [all=true] - When true, disposes all scene meshes except
+ *   protected ones (axes, grids, lineSystem, plane, TextPlane).
+ *   When false, only disposes the ribbon and tube meshes.
+ */
 function ribbonDispose(all = true){
 	if(typeof(glo.ribbon)    != "undefined" && glo.ribbon != null){ glo.ribbon.dispose(); glo.ribbon = null; }
 	if(typeof(glo.meshTubes) != "undefined" && glo.meshTubes != null){ glo.meshTubes.dispose(); glo.meshTubes = null; }
@@ -39,30 +59,49 @@ function ribbonDispose(all = true){
 	}
 }
 
+/**
+ * Rebuilds the ribbon mesh by re-creating all curves and applying transformations.
+ * Convenience wrapper around {@link makeCurves}.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function remakeRibbon(){
-	await makeCurves(); 
+	await makeCurves();
 }
 
+/**
+ * Computes and stores the grid dimensions (number of vertices along U and V)
+ * into {@link glo.pathsInfos}, taking symmetry copies into account.
+ */
 function getPathsInfos(){
 	const coeffSym = countSyms();
 	glo.pathsInfos = {u: (glo.params.stepsU + 1) * coeffSym, v: glo.params.stepsV + 1};
 }
 
+/**
+ * Exports a BabylonJS mesh to an STL file and triggers a browser download.
+ * If the mesh is a GPU shader mesh, it first extracts real vertex positions
+ * from the GPU into a temporary CPU mesh for export.
+ * @async
+ * @param {BABYLON.Mesh} mesh - The mesh to export.
+ * @param {string} filename - The desired filename for the downloaded STL file.
+ * @returns {Promise<void>}
+ */
 async function exportMeshToSTL(mesh, filename){
 	let meshForSTL = mesh;
 
-	// Si c'est un shader mesh, extraire les positions réelles du GPU
+	// If it's a shader mesh, extract the real positions from the GPU
 	if (mesh.shaderMeshInstance) {
 		meshForSTL = mesh.shaderMeshInstance.createExportMesh();
 		if (!meshForSTL) {
-			console.error('[STL Export] Impossible d\'extraire les positions du shader mesh');
+			console.error('[STL Export] Unable to extract positions from shader mesh');
 			return;
 		}
 	}
 
 	let stlString = BABYLON.STLExport.CreateSTL([meshForSTL], false, true);
 
-	// Nettoyer le mesh temporaire d'export
+	// Clean up the temporary export mesh
 	if (meshForSTL !== mesh) {
 		meshForSTL.dispose();
 	}
@@ -80,6 +119,10 @@ async function exportMeshToSTL(mesh, filename){
  * Builds positions, normals, triangle indices from a grid of paths,
  * creates a shader mesh, and assigns it to glo.ribbon.
  * Shared by importOBJMesh() and importAppOBJ().
+ * @param {BABYLON.Vector3[][]} paths - 2D array of vertices organized as a grid
+ *   where paths[i][j] is the vertex at row i, column j.
+ * @param {string} fileName - The name of the source file (used for logging).
+ * @returns {boolean} True if the mesh was created and assigned successfully, false otherwise.
  */
 function buildMeshFromPaths(paths, fileName) {
 	const stepsU = paths.length - 1;
@@ -148,8 +191,16 @@ function buildMeshFromPaths(paths, fileName) {
 }
 
 /**
- * Creates a shader mesh from raw buffers and assigns it to glo.ribbon.
+ * Creates a shader mesh from raw vertex buffers and assigns it to glo.ribbon.
  * Shared by buildMeshFromPaths() and importOBJWithBabylon().
+ * @param {Float32Array} positions - Flat array of vertex positions (x, y, z interleaved).
+ * @param {Float32Array} normals - Flat array of vertex normals (x, y, z interleaved).
+ * @param {Uint32Array} indices - Triangle index buffer.
+ * @param {number} stepsU - Number of subdivisions along the U axis.
+ * @param {number} stepsV - Number of subdivisions along the V axis.
+ * @param {string} fileName - Source file name for logging.
+ * @param {string} logInfo - Additional info string to log on success.
+ * @returns {boolean} True if the shader mesh was created and assigned successfully, false otherwise.
  */
 function assignImportedShaderMesh(positions, normals, indices, stepsU, stepsV, fileName, logInfo) {
 	const coordsType = glo.coordsType || 'cartesian';
@@ -172,6 +223,12 @@ function assignImportedShaderMesh(positions, normals, indices, stepsU, stepsV, f
 	}
 }
 
+/**
+ * Opens a file picker dialog for the user to select an OBJ file, parses it,
+ * converts the mesh data into a grid of paths, and builds a shader mesh from it.
+ * The OBJ is parsed manually via {@link parseOBJFile} and grid-reconstructed
+ * via {@link buildPathsFromOBJ}.
+ */
 function importOBJMesh() {
 	const input = document.createElement('input');
 	input.type = 'file';
@@ -200,7 +257,7 @@ function importOBJMesh() {
 				return;
 			}
 
-			// Convertir en grille pour déterminer stepsU / stepsV
+			// Convert to grid to determine stepsU / stepsV
 			const paths = buildPathsFromOBJ(objData.vertices, objData.faces);
 
 			if (paths.length === 0 || paths[0].length === 0) {
@@ -221,6 +278,15 @@ function importOBJMesh() {
 	input.click();
 }
 
+/**
+ * Imports an OBJ file using BabylonJS's built-in SceneLoader, extracts vertex
+ * data (positions, normals, indices), estimates grid dimensions, and creates
+ * a shader mesh assigned to glo.ribbon. Materials are skipped during import.
+ * @async
+ * @param {File} file - The OBJ File object to import.
+ * @param {string} fileName - Display name for logging purposes.
+ * @returns {Promise<void>}
+ */
 async function importOBJWithBabylon(file, fileName) {
 	const OBJLoader = BABYLON.SceneLoader.GetPluginForExtension(".obj").constructor;
 	const prevSkip = OBJLoader.SKIP_MATERIALS;
@@ -288,6 +354,14 @@ async function importOBJWithBabylon(file, fileName) {
 	}
 }
 
+/**
+ * Parses raw OBJ file text and extracts vertex positions and face indices.
+ * Handles both positive (1-based) and negative (relative) vertex indices
+ * in face definitions. Only processes 'v' and 'f' lines.
+ * @param {string} text - The raw text content of the OBJ file.
+ * @returns {{vertices: BABYLON.Vector3[], faces: number[][]}} An object containing
+ *   the parsed vertices as Vector3 instances and faces as arrays of 0-based indices.
+ */
 function parseOBJFile(text) {
 	const vertices = [];
 	const faces = [];
@@ -315,6 +389,15 @@ function parseOBJFile(text) {
 	return { vertices, faces };
 }
 
+/**
+ * Reconstructs a 2D grid of paths from an unstructured list of OBJ vertices and faces.
+ * Attempts to detect the grid dimensions by analyzing face index patterns via
+ * {@link detectGridStepFromFaces}. Falls back to a square-root heuristic if
+ * detection fails or does not evenly divide the vertex count.
+ * @param {BABYLON.Vector3[]} vertices - Array of vertex positions.
+ * @param {number[][]} faces - Array of face index arrays (0-based).
+ * @returns {BABYLON.Vector3[][]} 2D array of vertex paths suitable for ribbon/mesh creation.
+ */
 function buildPathsFromOBJ(vertices, faces) {
 	const totalVertices = vertices.length;
 
@@ -343,6 +426,15 @@ function buildPathsFromOBJ(vertices, faces) {
 	return paths;
 }
 
+/**
+ * Detects the grid step size (number of vertices per row) by analyzing
+ * index differences within face definitions. Examines up to 200 faces
+ * and selects the most frequently occurring index difference greater than 1.
+ * @param {number[][]} faces - Array of face index arrays (0-based).
+ * @param {number} totalVertices - Total number of vertices in the mesh.
+ * @returns {number|null} The detected grid step, or null if no faces are provided
+ *   or detection fails.
+ */
 function detectGridStepFromFaces(faces, totalVertices) {
 	if (!faces || faces.length === 0) return null;
 
@@ -380,6 +472,13 @@ function detectGridStepFromFaces(faces, totalVertices) {
 	return bestStep;
 }
 
+/**
+ * Generates a random mathematical expression string for a parametric surface equation.
+ * Combines trigonometric shorthand functions (cu, cv, su, sv, etc.) with random
+ * arithmetic operators and numeric coefficients.
+ * @param {number} end - The number of terms to generate in the expression.
+ * @returns {string} A randomly generated equation string.
+ */
 function rndSurface(end){
 	var rnd = {
 		functions:[
@@ -412,6 +511,10 @@ function rndSurface(end){
 	return rndEquation;
 }
 
+/**
+ * Generates a random parametric surface by creating random equations for X, Y, and Z,
+ * updates the input fields in the UI, and rebuilds the mesh.
+ */
 function makeRndSurface(){
 	glo.params.textInputX = "u" + rndSurface(1); glo.inputX.text = glo.params.textInputX;
 	glo.params.textInputY = "v" + rndSurface(1); glo.inputY.text = glo.params.textInputY;
@@ -420,19 +523,44 @@ function makeRndSurface(){
 	makeCurves();
 }
 
+/**
+ * Checks whether the current parametric equations depend on the U and/or V parameters.
+ * Inspects all input fields (X, Y, Z, Alpha, Beta, EvalX, EvalY) after normalizing
+ * each expression via {@link regOne}.
+ * @returns {{isU: boolean, isV: boolean}} An object indicating whether the equations
+ *   reference the U parameter and/or the V parameter.
+ */
 function isUV(){
 	let inputs = [glo.params.textInputX, glo.params.textInputY, glo.params.textInputZ,
 		          glo.params.textInputAlpha, glo.params.textInputBeta,
 				  glo.inputEvalX.text, glo.inputEvalY.text].map(input => regOne(input));
-	
+
 	return {isU: inputs.some(input => input.includes('u') || input.includes('à') || input.includes('m')),
 		    isV: inputs.some(input => input.includes('v') || input.includes('à') || input.includes('m') )};
 }
 
+/**
+ * Applies a transformation (scaling, rotation, or position) to a mesh along a given axis.
+ * @param {string} [transformKind='scaling'] - The type of transformation to apply
+ *   (e.g., 'scaling', 'rotation', 'position').
+ * @param {string} [axis='x'] - The axis to transform ('x', 'y', or 'z').
+ * @param {number} [value=2] - The value to set for the transformation.
+ * @param {BABYLON.Mesh} [mesh=glo.ribbon] - The target mesh to transform.
+ */
 function transformMesh(transformKind = 'scaling', axis = 'x', value = 2, mesh = glo.ribbon){
 	mesh[transformKind][axis] = value;
 }
 
+/**
+ * Converts a flat vertex data array (from a BabylonJS mesh) into a 2D array of
+ * paths (Vector3 arrays), suitable for ribbon or parametric surface reconstruction.
+ * @param {number[]} [verticesDatas=glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind)] -
+ *   Flat array of vertex positions (x, y, z interleaved).
+ * @param {number} [coeff] - Optional multiplier for stepsU. If provided, the number of
+ *   U paths is (stepsU + 1) * coeff; otherwise uses glo.pathsInfos.u.
+ * @returns {BABYLON.Vector3[][]} 2D array of paths where each inner array is a row
+ *   of vertices along the V direction.
+ */
 function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BABYLON.VertexBuffer.PositionKind), coeff){
 	let paths = [];
 	let n = 0;
@@ -450,15 +578,22 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 	return paths;
 }
 
+/**
+ * Counts the total number of mesh copies produced by the current symmetry settings.
+ * In additive mode ({@link glo.addSymmetry} = true), returns 1 (original) plus
+ * the sum of extra copies per axis. In multiplicative mode, returns the Cartesian
+ * product of symmetry counts across all three axes.
+ * @returns {number} The total symmetry multiplier.
+ */
 function countSyms(){
 	const symX = glo.params.symmetrizeX || 1;
 	const symY = glo.params.symmetrizeY || 1;
 	const symZ = glo.params.symmetrizeZ || 1;
 
 	if (glo.addSymmetry) {
-		// Mode additif : 1 original + copies indépendantes par axe
+		// Additive mode: 1 original + independent copies per axis
 		return 1 + Math.max(symX - 1, 0) + Math.max(symY - 1, 0) + Math.max(symZ - 1, 0);
 	}
-	// Mode multiplicatif : produit cartésien
+	// Multiplicative mode: Cartesian product
 	return symX * symY * symZ;
 }

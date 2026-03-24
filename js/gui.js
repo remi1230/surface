@@ -441,6 +441,10 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
     input.inputsEquationsIndex = glo.inputsEquationsIndex++;
   }
 
+  /**
+   * Rebuilds the ribbon mesh after an input change and restores focus to the input.
+   * @async
+   */
   async function inputChangeEvent(){
     await remakeRibbon();
 
@@ -494,6 +498,24 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
 }
 
 
+/**
+ * Creates a slider control with a text header and adds it to a parent panel.
+ * The slider supports value change events, right-click reset to start value,
+ * and double-click range adjustment.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the slider to.
+ * @param {string} name - The unique control name.
+ * @param {string} text - The label text displayed in the header.
+ * @param {number} val - The initial slider value.
+ * @param {number} decimalPrecision - Number of decimal places for display.
+ * @param {number} min - The minimum slider value.
+ * @param {number} max - The maximum slider value.
+ * @param {number} step - The slider step increment.
+ * @param {Function} event - Callback invoked with the new value on change.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier.
+ * @param {string} [classes='right'] - Additional class names for the slider.
+ * @param {Function|false} [eventUp=false] - Optional callback invoked on pointer up.
+ * @param {number} [fontSize=14] - The font size for the header text.
+ */
 function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, numUI = 'eighth', classes = 'right', eventUp = false, fontSize = 14){
   var header = new BABYLON.GUI.TextBlock();
   parmamControl(header, "header_" + name,  `header ${classes} ${numUI} noAutoParam`, { text: text + ": " + val, fontSize: fontSize, h: 20, pT: 4, }, true);
@@ -532,6 +554,23 @@ function addSlider(parent, name, text, val, decimalPrecision, min, max, step, ev
   parent.addControl(slider);
 }
 
+/**
+ * Creates a multi-axis slider with per-axis checkboxes (X/Y/Z or custom axes).
+ * Each axis has a colored checkbox; checked axes receive the slider value on change.
+ * The header color reflects the selected axis or white when multiple are selected.
+ * Right-click resets to the start value.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the slider group to.
+ * @param {string} baseName - The base name for the slider control.
+ * @param {string} text - The label text displayed in the header.
+ * @param {number} val - The initial slider value.
+ * @param {number} decimalPrecision - Number of decimal places for display.
+ * @param {number} min - The minimum slider value.
+ * @param {number} max - The maximum slider value.
+ * @param {number} step - The slider step increment.
+ * @param {Function} eventCallback - Callback invoked with (value, checkedAxes) on change.
+ * @param {Array<string>} [axes=['x','y','z']] - The axis labels and keys.
+ * @returns {{header: BABYLON.GUI.TextBlock, slider: BABYLON.GUI.Slider, axisState: Object}} References to the created controls and state.
+ */
 function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, step, eventCallback, axes = ['x', 'y', 'z']) {
   const AXIS_COLORS = ['#ff6666', '#66ff66', '#6666ff'];
 

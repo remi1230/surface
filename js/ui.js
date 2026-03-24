@@ -716,7 +716,7 @@ function replaceCpow(str) {
 		let leftStart;
 
 		if (str[leftEnd] === ')') {
-			// Groupe parenthésé : trouver la '(' correspondante
+			// Parenthesized group: find the matching '('
 			let depth = 1;
 			let i = leftEnd - 1;
 			while (i >= 0 && depth > 0) {
@@ -724,24 +724,24 @@ function replaceCpow(str) {
 				else if (str[i] === '(') depth--;
 				i--;
 			}
-			let parenStart = i + 1; // position de la '('
-			// Inclure un identifiant précédant la '(' (ex: cos, sin)
+			let parenStart = i + 1; // position of the '('
+			// Include an identifier preceding the '(' (e.g., cos, sin)
 			let idStart = parenStart;
 			while (idStart > 0 && /[a-zA-Z_$]/.test(str[idStart - 1])) idStart--;
 			leftStart = idStart;
 		} else {
-			// Identifiant ou nombre
+			// Identifier or number
 			let i = leftEnd;
 			while (i > 0 && /[\w$.]/.test(str[i - 1])) i--;
 			leftStart = i;
 		}
 
-		// --- Opérande droit : avancer depuis starIdx+3 ---
+		// --- Right operand: scan forward from starIdx+3 ---
 		let rightStart = starIdx + 3;
 		let rightEnd;
 
 		if (str[rightStart] === '(') {
-			// Groupe parenthésé
+			// Parenthesized group
 			let depth = 1;
 			let i = rightStart + 1;
 			while (i < str.length && depth > 0) {
@@ -751,7 +751,7 @@ function replaceCpow(str) {
 			}
 			rightEnd = i; // juste après la ')' fermante
 		} else {
-			// Identifiant ou nombre, potentiellement suivi de (...)
+			// Identifier or number, potentially followed by (...)
 			let i = rightStart;
 			while (i < str.length && /[\w$.]/.test(str[i])) i++;
 			// Si suivi de '(', inclure le groupe d'arguments

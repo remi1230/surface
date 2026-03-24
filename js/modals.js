@@ -104,6 +104,15 @@ function applyImportedJSON(fileContent) {
 	paramsToControls();
     if(!contentJsonFile.textInputSymR){ glo.inputSymR.text = ''; }
 
+	// Auto-activer uvToXy si des macros variables non-triviales sont définies
+	if(!glo.params.uvToXy){
+		var evalX = glo.params.textInputEvalX || '';
+		var evalY = glo.params.textInputEvalY || '';
+		if((evalX && evalX !== 'u') || (evalY && evalY !== 'v')){
+			glo.params.uvToXy = true;
+		}
+	}
+
 	var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
 	var formName = glo.params.formName;
 	if(glo.coordsType != glo.params.coordsType){

@@ -115,7 +115,14 @@ function applyImportedJSON(fileContent) {
     glo.radiosFormes.setCheckByName(`Radio-${formName}`);
 
 	if(!sameAsRadioCheck){
+		if(glo.params.uvToXy){ uvToXy(); }
 		makeCurves();
+	}
+
+	// Mise à jour du bouton UV/XY
+	var uvToXyButton = glo.advancedTexture.getControlByName("uvToXyButton");
+	if(uvToXyButton){
+		uvToXyButton.textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
 	}
 
 	// Restauration du shader de couleurs

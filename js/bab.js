@@ -1,12 +1,26 @@
 //*****************************************************************************************************//
 //*********************************************BABYLON WORD********************************************//
 //*****************************************************************************************************//
+
+/**
+ * Creates a player with an ArcRotateCamera attached to the scene.
+ * Stores the camera reference in {@link glo.camera}.
+ * @constructor
+ * @param {Game} game - The game instance holding the BabylonJS scene.
+ * @param {HTMLCanvasElement} canvas - The rendering canvas for camera input binding.
+ */
 Player = function(game, canvas) {
   this.scene = game.scene;
   this._initCamera(this.scene, canvas);
 };
 
 Player.prototype = {
+  /**
+   * Initializes a BabylonJS ArcRotateCamera with default orbit parameters,
+   * records its starting position/angles, and stores it globally.
+   * @param {BABYLON.Scene} scene - The BabylonJS scene.
+   * @param {HTMLCanvasElement} canvas - The rendering canvas.
+   */
   _initCamera: function(scene, canvas) {
     this.camera = new BABYLON.ArcRotateCamera(
       "Camera",
@@ -39,6 +53,12 @@ Player.prototype = {
   }
 };
 
+/**
+ * Bootstraps the BabylonJS engine, scene, video capture, player, and render loop.
+ * Instantiating this constructor starts the application.
+ * @constructor
+ * @param {string} canvasId - DOM ID of the canvas element (e.g. "renderCanvas").
+ */
 Game = function(canvasId) {
   var canvas = getById(canvasId);
   
@@ -74,6 +94,11 @@ Game = function(canvasId) {
 };
 
 Game.prototype = {
+  /**
+   * Creates and configures the BabylonJS scene with the application background color.
+   * @param {BABYLON.Engine} engine - The BabylonJS engine instance.
+   * @returns {BABYLON.Scene} The initialized scene.
+   */
   _initScene: function(engine) {
     var scene = new BABYLON.Scene(engine);
     scene.clearCachedVertexData();
@@ -86,12 +111,15 @@ Game.prototype = {
   }
 };
 
+/** @type {Game} Application entry point — instantiating starts the engine and render loop. */
 g = new Game('renderCanvas');
 
+/**
+ * Applies automatic camera rotation around the selected axis each frame.
+ * Temporarily zeroes inertia offsets so the programmatic rotation does not
+ * interfere with the user's mouse-drag inertia, then restores them.
+ */
 function rotateCamera() {
-    // Sauvegarde l'inertie souris, la neutralise le temps d'appliquer la
-    // vitesse de rotation, puis la restaure pour que Babylon.js puisse
-    // continuer à la décroître naturellement sans interférer avec la rotation.
     const savedAlpha = glo.camera.inertialAlphaOffset;
     const savedBeta  = glo.camera.inertialBetaOffset;
     glo.camera.inertialAlphaOffset = 0;

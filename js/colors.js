@@ -1,44 +1,39 @@
 /**
- * Génère un thème coloré cohérent à partir d'un lightLevel (0-10).
- * 
- * Principe : on travaille en HSL pour contrôler indépendamment
- * la teinte (aléatoire), la saturation, et la luminosité (pilotée par lightLevel).
+ * Generates a visually coherent color theme using HSL color space.
+ * A random base hue is shared across all four colors, while lightness is driven
+ * by the {@link lightLevel} parameter (0 = very dark, 10 = very bright).
+ * Buttons and mesh colors are computed to contrast with the background.
+ * @param {number} [lightLevel=glo.randomizeColorLightLevel] - Brightness level from 0 to 10.
+ * @returns {{bgColor: BABYLON.Color3, btnColor: BABYLON.Color3, meshColor: BABYLON.Color3, lineColor: BABYLON.Color3}}
  */
 function generateColorTheme(lightLevel = glo.randomizeColorLightLevel) {
-    const t = clamp01(lightLevel / 10); // 0 = très sombre, 1 = très clair
+    const t = clamp01(lightLevel / 10);
 
-    // Teinte aléatoire partagée (cohérence visuelle)
     const baseHue = Math.random() * 360;
 
-    // --- Fond ---
-    // Luminosité directement liée au lightLevel
-    const bgLightness = 0.08 + t * 0.75; // de 0.08 (quasi noir) à 0.83 (très clair)
-    const bgSaturation = 0.15 + Math.random() * 0.25; // sobre, pas criard
+    const bgLightness = 0.08 + t * 0.75;
+    const bgSaturation = 0.15 + Math.random() * 0.25;
     const bgColor = hslToBabylonColor3(baseHue, bgSaturation, bgLightness);
 
-    // --- Boutons : contraste fort garanti ---
-    // Si fond clair → boutons sombres, et inversement
     const btnLightness = t > 0.5
-        ? bgLightness - 0.4 - Math.random() * 0.15  // fond clair → boutons sombres
-        : bgLightness + 0.4 + Math.random() * 0.15; // fond sombre → boutons clairs
-    const btnHueShift = 20 + Math.random() * 40; // légère variation de teinte
+        ? bgLightness - 0.4 - Math.random() * 0.15
+        : bgLightness + 0.4 + Math.random() * 0.15;
+    const btnHueShift = 20 + Math.random() * 40;
     const btnColor = hslToBabylonColor3(
         baseHue + btnHueShift,
         0.3 + Math.random() * 0.4,
         clamp01(btnLightness)
     );
 
-    // --- Mesh : complémentaire au fond ---
     const meshLightness = t > 0.5
         ? bgLightness - 0.25 - Math.random() * 0.2
         : bgLightness + 0.25 + Math.random() * 0.2;
     const meshColor = hslToBabylonColor3(
-        baseHue + 180 + (Math.random() - 0.5) * 40, // complémentaire ± variation
+        baseHue + 180 + (Math.random() - 0.5) * 40,
         0.4 + Math.random() * 0.4,
         clamp01(meshLightness)
     );
 
-    // --- Lignes : proche du fond mais visible ---
     const lineLightnessOffset = t > 0.5 ? -0.15 : 0.15;
     const lineColor = hslToBabylonColor3(
         baseHue,
@@ -50,11 +45,14 @@ function generateColorTheme(lightLevel = glo.randomizeColorLightLevel) {
 }
 
 /**
- * Conversion HSL → BABYLON.Color3
- * h: 0-360, s: 0-1, l: 0-1
+ * Converts an HSL color to a BabylonJS Color3.
+ * @param {number} h - Hue in degrees (0–360).
+ * @param {number} s - Saturation (0–1).
+ * @param {number} l - Lightness (0–1).
+ * @returns {BABYLON.Color3}
  */
 function hslToBabylonColor3(h, s, l) {
-    h = ((h % 360) + 360) % 360; // normaliser la teinte
+    h = ((h % 360) + 360) % 360;
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = l - c / 2;
@@ -74,6 +72,10 @@ function hslToBabylonColor3(h, s, l) {
     );
 }
 
+/**
+ * Applies a generated color theme to the four color picker controls.
+ * @param {{bgColor: BABYLON.Color3, btnColor: BABYLON.Color3, meshColor: BABYLON.Color3, lineColor: BABYLON.Color3}} theme
+ */
 function applyTheme(theme){
     glo.allControls.getByName('pickerColorBackground').value = theme.bgColor;
     glo.allControls.getByName('pickerColorButton').value     = theme.btnColor;
@@ -82,12 +84,14 @@ function applyTheme(theme){
 }
 
 /**
- * Applique le thème à l'UI
+ * Generates and applies a coherent random color theme with guaranteed
+ * button/background contrast. Falls back to black or white buttons
+ * if the WCAG contrast ratio is below 3.0.
+ * @param {number} [lightLevel=glo.randomizeColorLightLevel] - Brightness level (0–10).
  */
 function specialRandomizeColorsApp(lightLevel = glo.randomizeColorLightLevel) {
     const theme = generateColorTheme(lightLevel);
 
-    // Vérification de sécurité du contraste bouton/fond
     if (contrastRatio(theme.bgColor, theme.btnColor) < 3.0) {
         const bgLum = relativeLuminance(theme.bgColor);
         theme.btnColor = bgLum > 0.5
@@ -98,12 +102,18 @@ function specialRandomizeColorsApp(lightLevel = glo.randomizeColorLightLevel) {
     applyTheme(theme);
 }
 
+/**
+ * Assigns a fully random color to every color picker control.
+ */
 function randomizeColorsApp(){
 	glo.allControls.haveThisClass('picker').map(pickerColor => {
 		pickerColor.value = BABYLON.Color3.Random();
 	});
 }
 
+/**
+ * Resets all color pickers and button colors to the default theme.
+ */
 function intiColorUI(){
 	defaultTheme.apply();
 
@@ -112,17 +122,29 @@ function intiColorUI(){
     });
 }
 
+/**
+ * Clamps a value to the [0, 1] range.
+ * @param {number} v
+ * @returns {number}
+ */
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
+/**
+ * Generates a random BabylonJS Color3 with each component in [min, max].
+ * @param {number} [min=0] - Lower bound for each RGB component.
+ * @param {number} [max=1] - Upper bound for each RGB component.
+ * @returns {BABYLON.Color3}
+ */
 function getRndBabylonColorInRange(min = 0, max = 1) {
     const rnd = () => clamp01(min + (max - min) * Math.random());
     return new BABYLON.Color3(rnd(), rnd(), rnd());
 }
 
 /**
- * Luminance relative (WCAG 2.x)
- * Entrée : BABYLON.Color3 (composantes linéaires dans [0,1])
- * Si tes couleurs sont en sRGB, on applique la linéarisation gamma.
+ * Computes the WCAG 2.x relative luminance of a color.
+ * Applies sRGB gamma linearization before computing.
+ * @param {BABYLON.Color3} color
+ * @returns {number} Relative luminance in [0, 1].
  */
 function relativeLuminance(color) {
     const linearize = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -130,9 +152,10 @@ function relativeLuminance(color) {
 }
 
 /**
- * Ratio de contraste WCAG entre deux couleurs.
- * Retourne une valeur entre 1 (identique) et 21 (noir/blanc).
- * WCAG AA : >= 4.5 pour du texte normal, >= 3 pour du gros texte.
+ * Computes the WCAG contrast ratio between two colors.
+ * @param {BABYLON.Color3} color1
+ * @param {BABYLON.Color3} color2
+ * @returns {number} Contrast ratio from 1 (identical) to 21 (black/white).
  */
 function contrastRatio(color1, color2) {
     const l1 = relativeLuminance(color1);
@@ -143,14 +166,19 @@ function contrastRatio(color1, color2) {
 }
 
 /**
- * Génère une couleur de bouton avec contraste garanti par rapport au fond.
- * Regénère jusqu'à maxAttempts fois, puis fallback noir ou blanc.
+ * Generates a random button color that meets a minimum contrast ratio against
+ * the given background. Adjusts the lightness range based on background luminance,
+ * retries up to {@link maxAttempts} times, then falls back to black or white.
+ * @param {BABYLON.Color3} bgColor - Background color to contrast against.
+ * @param {number} minLight - Minimum lightness for candidates.
+ * @param {number} maxLight - Maximum lightness for candidates.
+ * @param {number} [minContrast=4.5] - Minimum acceptable WCAG contrast ratio.
+ * @param {number} [maxAttempts=30] - Maximum generation attempts before fallback.
+ * @returns {BABYLON.Color3}
  */
 function getRndButtonColorWithContrast(bgColor, minLight, maxLight, minContrast = 4.5, maxAttempts = 30) {
-    // Élargir la plage pour garantir qu'un contraste suffisant est possible
     const bgLum = relativeLuminance(bgColor);
-    
-    // Si le fond est sombre, les boutons doivent être clairs (et inversement)
+
     let adjMin = minLight;
     let adjMax = maxLight;
     if (bgLum < 0.2) {
@@ -160,7 +188,6 @@ function getRndButtonColorWithContrast(bgColor, minLight, maxLight, minContrast 
         adjMin = Math.min(adjMin, 0.0);
         adjMax = Math.min(adjMax, 0.3);
     } else {
-        // Zone grise : on force les extrêmes
         adjMin = 0.75;
         adjMax = 1.0;
     }
@@ -175,11 +202,12 @@ function getRndButtonColorWithContrast(bgColor, minLight, maxLight, minContrast 
     return bgLum > 0.5 ? new BABYLON.Color3(0, 0, 0) : new BABYLON.Color3(1, 1, 1);
 }
 
-function getRndBabylonColorInRange(min = 0, max = 1) {
-    const rnd = () => clamp01(min + (max - min) * Math.random());
-    return new BABYLON.Color3(rnd(), rnd(), rnd());
-}
-
+/**
+ * Computes the complementary (inverted) color, optionally darkened by a factor.
+ * @param {BABYLON.Color3} color3 - Source color.
+ * @param {number} [darkForce=1] - Darkening multiplier applied before inversion (1 = pure complement).
+ * @returns {BABYLON.Color3}
+ */
 function getComplementaryColor(color3, darkForce = 1){
 	function calculateColor(col){
 		return 1 - col*darkForce;
@@ -190,16 +218,36 @@ function getComplementaryColor(color3, darkForce = 1){
 	r = r < 1 ? r : 1; g = g < 1 ? g : 1; b = b < 1 ? b : 1;
 	return new BABYLON.Color3(r, g, b);
 }
+
+/**
+ * Darkens a color by dividing each component by the given factor.
+ * @param {BABYLON.Color3} color3
+ * @param {number} force - Divisor (higher = darker).
+ * @returns {BABYLON.Color3}
+ */
 function darkingColor(color3, force){
 	var r = color3.r / force; var g = color3.g / force; var b = color3.b / force;
 	return new BABYLON.Color3(r, g, b);
 }
+
+/**
+ * Lightens a color by multiplying each component by the given factor, clamped to 1.
+ * @param {BABYLON.Color3} color3
+ * @param {number} force - Multiplier (higher = lighter).
+ * @returns {BABYLON.Color3}
+ */
 function lightingColor(color3, force){
 	var r = color3.r * force; var g = color3.g * force; var b = color3.b * force;
 	r = r < 1 ? r : 1; g = g < 1 ? g : 1; b = b < 1 ? b : 1;
 	return new BABYLON.Color3(r, g, b);
 }
 
+/**
+ * Generates a random dark color by rejection-sampling until brightness and
+ * channel-dominance constraints are met.
+ * @param {number} [force=0] - Darkness level from 0 (medium-dark) to 4 (very dark).
+ * @returns {BABYLON.Color3}
+ */
 function getRndDarkColor(force = 0){
 	if(force >= 5){ force = 4; }
 	else if(force < 0){ force = 0; }
@@ -212,6 +260,11 @@ function getRndDarkColor(force = 0){
 	return rndObjectDarkColor.color;
 }
 
+/**
+ * Generates a single random color candidate and checks dark-color constraints.
+ * @param {number} force - Maximum brightness threshold.
+ * @returns {{color: BABYLON.Color3, reg: boolean}} `reg` is true if the candidate was rejected.
+ */
 function getRndObjectDarkColor(force){
 	var keepSup = 0.05;
 	var color = BABYLON.Color3.Random();
@@ -227,6 +280,11 @@ function getRndObjectDarkColor(force){
 	return {color: color, reg: reg };
 }
 
+/**
+ * Generates a random light color by rejection-sampling until brightness exceeds the threshold.
+ * @param {number} [force=0] - Brightness level from 0 (medium-light) to 4.9 (very bright).
+ * @returns {BABYLON.Color3}
+ */
 function getRndLightColor(force = 0){
 	var color = BABYLON.Color3.Random();
 	var verifColor = color.r * color.g * color.b;
@@ -241,16 +299,23 @@ function getRndLightColor(force = 0){
 	return color;
 }
 
+/**
+ * Converts a normalized RGB color ({r, g, b} in [0, 1]) to a hex string (e.g. "#ff8040").
+ * @param {{r: number, g: number, b: number}} color
+ * @returns {string} Hex color string with leading "#".
+ */
 function rgbNormalizedToHex({ r, g, b }) {
-	// Convertit chaque composante en entier entre 0 et 255
 	const to255 = x => Math.round(Math.min(1, Math.max(0, x)) * 255);
-
-	// Convertit en hex, en ajoutant un 0 si besoin
 	const toHex = x => to255(x).toString(16).padStart(2, '0');
 
 	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+/**
+ * Converts a hex color string (e.g. "#ff8040") to a BabylonJS Color3.
+ * @param {string} hex - Hex color string, with or without leading "#".
+ * @returns {BABYLON.Color3}
+ */
 function hexToRgbNormalized(hex) {
     hex = hex.replace(/^#/, '');
     return new BABYLON.Color3
@@ -262,6 +327,11 @@ function hexToRgbNormalized(hex) {
     ;
 }
 
+/**
+ * Logs the current values of all four color picker controls to the console
+ * as BabylonJS Color3 constructor calls, rounded to 4 decimal places.
+ * Useful for exporting color themes.
+ */
 function whatColors(){
 	const roundTo = (val, n) => Math.round(val * Math.pow(10, n), n) / Math.pow(10, n);
 

@@ -1,8 +1,13 @@
 //*****************************************************************************************************//
 //**********************************************EVENTS*************************************************//
 //*****************************************************************************************************//
+
+/**
+ * Main application bootstrap.
+ * Waits for fonts to load, then initializes GUI controls, modals, form radios,
+ * renders the startup surface, and starts the intro animation.
+ */
 document.addEventListener('DOMContentLoaded', async function() {
-   // Forcer le chargement de toutes les variantes Poppins avant de créer les contrôles GUI
    await Promise.all([
       document.fonts.load('300 1em Poppins'),
       document.fonts.load('400 1em Poppins'),
@@ -27,10 +32,16 @@ document.addEventListener('DOMContentLoaded', async function() {
    styleUI();
 });
 
+/** Resizes the BabylonJS engine when the browser window is resized. */
 window.addEventListener('resize', () => {
    glo.engine.resize();
 });
 
+/**
+ * Temporary pointer-move handler on the canvas that stops the intro rotation animation
+ * after a few moves, then removes itself. Used to detect initial user interaction.
+ * @param {PointerEvent} e
+ */
 function onCanvasPointerMove(e){
     glo.n++;
     stopRotAnim();
@@ -38,8 +49,13 @@ function onCanvasPointerMove(e){
 }
 getById('renderCanvas').addEventListener('pointermove', onCanvasPointerMove);
 
+/**
+ * Compiles the fragment shader from the Monaco editor.
+ * On success, extracts the user code between markers, updates the active shader,
+ * and recompiles the GPU material. On failure, parses the GLSL error to highlight
+ * the offending line in the editor and display a toast notification.
+ */
 getById('compileBtn')?.addEventListener('click', () => {
-   // ✅ EFFACER LES MARQUEURS D'ERREUR DÈS LE DÉBUT
     monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', []);
     
     fragmentShader   = glo.editor.getValue();
@@ -111,13 +127,13 @@ getById('compileBtn')?.addEventListener('click', () => {
     }
 });
 
-// Fermer l'éditeur
+/** Closes the fragment shader editor panel. */
 getById('closeEditor')?.addEventListener('click', () => {
    glo.editorIsOpened = false;
    glo.editorWindow.style.display = 'none';
 });
 
-// Plein écran
+/** Toggles the fragment shader editor between normal and fullscreen mode. */
 getById('toggleFullscreen')?.addEventListener('click', function() {
    const icon = this.querySelector('i');
    
@@ -136,6 +152,11 @@ getById('toggleFullscreen')?.addEventListener('click', function() {
    }
 });
 
+/**
+ * Updates a shader option toggle (opt1/opt2/opt3) and pushes the value to the GPU.
+ * @param {string} param - Option key ("opt1", "opt2", or "opt3").
+ * @param {boolean} value - Whether the option is enabled.
+ */
 const updShaderOpt = (param, value) => {
    glo.shaderOpt[param] = value;
    glo.ribbon.shaderMeshInstance.updateFloatParam(param, value ? 1.0 : 0.0);
@@ -150,12 +171,15 @@ shaderOpt3.addEventListener("change", () => { updShaderOpt('opt3', shaderOpt3.ch
 
 // ==================== NORMAL SHADER EDITOR EVENTS ====================
 
-// Reset du temps pour l'éditeur normal
+/** Resets the time variable to zero for normal/deformation shader preview. */
 getById('resetBtnNormal')?.addEventListener('click', () => {
    w = 0;
 });
 
-// Compiler le shader normal
+/**
+ * Compiles the normal/deformation shader from the normal editor.
+ * Extracts user code between markers, saves it, and recompiles the vertex shader.
+ */
 getById('compileBtnNormal')?.addEventListener('click', () => {
    const statusEl = getById('editorStatusNormal');
 
@@ -194,13 +218,13 @@ getById('compileBtnNormal')?.addEventListener('click', () => {
    }
 });
 
-// Fermer l'éditeur normal
+/** Closes the normal/deformation shader editor panel. */
 getById('closeEditorNormal')?.addEventListener('click', () => {
    glo.editorNormalIsOpened = false;
    glo.editorWindowNormal.style.display = 'none';
 });
 
-// Plein écran éditeur normal
+/** Toggles the normal shader editor between normal and fullscreen mode. */
 let isFullscreenNormal = false;
 getById('toggleFullscreenNormal')?.addEventListener('click', function() {
    const icon = this.querySelector('i');
@@ -220,13 +244,17 @@ getById('toggleFullscreenNormal')?.addEventListener('click', function() {
    }
 });
 
+/** Triggers export when Enter is pressed in the filename input field. */
 getById('filename').addEventListener("keydown", function (e) {
    if(e.key === 'Enter'){ getById('exportButton').click(); }
 });
 
-// Declarative keyboard shortcuts registry
-// Each entry: { key, ctrl, shift, alt, action }
-// Modifiers default to false when omitted.
+/**
+ * Declarative keyboard shortcuts registry.
+ * Each entry maps a key (with optional ctrl/shift/alt modifiers) to an action callback.
+ * Modifiers default to false when omitted. Matched by the keydown handler on #univers_div.
+ * @type {{key: string, ctrl?: boolean, shift?: boolean, alt?: boolean, action: Function}[]}
+ */
 const keyboardShortcuts = [
    // --- No modifier ---
    { key: "h",  action: () => randomizeColorsApp() },

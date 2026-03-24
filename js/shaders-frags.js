@@ -89,12 +89,12 @@ fragmentShaders = [
     if(mod(row, 2.0) > 0.5) hexUV.x += 1.0;
     vec2 cell = fract(hexUV) - 0.5;
     float d = sdHexagon(cell, 5.666/12.0);
-    // N'affiche QUE les bords (d proche de 0)
+    // Only display the edges (d close to 0)
     if(abs(d) > T + 0.05) discard;
     col = 1.0-backgroundColor;
 `,
 `
-    // Grille pos
+    // Position-based grid
     float epaisseur = S/200.0;
     vec3 pos = fract(vPosition * P/8.0) - 0.5;
     float tube = min(abs(pos.x*2.0), min(abs(pos.y), abs(pos.z)));
@@ -202,7 +202,7 @@ fragmentShaders = [
     col = vec3(step(st.x,st.y));
 `,
 `   
-    //Hexagone
+    //Hexagon
     vec2 hexUV = vec2(vUV.x * uvCoeff.x, vUV.y*uvCoeff.y) * P * 0.5;
     float row = floor(hexUV.y);
 
@@ -333,8 +333,16 @@ fragmentShaders = [
 
 
 /**
- * Source unique des fonctions utilitaires GLSL partagées
- * entre GPUShaderMesh.js (createFragmentShader) et fragmentShaderHeader (éditeur Monaco).
+ * Returns the shared GLSL utility functions used by both GPUShaderMesh.js
+ * (createFragmentShader) and the fragment shader header (Monaco editor).
+ *
+ * Includes: normalized position helper, time-based sine/cosine oscillators,
+ * lighting constants and Blinn-Phong shading, Perlin noise, color palettes
+ * (rainbow, heatmap, HSV), 2D rotation, tile rotation patterns, SDF primitives
+ * (hexagon, circle), Voronoi, Truchet arcs, Fractal Brownian Motion (FBM),
+ * starfield layers, checkerboard, and various math shorthands (m, o, f, hc, cpow).
+ *
+ * @returns {string} A GLSL source code string containing all shared utility functions.
  */
 function getFragmentUtilsGLSL() {
 return `
@@ -343,12 +351,12 @@ vec3 npos(){ return normalize(vPosition); }
 float Ts(float c){ return 0.4999999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.4999999*cos(c*time)+0.5; }
 
-// Couleurs
+// Colors
 const vec3 LAMP_COLOR = vec3(0.5, 0.5, 0.5);
 const vec3 AMBIENT_COLOR = vec3(0.05, 0.05, 0.08);
 const vec3 BASE_COLOR = vec3(0.5, 0.5, 0.5);
 
-// Paramètres d'éclairage
+// Lighting parameters
 const float LAMP_RADIUS = 100.0;
 const float SPECULAR_POWER = 32.0;
 const float SPECULAR_INTENSITY = 0.5;
@@ -769,20 +777,31 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 `;
 }
 
+/**
+ * Common GLSL header prepended to every fragment shader.
+ *
+ * Declares the GLSL ES 3.0 version, precision, all varyings received from the
+ * vertex shader (position, world position, normal, UVs), the fragment output,
+ * all custom uniforms (time, camera, grid parameters, colors, lighting), and
+ * inlines the shared utility functions from {@link getFragmentUtilsGLSL}.
+ * Opens the `main()` function and initializes `col` to `meshBg`.
+ *
+ * @type {string}
+ */
 fragmentShaderHeader = `#version 300 es
 precision highp float;
 
-// Varyings reçus du vertex shader
+// Varyings received from the vertex shader
 in vec3 vPosition;
 in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUV;
 in vec2 vUVParams;
 
-// Sortie du fragment shader
+// Fragment shader output
 out vec4 fragColor;
 
-// Uniforms personnalisés
+// Custom uniforms
 uniform float time;
 uniform vec3 cameraPosition;
 uniform float gridU;
@@ -817,18 +836,29 @@ void main(){
     vec3 col = meshBg;
 `;
 
+/**
+ * Common GLSL footer appended to every fragment shader.
+ *
+ * Handles discard based on brightness threshold (U uniform), color inversion
+ * (controlled by the INV button), tint color multiplication, additive color
+ * adjustment, and optional Blinn-Phong lighting (controlled by the lamp button).
+ * Applies tone mapping and gamma correction when lighting is active.
+ * Outputs the final color to `fragColor`.
+ *
+ * @type {string}
+ */
 fragmentShaderFooter = `
     // __FOOTER_START__
     //Checkerboard
     if(U < 2.0 && length(col) > U){ discard; }
 
-    // Inversion des couleurs si bouton INV actif
+    // Color inversion when INV button is active
 	col = mix(col, vec3(1.0)-col, invcol);
 
     col *= tintColor;
     col += colorsToAdd;
 
-	// Éclairage si bouton avec une lampe actif
+	// Lighting when the lamp button is active
 	if(islight == 1.0){
 		col*= (light(lampPosition, col) + light(-lampPosition, col));
 		col = col / (col + vec3(1.0));
@@ -841,21 +871,46 @@ fragmentShaderFooter = `
 
 glo.numShaderMove = glo.numShaderMove();
 
+/**
+ * The fully composed GLSL fragment shader source, assembled from
+ * {@link fragmentShaderHeader}, the currently selected entry in
+ * {@link fragmentShaders}, and {@link fragmentShaderFooter}.
+ *
+ * @type {string}
+ */
 fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
 
 // ==================== NORMAL DEFORMATION SHADERS ====================
-// Le code éditable est injecté dans computeDeformation() et doit affecter float result.
-// result est ensuite appliqué comme : finalPosition = pos + normal * result * scaleNorm
+// The editable code is injected into computeDeformation() and must assign to float result.
+// result is then applied as: finalPosition = pos + normal * result * scaleNorm
 
+/**
+ * Array of GLSL normal-deformation shader body snippets.
+ *
+ * Each entry is a template literal containing GLSL code that computes a `result` (float)
+ * value. The code is inserted between {@link normalShaderHeader} and
+ * {@link normalShaderFooter} to form the body of the `computeDeformation` function.
+ *
+ * @type {string[]}
+ */
 normalShaders = [
 `
-	// Default - déformation le long de la normale
-	// Variables : x, y, z, xN, yN, zN, u, v, R, O, i, j, n, k, d, p, t, g
-	// Fonctions : m(), o(p), b(p,q), a(p,q), sin, cos, length...
+	// Default - deformation along the normal
+	// Variables: x, y, z, xN, yN, zN, u, v, R, O, i, j, n, k, d, p, t, g
+	// Functions: m(), o(p), b(p,q), a(p,q), sin, cos, length...
 	result = 0.0;
 `
 ];
 
+/**
+ * GLSL header for normal-deformation shaders.
+ *
+ * Declares the `computeDeformation` function signature and sets up local
+ * variables (position components, normal components, UV, radial distance,
+ * grid indices, parity flags) before the user-editable shader body.
+ *
+ * @type {string}
+ */
 normalShaderHeader = `float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float x = pos.x;
 	float y = pos.y;
@@ -882,23 +937,38 @@ normalShaderHeader = `float computeDeformation(float u, float v, vec3 pos, vec3 
 	float result = 0.0;
 `;
 
+/**
+ * GLSL footer for normal-deformation shaders.
+ *
+ * Closes the `computeDeformation` function by returning the computed `result`.
+ *
+ * @type {string}
+ */
 normalShaderFooter = `
 	return result;
 }`;
 
+/**
+ * The fully composed GLSL normal-deformation shader source, assembled from
+ * {@link normalShaderHeader}, the currently selected entry in
+ * {@link normalShaders}, and {@link normalShaderFooter}.
+ *
+ * @type {string}
+ */
 normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
 
 /**
- * Valide un shader GLSL (vertex ou fragment)
- * @param {string} shaderCode - Code source GLSL
- * @param {string} type - 'vertex' ou 'fragment' (défaut: 'fragment')
- * @returns {{valid: boolean, error: string|null}}
+ * Validates a GLSL shader (vertex or fragment) by compiling it on the GPU.
+ *
+ * @param {string} shaderCode - GLSL source code to validate.
+ * @param {string} [type='fragment'] - Shader type: 'vertex' or 'fragment'.
+ * @returns {{valid: boolean, error: string|null}} Compilation result with any error message.
  */
 function validateShader(shaderCode, type = 'fragment') {
     const gl = glo.gl;
 
     if (!gl) {
-        return { valid: false, error: 'WebGL non supporté' };
+        return { valid: false, error: 'WebGL not supported' };
     }
 
     const glType = type === 'vertex' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER;

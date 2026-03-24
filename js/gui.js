@@ -1,6 +1,10 @@
 //*****************************************************************************************************//
 //*********************************************BABYLON GUI*********************************************//
 //*****************************************************************************************************//
+/**
+ * Subscribes a slider to mouse wheel events when hovered, allowing the user
+ * to increment or decrement the slider value by its step amount.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
   this.onWheelObservable.add(function (e) {
       var val = e.y < 0 ? this.step : -this.step;
@@ -8,6 +12,10 @@ BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
   }.bind(this));
 };
 
+/**
+ * Subscribes an input text control to focus and blur events, applying
+ * theme styles from {@link glo.theme.input} on focus and blur.
+ */
 BABYLON.GUI.InputText.prototype.subscribeToFocusAndBlurEvents = function() {
   this.onFocusObservable.add(() => {
     for(const prop in glo.theme.input.onFocus){ this[prop] = glo.theme.input.onFocus[prop]; }
@@ -18,6 +26,12 @@ BABYLON.GUI.InputText.prototype.subscribeToFocusAndBlurEvents = function() {
   });
 };
 
+/**
+ * Subscribes a slider to double-click behavior. On double-click above the
+ * thumb, the slider maximum is doubled and the value is scaled up. On
+ * double-click below the thumb, the value is halved and the maximum is
+ * halved. This allows dynamic range adjustment.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     var lastClick = 0;
     var valueBeforeFirstClick = null;
@@ -26,7 +40,7 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
 
     this.onPointerDownObservable.add(function (info) {
         var now = Date.now();
-        // Déterminer si on clique au-dessus ou en-dessous du curseur
+        // Determine whether the click is above or below the thumb
         var clickAbove = this.isVertical
             ? (info.y < this._currentMeasure.top + this._currentMeasure.height * (1 - (this.value - this.minimum) / (this.maximum - this.minimum)))
             : (info.x > this._currentMeasure.left + this._currentMeasure.width * ((this.value - this.minimum) / (this.maximum - this.minimum)));
@@ -50,12 +64,22 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     }.bind(this));
 };
 
+/**
+ * Subscribes a slider so that its maximum is automatically doubled whenever
+ * the current value exceeds the maximum.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToDoubleMax = function () {
     this.onValueChangedObservable.add(function (value) {
         if(this.maximum < this.value){ this.maximum = this.value * 2; }
     }.bind(this));
 };
 
+/**
+ * Creates and initializes all GUI controls for the application.
+ * Sets up the BabylonJS fullscreen GUI overlay and adds all panels including
+ * sliders, buttons, inputs, color pickers, radio buttons, and shader controls.
+ * This is the main entry point for GUI construction.
+ */
 function addGuiControls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
   glo.advancedTexture.useSmallestIdeal = false;
@@ -89,6 +113,13 @@ function addGuiControls(){
   paramButtons();
 }
 
+/**
+ * Adds identification and query functions to the GUI controls collection.
+ * Builds a cached Map for O(1) lookup by name and attaches helper methods
+ * (getByName, haveThisClass, haveTheseClasses, haveNotThisClass,
+ * haveNotTheseClass, hasThisClass) to {@link glo.allControls} for filtering
+ * controls by CSS-like class names.
+ */
 function guiControls_AddIdentificationFunctions(){
   glo.allControls = glo.advancedTexture.getDescendants();
   // Cache Map for O(1) lookup by name instead of O(n) linear search
@@ -98,6 +129,13 @@ function guiControls_AddIdentificationFunctions(){
       glo._controlsByName.set(elem.name, elem);
     }
   });
+  /**
+   * Finds a control by its name property.
+   * Uses the cached Map for O(1) lookup when called on glo.allControls,
+   * otherwise falls back to linear search.
+   * @param {string} name - The name of the control to find.
+   * @returns {BABYLON.GUI.Control|false} The matching control, or false if not found.
+   */
   function getByName(name){
     // Use cached Map if available (for glo.allControls), otherwise linear search
     if(this === glo.allControls && glo._controlsByName.has(name)){
@@ -109,12 +147,30 @@ function guiControls_AddIdentificationFunctions(){
   	});
   	return elemToReturn;
   }
+  /**
+   * Filters the controls array to return only those having the specified class.
+   * @param {string} className - The class name to match.
+   * @returns {Array<BABYLON.GUI.Control>} Controls matching the class.
+   */
   function haveThisClass(className){
   	return haveThisClassOrNot(this, className, true);
   }
+  /**
+   * Filters the controls array to return only those NOT having the specified class.
+   * @param {string} className - The class name to exclude.
+   * @returns {Array<BABYLON.GUI.Control>} Controls not matching the class.
+   */
   function haveNotThisClass(className){
   	return haveThisClassOrNot(this, className, false);
   }
+  /**
+   * Filters an array of controls by whether they have or lack a given class.
+   * Attaches query methods (haveNotThisClass, haveNotTheseClass, etc.) to the result.
+   * @param {Array<BABYLON.GUI.Control>} arr - The array of controls to filter.
+   * @param {string} className - The class name to test against.
+   * @param {boolean} have - If true, keep controls that have the class; if false, keep those that do not.
+   * @returns {Array<BABYLON.GUI.Control>} The filtered controls with query methods attached.
+   */
   function haveThisClassOrNot(arr, className, have){
   	var elemsToReturn = [];
   	var reg = new RegExp("\\b" + className + "\\b");

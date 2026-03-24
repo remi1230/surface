@@ -1,3 +1,10 @@
+/**
+ * Cycles through surface forms using the mouse wheel within the current coordinate type.
+ * Wraps around to the first or last form depending on scroll direction.
+ * Updates the radio button selection to match the newly selected form.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function whellSwitchForm(){
 	var formSelect = glo.formes.getFormSelect();
 	if(formSelect){
@@ -29,6 +36,16 @@ async function whellSwitchForm(){
 	}
 }
 
+/**
+ * Iterates a generator in the forward or reverse direction.
+ * In forward mode, advances the generator by one step.
+ * In reverse mode, cycles backward by finding the previous value in the generator sequence.
+ * @async
+ * @param {Generator} gen - The generator to iterate.
+ * @param {string} varToStoreValGen - The name of the global property (on `glo`) that stores the current generator value.
+ * @param {boolean} [normalSens=true] - If true, iterate forward; if false, iterate in reverse.
+ * @returns {Promise<void>}
+ */
 async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
 	let newOrient = '';
 
@@ -45,6 +62,11 @@ async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
 	}
 }
 
+/**
+ * Switches the coordinate system type (cartesian, spherical, cylindrical) by cycling
+ * through available types. Updates the UI labels and rebuilds the radio button list.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchCoords(normalSens = true){
 	genInTwoWays(glo.coordinatesType, 'coordsType', normalSens);
 
@@ -54,6 +76,14 @@ function switchCoords(normalSens = true){
 	glo.formesSuit = false;
 }
 
+/**
+ * Cycles through available fragment shaders and applies the selected one.
+ * Updates the shader editor content and the shader select dropdown.
+ * If a shader mesh instance exists, updates the fragment shader directly;
+ * otherwise, rebuilds the ribbon mesh.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ * @param {Object} [edit=glo.editor] - The code editor instance to update with the new shader source.
+ */
 function switchShader(normalSens = true, edit = glo.editor){
 	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
       fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
@@ -64,7 +94,7 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-	  // Mettre à jour uniquement le fragment shader sans reconstruire le mesh
+	  // Update only the fragment shader without rebuilding the mesh
 	  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 		glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
 	  } else {
@@ -72,12 +102,18 @@ function switchShader(normalSens = true, edit = glo.editor){
 	  }
 }
 
+/**
+ * Cycles through symmetrization axis orders (e.g., 'xyz', 'xzy', 'yxz', etc.).
+ * Updates the button label and the `uSymOrder` shader uniform if a shader mesh exists;
+ * otherwise, rebuilds the ribbon mesh.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchSymmetrizeOrder(normalSens = true){
 	genInTwoWays(glo.symmetrizeOrders, 'symmetrizeOrder', normalSens);
 
 	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "S order : " + glo.symmetrizeOrder.toUpperCase();
 
-	// Mettre à jour l'uniform uSymOrder directement si le shader mesh existe
+	// Update the uSymOrder uniform directly if the shader mesh exists
 	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
 		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
@@ -91,12 +127,21 @@ function switchSymmetrizeOrder(normalSens = true){
 	}
 }
 
+/**
+ * Cycles through right-side GUI panels by toggling their visibility.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchRightPanel(normalSens = true){
 	genInTwoWays(glo.switchGuiSelect, 'guiSelect', normalSens);
 
 	toggleRightPanels(glo.guiSelect);
 }
 
+/**
+ * Toggles visibility of right-side GUI panels, hiding all panels except the specified one.
+ * @param {string} rightPanelToShowClass - The CSS class of the panel to show.
+ * @param {boolean} [toShow=true] - If true, show the specified panel and hide others; if false, hide all panels.
+ */
 function toggleRightPanels(rightPanelToShowClass, toShow = true){
 	glo.rightPanelsClasses
 		.filter(rightPanelClass => toShow ? (rightPanelClass !== rightPanelToShowClass) : (1 === 1))
@@ -104,6 +149,12 @@ function toggleRightPanels(rightPanelToShowClass, toShow = true){
 	if(toShow){ toggleGuiControlsByClass(true, rightPanelToShowClass); }
 }
 
+/**
+ * Toggles between short and long notation for trigonometric expressions in equation inputs.
+ * Short form uses abbreviations like "cu" for "cos(u)", "sv" for "sin(v)", etc.
+ * Long form expands them back to full function calls.
+ * @param {boolean} long - If true, expand abbreviations to full form; if false, abbreviate to short form.
+ */
 function switchWritingType(long){
 	var f = {
 		x: glo.inputX.text,
@@ -165,6 +216,16 @@ function switchWritingType(long){
 	glo.params.textInputBeta = f.beta;
 }
 
+/**
+ * Swaps two variables in all equation input fields (e.g., swapping 'u' and 'v').
+ * When swapping u and v, also swaps the corresponding step and range slider values.
+ * Optionally triggers a ribbon mesh rebuild.
+ * @async
+ * @param {string} toInv1 - The first variable name to swap.
+ * @param {string} toInv2 - The second variable name to swap.
+ * @param {boolean} [makeCurve=true] - If true, rebuild the ribbon mesh after swapping.
+ * @returns {Promise<void>}
+ */
 async function invElemInInput(toInv1, toInv2, makeCurve = true){
 	var f = {
 		x: glo.inputX.text,
@@ -209,6 +270,13 @@ async function invElemInInput(toInv1, toInv2, makeCurve = true){
 	}
 }
 
+/**
+ * Animates a slider by incrementing its value based on speed and direction.
+ * The increment is calculated as a fraction of the slider's range.
+ * @param {string} name - The name of the slider control to animate.
+ * @param {number} [speed=1] - The animation speed multiplier. If 0, the increment is set to 1.
+ * @param {number} [dir=1] - The direction of animation (1 for forward, -1 for backward).
+ */
 function slidersAnim(name, speed = 1, dir = 1){
 	var slider = glo.allControls.getByName(name);
 	valToAdd = ((slider.maximum - slider.minimum) / 720) * speed;
@@ -216,6 +284,13 @@ function slidersAnim(name, speed = 1, dir = 1){
 	slider.value += valToAdd * dir;
 }
 
+/**
+ * Starts camera rotation and distance animations using BabylonJS animation system.
+ * The rotation animation loops continuously, while the distance animation plays once.
+ * @param {number} durationRot - The duration in frames for the rotation animation.
+ * @param {number} durationDist - The duration in frames for the distance animation.
+ * @param {number} nbTurns - The number of half-turns (multiples of PI) for the rotation.
+ */
 function startAnim(durationRot, durationDist, nbTurns) {
     var rotAnimation = new BABYLON.Animation("rotAnim", "alpha", 30,
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
@@ -241,6 +316,9 @@ function startAnim(durationRot, durationDist, nbTurns) {
     glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [distAnimation], 0, durationDist, false, 1);
 }
 
+/**
+ * Stops the camera rotation animation if one is currently running.
+ */
 function stopRotAnim() {
     if (glo.rotAnim) {
         glo.rotAnim.stop();
@@ -248,6 +326,9 @@ function stopRotAnim() {
     }
 }
 
+/**
+ * Stops the camera distance animation if one is currently running.
+ */
 function stopDistAnim() {
     if (glo.distAnim) {
         glo.distAnim.stop();
@@ -255,11 +336,19 @@ function stopDistAnim() {
     }
 }
 
+/**
+ * Stops all camera animations (both rotation and distance).
+ */
 function stopAllCameraAnims() {
     stopRotAnim();
     stopDistAnim();
 }
 
+/**
+ * Synchronizes global parameter values (`glo.params`) to their corresponding GUI controls.
+ * Updates sliders (u, v, steps, A-M), equation text inputs, eval inputs, and symmetry input.
+ * Temporarily sets `glo.skipRebuild` to true to prevent triggering mesh rebuilds during sync.
+ */
 function paramsToControls(){
 	glo.skipRebuild = true;
 	glo.allControls.getByName('u').value = glo.params.u;
@@ -293,6 +382,11 @@ function paramsToControls(){
 	glo.skipRebuild = false;
 }
 
+/**
+ * Checks whether the current equation input texts match the equations of the
+ * currently selected radio button form. Compares X, Y, Z, Alpha, and Beta fields.
+ * @returns {boolean} True if all equation inputs match the selected form's equations.
+ */
 function isInputsEquationsSameAsRadioCheck(){
 	var p = glo.params;
 	var form = glo.formes.getFormByName(p.formName, p.coordsType);
@@ -306,6 +400,12 @@ function isInputsEquationsSameAsRadioCheck(){
 	return false;
 }
 
+/**
+ * Updates the UI labels for equation input headers based on the current coordinate system type.
+ * For cartesian: X, Y, Z; for spherical: R, Rot Y, Rot Z; for cylindrical: R, Rot Z, Z.
+ * Also updates the coordinate type button text and optionally adjusts UV sliders.
+ * @param {boolean} [updateSliderUv=true] - If true, also adjust the UV slider values for the new coordinate type.
+ */
 function switchDrawCoordsType(updateSliderUv = true){
 	if(updateSliderUv){ changeSliderUv(); }
 	switch (glo.coordsType) {
@@ -342,10 +442,20 @@ function switchDrawCoordsType(updateSliderUv = true){
 	}
 }
 
+/**
+ * Changes the text of a header control identified by name.
+ * @param {string} headerName - The name of the header control to update.
+ * @param {string} newText - The new text to display in the header.
+ */
 function changeHeaderText(headerName, newText){
 	glo.allControls.haveThisClass("header").getByName(headerName).text = newText;
 }
 
+/**
+ * Resets all equation input fields and parameter sliders to their default values.
+ * Clears button texts, resets text input parameters, resets symmetrize parameters to 0,
+ * and sets u and v sliders to PI.
+ */
 function resetEquationsParamSliders(){
 	glo.advancedTexture.getControlsByType('Button').forEach(input => {
 		input.text = '';
@@ -358,12 +468,20 @@ function resetEquationsParamSliders(){
 	glo.allControls.getByName('v').value = PI;
 }
 
+/**
+ * Applies a tiny offset to the U slider value to trigger a recalculation
+ * when switching coordinate types. The offset direction depends on the coordinate type.
+ */
 function changeSliderUv(){
 	if(glo.coordsType == 'spheric'){ glo.sliderU.value += 0.0000002; }
 	else if(glo.coordsType == 'cylindrical'){ glo.sliderU.value -= 0.0000001; }
 	else{ glo.sliderU.value -= 0.0000001; }
 }
 
+/**
+ * Copies the value of the first equation input (X) to all other equation inputs
+ * (Y, Z, Alpha, Beta) and triggers a mesh rebuild.
+ */
 function firstInputToOthers(){
 	const val = glo.inputX.text;
 
@@ -380,11 +498,23 @@ function firstInputToOthers(){
 	makeCurves();
 }
 
+/**
+ * Positions the camera target and location at the given 3D coordinates.
+ * @param {Object} pos - The position object.
+ * @param {number} pos.x - The X coordinate.
+ * @param {number} pos.y - The Y coordinate.
+ * @param {number} pos.z - The Z coordinate.
+ */
 function cameraOnPos(pos){
 	glo.camera.setTarget(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 }
 
+/**
+ * Toggles a GUI control's background between its normal color and a dimmed (activated) color.
+ * The colors are derived from the current color picker button value.
+ * @param {string} controlName - The name of the GUI control whose background to toggle.
+ */
 function swapControlBackground(controlName){
 	let control = glo.allControls.getByName(controlName);
 
@@ -395,6 +525,10 @@ function swapControlBackground(controlName){
 	control.background = control.background === buttonBg ? buttonBgActived : buttonBg;
 }
 
+/**
+ * Applies the activated background style to all buttons listed in `glo.bgActivedButtons`,
+ * then applies special control parameter styling.
+ */
 function otherDesigns(){
 	glo.bgActivedButtons.forEach(buttonName => {
 		glo.allControls.getByName(buttonName).background = glo.controlConfig.backgroundActived;
@@ -403,6 +537,11 @@ function otherDesigns(){
 	paramSpecialControls();
 }
 
+/**
+ * Applies custom positioning, sizing, and theming to special GUI controls.
+ * Configures layout for symmetrize controls, color picker panels, sliders, and inputs
+ * according to the current theme.
+ */
 function paramSpecialControls(){
 	glo.allControls.getByName('inputsColorsEquations').top = '27%';
 	glo.allControls.getByName('centerLocal').width         = '115px';
@@ -450,6 +589,10 @@ function paramSpecialControls(){
 	glo.allControls.getByName('header_inputRSymmetrize').color    = 'white';
 }
 
+/**
+ * Applies theme styling to radio button controls and their header labels.
+ * Applies text theme to radio headers and button theme to radio buttons.
+ */
 function paramRadios(){
 	glo.allControls.haveTheseClasses('header', 'radio', 'left', 'first', 'noAutoParam').map(header => {
 		for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
@@ -459,6 +602,11 @@ function paramRadios(){
 	});
 }
 
+/**
+ * Doubles or halves the mesh resolution by scaling the step slider maximums and values.
+ * Triggers a ribbon mesh rebuild after the change.
+ * @param {string} [change='increase'] - Either 'increase' to double resolution or any other value to halve it.
+ */
 function changeResolution(change = 'increase'){
 	const coeff = change === 'increase' ? 2 : 0.5;
 	glo.resolutionCoeff *= coeff;
@@ -474,6 +622,12 @@ function changeResolution(change = 'increase'){
 	remakeRibbon();
 }
 
+/**
+ * Swaps u/v and X/Y notation in all equation input fields.
+ * When `glo.params.uvToXy` is true, replaces u->X and v->Y;
+ * otherwise, replaces X->u and Y->v.
+ * Also initializes eval inputs to 'u' and 'v' if they are empty.
+ */
 function uvToXy(){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 

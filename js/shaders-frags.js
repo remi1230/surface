@@ -1,15 +1,72 @@
+/**
+ * @file shaders-frags.js
+ * @description Fragment shader code definitions for the BabylonJS parametric surface application.
+ *
+ * This file contains GLSL fragment shader source code stored as JavaScript template literals
+ * in arrays. It defines:
+ * - {@link fragmentShaders} - An array of GLSL fragment shader body snippets (grid, curvature,
+ *   Voronoi, Perlin noise, starfield, Truchet patterns, hexagons, etc.).
+ * - {@link fragmentShaderHeader} - The common GLSL header (version, precision, uniforms,
+ *   varyings, and utility functions) prepended to every fragment shader.
+ * - {@link fragmentShaderFooter} - The common GLSL footer (color inversion, tint, lighting)
+ *   appended to every fragment shader.
+ * - {@link normalShaders} - An array of GLSL normal-deformation shader body snippets.
+ * - {@link normalShaderHeader} / {@link normalShaderFooter} - Header and footer wrapping
+ *   normal deformation code into a `computeDeformation` function.
+ * - {@link getFragmentUtilsGLSL} - A function returning shared GLSL utility code (color
+ *   palettes, noise, lighting, SDF helpers, etc.).
+ * - {@link validateShader} - A function that compiles a GLSL shader on the GPU to check
+ *   for syntax errors.
+ *
+ * The final composed shader is assembled as:
+ *   `fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter`
+ */
+
+/**
+ * Array of GLSL fragment shader body snippets.
+ *
+ * Each entry is a template literal string containing GLSL code that computes a `col` (vec3)
+ * value. The code is inserted between {@link fragmentShaderHeader} and
+ * {@link fragmentShaderFooter} to form a complete fragment shader.
+ *
+ * Available shaders (by index):
+ *  0 - Default grid overlay
+ *  1 - Grid (discard-based wireframe)
+ *  2 - Hexagonal grid
+ *  3 - Position-based grid
+ *  4 - Curvatures
+ *  5 - Normal & Position blend
+ *  6 - Normal & Position blend v2
+ *  7 - Cosine position pattern
+ *  8 - Checkerboard
+ *  9 - Simple solid color
+ * 10 - Lego (quantized position)
+ * 11 - Position rainbow
+ * 12 - Normal coloring
+ * 13 - Atmosphere (Fresnel-like)
+ * 14 - Rotating tile pattern
+ * 15 - Hexagon cells
+ * 16 - Truchet pattern
+ * 17 - Fractional UV cells
+ * 18 - Voronoi
+ * 19 - Random Perlin noise
+ * 20 - Starfield
+ * 21 - Grid uvParams (heatmap)
+ *
+ * @type {string[]}
+ */
 fragmentShaders = [
 `
    //Default
     float coeffLine = S/3.0;
 
-	// Grille
+	// Grid
 	float gu = fract(vUV.x * P * uvCoeff.x);
 	float gv = fract(vUV.y * Q * uvCoeff.y);
 
 	float edgeU = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / P;
     float edgeV = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / Q;
-    float fw = fwidth(vUV.x * P); // largeur d'un pixel en espace UV
+    float fw = fwidth(vUV.x * P); // width of one pixel in UV space
     float fh = fwidth(vUV.y * Q);
     float lineU = smoothstep(edgeU - fw, edgeU + fw, gu);
     float lineV = smoothstep(edgeV - fh, edgeV + fh, gv);
@@ -18,7 +75,7 @@ fragmentShaders = [
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `
-   //Grille
+   //Grid
     float epaisseur = 0.1;
     vec2 uv = fract(uvCoeff * vUV * P) - 0.5;
     float tube = min(abs(uv.x*2.0), abs(uv.y));
@@ -26,7 +83,7 @@ fragmentShaders = [
     col = 1.0-backgroundColor;  
 `,
 `
-    // Grille hex
+    // Hexagonal grid
     vec2 hexUV = vec2(vUV.x * uvCoeff.x, vUV.y * uvCoeff.y) * P;
     float row = floor(hexUV.y);
     if(mod(row, 2.0) > 0.5) hexUV.x += 1.0;

@@ -3,12 +3,22 @@
 //**********************************  (Materialize replacement)  *************************************//
 //*****************************************************************************************************//
 
-/* ── Shared overlay (one for all modals) ── */
+/**
+ * Lightweight replacements for Materialize CSS components (Modal, FormSelect, Toast).
+ * Exposed on `window.M` so existing call-sites keep working without the Materialize library.
+ * @module ui-components
+ */
+
+/** @type {HTMLDivElement} Shared modal overlay element appended once to `<body>`. */
 const _overlay = document.createElement('div');
 _overlay.className = 'modal-overlay';
 document.body.appendChild(_overlay);
 
-/* ── Modal ── */
+/**
+ * Minimal modal system supporting `open()`, `close()`, overlay click, and Escape key.
+ * Stores instances in a Map keyed by DOM element.
+ * @type {{init: function, getInstance: function}}
+ */
 const Modal = (() => {
     const instances = new Map();
 
@@ -55,12 +65,16 @@ const Modal = (() => {
     };
 })();
 
-/* ── FormSelect (no-op: use browser-default selects) ── */
+/** No-op FormSelect — relies on native browser `<select>` elements. */
 const FormSelect = {
     init(/* el */) { /* native selects — nothing to do */ }
 };
 
-/* ── Toast ── */
+/**
+ * Simple toast notification system. Creates a container on first use and
+ * auto-removes each toast after `displayLength` milliseconds.
+ * @type {{show: function}}
+ */
 const Toast = (() => {
     let container = null;
 

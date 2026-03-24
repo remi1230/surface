@@ -1,21 +1,24 @@
 /**
- * Shader Loader - Charge les shaders depuis le serveur
- * Utilise fetch() pour récupérer le fichier et localStorage pour la persistance locale
+ * Shader Loader — fetches fragment shaders from the server and persists
+ * local modifications in localStorage.
+ *
+ * Load priority: localStorage first, then server fallback.
+ * @namespace ShaderLoader
  */
 
 const ShaderLoader = {
-    // URL du fichier shaders sur le serveur
+    /** @type {string} URL of the shader definitions file on the server. */
     serverUrl: 'js/shaders-frags.js',
 
-    // Clé pour localStorage
+    /** @type {string} localStorage key for persisted shader edits. */
     storageKey: 'surface_shaders',
 
-    // Flag pour savoir si on a des modifications locales
+    /** @type {boolean} Whether the current shaders differ from the server version. */
     hasLocalChanges: false,
 
     /**
-     * Charge les shaders (priorité au localStorage, sinon serveur)
-     * @returns {Promise<boolean>} true si chargement réussi
+     * Loads shaders, prioritizing localStorage over the server.
+     * @returns {Promise<boolean>} `true` if shaders were loaded successfully.
      */
     load: async function() {
         // D'abord, essayer de charger depuis localStorage
@@ -33,8 +36,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Charge les shaders depuis le serveur avec fetch()
-     * @returns {Promise<boolean>} true si chargement réussi
+     * Fetches shaders from the server using `fetch()`, bypassing cache.
+     * @returns {Promise<boolean>} `true` if the server returned valid shaders.
      */
     loadFromServer: async function() {
         try {
@@ -66,8 +69,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Recharge les shaders depuis le serveur (ignore localStorage)
-     * @returns {Promise<boolean>} true si chargement réussi
+     * Force-reloads shaders from the server, ignoring and clearing localStorage.
+     * @returns {Promise<boolean>} `true` if the server returned valid shaders.
      */
     reloadFromServer: async function() {
         const success = await this.loadFromServer();
@@ -80,9 +83,10 @@ const ShaderLoader = {
     },
 
     /**
-     * Parse le contenu du fichier shaders-frags.js
-     * @param {string} content - Contenu du fichier JS
-     * @returns {Array} Tableau de shaders
+     * Parses the content of a `shaders-frags.js` file, extracting each shader
+     * from the backtick-delimited entries in the `fragmentShaders` array.
+     * @param {string} content - Raw JS file content.
+     * @returns {string[]|null} Array of shader code strings, or `null` on parse failure.
      */
     parseShaderFile: function(content) {
         const shaders = [];
@@ -109,7 +113,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Sauvegarde les shaders dans localStorage
+     * Persists the current `fragmentShaders` array to localStorage.
+     * @returns {boolean} `true` if saved successfully.
      */
     saveToStorage: function() {
         try {
@@ -125,8 +130,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Charge les shaders depuis localStorage
-     * @returns {Array|null} Tableau de shaders ou null
+     * Reads shaders from localStorage.
+     * @returns {string[]|null} Array of shader code strings, or `null` if none stored.
      */
     loadFromStorage: function() {
         try {
@@ -141,7 +146,7 @@ const ShaderLoader = {
     },
 
     /**
-     * Efface les shaders du localStorage
+     * Removes all persisted shaders from localStorage.
      */
     clearStorage: function() {
         try {
@@ -154,8 +159,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Génère le contenu du fichier shaders-frags.js pour export
-     * @returns {string} Contenu du fichier JS
+     * Generates the JS source content of a `shaders-frags.js` file from the current shaders.
+     * @returns {string} Complete JS file content ready for download.
      */
     generateFileContent: function() {
         let content = 'fragmentShaders = [\n';
@@ -173,7 +178,8 @@ const ShaderLoader = {
     },
 
     /**
-     * Exporte les shaders (téléchargement du fichier)
+     * Triggers a browser download of the current shaders as a `shaders-frags.js` file.
+     * @returns {boolean} Always `true`.
      */
     exportToFile: function() {
         const content = this.generateFileContent();
@@ -192,10 +198,10 @@ const ShaderLoader = {
     },
 
     /**
-     * Importe des shaders depuis un fichier uploadé
-     * @param {File} file - Fichier à importer
-     * @param {boolean} replace - true pour remplacer, false pour ajouter
-     * @returns {Promise<number>} Nombre de shaders importés
+     * Imports shaders from an uploaded file, either replacing or appending to the current list.
+     * @param {File} file - The uploaded `.js` file.
+     * @param {boolean} [replace=false] - If `true`, replaces all shaders; otherwise appends.
+     * @returns {Promise<number>} The number of shaders imported.
      */
     importFromFile: function(file, replace = false) {
         return new Promise((resolve, reject) => {

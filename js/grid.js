@@ -1,3 +1,14 @@
+//*****************************************************************************************************//
+//**********************************************GRID***************************************************//
+//*****************************************************************************************************//
+
+/**
+ * Creates or replaces the three reference planes (XY, YZ, XZ) in the scene.
+ * Each plane is a semi-transparent double-sided mesh scaled to `glo.planSize`.
+ * @param {boolean} [planXY=true] - Whether to create the XY plane.
+ * @param {boolean} [planYZ=true] - Whether to create the YZ plane.
+ * @param {boolean} [planXZ=true] - Whether to create the XZ plane.
+ */
 function makePlanes(planXY = true, planYZ = true, planXZ = true){
 	function makePlan(x, y, z) {
 		var sourcePlane = new BABYLON.Plane(x, y, z, 0);
@@ -35,6 +46,13 @@ function makePlanes(planXY = true, planYZ = true, planXZ = true){
 	glo.params.gridScaleValueOrigin = glo.params.gridScaleValue;
 }
 
+/**
+ * Shows or hides a single reference plane by name.
+ * When showing, creates a new semi-transparent BabylonJS plane mesh.
+ * When hiding, disposes the existing mesh.
+ * @param {boolean} visible - Whether to show or hide the plane.
+ * @param {string} plan - Plane identifier: `'xy'`, `'yz'`, or `'xz'`.
+ */
 function showPlane(visible, plan){
 	if(visible){
 		var material = new BABYLON.StandardMaterial("myMaterial", glo.scene);
@@ -79,11 +97,19 @@ function showPlane(visible, plan){
 	}
 }
 
+/** Shows only the XY plane, hiding the others. @param {boolean} [visible=true] */
 function showPlaneX(visible = true){ showPlane(visible, 'xy'); showPlane(false, 'yz'); showPlane(false, 'xz'); }
+/** Shows only the YZ plane, hiding the others. @param {boolean} [visible=true] */
 function showPlaneY(visible = true){ showPlane(visible, 'yz'); showPlane(false, 'xy'); showPlane(false, 'xz'); }
+/** Shows only the XZ plane, hiding the others. @param {boolean} [visible=true] */
 function showPlaneZ(visible = true){ showPlane(visible, 'xz'); showPlane(false, 'xy'); showPlane(false, 'yz'); }
+/** Hides all three reference planes. */
 function showNoPlane(){ showPlane(false, 'xz'); showPlane(false, 'xy'); showPlane(false, 'yz'); }
 
+/**
+ * Shows a single plane via {@link makePlanes}, hiding the other two.
+ * @param {string} plan - Axis identifier: `'x'`, `'y'`, `'z'`, or `'none'`.
+ */
 function showAPlane(plan){
 	switch(plan){
 		case 'x' : makePlanes(true, false, false); break;
@@ -94,6 +120,13 @@ function showAPlane(plan){
 	}
 }
 
+/**
+ * Creates the three axis lines (X red, Y green, Z blue) with arrowheads
+ * and labeled text planes linked to the GUI overlay.
+ * Disposes any existing axis meshes before creating new ones.
+ * @param {number} size - Length of each axis line.
+ * @param {number} [visibility=0] - Initial visibility (0 = hidden, 1 = visible).
+ */
 var showAxis = function(size, visibility = 0) {
 	if(glo.axisX){
 		glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
@@ -185,6 +218,15 @@ var showAxis = function(size, visibility = 0) {
 	zChar.visibility = 0;
 };
 
+/**
+ * Creates a 3D grid of labeled lines along the X, Y, and Z axes.
+ * Disposes any existing grid before creating new lines and text labels.
+ * Each grid line is a BabylonJS line mesh with an orthogonal companion line.
+ * @param {number} size - Half-extent of each grid line.
+ * @param {number} number - Number of subdivisions per axis.
+ * @param {number} [axisSize=glo.axisSize] - Extent of the grid along each axis.
+ * @param {number} [visibility=0] - Initial visibility (0 = hidden, 1 = visible).
+ */
 function showGrid(size, number, axisSize = glo.axisSize, visibility = 0) {
 	glo.axisSize = axisSize;
 
@@ -360,6 +402,12 @@ function showGrid(size, number, axisSize = glo.axisSize, visibility = 0) {
 	}
 };
 
+/**
+ * Sets the camera to view along the X axis.
+ * @param {number} [orient=1] - Orientation (1 = Y-up, other = Z-up).
+ * @param {number} [alpha=0] - Camera alpha angle.
+ * @param {number} [beta=PI/2] - Camera beta angle.
+ */
 function viewOnX(orient = 1, alpha = 0, beta = PI/2){
 	glo.camera.alpha = alpha;
 	glo.camera.beta  = beta;
@@ -371,6 +419,12 @@ function viewOnX(orient = 1, alpha = 0, beta = PI/2){
 		glo.camera.upVector = new BABYLON.Vector3(0,0,1);
 	}
 }
+/**
+ * Sets the camera to view along the Y axis.
+ * @param {number} [orient=1] - Orientation (1 = Z-up, other = X-up).
+ * @param {number} [alpha=-PI] - Camera alpha angle.
+ * @param {number} [beta=PI/2] - Camera beta angle.
+ */
 function viewOnY(orient = 1, alpha = -PI, beta = PI/2){
 	glo.camera.beta = beta;
 
@@ -383,6 +437,12 @@ function viewOnY(orient = 1, alpha = -PI, beta = PI/2){
 		glo.camera.upVector = new BABYLON.Vector3(1,0,0);
 	}
 }
+/**
+ * Sets the camera to view along the Z axis.
+ * @param {number} [orient=1] - Orientation (1 = X-up, other = Y-up).
+ * @param {number} [alpha=PI/2] - Camera alpha angle.
+ * @param {number} [beta=PI/2] - Camera beta angle.
+ */
 function viewOnZ(orient = 1, alpha = PI/2, beta = PI/2){
 	glo.camera.alpha = alpha;
 	glo.camera.beta  = beta;
@@ -394,6 +454,16 @@ function viewOnZ(orient = 1, alpha = PI/2, beta = PI/2){
 	}
 }
 
+/**
+ * Positions the camera to view the surface from the orientation specified
+ * by the current form's `orient` descriptor (axis, direction, alpha, beta, distance).
+ * @param {object} [options=glo.formes.getFormSelect().form.orient] - Camera orientation options.
+ * @param {string} [options.axis='X'] - Primary axis (`'X'`, `'Y'`, or `'Z'`).
+ * @param {number} [options.direction=-1] - Axis direction (1 or -1).
+ * @param {number} [options.alpha] - Alpha angle offset.
+ * @param {number} [options.beta] - Beta angle offset.
+ * @param {number} [options.distance=60] - Camera distance (radius).
+ */
 function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	if(!options.axis){ options.axis = "X"; }
 	if(!options.direction){ options.direction = -1; }
@@ -418,6 +488,11 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	glo.camera.radius = options.distance;
 }
 
+/**
+ * Toggles visibility of all grid lines and labels.
+ * Also toggles axis visibility in sync.
+ * @param {boolean} [gridVisible=glo.gridVisible] - Whether the grid should be visible.
+ */
 function switchGrid(gridVisible = glo.gridVisible){
 	if(gridVisible){
 		glo.controlsGrid.forEach(ctrl => {
@@ -436,6 +511,11 @@ function switchGrid(gridVisible = glo.gridVisible){
 	}
 }
 
+/**
+ * Translates all grid controls, axis lines, and labels so the grid origin
+ * coincides with the mesh's bounding-box center in world space.
+ * @param {BABYLON.Mesh} [mesh=glo.ribbon] - The reference mesh.
+ */
 function gridToCenterMesh(mesh = glo.ribbon){
 	const centerWorld = glo.ribbon.getBoundingInfo().boundingBox.centerWorld;
 	glo.controlsGrid.forEach(ctrl => {
@@ -461,6 +541,9 @@ function gridToCenterMesh(mesh = glo.ribbon){
 	glo.axisZ.position.z += centerWorld.z;
 }
 
+/**
+ * Resets all grid controls, axis lines, and labels back to the world origin (0, 0, 0).
+ */
 function gridToOrigin(){
 	glo.controlsGrid.forEach(ctrl => {
 		if(ctrl.position){
@@ -485,6 +568,10 @@ function gridToOrigin(){
 	glo.axisZ.position.z = 0;
 }
 
+/**
+ * Toggles visibility of the three axis lines (X, Y, Z) and their labels.
+ * @param {boolean} [axisVisible=glo.axisVisible] - Whether axes should be visible.
+ */
 function switchAxis(axisVisible = glo.axisVisible){
 	if(axisVisible){
 		glo.axisX.visibility = 1;

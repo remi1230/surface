@@ -477,11 +477,11 @@ function changeResolution(change = 'increase'){
 function uvToXy(){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 
-	["x", "y", "z", "alpha", "beta", "sym_r"].forEach(nameInput =>  {
+	["X", "Y", "Z", "Alpha", "Beta", "SymR"].forEach(nameInput =>  {
 		regs.forEach(reg => {
-			glo[`input_${nameInput}`].text = glo[`input_${nameInput}`].text.replace(reg.exp, reg.upd);
+			glo[`input${nameInput}`].text = glo[`input${nameInput}`].text.replace(reg.exp, reg.upd);
 		});
-		glo.params[`text_input_${nameInput}`] = glo[`input_${nameInput}`].text;
+		glo.params[`textInput${nameInput}`] = glo[`input${nameInput}`].text;
 	 });
 
 	 if(!glo.inputEvalX.text && !glo.inputEvalY.text){

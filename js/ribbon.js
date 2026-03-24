@@ -1,7 +1,7 @@
 //*****************************************************************************************************//
 //********************************************MAIN FUNCTIONS*******************************************//
 //*****************************************************************************************************//
-async function make_curves(){
+async function makeCurves(){
 	if(typeof(glo.curves) != "undefined"){
 		glo.curves = {}; delete glo.curves;
 	}
@@ -19,7 +19,7 @@ function makeOnlyCurves() {
 
 	// Appliquer la déformation si une expression existe
 	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		const deformText = glo.inputSymR ? glo.inputSymR.text : null;
 		if (deformText && deformText.trim()) {
 			glo.ribbon.shaderMeshInstance.updateDeformationExpression(deformText);
 		}
@@ -40,12 +40,12 @@ function ribbonDispose(all = true){
 }
 
 async function remakeRibbon(){
-	await make_curves(); 
+	await makeCurves(); 
 }
 
 function getPathsInfos(){
 	const coeffSym = countSyms();
-	glo.pathsInfos = {u: (glo.params.steps_u + 1) * coeffSym, v: glo.params.steps_v + 1};
+	glo.pathsInfos = {u: (glo.params.stepsU + 1) * coeffSym, v: glo.params.stepsV + 1};
 }
 
 async function exportMeshToSTL(mesh, filename){
@@ -84,8 +84,8 @@ async function exportMeshToSTL(mesh, filename){
 function buildMeshFromPaths(paths, fileName) {
 	const stepsU = paths.length - 1;
 	const stepsV = paths[0].length - 1;
-	glo.params.steps_u = stepsU;
-	glo.params.steps_v = stepsV;
+	glo.params.stepsU = stepsU;
+	glo.params.stepsV = stepsV;
 
 	const numVertices = paths.length * paths[0].length;
 	const positions = new Float32Array(numVertices * 3);
@@ -271,8 +271,8 @@ async function importOBJWithBabylon(file, fileName) {
 		const numVertices = positions.length / 3;
 		const stepsU = Math.round(Math.sqrt(numVertices)) - 1;
 		const stepsV = Math.ceil(numVertices / (stepsU + 1)) - 1;
-		glo.params.steps_u = stepsU;
-		glo.params.steps_v = stepsV;
+		glo.params.stepsU = stepsU;
+		glo.params.stepsV = stepsV;
 
 		assignImportedShaderMesh(
 			new Float32Array(positions),
@@ -399,12 +399,12 @@ function rndSurface(end){
 		},
 	};
 
-	var num_lim = 4;
+	var numLimit = 4;
 	var rndEquation = "";
 	var n = 0;
 	while(n < end){
 		if(n == end - 1){ rndEquation += rnd.get_a_function(1); }
-		else if(n%2 == 0){ rndEquation += rnd.get_a_function(1) + rnd.get_an_operator(0) + parseInt(Math.random() * num_lim + 2); }
+		else if(n%2 == 0){ rndEquation += rnd.get_a_function(1) + rnd.get_an_operator(0) + parseInt(Math.random() * numLimit + 2); }
 		else if(n%2 != 0){ rndEquation += rnd.get_a_function(1) + rnd.get_an_operator(1) + rnd.get_a_function(2); }
 		n++;
 	}
@@ -413,17 +413,17 @@ function rndSurface(end){
 }
 
 function makeRndSurface(){
-	glo.params.text_input_x = "u" + rndSurface(1); glo.input_x.text = glo.params.text_input_x;
-	glo.params.text_input_y = "v" + rndSurface(1); glo.input_y.text = glo.params.text_input_y;
-	glo.params.text_input_z = rndSurface(3); glo.input_z.text = glo.params.text_input_z;
+	glo.params.textInputX = "u" + rndSurface(1); glo.inputX.text = glo.params.textInputX;
+	glo.params.textInputY = "v" + rndSurface(1); glo.inputY.text = glo.params.textInputY;
+	glo.params.textInputZ = rndSurface(3); glo.inputZ.text = glo.params.textInputZ;
 
-	make_curves();
+	makeCurves();
 }
 
 function isUV(){
-	let inputs = [glo.params.text_input_x, glo.params.text_input_y, glo.params.text_input_z,
-		          glo.params.text_input_alpha, glo.params.text_input_beta,
-				  glo.input_eval_x.text, glo.input_eval_y.text].map(input => regOne(input));
+	let inputs = [glo.params.textInputX, glo.params.textInputY, glo.params.textInputZ,
+		          glo.params.textInputAlpha, glo.params.textInputBeta,
+				  glo.inputEvalX.text, glo.inputEvalY.text].map(input => regOne(input));
 	
 	return {isU: inputs.some(input => input.includes('u') || input.includes('à') || input.includes('m')),
 		    isV: inputs.some(input => input.includes('v') || input.includes('à') || input.includes('m') )};
@@ -437,10 +437,10 @@ function turnVerticesDatasToPaths(verticesDatas = glo.ribbon.getVerticesData(BAB
 	let paths = [];
 	let n = 0;
 
-	const stepsU = coeff ? ((glo.params.steps_u + 1) * coeff) : glo.pathsInfos.u;
+	const stepsU = coeff ? ((glo.params.stepsU + 1) * coeff) : glo.pathsInfos.u;
 	for(let i = 0; i <= stepsU - 1; i++){
 		paths[i] = [];
-		for(let j = 0; j <= glo.params.steps_v; j++){
+		for(let j = 0; j <= glo.params.stepsV; j++){
 			const v = { x: verticesDatas[n*3], y: verticesDatas[n*3 + 1], z: verticesDatas[n*3 + 2] };
 			paths[i].push(new BABYLON.Vector3(v.x, v.y, v.z));
 

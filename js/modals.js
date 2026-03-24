@@ -15,7 +15,7 @@ function initExportModal(){
     });
 }
 
-const extraireTexteEtNombre = (chaine) => {
+const extractTextAndNumber = (chaine) => {
     const resultat = chaine.match(/^(.*?)(\d+)?$/);
     return {
         filename   : resultat[1],
@@ -29,7 +29,7 @@ function exportModal(){
 	var instance = M.Modal.getInstance(document.querySelector('#exportModal'));
     instance.open();
 
-	let {filename, fileNumber} = extraireTexteEtNombre(getById('filename').value);
+	let {filename, fileNumber} = extractTextAndNumber(getById('filename').value);
 	if(fileNumber){
 		getById('filename').value = filename + (fileNumber + 1);
 	}
@@ -58,12 +58,12 @@ function importModal(){
 	M.Modal.getInstance(document.querySelector('#importModal')).open();
 }
 
-function download_JSON_mesh(event){
+function downloadJsonMesh(event){
 	M.Modal.getInstance(getById('importModal')).close();
-	var file_to_read = getById("jsonFileUpload").files[0];
+	var fileToRead = getById("jsonFileUpload").files[0];
 	getById('jsonFileUpload').value = '';
 
-	const fileName      = file_to_read.name;
+	const fileName      = fileToRead.name;
 	const fileExtension = fileName.slice(fileName.lastIndexOf('.') + 1);
 
 	var fileread = new FileReader();
@@ -75,7 +75,7 @@ function download_JSON_mesh(event){
 			if (isAppExport) {
 				importAppOBJ(fileContent, fileName);
 			} else {
-				importOBJWithBabylon(file_to_read, fileName);
+				importOBJWithBabylon(fileToRead, fileName);
 			}
 			return;
 		}
@@ -85,7 +85,7 @@ function download_JSON_mesh(event){
 		}
 	};
 
-	fileread.readAsText(file_to_read);
+	fileread.readAsText(fileToRead);
 }
 
 function applyImportedJSON(fileContent) {
@@ -98,24 +98,24 @@ function applyImportedJSON(fileContent) {
 		}
 	}
 
-    var importedStepsU = glo.params.steps_u;
-	var importedStepsV = glo.params.steps_v;
+    var importedStepsU = glo.params.stepsU;
+	var importedStepsV = glo.params.stepsV;
 
 	paramsToControls();
-    if(!contentJsonFile.text_input_sym_r){ glo.input_sym_r.text = ''; }
+    if(!contentJsonFile.textInputSymR){ glo.inputSymR.text = ''; }
 
 	var sameAsRadioCheck = isInputsEquationsSameAsRadioCheck();
 	var formName = glo.params.formName;
 	if(glo.coordsType != glo.params.coordsType){
 		while(glo.coordsType !== glo.params.coordsType){ glo.coordinatesType.next(); }
-        add_radios();
+        addRadios();
 	}
 
 	glo.formes.setFormeSelect(formName, glo.coordsType, sameAsRadioCheck, {u: importedStepsU, v: importedStepsV});
-    glo.radios_formes.setCheckByName(`Radio-${formName}`);
+    glo.radiosFormes.setCheckByName(`Radio-${formName}`);
 
 	if(!sameAsRadioCheck){
-		make_curves();
+		makeCurves();
 	}
 
 	// Restauration du shader de couleurs

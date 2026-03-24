@@ -18,14 +18,14 @@ async function whellSwitchForm(){
 
 		var formSelected = glo.formes.getFormSelect();
 		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
-		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
+		glo.radiosFormes.setCheckByName(nameRadioFormToSelect);
 	}
 	else{
 		await glo.formes.setFormSelectByNum(glo.formes.getNumFirstFormInCoordType());
 
 		var formSelected = glo.formes.getFormSelect();
 		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
-		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
+		glo.radiosFormes.setCheckByName(nameRadioFormToSelect);
 	}
 }
 
@@ -49,7 +49,7 @@ function switchCoords(normalSens = true){
 	genInTwoWays(glo.coordinatesType, 'coordsType', normalSens);
 
 	switchDrawCoordsType();
-	add_radios();
+	addRadios();
 
 	glo.formesSuit = false;
 }
@@ -106,11 +106,11 @@ function toggleRightPanels(rightPanelToShowClass, toShow = true){
 
 function switchWritingType(long){
 	var f = {
-		x: glo.input_x.text,
-		y: glo.input_y.text,
-		z: glo.input_z.text,
-		alpha: glo.input_alpha.text,
-		beta: glo.input_beta.text,
+		x: glo.inputX.text,
+		y: glo.inputY.text,
+		z: glo.inputZ.text,
+		alpha: glo.inputAlpha.text,
+		beta: glo.inputBeta.text,
 	};
 
 	if(!long){
@@ -152,41 +152,41 @@ function switchWritingType(long){
 		}
 	}
 
-	glo.input_x.text = f.x;
-	glo.input_y.text = f.y;
-	glo.input_z.text = f.z;
-	glo.input_alpha.text = f.alpha;
-	glo.input_beta.text = f.beta;
+	glo.inputX.text = f.x;
+	glo.inputY.text = f.y;
+	glo.inputZ.text = f.z;
+	glo.inputAlpha.text = f.alpha;
+	glo.inputBeta.text = f.beta;
 
-	glo.params.text_input_x = f.x;
-	glo.params.text_input_y = f.y;
-	glo.params.text_input_z = f.z;
-	glo.params.text_input_alpha = f.alpha;
-	glo.params.text_input_beta = f.beta;
+	glo.params.textInputX = f.x;
+	glo.params.textInputY = f.y;
+	glo.params.textInputZ = f.z;
+	glo.params.textInputAlpha = f.alpha;
+	glo.params.textInputBeta = f.beta;
 }
 
-async function invElemInInput(toInv_1, toInv_2, makeCurve = true){
+async function invElemInInput(toInv1, toInv2, makeCurve = true){
 	var f = {
-		x: glo.input_x.text,
-		y: glo.input_y.text,
-		z: glo.input_z.text,
-		alpha: glo.input_alpha.text,
-		beta: glo.input_beta.text,
+		x: glo.inputX.text,
+		y: glo.inputY.text,
+		z: glo.inputZ.text,
+		alpha: glo.inputAlpha.text,
+		beta: glo.inputBeta.text,
 	};
-	f = reg_inv(f, toInv_1, toInv_2);
-	glo.input_x.text = f.x;
-	glo.input_y.text = f.y;
-	glo.input_z.text = f.z;
-	glo.input_alpha.text = f.alpha;
-	glo.input_beta.text = f.beta;
+	f = regInv(f, toInv1, toInv2);
+	glo.inputX.text = f.x;
+	glo.inputY.text = f.y;
+	glo.inputZ.text = f.z;
+	glo.inputAlpha.text = f.alpha;
+	glo.inputBeta.text = f.beta;
 
-	glo.params.text_input_x = f.x;
-	glo.params.text_input_y = f.y;
-	glo.params.text_input_z = f.z;
-	glo.params.text_input_alpha = f.alpha;
-	glo.params.text_input_beta = f.beta;
+	glo.params.textInputX = f.x;
+	glo.params.textInputY = f.y;
+	glo.params.textInputZ = f.z;
+	glo.params.textInputAlpha = f.alpha;
+	glo.params.textInputBeta = f.beta;
 
-	if(toInv_1 === 'u' && toInv_2 === 'v'){
+	if(toInv1 === 'u' && toInv2 === 'v'){
 		let remakeCurve = true;
 		if(glo.allControls.getByName('stepU').value !== glo.allControls.getByName('stepV').value){
 			const stepU = glo.allControls.getByName('stepU').value; 
@@ -216,29 +216,29 @@ function slidersAnim(name, speed = 1, dir = 1){
 	slider.value += valToAdd * dir;
 }
 
-function startAnim(durationRot, durationDist, nb_turns) {
-    var rot_animation = new BABYLON.Animation("rotAnim", "alpha", 30,
+function startAnim(durationRot, durationDist, nbTurns) {
+    var rotAnimation = new BABYLON.Animation("rotAnim", "alpha", 30,
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE);
 
-    rot_animation.setKeys([
+    rotAnimation.setKeys([
         { frame: 0, value: 0 },
-        { frame: durationRot, value: nb_turns * Math.PI }
+        { frame: durationRot, value: nbTurns * Math.PI }
     ]);
 
-    var dist_animation = new BABYLON.Animation("distAnim", "radius", 30,
+    var distAnimation = new BABYLON.Animation("distAnim", "radius", 30,
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
 
 	const startForm   = glo.formes.getStartForm();	
     var currentRadius = startForm.orient ? (startForm.orient.distance || 16.66) : 16.66;
-    dist_animation.setKeys([
+    distAnimation.setKeys([
         { frame: 0, value: 0 },
         { frame: durationDist, value: currentRadius },
     ]);
 
-    glo.rotAnim  = glo.scene.beginDirectAnimation(glo.camera, [rot_animation], 0, durationRot, true, 1);
-    glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [dist_animation], 0, durationDist, false, 1);
+    glo.rotAnim  = glo.scene.beginDirectAnimation(glo.camera, [rotAnimation], 0, durationRot, true, 1);
+    glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [distAnimation], 0, durationDist, false, 1);
 }
 
 function stopRotAnim() {
@@ -264,8 +264,8 @@ function paramsToControls(){
 	glo.skipRebuild = true;
 	glo.allControls.getByName('u').value = glo.params.u;
 	glo.allControls.getByName('v').value = glo.params.v;
-	glo.allControls.getByName('stepU').value = glo.params.steps_u;
-	glo.allControls.getByName('stepV').value = glo.params.steps_v;
+	glo.allControls.getByName('stepU').value = glo.params.stepsU;
+	glo.allControls.getByName('stepV').value = glo.params.stepsV;
 	glo.allControls.getByName('A').value = glo.params.A;
 	glo.allControls.getByName('B').value = glo.params.B;
 	glo.allControls.getByName('C').value = glo.params.C;
@@ -280,16 +280,16 @@ function paramsToControls(){
 	glo.allControls.getByName('L').value = glo.params.L;
 	glo.allControls.getByName('M').value = glo.params.M;
 
-	glo.allControls.getByName('inputX').text = glo.params.text_input_x;
-	glo.allControls.getByName('inputY').text = glo.params.text_input_y;
-	glo.allControls.getByName('inputZ').text = glo.params.text_input_z;
-	glo.allControls.getByName('inputAlpha').text = glo.params.text_input_alpha;
-	glo.allControls.getByName('inputBeta').text = glo.params.text_input_beta;
+	glo.allControls.getByName('inputX').text = glo.params.textInputX;
+	glo.allControls.getByName('inputY').text = glo.params.textInputY;
+	glo.allControls.getByName('inputZ').text = glo.params.textInputZ;
+	glo.allControls.getByName('inputAlpha').text = glo.params.textInputAlpha;
+	glo.allControls.getByName('inputBeta').text = glo.params.textInputBeta;
 
-	glo.allControls.getByName('inputEvalX').text = glo.params.text_input_eval_x;
-	glo.allControls.getByName('inputEvalY').text = glo.params.text_input_eval_y;
+	glo.allControls.getByName('inputEvalX').text = glo.params.textInputEvalX;
+	glo.allControls.getByName('inputEvalY').text = glo.params.textInputEvalY;
 
-	if(glo.input_sym_r){ glo.input_sym_r.text = glo.params.text_input_sym_r || ''; }
+	if(glo.inputSymR){ glo.inputSymR.text = glo.params.textInputSymR || ''; }
 	glo.skipRebuild = false;
 }
 
@@ -299,15 +299,15 @@ function isInputsEquationsSameAsRadioCheck(){
 	var formAlpha = ""; var formBeta = "";
 	if(typeof(form.alpha) != "undefined"){ formAlpha = form.alpha; }
 	if(typeof(form.beta) != "undefined"){ formBeta = form.beta; }
-	if(p.text_input_x == form.fx && p.text_input_y == form.fy && p.text_input_z == form.fz && p.text_input_alpha == formAlpha && p.text_input_beta == formBeta){
+	if(p.textInputX == form.fx && p.textInputY == form.fy && p.textInputZ == form.fz && p.textInputAlpha == formAlpha && p.textInputBeta == formBeta){
 		return true;
 	}
 
 	return false;
 }
 
-function switchDrawCoordsType(update_slider_uv = true){
-	if(update_slider_uv){ change_slider_uv(); }
+function switchDrawCoordsType(updateSliderUv = true){
+	if(updateSliderUv){ changeSliderUv(); }
 	switch (glo.coordsType) {
 		case 'cartesian':
 			changeHeaderText('header_inputX', 'X');
@@ -358,26 +358,26 @@ function resetEquationsParamSliders(){
 	glo.allControls.getByName('v').value = PI;
 }
 
-function change_slider_uv(){
-	if(glo.coordsType == 'spheric'){ glo.slider_u.value += 0.0000002; }
-	else if(glo.coordsType == 'cylindrical'){ glo.slider_u.value -= 0.0000001; }
-	else{ glo.slider_u.value -= 0.0000001; }
+function changeSliderUv(){
+	if(glo.coordsType == 'spheric'){ glo.sliderU.value += 0.0000002; }
+	else if(glo.coordsType == 'cylindrical'){ glo.sliderU.value -= 0.0000001; }
+	else{ glo.sliderU.value -= 0.0000001; }
 }
 
 function firstInputToOthers(){
-	const val = glo.input_x.text;
+	const val = glo.inputX.text;
 
-	glo.input_beta.text  = val;
-	glo.input_alpha.text = val;
-	glo.input_z.text 	 = val;
-	glo.input_y.text 	 = val;
+	glo.inputBeta.text  = val;
+	glo.inputAlpha.text = val;
+	glo.inputZ.text 	 = val;
+	glo.inputY.text 	 = val;
 
-	glo.params.text_input_beta 	= val;
-	glo.params.text_input_alpha = val;
-	glo.params.text_input_z 	= val;
-	glo.params.text_input_y 	= val;
+	glo.params.textInputBeta 	= val;
+	glo.params.textInputAlpha = val;
+	glo.params.textInputZ 	= val;
+	glo.params.textInputY 	= val;
 
-	make_curves();
+	makeCurves();
 }
 
 function cameraOnPos(pos){
@@ -400,10 +400,10 @@ function otherDesigns(){
 		glo.allControls.getByName(buttonName).background = glo.controlConfig.backgroundActived;
 	});
 
-	param_special_controls();
+	paramSpecialControls();
 }
 
-function param_special_controls(){
+function paramSpecialControls(){
 	glo.allControls.getByName('inputsColorsEquations').top = '27%';
 	glo.allControls.getByName('centerLocal').width         = '115px';
 	glo.allControls.getByName('symmetrizeOrder').width     = '115px';
@@ -464,11 +464,11 @@ function changeResolution(change = 'increase'){
 	glo.resolutionCoeff *= coeff;
 
 	glo.skipRebuild = true;
-	glo.slider_nb_steps_u.maximum*=coeff;
-	glo.slider_nb_steps_v.maximum*=coeff;
+	glo.sliderStepsU.maximum*=coeff;
+	glo.sliderStepsV.maximum*=coeff;
 
-	glo.slider_nb_steps_u.value*=coeff;
-	glo.slider_nb_steps_v.value*=coeff;
+	glo.sliderStepsU.value*=coeff;
+	glo.sliderStepsV.value*=coeff;
 	glo.skipRebuild = false;
 
 	remakeRibbon();
@@ -484,12 +484,12 @@ function uvToXy(){
 		glo.params[`text_input_${nameInput}`] = glo[`input_${nameInput}`].text;
 	 });
 
-	 if(!glo.input_eval_x.text && !glo.input_eval_y.text){
-		glo.input_eval_x.text = 'u';
-		glo.input_eval_y.text = 'v';
+	 if(!glo.inputEvalX.text && !glo.inputEvalY.text){
+		glo.inputEvalX.text = 'u';
+		glo.inputEvalY.text = 'v';
 
-		glo.params.text_input_eval_x = 'u';
-		glo.params.text_input_eval_y = 'v';
+		glo.params.textInputEvalX = 'u';
+		glo.params.textInputEvalY = 'v';
 	 }
 }
 
@@ -638,14 +638,14 @@ function regOne(expReg) {
     return expReg;
 }
 
-function reg_inv(f, toInv_1, toInv_2){
-	var reg_toInv_1 = new RegExp(toInv_1, "g");
-	var reg_toInv_tmp = new RegExp(toInv_1 + "_tmp", "g");
-	var reg_toInv_2 = new RegExp(toInv_2, "g");
+function regInv(f, toInv1, toInv2){
+	var regToInv1 = new RegExp(toInv1, "g");
+	var regToInvTmp = new RegExp(toInv1 + "_tmp", "g");
+	var regToInv2 = new RegExp(toInv2, "g");
 	for(var prop in f){
-		f[prop] = f[prop].replace(reg_toInv_1, toInv_2 + "_tmp");
-		f[prop] = f[prop].replace(reg_toInv_2, toInv_1);
-		f[prop] = f[prop].replace(reg_toInv_tmp, toInv_2);
+		f[prop] = f[prop].replace(regToInv1, toInv2 + "_tmp");
+		f[prop] = f[prop].replace(regToInv2, toInv1);
+		f[prop] = f[prop].replace(regToInvTmp, toInv2);
 	}
 
 	return f;

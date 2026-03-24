@@ -12,7 +12,7 @@ Player.prototype = {
       "Camera",
       Math.PI / 2,
       Math.PI / 2,
-      -glo.cam_pose,
+      -glo.camPose,
       new BABYLON.Vector3.Zero(),
       scene
     );
@@ -35,7 +35,7 @@ Player.prototype = {
     this.camera.start.target  = this.camera.getTarget().clone();
 
     glo.camera = this.camera;
-    glo.camera_target = this.camera.getTarget();
+    glo.cameraTarget = this.camera.getTarget();
   }
 };
 
@@ -69,7 +69,7 @@ Game = function(canvasId) {
     });
   });
   _this.scene.registerBeforeRender(() => {
-    if (glo.rotateType !== 'none') rotate_camera();
+    if (glo.rotateType !== 'none') rotateCamera();
   });
 };
 
@@ -88,7 +88,7 @@ Game.prototype = {
 
 g = new Game('renderCanvas');
 
-function rotate_camera() {
+function rotateCamera() {
     // Sauvegarde l'inertie souris, la neutralise le temps d'appliquer la
     // vitesse de rotation, puis la restaure pour que Babylon.js puisse
     // continuer à la décroître naturellement sans interférer avec la rotation.
@@ -98,7 +98,7 @@ function rotate_camera() {
     glo.camera.inertialBetaOffset  = 0;
 
     const dt = glo.engine.getDeltaTime() / 1000; // en secondes
-    const speed = glo.rotate_speed * dt * 60; // normalise pour ~60fps
+    const speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
     switch (glo.rotateType.current) {
       case 'alpha':
         glo.camera.alpha += speed;

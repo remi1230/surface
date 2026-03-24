@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       document.fonts.load('600 1em Poppins'),
    ]);
 
-   add_gui_controls();
+   addGuiControls();
 
    glo.rightPanelsClasses.forEach(panelClass => {
       if(panelClass !== glo.guiSelect){ toggleGuiControlsByClass(false, panelClass); }
@@ -229,7 +229,7 @@ getById('filename').addEventListener("keydown", function (e) {
 // Modifiers default to false when omitted.
 const keyboardShortcuts = [
    // --- No modifier ---
-   { key: "h",  action: () => randomize_colors_app() },
+   { key: "h",  action: () => randomizeColorsApp() },
    { key: "p",  action: () => importModal() },
    { key: "+",  action: () => glo.camera.radius /= 1.125 },
    { key: "-",  action: () => glo.camera.radius *= 1.125 },
@@ -252,16 +252,16 @@ const keyboardShortcuts = [
       glo.allControls.getByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
    }},
    { key: "'",  action: () => { glo.params.uvToXy = !glo.params.uvToXy; uvToXy(); } },
-   { key: '"',  action: () => special_randomize_colors_app() },
+   { key: '"',  action: () => specialRandomizeColorsApp() },
    { key: '$',  action: () => makeRndSurface() },
    { key: '*',  action: () => intiColorUI() },
-   { key: '<',  action: () => { glo.formesSuit = !glo.formesSuit; add_radios(true); paramRadios(); } },
+   { key: '<',  action: () => { glo.formesSuit = !glo.formesSuit; addRadios(true); paramRadios(); } },
    { key: 'u',  action: () => changeResolution('increase') },
    { key: 'j',  action: () => changeResolution('decrease') },
 
    // --- Alt ---
-   { key: "+",  alt: true, action: () => glo.rotate_speed *= 1.2 },
-   { key: "-",  alt: true, action: () => glo.rotate_speed /= 1.2 },
+   { key: "+",  alt: true, action: () => glo.rotateSpeed *= 1.2 },
+   { key: "-",  alt: true, action: () => glo.rotateSpeed /= 1.2 },
    { key: "j",  alt: true, action: () => M.Modal.getInstance(getById('rotationConventionsModal')).open() },
 
    // --- Shift (keys matched case-insensitively) ---

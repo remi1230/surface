@@ -84,7 +84,7 @@ function applyTheme(theme){
 /**
  * Applique le thème à l'UI
  */
-function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel) {
+function specialRandomizeColorsApp(lightLevel = glo.randomizeColorLightLevel) {
     const theme = generateColorTheme(lightLevel);
 
     // Vérification de sécurité du contraste bouton/fond
@@ -98,9 +98,9 @@ function special_randomize_colors_app(lightLevel = glo.randomizeColorLightLevel)
     applyTheme(theme);
 }
 
-function randomize_colors_app(){
-	glo.allControls.haveThisClass('picker').map(picker_color => {
-		picker_color.value = BABYLON.Color3.Random();
+function randomizeColorsApp(){
+	glo.allControls.haveThisClass('picker').map(pickerColor => {
+		pickerColor.value = BABYLON.Color3.Random();
 	});
 }
 
@@ -108,7 +108,7 @@ function intiColorUI(){
 	defaultTheme.apply();
 
 	glo.allControls.haveThisClass('button').forEach(button => {
-	  button.color = glo.buttons_color;
+	  button.color = glo.buttonsColor;
     });
 }
 
@@ -181,11 +181,11 @@ function getRndBabylonColorInRange(min = 0, max = 1) {
 }
 
 function getComplementaryColor(color3, darkForce = 1){
-	function calcul_color(col){
+	function calculateColor(col){
 		return 1 - col*darkForce;
 	}
 
-	var r = calcul_color(color3.r); var g = calcul_color(color3.g); var b = calcul_color(color3.b);
+	var r = calculateColor(color3.r); var g = calculateColor(color3.g); var b = calculateColor(color3.b);
 	r = r > 0 ? r : 0; g = g > 0 ? g : 0; b = b > 0 ? b : 0;
 	r = r < 1 ? r : 1; g = g < 1 ? g : 1; b = b < 1 ? b : 1;
 	return new BABYLON.Color3(r, g, b);
@@ -263,12 +263,12 @@ function hexToRgbNormalized(hex) {
 }
 
 function whatColors(){
-	const arround = (val, n) => Math.round(val * Math.pow(10, n), n) / Math.pow(10, n);
+	const roundTo = (val, n) => Math.round(val * Math.pow(10, n), n) / Math.pow(10, n);
 
 	const roundColor = (color, n) => new BABYLON.Color3(
-		arround(color.r, n),
-		arround(color.g, n),
-		arround(color.b, n)
+		roundTo(color.r, n),
+		roundTo(color.g, n),
+		roundTo(color.b, n)
 	);
 
 	const decimalPrecision = 4;

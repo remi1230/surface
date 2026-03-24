@@ -1,6 +1,6 @@
 BABYLON.Mesh.prototype.setDataShader = function() {
-    const nbStepsU = glo.params.steps_u;
-    const nbStepsV = glo.params.steps_v;
+    const nbStepsU = glo.params.stepsU;
+    const nbStepsV = glo.params.stepsV;
     const minU = !glo.slidersUVOnOneSign.u ? -glo.params.u : 0;
     const minV = !glo.slidersUVOnOneSign.v ? -glo.params.v : 0;
     const maxU = glo.params.u;
@@ -69,7 +69,7 @@ BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, ste
 }
 
 BABYLON.Mesh.prototype.weightToDownload = function() {
-	const weight = glo.params.steps_u * glo.params.steps_v / 18000;
+	const weight = glo.params.stepsU * glo.params.stepsV / 18000;
 	return `≈ ${weight.toFixed(2)} Mo`;
 }
 

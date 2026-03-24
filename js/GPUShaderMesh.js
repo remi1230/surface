@@ -31,8 +31,8 @@ class GPUShaderMeshComputer {
 		let result = expr;
 
 		// Substituer X et Y par les expressions Eval X et Eval Y
-		const evalX = `(${glo.params.text_input_eval_x})`;
-		const evalY = `(${glo.params.text_input_eval_y})`;
+		const evalX = `(${glo.params.textInputEvalX})`;
+		const evalY = `(${glo.params.textInputEvalY})`;
 		if (evalX && evalX.trim() !== '') {
 			result = result.replace(/X/g, evalX);
 		}
@@ -223,8 +223,8 @@ class ShaderMeshBase {
 	 * @param {object} equa2 - Équations secondaires (pour suit)
 	 */
 	constructor(parametres = {
-		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
-		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.stepsV },
 	}, equa = {}, equa2 = {}) {
 
 		this.computer = getShaderMeshComputer();
@@ -243,14 +243,14 @@ class ShaderMeshBase {
 		// Initialiser les paramètres U
 		this.min_u = !glo.slidersUVOnOneSign.u ? parametres.u.min : 0;
 		this.max_u = parametres.u.max;
-		this.nb_steps_u = parametres.u.nb_steps;
-		this.step_u = (this.max_u - this.min_u) / this.nb_steps_u;
+		this.stepsU = parametres.u.nb_steps;
+		this.step_u = (this.max_u - this.min_u) / this.stepsU;
 
 		// Initialiser les paramètres V
 		this.min_v = !glo.slidersUVOnOneSign.v ? parametres.v.min : 0;
 		this.max_v = parametres.v.max;
-		this.nb_steps_v = parametres.v.nb_steps;
-		this.step_v = (this.max_v - this.min_v) / this.nb_steps_v;
+		this.stepsV = parametres.v.nb_steps;
+		this.step_v = (this.max_v - this.min_v) / this.stepsV;
 
 		// Détection U/V dans les équations
 		this.uvInfos = isUV();
@@ -852,7 +852,7 @@ void main() {
 	 */
 	create() {
 		// Obtenir l'expression de déformation
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		const deformText = glo.inputSymR ? glo.inputSymR.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
 
 		// Sauvegarder l'état de déformation sur l'instance pour l'export
@@ -873,8 +873,8 @@ void main() {
 
 		if (glo.ribbon) { ribbonDispose(); }
 
-		const stepsU = this.uvInfos.isU ? this.nb_steps_u : 0;
-		const stepsV = this.uvInfos.isV ? this.nb_steps_v : 0;
+		const stepsU = this.uvInfos.isU ? this.stepsU : 0;
+		const stepsV = this.uvInfos.isV ? this.stepsV : 0;
 
 		// Créer le mesh avec positions vides (shader calcule tout)
 		this.mesh = this.computer.createIndexMesh(stepsU, stepsV);
@@ -917,8 +917,8 @@ void main() {
 		mat.setFloat("uMinV", this.min_v);
 		mat.setFloat("uMaxV", this.max_v);
 		mat.setFloat("uStepV", this.step_v);
-		mat.setFloat("uStepsU", this.nb_steps_u);
-		mat.setFloat("uStepsV", this.nb_steps_v);
+		mat.setFloat("uStepsU", this.stepsU);
+		mat.setFloat("uStepsV", this.stepsV);
 
 		mat.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
 		mat.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
@@ -1002,8 +1002,8 @@ void main() {
 		mat.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
 
 		// Grille
-		mat.setFloat("gridU", glo.params.steps_u);
-		mat.setFloat("gridV", glo.params.steps_v);
+		mat.setFloat("gridU", glo.params.stepsU);
+		mat.setFloat("gridV", glo.params.stepsV);
 		mat.setFloat("lineWidth", 1.0);
 		this._uvCoeff.set(glo.uvCoeff.x, glo.uvCoeff.y);
 		mat.setVector2("uvCoeff", this._uvCoeff);
@@ -1096,8 +1096,8 @@ void main() {
 	updateGrid() {
 		if (!this.shaderMaterial) return;
 
-		this.shaderMaterial.setFloat("gridU", glo.params.steps_u);
-		this.shaderMaterial.setFloat("gridV", glo.params.steps_v);
+		this.shaderMaterial.setFloat("gridU", glo.params.stepsU);
+		this.shaderMaterial.setFloat("gridV", glo.params.stepsV);
 	}
 
 	/**
@@ -1167,7 +1167,7 @@ void main() {
 		}
 
 		// Récupérer l'expression
-		const deformText     = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const deformText     = expression || (glo.inputSymR ? glo.inputSymR.text : null);
 		const hasDeformation = deformText && deformText.trim();
 
 		// Sauvegarder l'état de déformation sur l'instance pour l'export
@@ -1463,7 +1463,7 @@ void main() {
 		this._importedMode = true;
 
 		// Obtenir l'expression de déformation éventuelle
-		const deformText = glo.input_sym_r ? glo.input_sym_r.text : null;
+		const deformText = glo.inputSymR ? glo.inputSymR.text : null;
 		const hasDeformation = deformText && deformText.trim() && glo.deformationEnabled;
 		this._lastDeformExpression = hasDeformation ? deformText : null;
 		this._deformationActive = !!hasDeformation;
@@ -1482,10 +1482,10 @@ void main() {
 		if (glo.ribbon) { ribbonDispose(); }
 
 		// Mettre à jour les paramètres de grille
-		this.nb_steps_u = stepsU;
-		this.nb_steps_v = stepsV;
-		this.step_u = (this.max_u - this.min_u) / Math.max(this.nb_steps_u, 1);
-		this.step_v = (this.max_v - this.min_v) / Math.max(this.nb_steps_v, 1);
+		this.stepsU = stepsU;
+		this.stepsV = stepsV;
+		this.step_u = (this.max_u - this.min_u) / Math.max(this.stepsU, 1);
+		this.step_v = (this.max_v - this.min_v) / Math.max(this.stepsV, 1);
 
 		// Créer le mesh Babylon avec les vraies positions
 		this.mesh = new BABYLON.Mesh("importedShaderMesh", this.computer.scene);
@@ -1539,7 +1539,7 @@ void main() {
 	updateImportDeformationExpression(expression = null) {
 		if (!this.mesh || !this._importedMode) return false;
 
-		const deformText = expression || (glo.input_sym_r ? glo.input_sym_r.text : null);
+		const deformText = expression || (glo.inputSymR ? glo.inputSymR.text : null);
 		const hasDeformation = deformText && deformText.trim();
 
 		this._lastDeformExpression = hasDeformation ? deformText : null;
@@ -1584,7 +1584,7 @@ void main() {
 		// Utiliser l'état de déformation stocké sur l'instance (fiable)
 		// plutôt que glo.deformationEnabled (peut être désynchronisé)
 		const deformText = this._lastDeformExpression
-			|| (glo.input_sym_r ? glo.input_sym_r.text : null);
+			|| (glo.inputSymR ? glo.inputSymR.text : null);
 		const hasDeformation = deformText && deformText.trim() && this._deformationActive;
 		const vertexSource = this._importedMode
 			? this.createImportVertexShader(hasDeformation ? deformText : null)
@@ -1752,8 +1752,8 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('uMinV', this.min_v);
 		setF('uMaxV', this.max_v);
 		setF('uStepV', this.step_v);
-		setF('uStepsU', this.nb_steps_u);
-		setF('uStepsV', this.nb_steps_v);
+		setF('uStepsU', this.stepsU);
+		setF('uStepsV', this.stepsV);
 
 		// Variables utilisateur
 		setF('A', glo.params.A);
@@ -1860,15 +1860,15 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	 * Avec rotations ROT Z (alpha) et ROT Y (beta)
 	 */
 	constructor(parametres = {
-		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
-		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.stepsV },
 	}, equa = {
-		x: glo.params.text_input_x,
-		y: glo.params.text_input_y,
-		z: glo.params.text_input_z,
-		alpha: glo.params.text_input_alpha,  // ROT Z
-		beta: glo.params.text_input_beta,    // ROT Y
-		theta: glo.params.text_input_theta,    // ROT X
+		x: glo.params.textInputX,
+		y: glo.params.textInputY,
+		z: glo.params.textInputZ,
+		alpha: glo.params.textInputAlpha,  // ROT Z
+		beta: glo.params.textInputBeta,    // ROT Y
+		theta: glo.params.textInputTheta,    // ROT X
 	}, equa2) {
 		super(parametres, equa, equa2);
 		this.coordSystem = 'cartesian';
@@ -1944,15 +1944,15 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
 	 */
 	constructor(parametres = {
-		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
-		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.stepsV },
 	}, equa = {
-		r: glo.params.text_input_x,         // R
-		alpha: glo.params.text_input_y,      // ROT Z
-		beta: glo.params.text_input_z,       // ROT Y
-		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
-		beta2: glo.params.text_input_beta,   // ROT Y secondaire
-		theta: glo.params.text_input_theta,   // ROT Y secondaire
+		r: glo.params.textInputX,         // R
+		alpha: glo.params.textInputY,      // ROT Z
+		beta: glo.params.textInputZ,       // ROT Y
+		alpha2: glo.params.textInputAlpha,  // ROT Z secondaire
+		beta2: glo.params.textInputBeta,   // ROT Y secondaire
+		theta: glo.params.textInputTheta,   // ROT Y secondaire
 	}, equa2) {
 		super(parametres, equa, equa2);
 		this.coordSystem = 'spheric';
@@ -2036,15 +2036,15 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
 	 */
 	constructor(parametres = {
-		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.steps_u },
-		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.steps_v },
+		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
+		v: { min: -glo.params.v, max: glo.params.v, nb_steps: glo.params.stepsV },
 	}, equa = {
-		r: glo.params.text_input_x,         // R
-		alpha: glo.params.text_input_y,      // ROT Z
-		beta: glo.params.text_input_z,       // Z (hauteur)
-		alpha2: glo.params.text_input_alpha,  // ROT Z secondaire
-		beta2: glo.params.text_input_beta,    // ROT Y secondaire
-		theta: glo.params.text_input_theta,    // ROT Y secondaire
+		r: glo.params.textInputX,         // R
+		alpha: glo.params.textInputY,      // ROT Z
+		beta: glo.params.textInputZ,       // Z (hauteur)
+		alpha2: glo.params.textInputAlpha,  // ROT Z secondaire
+		beta2: glo.params.textInputBeta,    // ROT Y secondaire
+		theta: glo.params.textInputTheta,    // ROT Y secondaire
 	}, equa2) {
 		super(parametres, equa, equa2);
 		this.coordSystem = 'cylindrical';

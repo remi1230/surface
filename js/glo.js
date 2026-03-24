@@ -28,7 +28,7 @@ let normalShaders = [];
 
 let isFullscreen = false;
 
-var num_mesh = 0;
+var meshCount = 0;
 var r = 1;
 var glo = {
 	canvas: getById('renderCanvas'),
@@ -49,56 +49,56 @@ var glo = {
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
 						var ftheta = typeof(sel.theta) != "undefined" ? ftheta = sel.theta : ftheta = "";
 
-						glo.params.text_input_x = sel.fx;
-						glo.params.text_input_y = sel.fy;
-						glo.params.text_input_z = sel.fz;
+						glo.params.textInputX = sel.fx;
+						glo.params.textInputY = sel.fy;
+						glo.params.textInputZ = sel.fz;
 
 						if(glo.params.updateRots){
-							glo.params.text_input_alpha = falpha;
-							glo.params.text_input_beta  = fbeta;
-							glo.params.text_input_theta = ftheta;
+							glo.params.textInputAlpha = falpha;
+							glo.params.textInputBeta  = fbeta;
+							glo.params.textInputTheta = ftheta;
 						}
 						glo.params.u = sel.udef;
 						glo.params.v = sel.vdef;
 
-						glo.input_x.text = sel.fx;
-						glo.input_y.text = sel.fy;
-						glo.input_z.text = sel.fz;
+						glo.inputX.text = sel.fx;
+						glo.inputY.text = sel.fy;
+						glo.inputZ.text = sel.fz;
 						if(glo.params.updateRots){
-							glo.input_alpha.text = falpha;
-							glo.input_beta.text  = fbeta;
-							glo.input_theta.text = ftheta;
+							glo.inputAlpha.text = falpha;
+							glo.inputBeta.text  = fbeta;
+							glo.inputTheta.text = ftheta;
 						}
 
 						glo.skipRebuild = true;
 
-						var baseStepsU = overrideSteps ? overrideSteps.u : sel.nb_steps_u;
-						var baseStepsV = overrideSteps ? overrideSteps.v : sel.nb_steps_v;
+						var baseStepsU = overrideSteps ? overrideSteps.u : sel.stepsU;
+						var baseStepsV = overrideSteps ? overrideSteps.v : sel.stepsV;
 
-						glo.slider_nb_steps_u.maximum = baseStepsU * 2;
-						glo.slider_nb_steps_v.maximum = baseStepsV * 2;
-						glo.slider_u.maximum          = sel.udef * 2;
-						glo.slider_v.maximum          = sel.vdef * 2;
+						glo.sliderStepsU.maximum = baseStepsU * 2;
+						glo.sliderStepsV.maximum = baseStepsV * 2;
+						glo.sliderU.maximum          = sel.udef * 2;
+						glo.sliderV.maximum          = sel.vdef * 2;
 
-						if(glo.slider_nb_steps_u.maximum < 256){ glo.slider_nb_steps_u.maximum = 256; }
-						if(glo.slider_nb_steps_v.maximum < 256){ glo.slider_nb_steps_v.maximum = 256; }
-						if(glo.slider_u.maximum < 2*Math.PI){ glo.slider_u.maximum = 2*Math.PI; }
-						if(glo.slider_v.maximum < 2*Math.PI){ glo.slider_v.maximum = 2*Math.PI; }
+						if(glo.sliderStepsU.maximum < 256){ glo.sliderStepsU.maximum = 256; }
+						if(glo.sliderStepsV.maximum < 256){ glo.sliderStepsV.maximum = 256; }
+						if(glo.sliderU.maximum < 2*Math.PI){ glo.sliderU.maximum = 2*Math.PI; }
+						if(glo.sliderV.maximum < 2*Math.PI){ glo.sliderV.maximum = 2*Math.PI; }
 
-						glo.params.steps_u = baseStepsU;
-						glo.params.steps_v = baseStepsV;
+						glo.params.stepsU = baseStepsU;
+						glo.params.stepsV = baseStepsV;
 
 						if(!overrideSteps){
-							glo.params.steps_u *= glo.resolutionCoeff;
-							glo.params.steps_v *= glo.resolutionCoeff;
-							glo.slider_nb_steps_u.maximum*=glo.resolutionCoeff;
-						    glo.slider_nb_steps_v.maximum*=glo.resolutionCoeff;
+							glo.params.stepsU *= glo.resolutionCoeff;
+							glo.params.stepsV *= glo.resolutionCoeff;
+							glo.sliderStepsU.maximum*=glo.resolutionCoeff;
+						    glo.sliderStepsV.maximum*=glo.resolutionCoeff;
 						}
 
-						glo.slider_nb_steps_u.value = glo.params.steps_u; glo.slider_nb_steps_u.startValue = glo.params.steps_u;
-						glo.slider_nb_steps_v.value = glo.params.steps_v; glo.slider_nb_steps_v.startValue = glo.params.steps_v;
-						glo.slider_u.value = sel.udef; glo.slider_u.startValue = sel.udef;
-						glo.slider_v.value = sel.vdef; glo.slider_v.startValue = sel.vdef;
+						glo.sliderStepsU.value = glo.params.stepsU; glo.sliderStepsU.startValue = glo.params.stepsU;
+						glo.sliderStepsV.value = glo.params.stepsV; glo.sliderStepsV.startValue = glo.params.stepsV;
+						glo.sliderU.value = sel.udef; glo.sliderU.startValue = sel.udef;
+						glo.sliderV.value = sel.vdef; glo.sliderV.startValue = sel.vdef;
 						glo.skipRebuild = false;
 
 						if(glo.params.uvToXy){ uvToXy(false); }
@@ -152,7 +152,7 @@ var glo = {
 							}
 						}
 
-						await make_curves();
+						await makeCurves();
 
 						viewOnAxis(sel.orient);
 					}
@@ -229,7 +229,7 @@ var glo = {
 	inputsEquationsIndex: 0,
 	uvCoeff: {x: 1, y: 1},
 	uvParamsCoeff: {x: 1, y: 1},
-	controls_grid: [],
+	controlsGrid: [],
 	regs: [
 		{ exp: /\s/g, upd: "" },
 		{ exp: /(.+)ù(.+)/g, upd: "$1*3mct*$2" },
@@ -415,14 +415,14 @@ var glo = {
 	    yield index;
 	  }
 	},
-	cam_pose: 60,
+	camPose: 60,
 	slidersUVOnOneSign: {u: false, v: false},
 	meshChannel: new BroadcastChannel('mesh_channel'),
 	params:{
 		u: PI,
 		v: PI,
-		steps_u: 132,
-		steps_v: 132,
+		stepsU: 132,
+		stepsV: 132,
 		A: 0,
 		B: 0,
 		C: 0,
@@ -436,14 +436,14 @@ var glo = {
 		K: 1,
 		L: 1,
 		M: 64,
-		text_input_x: "u",
-		text_input_y: "u*sin(v)",
-		text_input_z: "u*cos(v)*sin(u)",
-		text_input_alpha: "",
-		text_input_beta: "",
-		text_input_theta: "",
-		text_input_eval_x: "u",
-		text_input_eval_y: "v",
+		textInputX: "u",
+		textInputY: "u*sin(v)",
+		textInputZ: "u*cos(v)*sin(u)",
+		textInputAlpha: "",
+		textInputBeta: "",
+		textInputTheta: "",
+		textInputEvalX: "u",
+		textInputEvalY: "v",
 		symmetrizeX: 0,
 		symmetrizeY: 0,
 		symmetrizeZ: 0,
@@ -785,9 +785,9 @@ var glo = {
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['updateRots'],
 	centerSymmetry: {x: 0, y: 0, z: 0},
-	rotate_speed: 1/450 * PI,
+	rotateSpeed: 1/450 * PI,
 	rotateType: 'none',
-	axis_size: 5,
+	axisSize: 5,
 	planSize: 5,
 	scaleNorm: 1,
 	deformationEnabled: false,
@@ -799,36 +799,36 @@ var glo = {
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,
 	resolutionCoeff: 4,
-	buttons_color: "#e1cdb7",
+	buttonsColor: "#e1cdb7",
 	labelGridColor: "white",
-	buttons_radius: 6.33,
-	buttons_fontsize: "16px",
+	buttonsRadius: 6.33,
+	buttonsFontsize: "16px",
 	diffuseColor: defaultTheme.pickerColorMeshBg,
 	emissiveColor: defaultTheme.pickerColorMeshBg,
 	backgroundColor: defaultTheme.pickerColorBackground,
 	lineColor: defaultTheme.pickerColorLine,
-	color_line_grid: new BABYLON.Color3(0, 0, 0),
+	colorLineGrid: new BABYLON.Color3(0, 0, 0),
 	randomizeColorLightLevel: 5,
 	firstPoint: new BABYLON.Vector3(1, 0, 0),
-	pickers_size: 107,
+	pickersSize: 107,
 	fullScreen: false,
 	skipRebuild: false,
-	gui_visible: true,
-	gui_suit_visible: false,
-	axis_visible: false,
-	grid_visible: false,
-	first_axis_visible: true,
-	first_grid_visible: true,
-	first_radio: true,
+	guiVisible: true,
+	guiSuitVisible: false,
+	axisVisible: false,
+	gridVisible: false,
+	firstAxisVisible: true,
+	firstGridVisible: true,
+	firstRadio: true,
 	negatif: true,
-	planes_visible: false,
+	planesVisible: false,
 	viewXpos: true,
 	viewYpos: true,
 	viewZpos: true,
 	wireframe: false,
 	addSymmetry: true,
 	pathsInfos: {u: 0, v: 0},
-	radios_formes: [],
+	radiosFormes: [],
 	rightPanelsClasses: ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'],
 	controlConfig:{
 		background: '#199191',
@@ -846,13 +846,13 @@ glo.meshChannel.onmessage = (event) => {
     }
 };
 
-glo.radios_formes.getByName = function (name){
+glo.radiosFormes.getByName = function (name){
 	return this.find(elem => elem?.button?.name === name) ?? false;
 };
-glo.radios_formes.getCheck = function (){
+glo.radiosFormes.getCheck = function (){
 	return this.find(elem => elem?.button?.isChecked) ?? false;
 };
-glo.radios_formes.setCheckByName = function (name){
+glo.radiosFormes.setCheckByName = function (name){
 	var found = false;
 	this.forEach(elem => {
 		if(!elem) return;
@@ -861,7 +861,7 @@ glo.radios_formes.setCheckByName = function (name){
 	});
 	return found;
 };
-glo.radios_formes.changeColor = function (newColor){
+glo.radiosFormes.changeColor = function (newColor){
 	this.forEach(elem => { elem.header.color = newColor; });
 };
 

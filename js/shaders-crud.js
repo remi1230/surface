@@ -80,12 +80,12 @@ const ShaderCRUD = {
      */
     reloadFromServer: async function() {
         if (ShaderLoader.hasLocalChanges) {
-            const confirm_reload = confirm(
+            const confirmReload = confirm(
                 'Vous avez des modifications locales.\n\n' +
                 'Recharger depuis le serveur effacera ces modifications.\n\n' +
                 'Continuer ?'
             );
-            if (!confirm_reload) return;
+            if (!confirmReload) return;
         }
 
         const success = await ShaderLoader.reloadFromServer();
@@ -458,12 +458,12 @@ const ShaderCRUDNormal = {
 
     reloadDefaults: function() {
         if (this.hasLocalChanges()) {
-            const confirm_reload = confirm(
+            const confirmReload = confirm(
                 'Vous avez des modifications locales.\n\n' +
                 'Recharger les shaders par défaut effacera ces modifications.\n\n' +
                 'Continuer ?'
             );
-            if (!confirm_reload) return;
+            if (!confirmReload) return;
         }
 
         localStorage.removeItem('normalShaders');

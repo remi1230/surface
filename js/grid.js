@@ -1,5 +1,5 @@
-function make_planes(planXY = true, planYZ = true, planXZ = true){
-	function make_plan(x, y, z) {
+function makePlanes(planXY = true, planYZ = true, planXZ = true){
+	function makePlan(x, y, z) {
 		var sourcePlane = new BABYLON.Plane(x, y, z, 0);
 		sourcePlane.normalize();
 		var plane = BABYLON.MeshBuilder.CreatePlane("plane", {
@@ -25,11 +25,11 @@ function make_planes(planXY = true, planYZ = true, planXZ = true){
 		glo.planes.map(plane => { plane.dispose(); plane = {}; } );
 	}
 
-	if(glo.planes_visible || !planXY || !planYZ || !planXZ){
+	if(glo.planesVisible || !planXY || !planYZ || !planXZ){
 		glo.planes = [];
-		if(planXY) glo.planes.push(make_plan(0, 0, 1));
-		if(planXZ) glo.planes.push(make_plan(0, 1, 0));
-		if(planYZ) glo.planes.push(make_plan(1, 0, 0));
+		if(planXY) glo.planes.push(makePlan(0, 0, 1));
+		if(planXZ) glo.planes.push(makePlan(0, 1, 0));
+		if(planYZ) glo.planes.push(makePlan(1, 0, 0));
 	}
 
 	glo.params.gridScaleValueOrigin = glo.params.gridScaleValue;
@@ -86,11 +86,11 @@ function showNoPlane(){ showPlane(false, 'xz'); showPlane(false, 'xy'); showPlan
 
 function showAPlane(plan){
 	switch(plan){
-		case 'x' : make_planes(true, false, false); break;
-		case 'y' : make_planes(false, true, false); break;
-		case 'z' : make_planes(false, false, true); break;
+		case 'x' : makePlanes(true, false, false); break;
+		case 'y' : makePlanes(false, true, false); break;
+		case 'z' : makePlanes(false, false, true); break;
 
-		case 'none' : make_planes(false, false, false);  break;
+		case 'none' : makePlanes(false, false, false);  break;
 	}
 }
 
@@ -98,21 +98,21 @@ var showAxis = function(size, visibility = 0) {
 	if(glo.axisX){
 		glo.axisX.dispose(); glo.axisY.dispose(); glo.axisZ.dispose();
 	}
-	if(glo.labels_axis && glo.labels_axis.length){
-		glo.labels_axis.forEach(label => label.dispose());
+	if(glo.labelsAxis && glo.labelsAxis.length){
+		glo.labelsAxis.forEach(label => label.dispose());
 	}
-	if(glo.planes_axis && glo.planes_axis.length){
-		glo.planes_axis.forEach(plane => plane.dispose());
+	if(glo.planesAxis && glo.planesAxis.length){
+		glo.planesAxis.forEach(plane => plane.dispose());
 	}
-	glo.labels_axis = [];
-	glo.planes_axis = [];
-	var makeTextPlane = function(text, color, size_plane) {
-	  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size_plane, glo.scene, true);
+	glo.labelsAxis = [];
+	glo.planesAxis = [];
+	var makeTextPlane = function(text, color, sizePlane) {
+	  var plane = new BABYLON.Mesh.CreatePlane("TextPlane", sizePlane, glo.scene, true);
 		plane.visibility = 0;
 		var label = new BABYLON.GUI.TextBlock();
     label.text = text;
     label.color = glo.labelGridColor;
-    label.fontSize = size_plane * 10 + "px";
+    label.fontSize = sizePlane * 10 + "px";
     label.fontWeight = "bold";
 		label.height = "25px";
 		label.width = "20px";
@@ -128,8 +128,8 @@ var showAxis = function(size, visibility = 0) {
 
 		panel.linkWithMesh(plane);
 
-		glo.labels_axis.push(label);
-		glo.planes_axis.push(plane);
+		glo.labelsAxis.push(label);
+		glo.planesAxis.push(plane);
 		return plane;
    };
 
@@ -145,8 +145,8 @@ var showAxis = function(size, visibility = 0) {
   xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
   xChar.isPickable = false;
 
-  var pivot_translation_xChar = xChar.position.subtract(pivot);
-	xChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_xChar.x, pivot_translation_xChar.y, pivot_translation_xChar.z));
+  var pivotTranslationXChar = xChar.position.subtract(pivot);
+	xChar.setPivotMatrix(BABYLON.Matrix.Translation(pivotTranslationXChar.x, pivotTranslationXChar.y, pivotTranslationXChar.z));
 	glo.xChar = xChar;
 
   glo.axisY = BABYLON.Mesh.CreateLines("axisY", [
@@ -159,8 +159,8 @@ var showAxis = function(size, visibility = 0) {
   yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
   yChar.isPickable = false;
 
-	var pivot_translation_yChar = yChar.position.subtract(pivot);
-	yChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_yChar.x, pivot_translation_yChar.y, pivot_translation_yChar.z));
+	var pivotTranslationYChar = yChar.position.subtract(pivot);
+	yChar.setPivotMatrix(BABYLON.Matrix.Translation(pivotTranslationYChar.x, pivotTranslationYChar.y, pivotTranslationYChar.z));
 	glo.yChar = yChar;
 
   glo.axisZ = BABYLON.Mesh.CreateLines("axisZ", [
@@ -173,8 +173,8 @@ var showAxis = function(size, visibility = 0) {
   zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
   zChar.isPickable = false;
 
-	var pivot_translation_zChar = zChar.position.subtract(pivot);
-	zChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_zChar.x, pivot_translation_zChar.y, pivot_translation_zChar.z));
+	var pivotTranslationZChar = zChar.position.subtract(pivot);
+	zChar.setPivotMatrix(BABYLON.Matrix.Translation(pivotTranslationZChar.x, pivotTranslationZChar.y, pivotTranslationZChar.z));
 	glo.zChar = zChar;
 
 	glo.axisX.visibility = visibility;
@@ -185,23 +185,23 @@ var showAxis = function(size, visibility = 0) {
 	zChar.visibility = 0;
 };
 
-function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
-	glo.axis_size = axis_size;
+function showGrid(size, number, axisSize = glo.axisSize, visibility = 0) {
+	glo.axisSize = axisSize;
 
-	if(typeof(glo.labels_grid) != "undefined"){
-		glo.labels_grid.map(label_grid => { label_grid.dispose(); label_grid = {}; } );
-		glo.planes_grid.map(plane_grid => { plane_grid.dispose(); plane_grid = {}; } );
+	if(typeof(glo.labelsGrid) != "undefined"){
+		glo.labelsGrid.map(labelGrid => { labelGrid.dispose(); labelGrid = {}; } );
+		glo.planesGrid.map(planeGrid => { planeGrid.dispose(); planeGrid = {}; } );
 		glo.gridX.map(gridX => { gridX.dispose(); gridX = {}; } );
 		glo.gridY.map(gridY => { gridY.dispose(); gridY = {}; } );
 		glo.gridZ.map(gridZ => { gridZ.dispose(); gridZ = {}; } );
 	}
-	glo.labels_grid = [];
-	glo.planes_grid = [];
+	glo.labelsGrid = [];
+	glo.planesGrid = [];
 
-   function makeTextPlane(text, color, size_plane, axis, isOrtho) {
-		var plane = new BABYLON.Mesh.CreatePlane("TextPlane", size_plane, glo.scene, true);
-		var label_size = 10;
-		if (size_plane < 1) { label_size = 10; }
+   function makeTextPlane(text, color, sizePlane, axis, isOrtho) {
+		var plane = new BABYLON.Mesh.CreatePlane("TextPlane", sizePlane, glo.scene, true);
+		var labelSize = 10;
+		if (sizePlane < 1) { labelSize = 10; }
 
 		text = text.toFixed(1).toString();
 		if (text[text.length - 1] == "0") { text = text.substring(0, text.length - 2); }
@@ -211,7 +211,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		var label = new BABYLON.GUI.TextBlock();
 		label.text = text;
 		label.color = glo.labelGridColor;
-		label.fontSize = label_size + "px";
+		label.fontSize = labelSize + "px";
 		label.fontWeight = "bold";
 		label.height = "20px";
 		label.width = "30px";
@@ -247,9 +247,9 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 			}
 		));*/
 
-		glo.labels_grid.push(label);
-		glo.planes_grid.push(plane);
-		glo.controls_grid.push(label, plane);
+		glo.labelsGrid.push(label);
+		glo.planesGrid.push(plane);
+		glo.controlsGrid.push(label, plane);
 		return plane;
 	}
 
@@ -319,7 +319,7 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 
 		function designLine(line){
 			line.points = points;
-			line.color = glo.color_line_grid;
+			line.color = glo.colorLineGrid;
 			line.alpha = 0.5;
 			line.visibility = visibility;
 			line.isPickable = false;
@@ -328,14 +328,14 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		let line = BABYLON.Mesh.CreateLines(name, points, glo.scene);
 		designLine(line);
 
-		var pivot_translation_line = line.position.subtract(BABYLON.Vector3.Zero());
-		line.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_line.x, pivot_translation_line.y, pivot_translation_line.z));
+		var pivotTranslationLine = line.position.subtract(BABYLON.Vector3.Zero());
+		line.setPivotMatrix(BABYLON.Matrix.Translation(pivotTranslationLine.x, pivotTranslationLine.y, pivotTranslationLine.z));
 
 		function makeAxisChar(posChar, isOrtho){
 			var axisChar = makeTextPlane(ind, "black", 10, axis, isOrtho);
 			axisChar.position = new BABYLON.Vector3(posChar.x, posChar.y, posChar.z);
-			var pivot_translation_axisChar = axisChar.position.subtract(BABYLON.Vector3.Zero());
-			axisChar.setPivotMatrix(BABYLON.Matrix.Translation(pivot_translation_axisChar.x, pivot_translation_axisChar.y, pivot_translation_axisChar.z));
+			var pivotTranslationAxisChar = axisChar.position.subtract(BABYLON.Vector3.Zero());
+			axisChar.setPivotMatrix(BABYLON.Matrix.Translation(pivotTranslationAxisChar.x, pivotTranslationAxisChar.y, pivotTranslationAxisChar.z));
 		}
 
 		makeAxisChar(posChar, false);
@@ -345,15 +345,15 @@ function showGrid(size, number, axis_size = glo.axis_size, visibility = 0) {
 		let lineOrtho = BABYLON.Mesh.CreateLines(name, pointsOrtho, glo.scene);
 		designLine(lineOrtho);
 		glo[name].push(lineOrtho);
-		glo.controls_grid.push(line, lineOrtho);
+		glo.controlsGrid.push(line, lineOrtho);
    }
 
-	var step = axis_size/number;
+	var step = axisSize/number;
 	glo.step = step;
 	glo.gridX = []; glo.gridY = []; glo.gridZ = [];
 	var start = step;
-	if(glo.negatif){ start = -axis_size; }
-	for(var i = start; i <= axis_size; i+=step){
+	if(glo.negatif){ start = -axisSize; }
+	for(var i = start; i <= axisSize; i+=step){
 		makeLine(size, "X", i);
 		makeLine(size, "Y", i);
 		makeLine(size, "Z", i);
@@ -418,27 +418,27 @@ function viewOnAxis(options = glo.formes.getFormSelect().form.orient){
 	glo.camera.radius = options.distance;
 }
 
-function switch_grid(grid_visible = glo.grid_visible){
-	if(grid_visible){
-		glo.controls_grid.forEach(ctrl => {
+function switchGrid(gridVisible = glo.gridVisible){
+	if(gridVisible){
+		glo.controlsGrid.forEach(ctrl => {
 			if(!ctrl.metadata || !ctrl.metadata.type || ctrl.metadata.type !== 'plane'){
 				ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 1; 
 			}
 		});
-		if(!glo.axis_visible){
-			switch_axis(true);
+		if(!glo.axisVisible){
+			switchAxis(true);
 		}
 	}
 	else{
-		glo.controls_grid.forEach(ctrl => { ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 0; } );
+		glo.controlsGrid.forEach(ctrl => { ctrl[ctrl.name === 'grid_label' ? 'isVisible': 'visibility'] = 0; } );
 		
-		switch_axis(false);
+		switchAxis(false);
 	}
 }
 
 function gridToCenterMesh(mesh = glo.ribbon){
 	const centerWorld = glo.ribbon.getBoundingInfo().boundingBox.centerWorld;
-	glo.controls_grid.forEach(ctrl => {
+	glo.controlsGrid.forEach(ctrl => {
 		if(ctrl.position){
 			ctrl.position.x += centerWorld.x;
 			ctrl.position.y += centerWorld.y;
@@ -446,7 +446,7 @@ function gridToCenterMesh(mesh = glo.ribbon){
 		}
 	});
 
-	glo.planes_axis.forEach(plane => {
+	glo.planesAxis.forEach(plane => {
 		plane.position.x += centerWorld.x; plane.position.y += centerWorld.y; plane.position.z += centerWorld.z;
 	});
 
@@ -462,7 +462,7 @@ function gridToCenterMesh(mesh = glo.ribbon){
 }
 
 function gridToOrigin(){
-	glo.controls_grid.forEach(ctrl => {
+	glo.controlsGrid.forEach(ctrl => {
 		if(ctrl.position){
 			ctrl.position.x = 0;
 			ctrl.position.y = 0;
@@ -470,7 +470,7 @@ function gridToOrigin(){
 		}
 	});
 
-	glo.planes_axis.forEach(plane => {
+	glo.planesAxis.forEach(plane => {
 		plane.position.x = 0; plane.position.y = 0; plane.position.z = 0;
 	});
 
@@ -485,16 +485,16 @@ function gridToOrigin(){
 	glo.axisZ.position.z = 0;
 }
 
-function switch_axis(axis_visible = glo.axis_visible){
-	if(axis_visible){
+function switchAxis(axisVisible = glo.axisVisible){
+	if(axisVisible){
 		glo.axisX.visibility = 1;
 		glo.axisY.visibility = 1;
 		glo.axisZ.visibility = 1;
 		glo.xChar.visibility = 0;
 		glo.yChar.visibility = 0;
 		glo.zChar.visibility = 0;
-		glo.labels_axis.map(label_axis => { label_axis.isVisible = 1; } );
-		glo.planes_axis.map(plane_axis => { plane_axis.visibility = 0; } );
+		glo.labelsAxis.map(labelAxis => { labelAxis.isVisible = 1; } );
+		glo.planesAxis.map(planeAxis => { planeAxis.visibility = 0; } );
 	}
 	else{
 		glo.axisX.visibility = 0;
@@ -503,7 +503,7 @@ function switch_axis(axis_visible = glo.axis_visible){
 		glo.xChar.visibility = 0;
 		glo.yChar.visibility = 0;
 		glo.zChar.visibility = 0;
-		glo.labels_axis.map(label_axis => { label_axis.isVisible = 0; } );
-		glo.planes_axis.map(plane_axis => { plane_axis.isVisible = 0; } );
+		glo.labelsAxis.map(labelAxis => { labelAxis.isVisible = 0; } );
+		glo.planesAxis.map(planeAxis => { planeAxis.isVisible = 0; } );
 	}
 }

@@ -1,8 +1,19 @@
 //*****************************************************************************************************//
 //**********************************************GLOBAL VAR*********************************************//
 //*****************************************************************************************************//
+
+/**
+ * Shorthand for document.getElementById.
+ * @param {string} id - DOM element ID.
+ * @returns {HTMLElement|null}
+ */
 const getById = function (id) { return document.getElementById(id); };
 
+/**
+ * Default color theme used at application startup.
+ * Each property maps to a BabylonJS GUI color picker control by name.
+ * @type {{pickerColorBackground: BABYLON.Color3, pickerColorButton: BABYLON.Color3, pickerColorMeshBg: BABYLON.Color3}}
+ */
 const defaultTheme = {
 	pickerColorBackground: new BABYLON.Color3(0.1269, 0.1269, 0.1669),
 	pickerColorButton: new BABYLON.Color3(0.1, 0.6, 0.6),
@@ -11,6 +22,9 @@ const defaultTheme = {
 
 defaultTheme.pickerColorLine = defaultTheme.pickerColorMeshBg.inv();
 
+/**
+ * Resets all color picker controls to the default theme values.
+ */
 defaultTheme.apply = function() {
     for (let themeName in this) {
         if (typeof this[themeName] !== 'function') {
@@ -19,23 +33,56 @@ defaultTheme.apply = function() {
     }
 };
 
+/** @type {M.Modal} Materialize modal instance for the shader editor. */
 let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
+/** @type {string[]} Array of fragment shader source code snippets (one per color shader). */
 let fragmentShaders = [];
 
+/** @type {string} Compiled normal shader, header, and footer parts. */
 let normalShader, normalShaderHeader, normalShaderFooter;
+/** @type {string[]} Array of normal shader source code snippets. */
 let normalShaders = [];
 
+/** @type {boolean} Whether the canvas is currently in fullscreen mode. */
 let isFullscreen = false;
 
+/** @type {number} Running counter of created meshes. */
 var meshCount = 0;
+/** @type {number} Radius parameter (legacy). */
 var r = 1;
+/**
+ * Global application state object.
+ * Holds all runtime configuration, UI references, parametric surface parameters,
+ * shader settings, theme definitions, and generator-based state machines.
+ * @global
+ */
 var glo = {
+	/** @type {HTMLCanvasElement} Main BabylonJS rendering canvas. */
 	canvas: getById('renderCanvas'),
+	/** @type {HTMLCanvasElement} Off-screen canvas used for WebGL capability detection. */
 	canvasTest: document.createElement('canvas'),
+	/**
+	 * Surface form catalog and selection management.
+	 * @type {Object}
+	 */
 	formes:{
+		/** @type {string[]} Currently selected form [name, coordsType]. */
 		selected:['Torus', 'cartesian'],
+		/** @type {Object[]} Array of all available form definitions (from forms.js). */
 		select: formsToselect,
+		/**
+		 * Selects a form by name and coordinate system, optionally loading its equations and rendering it.
+		 * When {@link draw} is true, populates equation inputs, configures sliders, applies uvToXy conversion
+		 * if active, restores or resets lighting, and triggers a mesh rebuild.
+		 * @async
+		 * @param {string} txt - Form display name (e.g. "Torus", "Sphere").
+		 * @param {string} coordsType - Coordinate system ("cartesian", "spheric", "cylindrical").
+		 * @param {boolean} [draw=true] - If true, load form equations into inputs and rebuild the mesh.
+		 *   Pass false to only mark the form as selected without changing equations or rendering.
+		 * @param {{u: number, v: number}|null} [overrideSteps=null] - When provided, use these step counts
+		 *   instead of the form defaults (used during JSON import to preserve imported resolution).
+		 */
 		setFormeSelect: async function(txt, coordsType, draw = true, overrideSteps = null){
 			for (const sel of this.select) {
 				if(sel.text == txt && sel.typeCoords == coordsType){
@@ -160,18 +207,37 @@ var glo = {
 				else{ sel.check = false; }
 			}
 		},
+		/**
+		 * Selects a form by its index in the catalog array.
+		 * @async
+		 * @param {number} num - Index into {@link glo.formes.select}.
+		 */
 		setFormSelectByNum: async function(num){
 			var coordsType = glo.coordsType;
 			var sel = this.select[num];
 			await this.setFormeSelect(sel.text, coordsType);
 		},
+		/**
+		 * Returns the form definition flagged as the startup default.
+		 * @returns {Object} Form definition with `start: true`.
+		 */
 		getStartForm: function(){
 			return this.select.find(form => form.start);
 		},
-		setStartForm: async function() { 
+		/**
+		 * Loads and renders the startup default form.
+		 * @async
+		 */
+		setStartForm: async function() {
 			const startForm = this.getStartForm();
-			await this.setFormeSelect(startForm.text, startForm.typeCoords); 
+			await this.setFormeSelect(startForm.text, startForm.typeCoords);
 		},
+		/**
+		 * Returns the currently selected (checked) form.
+		 * @returns {{num: number, numFormInCoorType: number, form: Object}|false}
+		 *   Object containing the global index, the index within the current coordinate type,
+		 *   and the form definition, or false if none is selected.
+		 */
 		getFormSelect: function(){
 			var coordsType = glo.coordsType;
 			var selectsLength = this.select.length;
@@ -183,6 +249,12 @@ var glo = {
 			}
 			return false;
 		},
+		/**
+		 * Looks up a form definition by name and coordinate system.
+		 * @param {string} name - Form display name.
+		 * @param {string} coordsType - Coordinate system identifier.
+		 * @returns {Object|false} The matching form definition, or false if not found.
+		 */
 		getFormByName: function(name, coordsType){
 			var selectsLength = this.select.length;
 			for(var i = 0; i < selectsLength; i++){
@@ -191,6 +263,11 @@ var glo = {
 			}
 			return false;
 		},
+		/**
+		 * Returns the global index of a form identified by its title within the current coordinate type.
+		 * @param {string} titleForm - Form display name.
+		 * @returns {number|undefined} Global index in {@link glo.formes.select}.
+		 */
 		getNumFormSelectInCoordTypeByTitle: function(titleForm){
 			const coordsType    = glo.coordsType;
 			const selectsLength = this.select.length;
@@ -199,6 +276,10 @@ var glo = {
 				if(this.select[i].typeCoords === coordsType && this.select[i].text === titleForm){ return i; }
 			}
 		},
+		/**
+		 * Returns the global index of the first form in the current coordinate type.
+		 * @returns {number|undefined}
+		 */
 		getNumFirstFormInCoordType: function(){
 			var coordsType = glo.coordsType;
 			var selectsLength = this.select.length;
@@ -206,6 +287,10 @@ var glo = {
 				if(this.select[i].typeCoords == coordsType){ return i; }
 			}
 		},
+		/**
+		 * Returns the global index of the last form in the current coordinate type.
+		 * @returns {number}
+		 */
 		getNumLastFormInCoordType: function(){
 			var coordsType = glo.coordsType;
 			var selectsLength = this.select.length;
@@ -216,6 +301,10 @@ var glo = {
 			}
 			return selectsLength - 1;
 		},
+		/**
+		 * Counts the number of forms available in the current coordinate type.
+		 * @returns {number}
+		 */
 		getNbFormsInThisCoordtype: function(){
 			var coordsType = glo.coordsType;
 			var selectsLength = this.select.length;
@@ -226,10 +315,21 @@ var glo = {
 			return n;
 		},
 	},
+	/** @type {number} Index of the currently focused equation input field (0-based cycle through X/Y/Z/Alpha/Beta). */
 	inputsEquationsIndex: 0,
+	/** @type {{x: number, y: number}} UV domain scaling coefficients applied to the mesh grid. */
 	uvCoeff: {x: 1, y: 1},
+	/** @type {{x: number, y: number}} UV domain scaling coefficients applied to slider parameters. */
 	uvParamsCoeff: {x: 1, y: 1},
+	/** @type {Array} Grid of GUI controls for the panel layout. */
 	controlsGrid: [],
+	/**
+	 * Ordered array of regex substitution rules that transform compact math notation
+	 * (e.g. "2cucv") into standard JavaScript math expressions (e.g. "2*cos(u)*cos(v)").
+	 * Each entry has an `exp` (RegExp) and `upd` (replacement string).
+	 * Order matters: earlier rules may produce tokens consumed by later ones.
+	 * @type {{exp: RegExp, upd: string}[]}
+	 */
 	regs: [
 		{ exp: /\s/g, upd: "" },
 		{ exp: /(.+)ù(.+)/g, upd: "$1*3mct*$2" },
@@ -348,7 +448,13 @@ var glo = {
 		{ exp: /t\*a\(\)\*n\*\(/g, upd: "tan(" },
 		{ exp: /t\*a\(\)\*n\*h\(/g, upd: "tanh(" },
 	],
+	/** @type {string} Active coordinate system ("cartesian", "spheric", or "cylindrical"). */
 	coordsType: 'cartesian',
+	/**
+	 * Generator that cycles through available coordinate systems in order.
+	 * Call `.next()` to advance to the next coordinate type and update {@link glo.coordsType}.
+	 * @yields {string} The new coordinate system name.
+	 */
 	coordinatesType: function* (){
 		const coordinates = ['spheric', 'cylindrical', 'cartesian'];
 		while (true) {
@@ -358,7 +464,12 @@ var glo = {
 			}
 		}
 	},
+	/** @type {string} Current axis order used for symmetry operations (e.g. "xyz", "zyx"). */
 	symmetrizeOrder: 'xyz',
+	/**
+	 * Generator that cycles through all six axis permutations for symmetry.
+	 * @yields {string} The new axis order (e.g. "xzy", "yxz").
+	 */
 	symmetrizeOrders: function* (){
 		const symetrizeOrds = ['xzy', 'yxz', 'yzx', 'zxy', 'zyx', 'xyz'];
 		while (true) {
@@ -368,7 +479,12 @@ var glo = {
 			}
 		}
 	},
+	/** @type {string} Currently active clipping plane ("none", "x", "y", or "z"). */
 	planSelect: 'none',
+	/**
+	 * Generator that cycles through clipping plane selections.
+	 * @yields {string} The new plane axis or "none".
+	 */
 	planSelects: function* (){
 	  var index = 0;
 	  var tab = ['none', 'x', 'y', 'z'];
@@ -379,7 +495,12 @@ var glo = {
 	    yield tab[index];
 	  }
 	},
+	/** @type {string} CSS class name of the currently visible right-side GUI panel. */
 	guiSelect: 'fourth',
+	/**
+	 * Generator that cycles through right-side GUI panel tabs.
+	 * @yields {string} CSS class name of the newly active panel.
+	 */
 	switchGuiSelect: function* (){
 	  var index = 0;
 	  var tab = ['fourth', 'seventh', 'eighth', 'sixth', 'onlyMainGui', 'second', 'eleventh'];
@@ -390,6 +511,10 @@ var glo = {
 	    yield tab[index];
 	  }
 	},
+	/**
+	 * Generator that cycles through automatic rotation modes (alpha, beta, theta, none).
+	 * @yields {{current: string, next: string}} Current and upcoming rotation axis.
+	 */
 	rotateTypeGen: function* (){
 		const rotType = [
 			{current: 'alpha', next: 'beta'},
@@ -404,7 +529,12 @@ var glo = {
 			}
 		}
 	},
+	/** @type {number} Index of the currently active fragment shader in {@link fragmentShaders}. */
 	numShaderSelect: 0,
+	/**
+	 * Generator that cycles forward through available fragment shaders.
+	 * @yields {number} The new shader index.
+	 */
 	numShaderMove: function* (){
 	  var index = 0;
 	  var tab = fragmentShaders;
@@ -415,9 +545,19 @@ var glo = {
 	    yield index;
 	  }
 	},
+	/** @type {number} Initial camera distance from the origin. */
 	camPose: 60,
+	/** @type {{u: boolean, v: boolean}} Whether each UV slider is restricted to positive values only. */
 	slidersUVOnOneSign: {u: false, v: false},
+	/** @type {BroadcastChannel} Cross-tab communication channel for mesh synchronization. */
 	meshChannel: new BroadcastChannel('mesh_channel'),
+	/**
+	 * Serializable surface parameters. This object is exported/imported as JSON and
+	 * drives the entire parametric surface computation. It stores equation text,
+	 * slider values (u, v, steps, A-M), symmetry flags, blending, deformation,
+	 * mesh transformations, and display options.
+	 * @type {Object}
+	 */
 	params:{
 		u: PI,
 		v: PI,
@@ -468,6 +608,11 @@ var glo = {
 				nz: 0.3,
 			}
 		},
+		/**
+		 * Post-computation mesh transformations (scaling, rotation, position, central symmetry).
+		 * Values are cumulative offsets applied after the parametric surface is built.
+		 * @type {Object}
+		 */
 		meshTransformations:{
 			scaling:{
 				x: 0, y:0, z: 0
@@ -481,6 +626,10 @@ var glo = {
 			cSymmetry:{
 				x: 0, y:0, z: 0
 			},
+			/**
+			 * Applies all non-zero transformations (except cSymmetry) by calling
+			 * {@link transformMesh} for each axis.
+			 */
 			run: function() {
 				for(let prop in this){
 					if(typeof this[prop] === 'object' && prop !== 'cSymmetry'){
@@ -497,6 +646,10 @@ var glo = {
 		gridScaleValueOrigin: 4,
 		updateRots: true,
 	},
+	/**
+	 * BabylonJS GUI styling constants for headers, sliders, inputs, radio buttons, and buttons.
+	 * @type {Object}
+	 */
 	theme:{
 		header:{
 			title:{
@@ -540,8 +693,16 @@ var glo = {
 			height: 25,
 		},
 	},
+	/**
+	 * Application color theme catalog and selection logic.
+	 * Contains a list of named themes, each providing four BABYLON.Color3 values
+	 * (background, button, mesh background, line), plus methods to cycle and apply them.
+	 * @type {Object}
+	 */
 	uiThemes: {
+		/** @type {number} Index of the currently active theme. */
 		themeSelectIndex: 0,
+		/** @type {{name: string, colors: Object}[]} Available theme definitions. */
 		themes:[
 			{name: "Default", colors: defaultTheme},
 			{name: "Redwine", colors: 
@@ -697,8 +858,18 @@ var glo = {
 				}
 			},
 		],
+		/** @type {string[]} Suffix names matching color picker control IDs (e.g. "pickerColorBackground"). */
 		pickerColorsEndNames: ['Background', 'Button', 'MeshBg', 'Line'],
+		/**
+		 * Returns the currently active theme definition.
+		 * @returns {{name: string, colors: Object}}
+		 */
 		getCurrentTheme: function(){ return this.themes[this.themeSelectIndex]; },
+		/**
+		 * Advances to the next (or previous) theme and returns it.
+		 * @param {boolean} [next=true] - If true, moves forward; if false, moves backward.
+		 * @returns {{name: string, colors: Object}}
+		 */
 		getNextTheme: function(next = true) {
 			const length = this.themes.length;
 
@@ -710,11 +881,21 @@ var glo = {
 
 			return this.getCurrentTheme();
 		},
+		/**
+		 * Applies a theme's colors to all color picker controls.
+		 * @param {Object} theme - Color map keyed by "pickerColor" + suffix.
+		 */
 		applyTheme: function(theme){
 			this.pickerColorsEndNames.forEach(pickerColorEndName => {
 				glo.allControls.getByName('pickerColor' + pickerColorEndName).value = theme['pickerColor' + pickerColorEndName];
 			});
 		},
+		/**
+		 * Cycles to the next (or previous) theme, applies it, and returns the theme name.
+		 * Resets the UI style when cycling back to the default theme.
+		 * @param {boolean} [next=true] - Direction of cycling.
+		 * @returns {string} Name of the newly applied theme.
+		 */
 		activateNextTheme: function(next = true) {
 			const themeSelect       = this.getNextTheme(next);
 			const themeSelectColors = themeSelect.colors;
@@ -729,7 +910,13 @@ var glo = {
 			return themeSelect.name;
 		},
 	},
+	/**
+	 * GPU shader runtime state: uniform parameters, user variables (P-U),
+	 * light configuration, and color adjustments.
+	 * @type {Object}
+	 */
 	shaders: {
+		/** @type {Object} Shader uniform flags (inversion, lighting toggle, active shader index). */
 		params:{
 			invcol: 0,
 			islight: 1,
@@ -759,6 +946,7 @@ var glo = {
 			tint: 1,
 		}
 	},
+	/** @type {Object} Video recording state (canvas, stream, MediaRecorder, chunks). */
 	video:{
 		canvas: null,
 		stream: null,
@@ -767,6 +955,7 @@ var glo = {
 		chunks: [],
 		recording: false,
 	},
+	/** @type {Object} Optional shader feature toggles (opt1, opt2, opt3). */
 	shaderOpt: {
 		opt1: false,
 		opt2: false,
@@ -836,8 +1025,14 @@ var glo = {
 	},
 };
 
+/** @type {WebGLRenderingContext|WebGL2RenderingContext} WebGL context used for capability detection. */
 glo.gl = glo.canvasTest.getContext('webgl2') || glo.canvasTest.getContext('webgl');
 
+/**
+ * Handles incoming messages from other tabs via BroadcastChannel.
+ * Currently supports the "setRotateType" action to synchronize rotation mode.
+ * @param {MessageEvent} event - Message event with `data.action` and `data.rotType`.
+ */
 glo.meshChannel.onmessage = (event) => {
 	const { action, rotType } = event.data;
 
@@ -846,12 +1041,28 @@ glo.meshChannel.onmessage = (event) => {
     }
 };
 
+/**
+ * Finds a form radio button entry by its name.
+ * @param {string} name - Radio button name (e.g. "Radio-Torus").
+ * @returns {Object|false} The matching radio entry, or false.
+ */
 glo.radiosFormes.getByName = function (name){
 	return this.find(elem => elem?.button?.name === name) ?? false;
 };
+
+/**
+ * Returns the currently checked form radio button entry.
+ * @returns {Object|false} The checked radio entry, or false.
+ */
 glo.radiosFormes.getCheck = function (){
 	return this.find(elem => elem?.button?.isChecked) ?? false;
 };
+
+/**
+ * Checks a radio button by name and unchecks all others.
+ * @param {string} name - Radio button name to check.
+ * @returns {Object|false} The newly checked entry, or false if not found.
+ */
 glo.radiosFormes.setCheckByName = function (name){
 	var found = false;
 	this.forEach(elem => {
@@ -861,12 +1072,18 @@ glo.radiosFormes.setCheckByName = function (name){
 	});
 	return found;
 };
+/**
+ * Updates the header color of all form radio buttons.
+ * @param {string} newColor - New CSS color value.
+ */
 glo.radiosFormes.changeColor = function (newColor){
 	this.forEach(elem => { elem.header.color = newColor; });
 };
 
-glo.switchGuiSelect 	= glo.switchGuiSelect();
-glo.rotType             = glo.rotateTypeGen();
-glo.coordinatesType 	= glo.coordinatesType();
-glo.symmetrizeOrders    = glo.symmetrizeOrders();
-glo.planSelects         = glo.planSelects();
+// Initialize generators by calling the factory functions.
+// Each call returns an iterator whose .next() advances the corresponding state.
+glo.switchGuiSelect  = glo.switchGuiSelect();
+glo.rotType          = glo.rotateTypeGen();
+glo.coordinatesType  = glo.coordinatesType();
+glo.symmetrizeOrders = glo.symmetrizeOrders();
+glo.planSelects      = glo.planSelects();

@@ -1,18 +1,26 @@
 /**
- * GPUShaderMesh.js - Calcul de mesh 100% GPU (positions, normales, déformation, couleur)
+ * GPUShaderMesh.js — Fully GPU-driven mesh computation (positions, normals, deformation, color).
  *
- * ARCHITECTURE :
- * - Le mesh ne contient que les indices (i, j) comme attributs
- * - Le vertex shader calcule : positions paramétriques + normales (différences finies) + déformation
- * - Le fragment shader calcule : couleur + éclairage
- * - AUCUN transfert GPU → CPU (pas de getBufferSubData, pas de getPaths)
+ * Architecture:
+ * - The mesh only carries (i, j) grid indices as vertex attributes.
+ * - The vertex shader computes: parametric positions + normals (finite differences) + deformation.
+ * - The fragment shader computes: color + lighting.
+ * - No GPU→CPU transfer during rendering (no getBufferSubData, no getPaths).
  *
- * GAIN DE PERFORMANCE : ~100x par rapport à l'approche Transform Feedback
+ * Performance gain: ~100× compared to the Transform Feedback approach.
+ *
+ * @module GPUShaderMesh
  */
 
-// ==================== GESTIONNAIRE PRINCIPAL ====================
+// ==================== MAIN MANAGER ====================
 
+/**
+ * Low-level GPU shader compiler and mesh builder.
+ * Owns an off-screen WebGL2 context used for shader validation and
+ * Transform Feedback export. Converts compact math expressions into GLSL.
+ */
 class GPUShaderMeshComputer {
+	/** Creates the computer with a hidden WebGL2 canvas for shader compilation. */
 	constructor() {
 		this.scene  = glo.scene;
 		this.engine = glo.engine;
@@ -21,9 +29,19 @@ class GPUShaderMeshComputer {
 	}
 
 	/**
-	 * Transforme une expression mathématique en GLSL valide
-	 * @param {string} expr - Expression (ex: "cos(u)*sin(v)")
-	 * @returns {string} Expression GLSL
+	 * Converts a compact math expression into valid GLSL code.
+	 *
+	 * Applies the following transformations in order:
+	 * 1. Substitutes capital `X`/`Y` with the current macro expressions (`textInputEvalX`/`textInputEvalY`).
+	 * 2. Expands the custom power notation via {@link replaceCpow}.
+	 * 3. Applies all regex rules from `glo.regs` (shorthand expansion, e.g. `cu` → `cos(u)`).
+	 * 4. Replaces named constants (`PI`, `pi`, `ep`, `e`, `Q`, `Z`) with their numeric values.
+	 * 5. Converts `hypot()`/`h()` calls to `length(vec2/3())`.
+	 * 6. Converts `**` exponentiation to `pow()` calls.
+	 * 7. Appends `.0` to bare integers so they are valid GLSL floats.
+	 *
+	 * @param {string} expr - Compact math expression (e.g. `"2cucv"`, `"cos(u)*sin(v)"`).
+	 * @returns {string} GLSL-ready expression string, or `"0.0"` if the input is empty.
 	 */
 	transformExpressionToGLSL(expr) {
 		if (!expr || expr.trim() === '') return '0.0';
@@ -69,6 +87,12 @@ class GPUShaderMeshComputer {
 		return result;
 	}
 
+	/**
+	 * Recursively replaces `**` (exponentiation) operators with GLSL `pow()` calls.
+	 * Handles parenthesized sub-expressions on both sides of the operator.
+	 * @param {string} expr - Expression potentially containing `**`.
+	 * @returns {string} Expression with `**` replaced by `pow(base, exponent)`.
+	 */
 	replacePow(expr) {
 		let result = expr.replace(/\*\*/g, '^POW^');
 
@@ -109,11 +133,16 @@ class GPUShaderMeshComputer {
 	}
 
 	/**
-	 * Crée un mesh avec uniquement les indices (i, j) comme attributs
-	 * Les positions sont calculées entièrement dans le shader
-	 * @param {number} stepsU
-	 * @param {number} stepsV
-	 * @returns {BABYLON.Mesh}
+	 * Creates a BabylonJS mesh whose only meaningful vertex data are the (i, j) grid
+	 * indices stored in a custom `aIndex` attribute. Actual 3D positions are computed
+	 * entirely on the GPU by the vertex shader.
+	 *
+	 * Symmetry copies (multiplicative or additive) are baked into the index buffer
+	 * so a single draw call renders all copies.
+	 *
+	 * @param {number} stepsU - Number of subdivisions along the u parameter.
+	 * @param {number} stepsV - Number of subdivisions along the v parameter.
+	 * @returns {BABYLON.Mesh} A mesh with `aIndex` attribute and an oversized bounding box.
 	 */
 	createIndexMesh(stepsU, stepsV) {
 		// Paramètres de symétrie
@@ -204,23 +233,31 @@ class GPUShaderMeshComputer {
 	}
 
 	/**
-	 * Valide un shader GLSL (délègue à la fonction globale validateShader)
-	 * @param {string} shaderSource
-	 * @param {string} type - 'vertex' ou 'fragment' (défaut: 'vertex')
-	 * @returns {{valid: boolean, error: string|null}}
+	 * Validates a GLSL shader source by delegating to the global {@link validateShader}.
+	 * @param {string} shaderSource - Full GLSL source code.
+	 * @param {string} [type='vertex'] - Shader type: `'vertex'` or `'fragment'`.
+	 * @returns {{valid: boolean, error: string|null}} Validation result.
 	 */
 	validateShader(shaderSource, type = 'vertex') {
 		return validateShader(shaderSource, type);
 	}
 }
 
-// ==================== CLASSE DE BASE ====================
+// ==================== BASE CLASS ====================
 
+/**
+ * Abstract base class for GPU-computed parametric surface meshes.
+ * Manages shader creation, uniform updates, deformation, and export.
+ * Subclasses override {@link getPositionGLSL} to provide coordinate-system-specific GLSL.
+ */
 class ShaderMeshBase {
 	/**
-	 * @param {object} parametres - {u: {min, max, nb_steps}, v: {min, max, nb_steps}}
-	 * @param {object} equa - Équations {x, y, z, alpha, beta}
-	 * @param {object} equa2 - Équations secondaires (pour suit)
+	 * Initializes grid parameters, equation references, user variables,
+	 * blender settings, and pre-allocated vector objects for uniform updates.
+	 *
+	 * @param {object} parametres - Grid domain: `{u: {min, max, nb_steps}, v: {min, max, nb_steps}}`.
+	 * @param {object} equa - Primary equations (e.g. `{x, y, z, alpha, beta, theta}`).
+	 * @param {object} equa2 - Secondary equations used in "suite" (continuation) mode.
 	 */
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
@@ -309,8 +346,12 @@ class ShaderMeshBase {
 	}
 
 	/**
- * Applique les transformations regex de glo.regs à une expression
- */
+	 * Applies `glo.regs` regex transformations and {@link replaceCpow} to a raw expression.
+	 * Unlike {@link GPUShaderMeshComputer#transformExpressionToGLSL}, this does NOT substitute
+	 * constants or convert `**` to `pow()` — it only expands compact notation.
+	 * @param {string} expr - Raw compact math expression.
+	 * @returns {string} Partially expanded expression, or `'0'` if empty.
+	 */
 	applyGloRegsGPU(expr) {
 		if (!expr || expr.trim() === '') return '0';
 
@@ -325,7 +366,8 @@ class ShaderMeshBase {
 	}
 
 	/**
-	 * Applique les transformations regex (glo.regs) aux équations
+	 * Applies `glo.regs` regex transformations in-place to all string properties of an equation object.
+	 * @param {object} equa - Equation object whose string values will be expanded.
 	 */
 	processEquations(equa) {
 		if (!equa) return;
@@ -337,7 +379,11 @@ class ShaderMeshBase {
 	}
 
 	/**
-	 * Retourne le code GLSL pour les fonctions utilitaires
+	 * Returns the GLSL source for all utility functions injected into shaders.
+	 * Includes: `cpow`, trig shorthands (`c`, `s`, `ca`, `sa`), axis rotation matrix,
+	 * deformation families (`m`, `f`, `o`, `b`, `a`, `ce`, `se`), hypot helpers (`h`),
+	 * interpolation (`q`/`r`/`g`), cross/dot helpers (`cr`/`crl`/`cc`).
+	 * @returns {string} GLSL function definitions block.
 	 */
 	getUtilityFunctionsGLSL() {
 		return `
@@ -508,15 +554,29 @@ float cc(float vx1, float vy1, float vz1, float vx2, float vy2, float vz2){
 	}
 
 	/**
-	 * Retourne le code GLSL spécifique au système de coordonnées
-	 * À surcharger dans les classes filles
+	 * Returns the coordinate-system-specific GLSL that computes `outPos` from `(u, v)`.
+	 * Must be overridden by subclasses ({@link ShaderMeshCartesian}, {@link ShaderMeshSpherical},
+	 * {@link ShaderMeshCylindrical}).
+	 * @abstract
+	 * @returns {string} GLSL code block that writes to `outPos`.
 	 */
 	getPositionGLSL() {
 		return 'outPos = vec3(0.0);';
 	}
 
 	/**
-	 * Génère le vertex shader complet
+	 * Generates the complete vertex shader source (GLSL ES 3.0).
+	 *
+	 * The shader computes, per vertex:
+	 * 1. Parametric position via {@link getPositionGLSL} + blender rotations.
+	 * 2. Symmetry copies via `applySymmetry`.
+	 * 3. Normals via finite-difference tangent cross product.
+	 * 4. Normal-based wave deformation via `applyNormDeformation`.
+	 * 5. Optional user deformation along the normal via `computeDeformation`.
+	 *
+	 * @param {string|null} [deformExpression=null] - Compact deformation expression (e.g. `"m()"`),
+	 *   or `null` to disable deformation. If `_normEditorCode` is set, it takes precedence.
+	 * @returns {string} Full vertex shader GLSL source.
 	 */
 	createVertexShader(deformExpression = null) {
 		let glslDeformBlock;
@@ -758,7 +818,13 @@ void main() {
 	}
 
 	/**
-	 * Génère le fragment shader
+	 * Generates the complete fragment shader source (GLSL ES 3.0).
+	 * Injects the user's color code (`mainFrag`) between the mesh background color
+	 * initialization and the lighting/post-processing footer.
+	 *
+	 * @param {string} [mainFrag=fragmentShaders[glo.numShaderSelect]] - The body of the
+	 *   fragment shader (user-editable color/pattern code).
+	 * @returns {string} Full fragment shader GLSL source.
 	 */
 	createFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
 		return `#version 300 es
@@ -814,8 +880,12 @@ void main() {
 }
 
 	/**
-	 * Crée un ShaderMaterial avec les sources vertex/fragment données
-	 * Méthode interne partagée par create() et updateDeformationExpression()
+	 * Creates a BabylonJS ShaderMaterial from raw vertex/fragment GLSL sources.
+	 * Shared by {@link create}, {@link updateDeformationExpression}, and other recompilation paths.
+	 * @private
+	 * @param {string} vertexShader - Full vertex shader GLSL source.
+	 * @param {string} fragmentShader - Full fragment shader GLSL source.
+	 * @returns {BABYLON.ShaderMaterial} The configured shader material.
 	 */
 	_createShaderMaterial(vertexShader, fragmentShader) {
 		return new BABYLON.ShaderMaterial(
@@ -847,8 +917,12 @@ void main() {
 	}
 
 	/**
-	 * Crée le mesh et applique le shader
-	 * 100% GPU - aucun calcul CPU de paths
+	 * Creates the GPU-driven mesh and applies the compiled shader material.
+	 * This is the main entry point: it builds vertex/fragment shaders, validates them,
+	 * creates the index mesh, sets up per-frame observers, and configures all uniforms.
+	 * 100% GPU — no CPU path computation.
+	 *
+	 * @returns {BABYLON.Mesh|null} The created mesh (with `shaderMeshInstance` attached), or `null` on shader error.
 	 */
 	create() {
 		// Obtenir l'expression de déformation
@@ -905,7 +979,11 @@ void main() {
 	}
 
 	/**
-	 * Met à jour tous les uniforms
+	 * Pushes all uniform values to the shader material in a single batch.
+	 * Covers: grid params, user variables (A–M, P–U), time, epsilon, blender,
+	 * norm deformation, symmetry, lighting, colors, and grid display.
+	 *
+	 * @param {boolean} [deformationEnabled=false] - Whether deformation is active.
 	 */
 	updateAllUniforms(deformationEnabled = false) {
 		const mat = this.shaderMaterial;
@@ -1012,7 +1090,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour la position de la caméra
+	 * Updates the camera position uniform on the shader material.
 	 */
 	updateCamera() {
 		if (this.shaderMaterial) {
@@ -1021,7 +1099,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour les paramètres (A, B, C, etc.)
+	 * Reads the current user variable values (A–M) from `glo.params` and pushes them to the GPU.
 	 */
 	updateParams() {
 		if (!this.shaderMaterial) return;
@@ -1051,7 +1129,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour le blender
+	 * Reads the current blender rotation values from `glo.params.blender` and pushes them to the GPU.
 	 */
 	updateBlender() {
 		if (!this.shaderMaterial) return;
@@ -1065,7 +1143,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour les couleurs du mesh (background, lignes, éclairage)
+	 * Updates mesh color uniforms (emissive/background color and line/foreground color).
 	 */
 	updateColors() {
 		if (!this.shaderMaterial) return;
@@ -1077,7 +1155,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour l'éclairage (lampe)
+	 * Updates all lighting uniforms (lamp position, intensity, radius, specular).
 	 */
 	updateLighting() {
 		if (!this.shaderMaterial) return;
@@ -1091,7 +1169,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour la grille (nombre de lignes)
+	 * Updates the grid line count uniforms (gridU, gridV) used by the fragment shader.
 	 */
 	updateGrid() {
 		if (!this.shaderMaterial) return;
@@ -1101,7 +1179,7 @@ void main() {
 	}
 
 	/**
-	 * Met à jour le centre de symétrie
+	 * Updates the symmetry center uniform (`uSymCenter`) from `glo.centerSymmetry`.
 	 */
 	updateSymmetryCenter() {
 		if (!this.shaderMaterial) return;
@@ -1111,7 +1189,9 @@ void main() {
 	}
 
 	/**
-	 * Met à jour un paramètre float
+	 * Updates a single float uniform on the shader material and optionally on the instance.
+	 * @param {string} param - Uniform name (e.g. `"opt1"`, `"A"`).
+	 * @param {number} value - New value to set.
 	 */
 	updateFloatParam(param, value) {
 		if (!this.shaderMaterial) return;
@@ -1206,10 +1286,11 @@ void main() {
 	}
 
 	/**
-	 * Met à jour uniquement le fragment shader (couleur) sans reconstruire le mesh ni le vertex shader.
-	 * Réutilise le vertex shader courant, le mesh d'indices, et les observers existants.
-	 * @param {string} mainFrag - Le corps du fragment shader (contenu de fragmentShaders[n])
-	 * @returns {boolean} true si succès
+	 * Replaces only the fragment shader (color/pattern code) without rebuilding the mesh
+	 * or the vertex shader. Re-links a new ShaderMaterial using the same vertex source.
+	 *
+	 * @param {string} [mainFrag=fragmentShaders[glo.numShaderSelect]] - New fragment body code.
+	 * @returns {boolean} `true` if the shader was successfully swapped.
 	 */
 	updateFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
 		if (!this.mesh || !this.shaderMaterial) return false;
@@ -1242,10 +1323,12 @@ void main() {
 	}
 
 	/**
-	 * Met à jour la déformation par GLSL brut (depuis l'éditeur normal).
-	 * Le code est injecté dans computeDeformation et doit affecter float result.
-	 * @param {string} glslCode - Code GLSL (ex: "result = sin(x*5.0)*0.3;")
-	 * @returns {boolean} true si succès
+	 * Updates the deformation using raw GLSL code from the normal/deformation editor.
+	 * The code is injected into `computeDeformation()` and must write to `float result`.
+	 * Overrides any equation-based deformation expression.
+	 *
+	 * @param {string} glslCode - Raw GLSL code (e.g. `"result = sin(x*5.0)*0.3;"`).
+	 * @returns {{success: boolean, error?: string}} Result with optional error message.
 	 */
 	updateNormDeformGLSL(glslCode) {
 		if (!this.mesh || !this.shaderMaterial) return false;
@@ -1281,9 +1364,9 @@ void main() {
 	}
 
 	/**
-	 * Met à jour un uniform de déformation par normale
-	 * @param {string} uniformName - ex: "normValX", "normCoeffX"
-	 * @param {number} value
+	 * Updates a single normal-wave deformation uniform (e.g. slider-driven).
+	 * @param {string} uniformName - Uniform name (e.g. `"normValX"`, `"normCoeffX"`).
+	 * @param {number} value - New value.
 	 */
 	setNormUniform(uniformName, value) {
 		if (!this.shaderMaterial) return;
@@ -1291,12 +1374,15 @@ void main() {
 		this.shaderMaterial.setFloat(uniformName, value);
 	}
 
-	// ==================== IMPORT : MESH OBJ AVEC SHADERS DE COULEUR ET DÉFORMATION ====================
+	// ==================== IMPORT: OBJ MESH WITH COLOR AND DEFORMATION SHADERS ====================
 
 	/**
-	 * Génère un vertex shader adapté à un mesh importé (positions réelles en attribut).
-	 * La géométrie est fixe : pas de computePosition, pas de blender, pas de symétrie.
-	 * Applique : normales par attribut, applyNormDeformation, computeDeformation, fragment shaders.
+	 * Generates a vertex shader adapted for an imported mesh (real positions as attributes).
+	 * The geometry is fixed: no `computePosition`, no blender, no symmetry.
+	 * Applies: normals from attribute, `applyNormDeformation`, `computeDeformation`, fragment shaders.
+	 *
+	 * @param {string|null} [deformExpression=null] - Compact deformation expression, or `null`.
+	 * @returns {string} Full vertex shader GLSL source for imported meshes.
 	 */
 	createImportVertexShader(deformExpression = null) {
 		let glslDeformBlock;
@@ -1533,8 +1619,11 @@ void main() {
 	}
 
 	/**
-	 * Met à jour l'expression de déformation pour un mesh importé.
-	 * Recompile le vertex shader import (pas le vertex shader paramétrique).
+	 * Updates the deformation expression for an imported mesh.
+	 * Recompiles the import vertex shader (not the parametric one).
+	 *
+	 * @param {string|null} [expression=null] - New deformation expression, or `null` to disable.
+	 * @returns {boolean} `true` if recompilation succeeded.
 	 */
 	updateImportDeformationExpression(expression = null) {
 		if (!this.mesh || !this._importedMode) return false;
@@ -1565,14 +1654,16 @@ void main() {
 		return true;
 	}
 
-	// ==================== EXPORT : EXTRACTION DES POSITIONS VIA TRANSFORM FEEDBACK ====================
+	// ==================== EXPORT: POSITION EXTRACTION VIA TRANSFORM FEEDBACK ====================
 
 	/**
-	 * Extrait les positions et normales des vertices depuis le GPU via Transform Feedback.
-	 * Opération ponctuelle pour l'export (STL, OBJ…) — ne modifie pas le pipeline de rendu normal.
-	 * Utilise le contexte WebGL2 séparé (this.computer.gl) pour ne pas interférer avec Babylon.
+	 * Extracts vertex positions and normals from the GPU via WebGL2 Transform Feedback.
+	 * This is a one-shot operation for export (STL, OBJ, etc.) — it does not modify the
+	 * normal rendering pipeline. Uses a separate WebGL2 context (`this.computer.gl`)
+	 * to avoid interfering with BabylonJS.
 	 *
 	 * @returns {{positions: Float32Array, normals: Float32Array, indices: Uint32Array}|null}
+	 *   Extracted geometry data, or `null` on failure.
 	 */
 	extractPositionsForExport() {
 		if (!this.mesh || !this.shaderMaterial) return null;
@@ -1727,9 +1818,12 @@ void main() { fragColor = vec4(0.0); }`;
 	}
 
 	/**
-	 * Configure tous les uniforms pour le programme Transform Feedback.
-	 * Réplique updateAllUniforms() avec des appels WebGL2 bruts.
+	 * Configures all uniforms for the Transform Feedback export program.
+	 * Mirrors {@link updateAllUniforms} but uses raw WebGL2 calls instead of BabylonJS.
 	 * @private
+	 * @param {WebGL2RenderingContext} gl - The WebGL2 context.
+	 * @param {WebGLProgram} program - The linked shader program.
+	 * @param {boolean} deformationEnabled - Whether deformation is active.
 	 */
 	_setTFUniforms(gl, program, deformationEnabled) {
 		const loc = (name) => gl.getUniformLocation(program, name);
@@ -1815,9 +1909,9 @@ void main() { fragColor = vec4(0.0); }`;
 	}
 
 	/**
-	 * Crée un mesh Babylon.js temporaire avec les positions réelles calculées par le GPU.
-	 * Utilisé pour l'export (STL, OBJ, etc.).
-	 * @returns {BABYLON.Mesh|null}
+	 * Creates a temporary BabylonJS mesh with real positions computed by the GPU.
+	 * Used for file export (STL, OBJ, etc.). The mesh should be disposed after use.
+	 * @returns {BABYLON.Mesh|null} A mesh with real vertex data, or `null` on failure.
 	 */
 	createExportMesh() {
 		const data = this.extractPositionsForExport();
@@ -1834,7 +1928,7 @@ void main() { fragColor = vec4(0.0); }`;
 	}
 
 	/**
-	 * Libère les ressources
+	 * Disposes all GPU resources: render observer, shader material, and mesh.
 	 */
 	dispose() {
 		if (this.cameraObserver) {
@@ -1852,12 +1946,18 @@ void main() { fragColor = vec4(0.0); }`;
 	}
 }
 
-// ==================== SYSTEME CARTESIEN ====================
+// ==================== CARTESIAN COORDINATE SYSTEM ====================
 
+/**
+ * GPU shader mesh for cartesian coordinates: x = f(u,v), y = g(u,v), z = h(u,v).
+ * Supports three rotation angles: alpha (Z-axis), beta (Y-axis), theta (X-axis).
+ * @extends ShaderMeshBase
+ */
 class ShaderMeshCartesian extends ShaderMeshBase {
 	/**
-	 * Coordonnées cartésiennes : x = f(u,v), y = g(u,v), z = h(u,v)
-	 * Avec rotations ROT Z (alpha) et ROT Y (beta)
+	 * @param {object} [parametres] - Grid domain (defaults to `glo.params`).
+	 * @param {object} [equa] - Cartesian equations `{x, y, z, alpha, beta, theta}`.
+	 * @param {object} [equa2] - Secondary equations for suite mode.
 	 */
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
@@ -1875,9 +1975,11 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	}
 
 	/**
+	 * Returns GLSL that computes the cartesian position `(px, py, pz)` from `(u, v)`,
+	 * then applies X/Y/Z rotations (theta, beta, alpha) in order.
 	 * @override
+	 * @returns {string} GLSL code block writing to `outPos`.
 	 */
-	
 	getPositionGLSL() {
 		const glslX = this.computer.transformExpressionToGLSL(this.equa.x || 'u');
 		const glslY = this.computer.transformExpressionToGLSL(this.equa.y || 'v');
@@ -1936,12 +2038,18 @@ class ShaderMeshCartesian extends ShaderMeshBase {
 	}
 }
 
-// ==================== SYSTEME SPHERIQUE (à implémenter) ====================
+// ==================== SPHERICAL COORDINATE SYSTEM ====================
 
+/**
+ * GPU shader mesh for spherical coordinates: R (radius), alpha (Z-rotation),
+ * beta (Y-rotation), with secondary rotations alpha2, beta2, theta.
+ * @extends ShaderMeshBase
+ */
 class ShaderMeshSpherical extends ShaderMeshBase {
 	/**
-	 * Coordonnées sphériques : R = rayon, ROT Z = alpha, ROT Y = beta
-	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 * @param {object} [parametres] - Grid domain (defaults to `glo.params`).
+	 * @param {object} [equa] - Spherical equations `{r, alpha, beta, alpha2, beta2, theta}`.
+	 * @param {object} [equa2] - Secondary equations for suite mode.
 	 */
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
@@ -1959,7 +2067,10 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 	}
 
 	/**
+	 * Returns GLSL that computes the spherical position from R, alpha, beta,
+	 * rotates `uFirstPoint * R` by beta (Y) then alpha (Z), and applies secondary rotations.
 	 * @override
+	 * @returns {string} GLSL code block writing to `outPos`.
 	 */
 	getPositionGLSL() {
 		const glslR = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
@@ -2028,12 +2139,18 @@ class ShaderMeshSpherical extends ShaderMeshBase {
 	}
 }
 
-// ==================== SYSTEME CYLINDRIQUE (à implémenter) ====================
+// ==================== CYLINDRICAL COORDINATE SYSTEM ====================
 
+/**
+ * GPU shader mesh for cylindrical coordinates: R (radius), alpha (Z-rotation),
+ * beta (height), with secondary rotations alpha2, beta2, theta.
+ * @extends ShaderMeshBase
+ */
 class ShaderMeshCylindrical extends ShaderMeshBase {
 	/**
-	 * Coordonnées cylindriques : R = rayon, ROT Z = alpha, Z = hauteur (beta)
-	 * Avec rotations secondaires ROT Z (alpha2) et ROT Y (beta2)
+	 * @param {object} [parametres] - Grid domain (defaults to `glo.params`).
+	 * @param {object} [equa] - Cylindrical equations `{r, alpha, beta, alpha2, beta2, theta}`.
+	 * @param {object} [equa2] - Secondary equations for suite mode.
 	 */
 	constructor(parametres = {
 		u: { min: -glo.params.u, max: glo.params.u, nb_steps: glo.params.stepsU },
@@ -2051,7 +2168,10 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 	}
 
 	/**
+	 * Returns GLSL that computes the cylindrical position from R, alpha (Z-rotation),
+	 * height (beta), rotates `uFirstPoint * R` by alpha (Z only), and applies secondary rotations.
 	 * @override
+	 * @returns {string} GLSL code block writing to `outPos`.
 	 */
 	getPositionGLSL() {
 		const glslR      = this.computer.transformExpressionToGLSL(this.equa.r || '1.0');
@@ -2120,10 +2240,13 @@ class ShaderMeshCylindrical extends ShaderMeshBase {
 	}
 }
 
-// ==================== FACTORY ET UTILITAIRES ====================
+// ==================== FACTORY AND UTILITIES ====================
 
 /**
- * Retourne la classe appropriée selon le type de coordonnées
+ * Returns the appropriate ShaderMesh subclass for the given coordinate system.
+ * @param {string} coordsType - `"cartesian"`, `"spheric"`, or `"cylindrical"`.
+ * @returns {typeof ShaderMeshCartesian|typeof ShaderMeshSpherical|typeof ShaderMeshCylindrical}
+ *   The class constructor (defaults to cartesian).
  */
 function getShaderMeshClass(coordsType) {
 	const classes = {
@@ -2135,7 +2258,12 @@ function getShaderMeshClass(coordsType) {
 }
 
 /**
- * Crée un ShaderMesh selon le type de coordonnées
+ * Creates a ShaderMesh instance for the given coordinate system with explicit parameters.
+ * @param {string} coordsType - Coordinate system type.
+ * @param {object} parametres - Grid domain `{u: {min, max, nb_steps}, v: {…}}`.
+ * @param {object} equa - Primary equations.
+ * @param {object} [equa2] - Secondary equations.
+ * @returns {ShaderMeshBase} A new ShaderMesh instance (not yet created on GPU).
  */
 function createShaderMesh(coordsType, parametres, equa, equa2) {
 	const MeshClass = getShaderMeshClass(coordsType);
@@ -2143,8 +2271,9 @@ function createShaderMesh(coordsType, parametres, equa, equa2) {
 }
 
 /**
- * Crée un ShaderMesh à partir des paramètres globaux (glo)
- * @returns {BABYLON.Mesh} Le mesh créé (avec shaderMeshInstance attaché)
+ * Creates a ShaderMesh from the current global parameters (`glo`),
+ * compiles it, and returns the GPU-driven mesh.
+ * @returns {BABYLON.Mesh} The created mesh (with `shaderMeshInstance` attached).
  */
 function createShaderMeshFromGlo() {
 	const coordsType = glo.coordsType || 'cartesian';
@@ -2157,10 +2286,15 @@ function createShaderMeshFromGlo() {
 	return mesh;
 }
 
-// ==================== INSTANCE GLOBALE ====================
+// ==================== SINGLETON INSTANCE ====================
 
+/** @type {GPUShaderMeshComputer|null} Lazily-initialized singleton. */
 let shaderMeshComputer = null;
 
+/**
+ * Returns the singleton {@link GPUShaderMeshComputer} instance, creating it on first call.
+ * @returns {GPUShaderMeshComputer}
+ */
 function getShaderMeshComputer() {
 	if (!shaderMeshComputer) {
 		shaderMeshComputer = new GPUShaderMeshComputer();

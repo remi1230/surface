@@ -1,9 +1,36 @@
+//*****************************************************************************************************//
+//**********************************************FORMS**************************************************//
+//*****************************************************************************************************//
 
+/** @constant {number} PI - Shorthand for Math.PI, used throughout equation strings. */
 const PI = Math.PI;
+/** @constant {number} e - Euler's number (Math.E), used in equation strings. */
 const e  = Math.E;
+/** @constant {number} Z - Golden ratio (1 + sqrt(5)) / 2 ≈ 1.618, available in equations. */
 const Z  = (1+Math.sqrt(5))*0.5;
+/** @constant {number} Q - Square root of 2 (Math.SQRT2), available in equations. */
 const Q  = Math.SQRT2;
 
+/**
+ * Registry of all built-in parametric surface definitions.
+ *
+ * Each entry describes one selectable surface with:
+ * - **text** (`string`): Display name shown in the form selector.
+ * - **typeCoords** (`"cartesian"|"spheric"|"cylindrical"`): Coordinate system used by the equations.
+ * - **udef** / **vdef** (`number`): Default domain extent for the u and v parameters.
+ * - **stepsU** / **stepsV** (`number`): Default mesh resolution along each parameter axis.
+ * - **uvCoeff** (`{x: number, y: number}`, optional): Multiplier applied to the u/v slider ranges.
+ * - **uvParamsCoeff** (`{x: number, y: number}`, optional): Multiplier applied to the u/v parameter display.
+ * - **fx** / **fy** / **fz** (`string`): Compact math expressions for x, y, z coordinates.
+ *   Uses custom shorthand notation expanded by `glo.regs` (e.g. `"2cucv"` → `2*cos(u)*cos(v)`).
+ * - **alpha** / **beta** / **theta** (`string`, optional): Rotation angle expressions applied to the mesh.
+ * - **orient** (`object`, optional): Default camera orientation with `distance`, `axis`, `direction`, `alpha`, `beta`.
+ * - **start** (`boolean`, optional): If true, this form is loaded on application startup.
+ * - **check** (`boolean`, optional): If false, this form is excluded from radio-button checks.
+ * - **suit** (`boolean`, optional): If true, this form appears in the "suite" (continuation) group.
+ *
+ * @type {Array<{text: string, typeCoords: string, udef: number, vdef: number, stepsU: number, stepsV: number, fx: string, fy: string, fz: string, [key: string]: *}>}
+ */
 const formsToselect = [
     {text: "Catenoïd", typeCoords: 'cartesian', udef: PI, vdef: PI, stepsU: 96, stepsV: 48, uvCoeff: {x: 1, y: 0.5},
         fx: "cosh(v/2)cu", fy: ".5v", fz: "cosh(v/2)su",

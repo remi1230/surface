@@ -2089,6 +2089,9 @@ function addSixthPanelSliders(){
   });
 }
 
+/**
+ * Creates miscellaneous controls (reset, writing type, plans, UV increment, camera controls, rotate).
+ */
 function addEleventhPanelSliders(){
   let panelButton2      = new BABYLON.GUI.StackPanel();
   let panelButton3      = new BABYLON.GUI.StackPanel();
@@ -2096,10 +2099,26 @@ function addEleventhPanelSliders(){
   let panelButton6      = new BABYLON.GUI.StackPanel();
   let panelRotateCamera = new BABYLON.GUI.StackPanel();
 
+  /**
+   * Helper to create and register a GUI panel for eleventh panel.
+   * @param {BABYLON.GUI.StackPanel} panel - Panel control to configure
+   * @param {string} name - Panel identifier
+   * @param {number} top - Top position in percent
+   * @param {boolean} [isVertical=true] - Whether the panel layout is vertical
+   * @param {number} [width=20] - Panel width in percent
+   * @param {number} [height=5] - Panel height in percent
+   * @param {string} [numUI='eleventh'] - CSS class identifier for UI grouping
+   */
   function addPanel(panel, name, top, isVertical = true, width = 20, height = 5, numUI = 'eleventh'){
     parmamControl(panel, name, `panel right ${numUI} noAutoParam`, {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
     glo.advancedTexture.addControl(panel);
   }
+  /**
+   * Returns a counter function incrementing by a fixed step.
+   * @param {number} start - Initial value
+   * @param {number} increment - Step size for each call
+   * @returns {Function} Counter function returning the next incremented value
+   */
   function createIncrementer(start, increment) {
     let count = start - increment;
     return function() {
@@ -2189,6 +2208,9 @@ function addEleventhPanelSliders(){
   });
 }
 
+/**
+ * Creates transformation sliders (scaling, rotation, position, center symmetry) and color controls.
+ */
 function addTransformationSliders(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 54.75, pR: 0, pL: 0.5});
@@ -2205,6 +2227,12 @@ function addTransformationSliders(){
   makePanelTitle('TransformationPanelTitle', 'Transformations', 51.25, 'eighth noAutoParam');
   makePanelTitle('panelVarColorTitle', 'Colors', 74.25, 'eighth noAutoParam');
 
+  /**
+   * Updates transformation params in glo.params.
+   * @param {string} baseName - Transformation type (e.g. 'scaling', 'rotation', 'position')
+   * @param {string} axis - Axis identifier ('x', 'y', or 'z')
+   * @param {number} value - New parameter value
+   */
   function updParamsTrans(baseName, axis, value) {
     glo.params[baseName + axis.toUpperCase()] = value;
     glo.params.meshTransformations[baseName][axis] = value;

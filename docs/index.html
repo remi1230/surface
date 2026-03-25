@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SURFACE — Real-time Parametric Surface Explorer</title>
+  <meta name="description" content="Create, explore and export 3D parametric surfaces in your browser. Write math equations, customize GLSL shaders, apply symmetries, animate and export to OBJ/STL.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SURFACE — Real-time Parametric Surface Explorer">
+  <meta property="og:description" content="Create stunning 3D parametric surfaces with math equations and GLSL shaders, right in your browser.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://remi1230.github.io/surface/">
+  <meta property="og:image" content="https://remi1230.github.io/surface/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="SURFACE — Real-time Parametric Surface Explorer">
+  <meta name="twitter:description" content="Create stunning 3D parametric surfaces with math equations and GLSL shaders, right in your browser.">
+  <meta name="twitter:image" content="https://remi1230.github.io/surface/og-image.png">
+
+  <link rel="icon" type="image/png" href="../logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-dark: #0a0a1a;
+      --bg-card: #111128;
+      --bg-card-hover: #16163a;
+      --accent: #4fc3f7;
+      --accent-glow: rgba(79, 195, 247, .25);
+      --text: #e0e0e0;
+      --text-dim: #888;
+      --text-bright: #fff;
+      --border: #1e1e3a;
+      --gradient-start: #0a0a1a;
+      --gradient-end: #0d1b2a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ---- Navigation ---- */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(10, 10, 26, .85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 18px; color: var(--text-bright);
+    }
+    .nav-brand img { width: 32px; height: 32px; }
+    .nav-links { display: flex; gap: 28px; }
+    .nav-links a {
+      color: var(--text-dim); font-size: 14px; font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text-bright); text-decoration: none; }
+
+    /* ---- Hero ---- */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(79,195,247,.07), transparent),
+        linear-gradient(180deg, var(--gradient-start), var(--gradient-end));
+    }
+    .hero-logo {
+      width: 100px; height: 100px;
+      margin-bottom: 24px;
+      filter: drop-shadow(0 0 30px var(--accent-glow));
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text-bright);
+      margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-tagline {
+      font-size: clamp(16px, 2.2vw, 22px);
+      color: var(--text-dim);
+      max-width: 640px;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+    .hero-buttons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 15px; font-weight: 600;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0a1a;
+    }
+    .btn-primary:hover {
+      background: #81d4fa;
+      box-shadow: 0 0 24px var(--accent-glow);
+      text-decoration: none;
+      color: #0a0a1a;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+    .hero-equation {
+      margin-top: 48px;
+      padding: 14px 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+    .hero-equation span { color: var(--text-dim); }
+
+    /* ---- Sections ---- */
+    section {
+      padding: 100px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .section-header h2 {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 12px;
+    }
+    .section-header p {
+      color: var(--text-dim);
+      font-size: 17px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ---- Features grid ---- */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: all .25s;
+    }
+    .feature-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(79,195,247,.3);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+      background: rgba(79,195,247,.1);
+    }
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ---- How it works ---- */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      counter-reset: step;
+    }
+    .step {
+      text-align: center;
+      counter-increment: step;
+    }
+    .step::before {
+      content: counter(step);
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: rgba(79,195,247,.12);
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      border: 2px solid rgba(79,195,247,.3);
+    }
+    .step h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+    }
+    .step p {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    /* ---- Shorthand showcase ---- */
+    .shorthand-table {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    .shorthand-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent);
+      border-bottom: 2px solid var(--border);
+    }
+    .shorthand-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .shorthand-table code {
+      font-family: 'Fira Code', monospace;
+      background: rgba(79,195,247,.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 13px;
+    }
+    .shorthand-table .arrow { color: var(--text-dim); }
+
+    /* ---- Tech stack ---- */
+    .tech-list {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .tech-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+    .tech-badge {
+      width: 64px; height: 64px;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+      transition: border-color .2s;
+    }
+    .tech-item:hover .tech-badge { border-color: var(--accent); }
+
+    /* ---- CTA ---- */
+    .cta {
+      text-align: center;
+      padding: 80px 24px;
+      background:
+        radial-gradient(ellipse 50% 60% at 50% 60%, rgba(79,195,247,.06), transparent);
+    }
+    .cta h2 {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-bright);
+      margin-bottom: 12px;
+    }
+    .cta p {
+      color: var(--text-dim);
+      margin-bottom: 32px;
+      font-size: 17px;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--accent); }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .nav-links { gap: 16px; }
+      section { padding: 60px 16px; }
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-brand">
+      <img src="../logo.png" alt="SURFACE">
+      SURFACE
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="#shorthand">Shorthand</a>
+      <a href="https://github.com/remi1230/surface">GitHub</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <img src="../logo.png" alt="SURFACE" class="hero-logo">
+    <h1>Explore <span>Parametric Surfaces</span></h1>
+    <p class="hero-tagline">
+      Write a math equation, watch a 3D surface come to life. Customize with GLSL shaders, apply symmetries, animate with time, and export for 3D printing.
+    </p>
+    <div class="hero-buttons">
+      <a href="../index.html" class="btn btn-primary">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        Launch App
+      </a>
+      <a href="https://github.com/remi1230/surface" class="btn btn-secondary">
+        <svg viewBox="0 0 24 24"><path d="M12 .3a12 12 0 00-3.8 23.38c.6.11.82-.26.82-.58v-2.16c-3.34.73-4.04-1.61-4.04-1.61a3.18 3.18 0 00-1.33-1.76c-1.09-.74.08-.73.08-.73a2.52 2.52 0 011.84 1.24 2.56 2.56 0 003.5 1 2.56 2.56 0 01.76-1.61c-2.67-.3-5.47-1.33-5.47-5.93a4.64 4.64 0 011.24-3.22 4.3 4.3 0 01.12-3.18s1-.32 3.3 1.23a11.38 11.38 0 016 0c2.28-1.55 3.28-1.23 3.28-1.23a4.3 4.3 0 01.12 3.18 4.64 4.64 0 011.24 3.22c0 4.61-2.81 5.63-5.48 5.93a2.86 2.86 0 01.82 2.22v3.29c0 .32.21.7.82.58A12 12 0 0012 .3z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
+    <div class="hero-equation">
+      <span>X =</span> cos(u) * (3 + cos(v))
+      &nbsp;&nbsp;
+      <span>Y =</span> sin(u) * (3 + cos(v))
+      &nbsp;&nbsp;
+      <span>Z =</span> sin(v)
+    </div>
+  </header>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="section-header">
+      <h2>Everything you need</h2>
+      <p>A complete toolkit for creating and exploring mathematical surfaces in 3D</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">f()</div>
+        <h3>Parametric Equations</h3>
+        <p>Define surfaces with X(u,v), Y(u,v), Z(u,v) in Cartesian, Spherical or Cylindrical coordinates. 50+ built-in forms included.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&lt;/&gt;</div>
+        <h3>GLSL Shader Editors</h3>
+        <p>Two Monaco-based editors for fragment (color) and normal deformation shaders. Full GLSL with live compilation.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&infin;</div>
+        <h3>Symmetrize</h3>
+        <p>Repeat the mesh along X/Y/Z axes up to 48 times. Adjust angle, checkerboard pattern, and blending mode.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">~</div>
+        <h3>Wave Deformation</h3>
+        <p>Displace vertices along their normals with per-axis amplitude and frequency. 20+ built-in deformation functions.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">t</div>
+        <h3>Time Animation</h3>
+        <p>Use the <code>t</code> variable in any equation for real-time animation. Control speed, pause, and record as video.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&darr;</div>
+        <h3>Export to 3D</h3>
+        <p>Export your surfaces as OBJ, STL or JSON. Import OBJ meshes. Save and share shader collections as .js files.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how-it-works">
+    <div class="section-header">
+      <h2>How it works</h2>
+      <p>From equation to 3D surface in seconds</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>Pick a surface</h3>
+        <p>Choose from 50+ built-in forms or start with a blank canvas</p>
+      </div>
+      <div class="step">
+        <h3>Write equations</h3>
+        <p>Edit X, Y, Z as functions of u and v using shorthand notation</p>
+      </div>
+      <div class="step">
+        <h3>Customize</h3>
+        <p>Adjust shaders, colors, symmetry, transformations, and animation</p>
+      </div>
+      <div class="step">
+        <h3>Export</h3>
+        <p>Download as OBJ or STL for 3D printing, or record a video</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Shorthand -->
+  <section id="shorthand">
+    <div class="section-header">
+      <h2>Write less, create more</h2>
+      <p>The equation parser expands shorthand notation automatically</p>
+    </div>
+    <table class="shorthand-table">
+      <thead>
+        <tr>
+          <th>You write</th>
+          <th></th>
+          <th>Expands to</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code>cu</code></td><td class="arrow">&rarr;</td><td><code>cos(u)</code></td></tr>
+        <tr><td><code>sv</code></td><td class="arrow">&rarr;</td><td><code>sin(v)</code></td></tr>
+        <tr><td><code>cufv</code></td><td class="arrow">&rarr;</td><td><code>cos(u*v)</code></td></tr>
+        <tr><td><code>2u</code></td><td class="arrow">&rarr;</td><td><code>2*u</code></td></tr>
+        <tr><td><code>m</code></td><td class="arrow">&rarr;</td><td><code>m()</code> &mdash; multiplicative cosine</td></tr>
+        <tr><td><code>o</code></td><td class="arrow">&rarr;</td><td><code>o()</code> &mdash; additive cosine</td></tr>
+        <tr><td><code>R</code></td><td class="arrow">&rarr;</td><td><code>h(x,y,z)</code> &mdash; distance from origin</td></tr>
+        <tr><td><code>q(a,b,t)</code></td><td class="arrow">&rarr;</td><td><code>mix(a,b,t)</code> &mdash; interpolation</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Tech stack -->
+  <section>
+    <div class="section-header">
+      <h2>Built with</h2>
+    </div>
+    <div class="tech-list">
+      <div class="tech-item">
+        <div class="tech-badge">B</div>
+        BabylonJS
+      </div>
+      <div class="tech-item">
+        <div class="tech-badge">GL</div>
+        WebGL2 / GLSL
+      </div>
+      <div class="tech-item">
+        <div class="tech-badge">M</div>
+        Monaco Editor
+      </div>
+      <div class="tech-item">
+        <div class="tech-badge">JS</div>
+        Vanilla JS
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>Ready to explore?</h2>
+    <p>No install, no sign-up. Runs entirely in your browser.</p>
+    <a href="../index.html" class="btn btn-primary">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      Launch SURFACE
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      SURFACE &mdash; MIT License &mdash;
+      <a href="https://github.com/remi1230/surface">GitHub</a>
+    </p>
+  </footer>
+
+</body>
+</html>

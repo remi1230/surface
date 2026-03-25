@@ -75,12 +75,6 @@ class GPUShaderMeshComputer {
 		result = result.replace(/\bQ\b/g, '1.41421356237310');
 		result = result.replace(/\bZ\b/g, '1.61803398874989');
 
-		// hypot -> length
-		result = result.replace(/\bhypot\s*\(\s*([^,]+)\s*,\s*([^,)]+)\s*\)/g, 'length(vec2($1, $2))');
-		result = result.replace(/\bh\s*\(\s*([^,]+)\s*,\s*([^,)]+)\s*\)/g, 'length(vec2($1, $2))');
-		result = result.replace(/\bhypot\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, 'length(vec3($1, $2, $3))');
-		result = result.replace(/\bh\s*\(\s*([^,]+)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, 'length(vec3($1, $2, $3))');
-
 		// ** -> pow()
 		result = this.replacePow(result);
 

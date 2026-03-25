@@ -1,6 +1,10 @@
 //*****************************************************************************************************//
 //*********************************************BABYLON GUI*********************************************//
 //*****************************************************************************************************//
+/**
+ * Subscribes a slider to mouse wheel events when hovered, allowing the user
+ * to increment or decrement the slider value by its step amount.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
   this.onWheelObservable.add(function (e) {
       var val = e.y < 0 ? this.step : -this.step;
@@ -8,6 +12,10 @@ BABYLON.GUI.Slider.prototype.subscribeToKeyEventsOnHover = function() {
   }.bind(this));
 };
 
+/**
+ * Subscribes an input text control to focus and blur events, applying
+ * theme styles from {@link glo.theme.input} on focus and blur.
+ */
 BABYLON.GUI.InputText.prototype.subscribeToFocusAndBlurEvents = function() {
   this.onFocusObservable.add(() => {
     for(const prop in glo.theme.input.onFocus){ this[prop] = glo.theme.input.onFocus[prop]; }
@@ -18,6 +26,12 @@ BABYLON.GUI.InputText.prototype.subscribeToFocusAndBlurEvents = function() {
   });
 };
 
+/**
+ * Subscribes a slider to double-click behavior. On double-click above the
+ * thumb, the slider maximum is doubled and the value is scaled up. On
+ * double-click below the thumb, the value is halved and the maximum is
+ * halved. This allows dynamic range adjustment.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     var lastClick = 0;
     var valueBeforeFirstClick = null;
@@ -26,7 +40,7 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
 
     this.onPointerDownObservable.add(function (info) {
         var now = Date.now();
-        // Déterminer si on clique au-dessus ou en-dessous du curseur
+        // Determine whether the click is above or below the thumb
         var clickAbove = this.isVertical
             ? (info.y < this._currentMeasure.top + this._currentMeasure.height * (1 - (this.value - this.minimum) / (this.maximum - this.minimum)))
             : (info.x > this._currentMeasure.left + this._currentMeasure.width * ((this.value - this.minimum) / (this.maximum - this.minimum)));
@@ -50,45 +64,62 @@ BABYLON.GUI.Slider.prototype.subscribeToDoubleClick = function () {
     }.bind(this));
 };
 
+/**
+ * Subscribes a slider so that its maximum is automatically doubled whenever
+ * the current value exceeds the maximum.
+ */
 BABYLON.GUI.Slider.prototype.subscribeToDoubleMax = function () {
     this.onValueChangedObservable.add(function (value) {
         if(this.maximum < this.value){ this.maximum = this.value * 2; }
     }.bind(this));
 };
 
-function add_gui_controls(){
+/**
+ * Creates and initializes all GUI controls for the application.
+ * Sets up the BabylonJS fullscreen GUI overlay and adds all panels including
+ * sliders, buttons, inputs, color pickers, radio buttons, and shader controls.
+ * This is the main entry point for GUI construction.
+ */
+function addGuiControls(){
   glo.advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI", true, glo.scene);
   glo.advancedTexture.useSmallestIdeal = false;
 
-  add_switch_and_help_buttons();
-  add_axis_and_rot_buttons();
-  add_uv_sliders();
-  add_inputs_equations();
-  add_lines_and_dim_buttons();
+  addSwitchAndHelpButtons();
+  addAxisAndRotButtons();
+  addUvSliders();
+  addInputsEquations();
+  addLinesAndDimButtons();
 
-  add_radios();
+  addRadios();
 
-  add_step_uv_slider();
-  add_switchForm_buttons();
-  add_views_buttons();
+  addStepUvSlider();
+  addSwitchFormButtons();
+  addViewsButtons();
 
-  add_color_pickers();
-  add_shaders_ctrl();
+  addColorPickers();
+  addShadersCtrl();
 
-  add_step_ABCD_sliders();
-  add_symmetrize_sliders();
-  add_blender_sliders();
-  add_transformation_sliders();
-  add_sixth_panel_sliders();
-  add_ninethPanel_controls();
-  add_eleventh_panel_sliders();
+  addStepABCDSliders();
+  addSymmetrizeSliders();
+  addBlenderSliders();
+  addTransformationSliders();
+  addSixthPanelSliders();
+  addNinthPanelControls();
+  addEleventhPanelSliders();
 
   guiControls_AddIdentificationFunctions();
 
-  param_controls();
-  param_buttons();
+  paramControls();
+  paramButtons();
 }
 
+/**
+ * Adds identification and query functions to the GUI controls collection.
+ * Builds a cached Map for O(1) lookup by name and attaches helper methods
+ * (getByName, haveThisClass, haveTheseClasses, haveNotThisClass,
+ * haveNotTheseClass, hasThisClass) to {@link glo.allControls} for filtering
+ * controls by CSS-like class names.
+ */
 function guiControls_AddIdentificationFunctions(){
   glo.allControls = glo.advancedTexture.getDescendants();
   // Cache Map for O(1) lookup by name instead of O(n) linear search
@@ -98,6 +129,13 @@ function guiControls_AddIdentificationFunctions(){
       glo._controlsByName.set(elem.name, elem);
     }
   });
+  /**
+   * Finds a control by its name property.
+   * Uses the cached Map for O(1) lookup when called on glo.allControls,
+   * otherwise falls back to linear search.
+   * @param {string} name - The name of the control to find.
+   * @returns {BABYLON.GUI.Control|false} The matching control, or false if not found.
+   */
   function getByName(name){
     // Use cached Map if available (for glo.allControls), otherwise linear search
     if(this === glo.allControls && glo._controlsByName.has(name)){
@@ -109,12 +147,30 @@ function guiControls_AddIdentificationFunctions(){
   	});
   	return elemToReturn;
   }
+  /**
+   * Filters the controls array to return only those having the specified class.
+   * @param {string} className - The class name to match.
+   * @returns {Array<BABYLON.GUI.Control>} Controls matching the class.
+   */
   function haveThisClass(className){
   	return haveThisClassOrNot(this, className, true);
   }
+  /**
+   * Filters the controls array to return only those NOT having the specified class.
+   * @param {string} className - The class name to exclude.
+   * @returns {Array<BABYLON.GUI.Control>} Controls not matching the class.
+   */
   function haveNotThisClass(className){
   	return haveThisClassOrNot(this, className, false);
   }
+  /**
+   * Filters an array of controls by whether they have or lack a given class.
+   * Attaches query methods (haveNotThisClass, haveNotTheseClass, etc.) to the result.
+   * @param {Array<BABYLON.GUI.Control>} arr - The array of controls to filter.
+   * @param {string} className - The class name to test against.
+   * @param {boolean} have - If true, keep controls that have the class; if false, keep those that do not.
+   * @returns {Array<BABYLON.GUI.Control>} The filtered controls with query methods attached.
+   */
   function haveThisClassOrNot(arr, className, have){
   	var elemsToReturn = [];
   	var reg = new RegExp("\\b" + className + "\\b");
@@ -147,12 +203,29 @@ function guiControls_AddIdentificationFunctions(){
       return elemsToReturn;
     }
   }
+  /**
+   * Filters the controls array to return only those having ALL the specified classes.
+   * @param {...string} classesNames - The class names that must all be present.
+   * @returns {Array<BABYLON.GUI.Control>|false} Matching controls, or false if none found.
+   */
   function haveTheseClasses(...classesNames){
   	return haveTheseClassesOrNot(this, classesNames, true);
   }
+  /**
+   * Filters the controls array to return those NOT having ALL the specified classes.
+   * @param {...string} classesNames - The class names to exclude.
+   * @returns {Array<BABYLON.GUI.Control>|false} Matching controls, or false if none found.
+   */
   function haveNotTheseClass(...classesNames){
   	return haveTheseClassesOrNot(this, classesNames, false);
   }
+  /**
+   * Filters an array of controls by whether they have or lack all given classes.
+   * @param {Array<BABYLON.GUI.Control>} arr - The array of controls to filter.
+   * @param {Array<string>} classesNames - The class names to test against.
+   * @param {boolean} have - If true, keep controls having all classes; if false, keep those missing at least one.
+   * @returns {Array<BABYLON.GUI.Control>|false} The filtered controls, or false if none match.
+   */
   function haveTheseClassesOrNot(arr, classesNames, have){
   	var elemsToReturn = [];
   	var regs = [];
@@ -190,6 +263,11 @@ function guiControls_AddIdentificationFunctions(){
 
   	else{ return elemsToReturn; }
   }
+  /**
+   * Checks whether a single control has the specified class.
+   * @param {string} className - The class name to check.
+   * @returns {boolean} True if the control has the class, false otherwise.
+   */
   function hasThisClass(className){
   	var elemsToReturn = [];
   	var reg = new RegExp("\\b" + className + "\\b");
@@ -205,6 +283,17 @@ function guiControls_AddIdentificationFunctions(){
   glo.allControls.map(control => { control.hasThisClass =  hasThisClass; });
 }
 
+/**
+ * Configures a BabylonJS GUI control with identification, alignment, sizing, and custom properties.
+ * Shorthand option keys: w=width, h=height, t=top, l=left, pL=paddingLeft, pR=paddingRight, pT=paddingTop,
+ * hAlign=horizontalAlignment ('left'|'right'|'center'), vAlign=verticalAlignment ('top'|'bottom'|'center').
+ * @param {BABYLON.GUI.Control} control - The GUI control to configure.
+ * @param {string} name - The control name for identification.
+ * @param {string} className - Space-separated class names for filtering/styling.
+ * @param {Object} [options={}] - Properties to set on the control, including shorthand keys.
+ * @param {boolean} [px=false] - If true, use pixels ('px') as the unit; otherwise use percentages ('%').
+ * @param {boolean} [ident=true] - If true, assign name and class to the control.
+ */
 function parmamControl(control, name, className, options = {}, px = false, ident = true){
   if(ident){
     control.name = name;
@@ -252,6 +341,14 @@ function parmamControl(control, name, className, options = {}, px = false, ident
   if(typeof(options.pT) != 'undefined'){ control.paddingTop = options.pT + unit; }
 }
 
+/**
+ * Creates a titled panel header and adds it to the fullscreen GUI overlay.
+ * @param {string} name - The unique name suffix for the panel and header controls.
+ * @param {string} title - The display text for the title.
+ * @param {number} t - The top position in percentage.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier (e.g., 'eighth', 'fourth noAutoParam').
+ * @param {number} [titleLevel=2] - The title level (0-3) controlling font size (22px, 20px, 17px, 16px).
+ */
 function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
   var panelTitle = new BABYLON.GUI.StackPanel();
   parmamControl(panelTitle, "panelTitle-" + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: t});
@@ -272,6 +369,13 @@ function makePanelTitle(name, title, t, numUI = 'eighth', titleLevel = 2){
   glo.advancedTexture.addControl(panelTitle);
 }
 
+/**
+ * Creates multiple panel titles and control panels from a configuration object.
+ * Each entry in paramsPanels can have a 'title' sub-object (passed to makePanelTitle)
+ * and a 'ctrl' sub-object (passed to makePanelCtrl).
+ * @param {Object} paramsPanels - Configuration object where each key maps to {title, ctrl} definitions.
+ * @returns {Array<BABYLON.GUI.StackPanel>} Array of created control panels.
+ */
 function makePanelsTitles(paramsPanels){
   let panels = [];
   for(const prop in paramsPanels){
@@ -288,6 +392,16 @@ function makePanelsTitles(paramsPanels){
   return panels;
 }
 
+/**
+ * Creates a StackPanel control container and adds it to the fullscreen GUI overlay.
+ * @param {string} name - The unique name suffix for the panel.
+ * @param {number} t - The top position in percentage.
+ * @param {number} pL - The left padding in percentage.
+ * @param {boolean} [isVertical=false] - Whether the stack panel lays out children vertically.
+ * @param {number} [h=5] - The height in percentage.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier.
+ * @returns {BABYLON.GUI.StackPanel} The created stack panel.
+ */
 function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth'){
   var panelCtrl = new BABYLON.GUI.StackPanel();
   parmamControl(panelCtrl, 'panelCtrl-' + name, 'panel right ' + numUI, {hAlign: 'right', vAlign: 'top', w: 20, h: h, t: t, pL: pL});
@@ -297,6 +411,22 @@ function makePanelCtrl(name, t, pL, isVertical = false, h = 5, numUI = 'eighth')
   return panelCtrl;
 }
 
+/**
+ * Creates a labeled text input control with optional keyboard/paste event handling
+ * and adds it to a parent panel. Supports Tab navigation between equation inputs
+ * and triggers mesh rebuild on text changes.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the input to.
+ * @param {string} textHeader - The label text displayed above the input.
+ * @param {string} textField - The initial text content of the input field (compact equation notation, e.g. "2cucv" for "2*cos(u)*cos(v)").
+ * @param {string} name - The unique control name.
+ * @param {string} classNameHeader - Space-separated class names for the header label.
+ * @param {string} classNameInput - Space-separated class names for the input control.
+ * @param {string} gloPropToModify - The property key in glo.params to update on text change.
+ * @param {string} gloPropToAssignInput - The property key in glo to store a reference to the input control.
+ * @param {boolean} [withEvent=true] - Whether to attach keyboard and paste event handlers.
+ * @param {number|string} [width=354] - The width of the input (number for px, string for percentage).
+ * @param {boolean} [isInPx=true] - Whether width/height values use pixels.
+ */
 function addInput(parent, textHeader, textField, name, classNameHeader, classNameInput, gloPropToModify, gloPropToAssignInput, withEvent = true, width = 354, isInPx = true){
   var header = new BABYLON.GUI.TextBlock();
   parmamControl(header, "header_" + name, classNameHeader, {text: textHeader, hAlign: 'center'});
@@ -311,6 +441,10 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
     input.inputsEquationsIndex = glo.inputsEquationsIndex++;
   }
 
+  /**
+   * Rebuilds the ribbon mesh after an input change and restores focus to the input.
+   * @async
+   */
   async function inputChangeEvent(){
     await remakeRibbon();
 
@@ -364,6 +498,24 @@ function addInput(parent, textHeader, textField, name, classNameHeader, classNam
 }
 
 
+/**
+ * Creates a slider control with a text header and adds it to a parent panel.
+ * The slider supports value change events, right-click reset to start value,
+ * and double-click range adjustment.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the slider to.
+ * @param {string} name - The unique control name.
+ * @param {string} text - The label text displayed in the header.
+ * @param {number} val - The initial slider value.
+ * @param {number} decimalPrecision - Number of decimal places for display.
+ * @param {number} min - The minimum slider value.
+ * @param {number} max - The maximum slider value.
+ * @param {number} step - The slider step increment.
+ * @param {Function} event - Callback invoked with the new value on change.
+ * @param {string} [numUI='eighth'] - The UI panel class identifier.
+ * @param {string} [classes='right'] - Additional class names for the slider.
+ * @param {Function|false} [eventUp=false] - Optional callback invoked on pointer up.
+ * @param {number} [fontSize=14] - The font size for the header text.
+ */
 function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event, numUI = 'eighth', classes = 'right', eventUp = false, fontSize = 14){
   var header = new BABYLON.GUI.TextBlock();
   parmamControl(header, "header_" + name,  `header ${classes} ${numUI} noAutoParam`, { text: text + ": " + val, fontSize: fontSize, h: 20, pT: 4, }, true);
@@ -402,6 +554,23 @@ function addSlider(parent, name, text, val, decimalPrecision, min, max, step, ev
   parent.addControl(slider);
 }
 
+/**
+ * Creates a multi-axis slider with per-axis checkboxes (X/Y/Z or custom axes).
+ * Each axis has a colored checkbox; checked axes receive the slider value on change.
+ * The header color reflects the selected axis or white when multiple are selected.
+ * Right-click resets to the start value.
+ * @param {BABYLON.GUI.StackPanel} parent - The parent panel to add the slider group to.
+ * @param {string} baseName - The base name for the slider control.
+ * @param {string} text - The label text displayed in the header.
+ * @param {number} val - The initial slider value.
+ * @param {number} decimalPrecision - Number of decimal places for display.
+ * @param {number} min - The minimum slider value.
+ * @param {number} max - The maximum slider value.
+ * @param {number} step - The slider step increment.
+ * @param {Function} eventCallback - Callback invoked with (value, checkedAxes) on change.
+ * @param {Array<string>} [axes=['x','y','z']] - The axis labels and keys.
+ * @returns {{header: BABYLON.GUI.TextBlock, slider: BABYLON.GUI.Slider, axisState: Object}} References to the created controls and state.
+ */
 function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, step, eventCallback, axes = ['x', 'y', 'z']) {
   const AXIS_COLORS = ['#ff6666', '#66ff66', '#6666ff'];
 
@@ -466,15 +635,26 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   slider.width = "280px";
   rowContainer.addControl(slider);
 
+  /**
+   * Returns the list of currently checked axis keys.
+   * @returns {Array<string>} Checked axis keys (e.g. ['x', 'z']).
+   */
   function getCheckedAxes() {
     return axes.filter(function(axis) { return axisState[axis].checked; });
   }
 
+  /**
+   * Gets the display value based on the first checked axis, or the default value if none are checked.
+   * @returns {number} The value to display.
+   */
   function getDisplayValue() {
     var checked = getCheckedAxes();
     return checked.length === 0 ? val : axisState[checked[0]].value;
   }
 
+  /**
+   * Updates the slider position and header text/color to reflect the current axis selection.
+   */
   function updateSliderDisplay() {
     var displayVal = getDisplayValue();
     var checked = getCheckedAxes();
@@ -515,10 +695,34 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   return { header, slider, axisState };
 }
 
-function designButton(bt, color = glo.buttons_color, cornerRadius = glo.buttons_radius, background = defaultTheme.pickerColorButton, fontSize = glo.buttons_fontsize){
+/**
+ * Applies visual styling (color, corner radius, background, font size) to a button control.
+ * @param {BABYLON.GUI.Button} bt - The button to style.
+ * @param {string} [color=glo.buttonsColor] - The text/border color.
+ * @param {number} [cornerRadius=glo.buttonsRadius] - The corner radius in pixels.
+ * @param {BABYLON.Color3} [background=defaultTheme.pickerColorButton] - The background color (normalized RGB, converted to hex).
+ * @param {number} [fontSize=glo.buttonsFontsize] - The font size for the button text.
+ */
+function designButton(bt, color = glo.buttonsColor, cornerRadius = glo.buttonsRadius, background = defaultTheme.pickerColorButton, fontSize = glo.buttonsFontsize){
   bt.color = color; bt.cornerRadius = cornerRadius; bt.background = rgbNormalizedToHex(background); bt.textBlock.fontSize = fontSize;
 }
 
+/**
+ * Creates a styled button control and adds it to a parent panel.
+ * Left-click triggers eventLeft; right-click triggers eventRight.
+ * @param {string} numUI - The UI panel class identifier.
+ * @param {BABYLON.GUI.StackPanel} panel - The parent panel to add the button to.
+ * @param {string} name - The unique control name.
+ * @param {string} text - The button label text.
+ * @param {number|string} width - The button width in pixels.
+ * @param {number} height - The button height in pixels.
+ * @param {number} paddingLeft - The left padding in pixels.
+ * @param {number} paddingRight - The right padding in pixels.
+ * @param {Function} eventLeft - Callback invoked on left-click.
+ * @param {Function} [eventRight=eventLeft] - Callback invoked on right-click (defaults to eventLeft).
+ * @param {string} [side='right'] - The side class ('right' or 'left').
+ * @param {string|false} [hAlign=false] - Optional horizontal alignment ('left', 'right', 'center').
+ */
 function addButton(numUI, panel, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft, side = 'right', hAlign = false){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     const options = {w: width, h: height, pL: paddingLeft, pR: paddingRight};
@@ -535,6 +739,11 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
     panel.addControl(button);
 }
 
+/**
+ * Creates an invisible spacer rectangle for layout purposes.
+ * @param {string} [height="20px"] - The height of the spacer.
+ * @returns {BABYLON.GUI.Rectangle} A transparent rectangle control.
+ */
 function createSpacer(height = "20px") {
     const spacer = new BABYLON.GUI.Rectangle();
     spacer.width = "1px";
@@ -544,7 +753,13 @@ function createSpacer(height = "20px") {
     return spacer;
 }
 
-function add_shaders_ctrl(){
+/**
+ * Creates the shader controls section including buttons for opening shader editors,
+ * switching shaders, inverting colors, toggling lighting, and video recording.
+ * Also creates lighting sliders (intensity, direction XYZ, radius, specular),
+ * grid scale slider, and video crop box range slider.
+ */
+function addShadersCtrl(){
   const paramsPanels = {
     shaders: {
       title: {name: "Shaders", text: "Shaders", top: 24.25, numUI: 'fourth noAutoParam'},
@@ -610,8 +825,22 @@ function add_shaders_ctrl(){
 
   });
 
+  /**
+   * Creates a horizontal slider inside a vertical container with header and value display.
+   * Supports right-click reset and optional pointer-up callback.
+   * @param {BABYLON.GUI.StackPanel} parent - The parent panel.
+   * @param {string} name - The unique control name.
+   * @param {string} text - The label text.
+   * @param {number} val - The initial value.
+   * @param {number} decimalPrecision - Number of decimal places for display.
+   * @param {number} min - The minimum value.
+   * @param {number} max - The maximum value.
+   * @param {number} step - The step increment.
+   * @param {Function} event - Callback invoked with the new value on change.
+   * @param {Function|false} [upEvent=false] - Optional callback on pointer up.
+   */
   function addHorizontalSlider(parent, name, text, val, decimalPrecision, min, max, step, event, upEvent = false) {
-    // Créer un conteneur vertical pour ce slider
+    // Create a vertical container for this slider
     var container = new BABYLON.GUI.StackPanel();
     container.isVertical = true;
     container.width  = "86.5%"; // Pour en mettre 2 côte à côte
@@ -668,10 +897,21 @@ function add_shaders_ctrl(){
     parent.addControl(container);
   }
 
+  /**
+   * Updates a lighting float parameter in the global state and on the shader material.
+   * @param {string} varName - The property name in glo.shaders.light.
+   * @param {string} shaderVarName - The uniform name in the shader.
+   * @param {number} varValue - The new float value.
+   */
   function updLightingFloat(varName, shaderVarName, varValue){
     glo.shaders.light[varName] = varValue;
     if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
   }
+  /**
+   * Updates a single axis of the light direction vector and pushes it to the shader.
+   * @param {string} axis - The axis to update ('x', 'y', or 'z').
+   * @param {number} value - The new axis value.
+   */
   function updLightingVec3(axis, value){
     glo.shaders.light.direction[axis] = value;
     
@@ -683,6 +923,12 @@ function add_shaders_ctrl(){
       shaderMeshInstance.shaderMaterial.setVector3("lampPosition", shaderMeshInstance._vecLampPos);
     }
   }
+  /**
+   * Updates a specular lighting float parameter in the global state and on the shader material.
+   * @param {string} varName - The property name in glo.shaders.light.specular.
+   * @param {string} shaderVarName - The uniform name in the shader.
+   * @param {number} varValue - The new float value.
+   */
   function updLightingSpecularFloat(varName, shaderVarName, varValue){
     glo.shaders.light.specular[varName] = varValue;
     if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
@@ -715,16 +961,16 @@ function add_shaders_ctrl(){
   addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
     glo.params.gridScaleValue = value;
     glo.planSize  = value;
-    glo.axis_size = value;
+    glo.axisSize = value;
 
-    glo.grid_visible = true;
-    glo.axis_visible = true;
-    glo.first_axis_visible = false;
+    glo.gridVisible = true;
+    glo.axisVisible = true;
+    glo.firstAxisVisible = false;
 
-    showAxis(glo.axis_size, 1);
+    showAxis(glo.axisSize, 1);
 
-    glo.planes_visible = true;
-    make_planes();
+    glo.planesVisible = true;
+    makePlanes();
 
     showGrid(value, value, value, 1);
   }, 'sixth');
@@ -735,7 +981,12 @@ function add_shaders_ctrl(){
   }, function(){ hideVideoCropBox(); });
 }
 
-function add_switch_and_help_buttons(){
+/**
+ * Creates the bottom panel with HELP, SWITCH, and HIDE buttons.
+ * HELP opens a modal dialog, SWITCH toggles the right panel,
+ * and HIDE toggles visibility of all GUI controls.
+ */
+function addSwitchAndHelpButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = { isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 17.125, pR:3, t: -1, };
   parmamControl(panel, 'hideSwitchHelp', 'panel right first noAutoParam', options);
@@ -758,12 +1009,12 @@ function add_switch_and_help_buttons(){
 
   addButton("first", panel, "but_hide", "HIDE", glo.buttonBottomSize, glo.buttonBottomHeight, glo.buttonBottomPaddingLeft, 0, function(){
     const buthide = glo.advancedTexture.getControlByName('but_hide');
-    buthide.textBlock.text = glo.gui_suit_visible ? "HIDE" : "👁️";
+    buthide.textBlock.text = glo.guiSuitVisible ? "HIDE" : "👁️";
 
-    toggle_gui_controls(glo.gui_suit_visible);
-    toggleRightPanels(glo.guiSelect, glo.gui_suit_visible);
+    toggleGuiControls(glo.guiSuitVisible);
+    toggleRightPanels(glo.guiSelect, glo.guiSuitVisible);
 
-    if(!glo.gui_suit_visible){
+    if(!glo.guiSuitVisible){
       buthide.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
       buthide.width        = '50px';
       buthide.paddingRight = '1px';
@@ -774,10 +1025,15 @@ function add_switch_and_help_buttons(){
       buthide.paddingRight = '1px';
     }
 
-    glo.gui_suit_visible = !glo.gui_suit_visible;
+    glo.guiSuitVisible = !glo.guiSuitVisible;
   });
 }
-function add_axis_and_rot_buttons(){
+/**
+ * Creates the top-right panel with AXIS, ROT (rotation type toggle),
+ * fullscreen, and resolution buttons. Also listens for fullscreen
+ * changes to resize the rendering engine.
+ */
+function addAxisAndRotButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 18.75, pL: -2.5 };
   parmamControl(panel, 'axisAndRotButton', 'panel right first noAutoParam', options);
@@ -785,13 +1041,17 @@ function add_axis_and_rot_buttons(){
   glo.advancedTexture.addControl(panel);
 
   addButton("first", panel, "but_axis", "AXIS", 70, 30, 10, 0, function(){
-    glo.axis_visible = !glo.axis_visible;
-    if(glo.first_axis_visible){ showAxis(glo.axis_size, 1); glo.first_axis_visible = false; }
+    glo.axisVisible = !glo.axisVisible;
+    if(glo.firstAxisVisible){ showAxis(glo.axisSize, 1); glo.firstAxisVisible = false; }
     else{
-      switch_axis();
+      switchAxis();
     }
   });
 
+  /**
+   * Updates the ROT button text to reflect the current rotation type (alpha, beta, theta, or none).
+   * @param {string} [rotType=glo.rotateType.current] - The rotation type identifier.
+   */
   function switchRotateTypeText(rotType = glo.rotateType.current){
     switch(rotType){
       case 'alpha':
@@ -830,16 +1090,16 @@ function add_axis_and_rot_buttons(){
       }
   });
 
-  // Écouter le changement de fullscreen pour resync le GUI
+  // Listen for fullscreen changes to resync the GUI
   document.addEventListener('fullscreenchange', () => {
       glo.fullScreen = !!document.fullscreenElement;
       button1.textBlock.text = glo.fullScreen ? "↘ S" : "↗ S";
 
       setTimeout(() => {
         if (!glo.fullScreen) {
-            // Après sortie du fullscreen, clientHeight peut encore reporter
-            // les dimensions plein écran. Forcer via style inline pour garantir
-            // que engine.resize() lise les bonnes dimensions.
+            // After exiting fullscreen, clientHeight may still report
+            // fullscreen dimensions. Force via inline style to ensure
+            // engine.resize() reads the correct dimensions.
             var canvas = glo.engine.getRenderingCanvas();
             canvas.style.width = window.innerWidth + 'px';
             canvas.style.height = window.innerHeight + 'px';
@@ -863,32 +1123,36 @@ function add_axis_and_rot_buttons(){
     glo.advancedTexture.getControlByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   });
 }
-function add_lines_and_dim_buttons(){
+/**
+ * Creates the top-left panel with GRID, PLAN, CART (coordinate type toggle),
+ * IMP (import), and EXP (export) buttons.
+ */
+function addLinesAndDimButtons(){
   var topShift = 0;
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftLineDim; }
   });
-  var top_panel = -3.42;
+  var topPanel = -3.42;
 
   var panel = new BABYLON.GUI.StackPanel();
-  var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: top_panel, pL: 1.75};
+  var options = {isVertical: false, hAlign: 'left', w: 20, h: 5, t: topPanel, pL: 1.75};
   parmamControl(panel, 'lineDim', 'panel left first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
   addButton("first", panel, "but_grid", "GRID", 60, 30, 0, 0, async function(){
-    glo.grid_visible = !glo.grid_visible;
-    glo.axis_visible = glo.grid_visible;
+    glo.gridVisible = !glo.gridVisible;
+    glo.axisVisible = glo.gridVisible;
 
-    if(!glo.grid_visible){ switch_grid(); return; }
+    if(!glo.gridVisible){ switchGrid(); return; }
 
-    showAxis(glo.axis_size, 1);
-    glo.first_axis_visible = false;
+    showAxis(glo.axisSize, 1);
+    glo.firstAxisVisible = false;
     const gridScale = glo.params.gridScaleValue;
-    showGrid(gridScale, gridScale, gridScale, 1); glo.first_grid_visible = false;
+    showGrid(gridScale, gridScale, gridScale, 1); glo.firstGridVisible = false;
   }, undefined, 'left');
   addButton("first", panel, "but_plan", "PLAN", 60, 30, 10, 0, function(){
-    glo.planes_visible = !glo.planes_visible;
-    make_planes();
+    glo.planesVisible = !glo.planesVisible;
+    makePlanes();
   }, undefined, 'left');
   addButton("first", panel, "but_coord", "CART", 70, 30, 10, 0, function(){switchCoords();}, function(){switchCoords(false);});
   addButton("first", panel, "but_import_obj", "IMP", 60, 30, 10, 0, function(){
@@ -898,16 +1162,24 @@ function add_lines_and_dim_buttons(){
     exportModal();
   }, undefined, 'left');
 }
-function add_switchForm_buttons(){
+/**
+ * Creates the bottom-left panel with navigation buttons ("<" and ">") to
+ * page through the available parametric surface forms (radio button lists).
+ */
+function addSwitchFormButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.58, t: -1, };
   parmamControl(panel, 'panelswitchFormButton', 'panel right left noAutoParam', options);
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
 
+  /**
+   * Switches between the main and secondary form radio lists.
+   * @param {boolean} [down=true] - If true, show the next page; if false, the previous.
+   */
   function switchRadios(down = true){
     glo.formesSuit = down;
-    add_radios(true);
+    addRadios(true);
     paramRadios();
   }
   
@@ -916,12 +1188,21 @@ function add_switchForm_buttons(){
   addButton("first", panel, "but_goTo", ">", 60, 30, 10, 0, function(){switchRadios(true)}, undefined, 'left');
 }
 
-function add_views_buttons(){
+/**
+ * Creates the view buttons panel (X, Y, Z) that orient the camera
+ * along each axis. Toggling a button switches between positive and
+ * negative views on that axis.
+ */
+function addViewsButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 14.25, pL: 5.5  };
   parmamControl(panel, 'viewsButtonsPanel', 'panel right first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
+  /**
+   * Updates the text labels of the X, Y, Z view buttons.
+   * @param {...string} texts - The new text values for each button in order.
+   */
   function changeButtonsTexts(...texts){
     var namesButtons = ["but_viewX", "but_viewY", "but_viewZ"];
     var n = 0;
@@ -972,17 +1253,30 @@ function add_views_buttons(){
   });
 }
 
-function add_uv_sliders(){
-  function add_slider(name, headerText, gloPropToModify, gloPropToAssignInput){
+/**
+ * Creates the U and V range sliders on the left side of the GUI.
+ * These sliders control the parametric range of the surface
+ * (from -value to +value, or 0 to value if one-sign mode is active).
+ * Supports right-click reset and mouse wheel adjustment.
+ */
+function addUvSliders(){
+  /**
+   * Creates a UV range slider with header, right-click reset, and mouse wheel support.
+   * @param {string} name - Slider identifier ('u' or 'v')
+   * @param {string} headerText - Display label for the slider header
+   * @param {string} gloPropToModify - Property name in glo.params to modify
+   * @param {string} gloPropToAssignInput - Property name in glo to store the slider reference
+   */
+  function addSlider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
     parmamControl(panel, "panel_" + name, 'panel left first noAutoParam', 
       {hAlign: 'left', vAlign: 'top', w: 20.5, t: 5 * (name == 'u' ? 0.2 : 1), pT: 5 * (name == 'u' ? 0.1 : 0.6), h: 7, pL: 0, l: -0.25 });
     glo.advancedTexture.addControl(panel);
 
-    var min_start = -glo['params'][gloPropToModify].toFixed(2);
-    var max_start = glo['params'][gloPropToModify].toFixed(2);
+    var minStart = -glo['params'][gloPropToModify].toFixed(2);
+    var maxStart = glo['params'][gloPropToModify].toFixed(2);
     var header = new BABYLON.GUI.TextBlock();
-    parmamControl(header, 'uvSliderHeader-' + name, 'header left first', {text: headerText + " : " + min_start + " — " + max_start});
+    parmamControl(header, 'uvSliderHeader-' + name, 'header left first', {text: headerText + " : " + minStart + " — " + maxStart});
     panel.addControl(header);
 
     var slider = new BABYLON.GUI.Slider();
@@ -1017,25 +1311,29 @@ function add_uv_sliders(){
     panel.addControl(slider);
   }
 
-  add_slider('u', 'U', 'u', 'slider_u');
-  add_slider('v', 'V', 'v', 'slider_v');
+  addSlider('u', 'U', 'u', 'sliderU');
+  addSlider('v', 'V', 'v', 'sliderV');
 }
 
-function add_radios(suit = false){
+/**
+ * Creates radio buttons for form selection in the GUI.
+ * @param {boolean} [suit=false] - Whether to show suit (second-class) forms only
+ */
+function addRadios(suit = false){
   var topShift = 0;
   var topShiftLineDim = 0;
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){ topShift+=glo.shiftRadios; topShiftLineDim+=glo.shiftLineDim; }
   });
-  var top_panel = 51;
+  var topPanel = 51;
 
-  if(glo.first_radio){
+  if(glo.firstRadio){
     var panel = new BABYLON.GUI.StackPanel();
     panel.onWheelObservable.add(async function(event){
       glo.whellSwitchFormDown = event.y > 0 ? true : false;
       await whellSwitchForm();
     });
-    var options = {hAlign: 'left', vAlign: 'top', w: 9.5, t: top_panel, pL: 0, l:7.5};
+    var options = {hAlign: 'left', vAlign: 'top', w: 9.5, t: topPanel, pL: 0, l:7.5};
     parmamControl(panel, 'panelRadios', 'panel right first noAutoParam', options);
     glo.advancedTexture.addControl(panel);
     var header = new BABYLON.GUI.TextBlock();
@@ -1043,8 +1341,16 @@ function add_radios(suit = false){
     panel.addControl(header);
   }
 
+  /**
+   * Creates a single radio button with click handler for form switching.
+   * @param {string} text - Display text and form name for the radio button
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel to add the radio to
+   * @param {string} group - Radio button group name
+   * @param {boolean} [check=false] - Whether the radio is initially checked
+   * @param {string} typeCoords - Coordinate type for the form
+   */
   var addRadio = function(text, parent, group, check = false, typeCoords) {
-    if(!glo.first_radio){ check = false; }
+    if(!glo.firstRadio){ check = false; }
     var button = new BABYLON.GUI.RadioButton();
     var options = {w: "13", h: "13", group: 'radiosForms', isChecked: check};
     parmamControl(button, "Radio-" + text, 'radio left first', options, true);
@@ -1074,24 +1380,24 @@ function add_radios(suit = false){
     textBlock.fontWeight = 400;
     textBlock.fontSize = "14px";
 
-    glo.radios_formes.push({button: button, header: header});
+    glo.radiosFormes.push({button: button, header: header});
 
     parent.addControl(header);
   }
 
-  if(!glo.first_radio){
+  if(!glo.firstRadio){
     var panel = glo.advancedTexture.getControlByName('panelRadios');
-    glo.advancedTexture.getControlByName('panelRadios').top = top_panel + '%';
+    glo.advancedTexture.getControlByName('panelRadios').top = topPanel + '%';
     glo.formes.select.map( forme => {
-        var radio_form = glo.radios_formes.getByName("Radio-" + forme.text);
-        if(radio_form != false){
-          radio_form.button.dispose();
-          radio_form.header.dispose();
+        var radioForm = glo.radiosFormes.getByName("Radio-" + forme.text);
+        if(radioForm != false){
+          radioForm.button.dispose();
+          radioForm.header.dispose();
         }
     });
   }
 
-  glo.radios_formes.length = 0;
+  glo.radiosFormes.length = 0;
 
   glo.formes.select.map( forme => {
     if(forme.typeCoords == glo.coordsType){
@@ -1109,10 +1415,13 @@ function add_radios(suit = false){
     }
   });
 
-  glo.first_radio = false;
+  glo.firstRadio = false;
 }
 
-function add_inputs_equations(){
+/**
+ * Creates the equation input fields (X, Y, Z, rotations) and symmetrize/eval panels.
+ */
+function addInputsEquations(){
   var panel                = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
   let panelEvalY           = new BABYLON.GUI.StackPanel();
@@ -1130,32 +1439,32 @@ function add_inputs_equations(){
   glo.advancedTexture.addControl(panelSymsEquations);
   glo.advancedTexture.addControl(panelEvalY);
 
-  glo.text_input_alpha = "";
-  glo.text_input_beta  = "";
+  glo.textInputAlpha = "";
+  glo.textInputBeta  = "";
 
-  addInput(panel, "X", "u", "inputX", "header left first", "input equation left first", "text_input_x", "input_x", true, 366);
-  addInput(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "text_input_y", "input_y", true, 366);
-  addInput(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "text_input_z", "input_z", true, 366);
-  addInput(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "text_input_theta", "input_theta", true, 366);
-  addInput(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "text_input_beta", "input_beta", true, 366);
-  addInput(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "text_input_alpha", "input_alpha", true, 366);
+  addInput(panel, "X", "u", "inputX", "header left first", "input equation left first", "textInputX", "inputX", true, 366);
+  addInput(panel, "Y", "usv", "inputY", "header left first", "input equation left first", "textInputY", "inputY", true, 366);
+  addInput(panel, "Z", "ucvsu", "inputZ", "header left first", "input equation left first", "textInputZ", "inputZ", true, 366);
+  addInput(panel, "Rot X", "", "inputTheta", "header left first", "input equation left first", "textInputTheta", "inputTheta", true, 366);
+  addInput(panel, "Rot Y", "", "inputBeta", "header left first", "input equation left first", "textInputBeta", "inputBeta", true, 366);
+  addInput(panel, "Rot Z", "", "inputAlpha", "header left first", "input equation left first", "textInputAlpha", "inputAlpha", true, 366);
 
-  addInput(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "text_input_sym_r", "input_sym_r", false, "100%");
+  addInput(panelSymsEquations, "Equation", "", "inputRSymmetrize", "header right fourth noAutoParam", "input equation right fourth", "textInputSymR", "inputSymR", false, "100%");
 
-  addInput(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "text_input_eval_x", "input_eval_x", true, "100%");
-  addInput(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "text_input_eval_y", "input_eval_y", true, "100%");
+  addInput(panelEvalY, "X", "u", "inputEvalX", "header right sixth", "input equation right sixth", "textInputEvalX", "inputEvalX", true, "100%");
+  addInput(panelEvalY, "Y", "v", "inputEvalY", "header right sixth", "input equation right sixth", "textInputEvalY", "inputEvalY", true, "100%");
 
   // Ajouter un événement personnalisé pour R Symmetrize
-  glo.input_sym_r.onKeyboardEventProcessedObservable.add(async (event) => {
+  glo.inputSymR.onKeyboardEventProcessedObservable.add(async (event) => {
       let key = event.key;
-      let text = glo.input_sym_r.text;
+      let text = glo.inputSymR.text;
 
       if (key !== "Control" && key !== "c" && key !== "v" && key !== "F12") {
           event.stopPropagation();
           event.preventDefault();
       }
 
-      glo.params.text_input_sym_r = text;
+      glo.params.textInputSymR = text;
 
       if (key === "Enter" || (key !== "Tab" && !key.match(/Arrow/g))) {
           glo.ribbon.shaderMeshInstance.updateDeformationExpression();
@@ -1165,27 +1474,37 @@ function add_inputs_equations(){
         var inputsEquationsLastIndex = inputsEquations.length - 3;
         var newIndex = 0;
         if(!event.shiftKey){
-          if(glo.input_sym_r.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = glo.input_sym_r.inputsEquationsIndex + 1; }
+          if(glo.inputSymR.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = glo.inputSymR.inputsEquationsIndex + 1; }
           else{ newIndex = 0; }
           glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
         }
         else{
-          if(glo.input_sym_r.inputsEquationsIndex > 0){ newIndex = glo.input_sym_r.inputsEquationsIndex - 1; }
+          if(glo.inputSymR.inputsEquationsIndex > 0){ newIndex = glo.inputSymR.inputsEquationsIndex - 1; }
           else{ newIndex = inputsEquationsLastIndex; }
           glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
         }
       }
   });
 
-  glo.input_sym_r.onTextPasteObservable.add(async () => {
-      glo.params.text_input_sym_r = glo.input_sym_r.text;
+  glo.inputSymR.onTextPasteObservable.add(async () => {
+      glo.params.textInputSymR = glo.inputSymR.text;
 
       glo.ribbon.shaderMeshInstance.updateDeformationExpression();
   });
 }
 
-function add_step_uv_slider(){
-  function add_slider(name, headerText, gloPropToModify, gloPropToAssignInput){
+/**
+ * Creates step U/V sliders controlling mesh resolution.
+ */
+function addStepUvSlider(){
+  /**
+   * Creates a step slider for U or V resolution.
+   * @param {string} name - Slider identifier ('stepU' or 'stepV')
+   * @param {string} headerText - Display label for the slider header
+   * @param {string} gloPropToModify - Property name in glo.params to modify
+   * @param {string} gloPropToAssignInput - Property name in glo to store the slider reference
+   */
+  function addSlider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
     parmamControl(panel, "panel_" + name, 'panel right first');
     glo.advancedTexture.addControl(panel);
@@ -1218,11 +1537,14 @@ function add_step_uv_slider(){
     glo[gloPropToAssignInput] = slider;
   }
 
-  add_slider("stepU", "Steps U", "steps_u", "slider_nb_steps_u");
-  add_slider("stepV", "Steps V", "steps_v", "slider_nb_steps_v");
+  addSlider("stepU", "Steps U", "stepsU", "sliderStepsU");
+  addSlider("stepV", "Steps V", "stepsV", "sliderStepsV");
 }
 
-function add_color_pickers(){
+/**
+ * Creates color picker controls for UI and mesh colors.
+ */
+function addColorPickers(){
   var panel1           = new BABYLON.GUI.StackPanel();
   var panel2           = new BABYLON.GUI.StackPanel();
   var panelButtons     = new BABYLON.GUI.StackPanel();
@@ -1273,6 +1595,13 @@ function add_color_pickers(){
   options.t = top.panelThemeButton; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
   parmamControl(panelThemeButton, 'panelThemeButton', 'panel right first noAutoParam onlyMainGui', options);
 
+  /**
+   * Configures a text header for a color picker section.
+   * @param {BABYLON.GUI.StackPanel} panel - Parent panel to add the header to
+   * @param {BABYLON.GUI.TextBlock} header - The text block to configure
+   * @param {string} text - Display text for the header
+   * @param {Object} options - Configuration options (fontSize, name)
+   */
   function paramHeader(panel, header, text, options){
     header.text = text;
     header.color = "white";
@@ -1307,28 +1636,28 @@ function add_color_pickers(){
 
 
   var picker = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: defaultTheme.pickerColorBackground, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker, 'pickerColorBackground', "picker right first onlyMainGui", { value: defaultTheme.pickerColorBackground, hAlign: 'center', w: glo.pickersSize, h: glo.pickersSize, pT: 5 }, true);
   picker.onValueChangedObservable.add(function(value) {
     glo.scene.clearColor = value;
     glo.backgroundColor = value;
-    glo.new_color = "rgb(0,0,0)";
-    glo.color_line_grid = new BABYLON.Color3(0, 0, 0);
+    glo.newColor = "rgb(0,0,0)";
+    glo.colorLineGrid = new BABYLON.Color3(0, 0, 0);
     if(value.r + value.g + value.b < 1.5){
-      glo.new_color = "white";
-      glo.color_line_grid = new BABYLON.Color3(1, 1, 1);
+      glo.newColor = "white";
+      glo.colorLineGrid = new BABYLON.Color3(1, 1, 1);
     }
-    glo.labelGridColor = glo.new_color;
+    glo.labelGridColor = glo.newColor;
 
-    glo.allControls.haveThisClass('header').map(header => { header.color = glo.new_color; });
-    glo.radios_formes.changeColor(glo.new_color);
+    glo.allControls.haveThisClass('header').map(header => { header.color = glo.newColor; });
+    glo.radiosFormes.changeColor(glo.newColor);
 
-    if(typeof(glo.labels_axis) != "undefined"){ glo.labels_axis.map(label_axis => { label_axis.color = glo.new_color; }); }
-    if(typeof(glo.labels_grid) != "undefined"){ glo.labels_grid.map(label_grid => { label_grid.color = glo.new_color; }); }
+    if(typeof(glo.labelsAxis) != "undefined"){ glo.labelsAxis.map(labelAxis => { labelAxis.color = glo.newColor; }); }
+    if(typeof(glo.labelsGrid) != "undefined"){ glo.labelsGrid.map(labelGrid => { labelGrid.color = glo.newColor; }); }
 
-    var new_color_line_grid = glo.color_line_grid;
-    if(typeof(glo.gridX) != "undefined"){ glo.gridX.map(line => { line.color = new_color_line_grid; }); }
-    if(typeof(glo.gridY) != "undefined"){ glo.gridY.map(line => { line.color = new_color_line_grid; }); }
-    if(typeof(glo.gridZ) != "undefined"){ glo.gridZ.map(line => { line.color = new_color_line_grid; }); }
+    var newColorLineGrid = glo.colorLineGrid;
+    if(typeof(glo.gridX) != "undefined"){ glo.gridX.map(line => { line.color = newColorLineGrid; }); }
+    if(typeof(glo.gridY) != "undefined"){ glo.gridY.map(line => { line.color = newColorLineGrid; }); }
+    if(typeof(glo.gridZ) != "undefined"){ glo.gridZ.map(line => { line.color = newColorLineGrid; }); }
 
     glo.planes?.map(plane => { plane.material.emissiveColor = glo.backgroundColor.inv(); });
 
@@ -1341,7 +1670,7 @@ function add_color_pickers(){
   });
 
   var picker3 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker3, 'pickerColorMeshBg', "picker right first onlyMainGui", { value: defaultTheme.pickerColorMeshBg, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker3, 'pickerColorMeshBg', "picker right first onlyMainGui", { value: defaultTheme.pickerColorMeshBg, hAlign: 'center', w: glo.pickersSize, h: glo.pickersSize, pT: 5 }, true);
   picker3.onValueChangedObservable.add(function(value) {
     var ribbonToColorize = glo.ribbon;
     
@@ -1357,14 +1686,14 @@ function add_color_pickers(){
   });
 
   var picker4 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: defaultTheme.pickerColorLine, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker4, 'pickerColorLine', "picker right first onlyMainGui", { value: defaultTheme.pickerColorLine, hAlign: 'center', w: glo.pickersSize, h: glo.pickersSize, pT: 5 }, true);
   picker4.onValueChangedObservable.add(function(value) {
       glo.lineColor = value;
       glo.ribbon.shaderMeshInstance.updateColors();
   });
 
   var picker5 = new BABYLON.GUI.ColorPicker();
-  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: defaultTheme.pickerColorButton, hAlign: 'center', w: glo.pickers_size, h: glo.pickers_size, pT: 5 }, true);
+  parmamControl(picker5, 'pickerColorButton', "picker right first onlyMainGui", { value: defaultTheme.pickerColorButton, hAlign: 'center', w: glo.pickersSize, h: glo.pickersSize, pT: 5 }, true);
   picker5.onValueChangedObservable.add(function(value) {
     glo.advancedTexture.getControlsByType('Button').forEach(button => {
       button.background = rgbNormalizedToHex(value);
@@ -1378,11 +1707,11 @@ function add_color_pickers(){
   });
 
   addButton("first onlyMainGui noAutoParam", panelButtons, "randomUIAllColorButton", "All", "25%", 30, 0, 0, async function(){
-      randomize_colors_app();
+      randomizeColorsApp();
   });
 
   addButton("first onlyMainGui noAutoParam", panelButtons, "randomUILightColorButton", "Light", "25%", 30, 10, 0, async function(){
-      special_randomize_colors_app();
+      specialRandomizeColorsApp();
   });
 
   addButton("first onlyMainGui noAutoParam", panelButtons, "resetColorButton", "Reset", "25%", 30, 10, 0, async function(){
@@ -1392,7 +1721,7 @@ function add_color_pickers(){
 
   addSlider(panelLightLevel, "sliderLightLevel", "Light level", glo.randomizeColorLightLevel, 0, 0, 9, 1, function(value){
     glo.randomizeColorLightLevel = value;
-    special_randomize_colors_app();
+    specialRandomizeColorsApp();
   }, "first");
 
   addButton("first onlyMainGui noAutoParam", panelThemeButton, "themeButton", "Theme: Default", "66.67%", 30, 0, 0, async function(){
@@ -1421,7 +1750,10 @@ function add_color_pickers(){
   glo.advancedTexture.addControl(panelThemeButton);
 }
 
-function add_step_ABCD_sliders(){
+/**
+ * Creates mesh variable sliders (A-M) and shader variable sliders (P, Q, S, T, U).
+ */
+function addStepABCDSliders(){
   makePanelTitle('paramEquationsSliders', 'Mesh variables', 24, 'second noAutoParam title');
 
   var panel = new BABYLON.GUI.StackPanel();
@@ -1432,8 +1764,23 @@ function add_step_ABCD_sliders(){
   parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 63, pL: 0});
   glo.advancedTexture.addControl(panelShadersVariables);
 
+  /**
+   * Updates a float parameter on the shader mesh instance.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatParam       = (param, val) => { glo.ribbon.shaderMeshInstance.updateFloatParam(param, val); }
+  /**
+   * Updates a mesh variable (A-M) in glo.params and shader.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatABCDParam   = (param, val) => { glo.params[param] = val; updFloatParam(param, val); }
+  /**
+   * Updates a shader user variable and shader float param.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatShaderParam = (param, val) => { glo.shaders.uservars[param] = val; updFloatParam(param, val); }
 
   addSlider(panel, "sliderMeshVar-A", "A", 0, 1, -2*PI, 2*PI, 0.1, function(value){ updFloatABCDParam("A", value) }, 'second');
@@ -1456,7 +1803,10 @@ function add_step_ABCD_sliders(){
   addSlider(panelShadersVariables, "shadersVariables-U", "Checkerboard", 2, 2, 0, 2, 0.01, function(value){ updFloatShaderParam("U", value) }, 'seventh');
 }
 
-function add_symmetrize_sliders(){
+/**
+ * Creates symmetrize controls (X, Y, Z repetition, angle, checkerboard, scale).
+ */
+function addSymmetrizeSliders(){
   var panel          = new BABYLON.GUI.StackPanel();
   var panelButton    = new BABYLON.GUI.StackPanel();
   var panelCheckB    = new BABYLON.GUI.StackPanel();
@@ -1518,13 +1868,19 @@ function add_symmetrize_sliders(){
   });
 }
 
-function add_blender_sliders(){
+/**
+ * Creates blender U/O sliders for mesh blending.
+ */
+function addBlenderSliders(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 27.5, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   makePanelTitle('BlenderPanelTitle', 'Blend', 24, 'eighth noAutoParam');
 
+  /**
+   * Sends blender values to shader or rebuilds ribbon.
+   */
   function updateBlender() {
     if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
       glo.ribbon.shaderMeshInstance.updateBlender();
@@ -1543,19 +1899,40 @@ function add_blender_sliders(){
   });//panel.background='green';
 }
 
-function add_sixth_panel_sliders(){
+/**
+ * Creates sixth panel with misc sliders, UV one-sign toggles, and time controls.
+ */
+function addSixthPanelSliders(){
   let panelSliders                   = new BABYLON.GUI.StackPanel();
   let panelButton                    = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
   let panelTimeButtons               = new BABYLON.GUI.StackPanel();
 
+  /**
+   * Helper to create and register a GUI panel.
+   * @param {BABYLON.GUI.StackPanel} panel - Panel control to configure
+   * @param {string} name - Panel identifier
+   * @param {number} top - Top position in percent
+   * @param {boolean} [isVertical=true] - Whether the panel layout is vertical
+   * @param {number} [width=20] - Panel width in percent
+   * @param {number} [height] - Panel height in percent
+   * @param {string} [numUI='sixth'] - CSS class identifier for UI grouping
+   * @param {number} [paddingLeft=0] - Left padding
+   * @param {number} [left=0] - Left offset
+   */
   function addPanel(panel, name, top, isVertical = true, width = 20, height = undefined, numUI = 'sixth', paddingLeft = 0, left = 0){
     parmamControl(panel, name, `panel right ${numUI} noAutoParam`,
       {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top, pR: 0.5, pL: paddingLeft, l: left}
     );
     glo.advancedTexture.addControl(panel);
   }
+  /**
+   * Returns a counter function incrementing by a fixed step.
+   * @param {number} start - Initial value
+   * @param {number} increment - Step size for each call
+   * @returns {Function} Counter function returning the next incremented value
+   */
   function createIncrementer(start, increment) {
     let count = start - increment;
     return function() {
@@ -1571,7 +1948,19 @@ function add_sixth_panel_sliders(){
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelTimeButtons, 'panelTimeButtons', 50, false, 20, 4, 'eleventh', 1.42);
 
-  function add_slider(parent, name, text, val, decimalPrecision, min, max, step, event){
+  /**
+   * Creates a slider with header and event callback for the sixth panel.
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel to add the slider to
+   * @param {string} name - Slider identifier
+   * @param {string} text - Display label for the slider header
+   * @param {number} val - Initial slider value
+   * @param {number} decimalPrecision - Number of decimal places to display
+   * @param {number} min - Minimum slider value
+   * @param {number} max - Maximum slider value
+   * @param {number} step - Slider step increment
+   * @param {Function} event - Callback invoked with the slider value on change
+   */
+  function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, 'header right sixth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);
     parent.addControl(header);
@@ -1635,9 +2024,9 @@ function add_sixth_panel_sliders(){
 
   makePanelTitle("firstPointOffset", "First point offset", 42.5, "sixth noAutoParam");
 
-  add_slider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
-  add_slider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
-  add_slider(panelSliders, "firstPointOffsetZ", "Z", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.z = value; });
+  addSlider(panelSliders, "firstPointOffsetX", "X", 1, 1, -24, 24, .5, function(value){ glo.firstPoint.x = value; });
+  addSlider(panelSliders, "firstPointOffsetY", "Y", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.y = value; });
+  addSlider(panelSliders, "firstPointOffsetZ", "Z", 0, 1, -24, 24, .5, function(value){ glo.firstPoint.z = value; });
 
   const buttonSizes = {width: 150, height: 33};
 
@@ -1700,17 +2089,36 @@ function add_sixth_panel_sliders(){
   });
 }
 
-function add_eleventh_panel_sliders(){
+/**
+ * Creates miscellaneous controls (reset, writing type, plans, UV increment, camera controls, rotate).
+ */
+function addEleventhPanelSliders(){
   let panelButton2      = new BABYLON.GUI.StackPanel();
   let panelButton3      = new BABYLON.GUI.StackPanel();
   let panelButton4      = new BABYLON.GUI.StackPanel();
   let panelButton6      = new BABYLON.GUI.StackPanel();
   let panelRotateCamera = new BABYLON.GUI.StackPanel();
 
+  /**
+   * Helper to create and register a GUI panel for eleventh panel.
+   * @param {BABYLON.GUI.StackPanel} panel - Panel control to configure
+   * @param {string} name - Panel identifier
+   * @param {number} top - Top position in percent
+   * @param {boolean} [isVertical=true] - Whether the panel layout is vertical
+   * @param {number} [width=20] - Panel width in percent
+   * @param {number} [height=5] - Panel height in percent
+   * @param {string} [numUI='eleventh'] - CSS class identifier for UI grouping
+   */
   function addPanel(panel, name, top, isVertical = true, width = 20, height = 5, numUI = 'eleventh'){
     parmamControl(panel, name, `panel right ${numUI} noAutoParam`, {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top});
     glo.advancedTexture.addControl(panel);
   }
+  /**
+   * Returns a counter function incrementing by a fixed step.
+   * @param {number} start - Initial value
+   * @param {number} increment - Step size for each call
+   * @returns {Function} Counter function returning the next incremented value
+   */
   function createIncrementer(start, increment) {
     let count = start - increment;
     return function() {
@@ -1787,8 +2195,8 @@ function add_eleventh_panel_sliders(){
   });
 
   makePanelTitle("rotateSpeed", "Rotate", 68, "sixth", 2);
-  addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotate_speed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){
-    glo.rotate_speed = value;
+  addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotateSpeed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){
+    glo.rotateSpeed = value;
   }, "sixth", "sixth");
 
   panelRotateCamera.addControl(createSpacer("15px"));
@@ -1800,7 +2208,10 @@ function add_eleventh_panel_sliders(){
   });
 }
 
-function add_transformation_sliders(){
+/**
+ * Creates transformation sliders (scaling, rotation, position, center symmetry) and color controls.
+ */
+function addTransformationSliders(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramTransformationSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 54.75, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
@@ -1816,6 +2227,12 @@ function add_transformation_sliders(){
   makePanelTitle('TransformationPanelTitle', 'Transformations', 51.25, 'eighth noAutoParam');
   makePanelTitle('panelVarColorTitle', 'Colors', 74.25, 'eighth noAutoParam');
 
+  /**
+   * Updates transformation params in glo.params.
+   * @param {string} baseName - Transformation type (e.g. 'scaling', 'rotation', 'position')
+   * @param {string} axis - Axis identifier ('x', 'y', or 'z')
+   * @param {number} value - New parameter value
+   */
   function updParamsTrans(baseName, axis, value) {
     glo.params[baseName + axis.toUpperCase()] = value;
     glo.params.meshTransformations[baseName][axis] = value;
@@ -1852,6 +2269,11 @@ function add_transformation_sliders(){
     }
   });
 
+  /**
+   * Updates color addition vector on the shader.
+   * @param {string} color - Color channel ('r', 'g', or 'b')
+   * @param {number} value - Color value to set
+   */
   function updColorsVec3(color, value) {
     glo.shaders.colors.toAdd[color] = value;
     if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
@@ -1877,14 +2299,36 @@ function add_transformation_sliders(){
     });
 }
 
-function add_ninethPanel_controls(){
+/**
+ * Creates wave controls with linked XYZ sliders for norm parameters.
+ */
+function addNinthPanelControls(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 41, pR: 0, pL: 0.5});
   glo.advancedTexture.addControl(panel);
 
   makePanelTitle("waveTitlePanel", "Waves", 37.5, "eighth noAutoParam");
 
-  // Slider combiné XYZ avec slider secondaire lié (n)
+  /**
+   * Creates a combined XYZ slider group with a secondary linked slider.
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel
+   * @param {string} baseName - Base name for control identifiers
+   * @param {string} textMain - Label for the main slider
+   * @param {string} textSecondary - Label for the secondary slider
+   * @param {number} valMain - Initial value for the main slider
+   * @param {number} valSecondary - Initial value for the secondary slider
+   * @param {number} decimalPrecision - Number of decimal places to display
+   * @param {number} minMain - Minimum value for the main slider
+   * @param {number} maxMain - Maximum value for the main slider
+   * @param {number} stepMain - Step increment for the main slider
+   * @param {number} minSecondary - Minimum value for the secondary slider
+   * @param {number} maxSecondary - Maximum value for the secondary slider
+   * @param {number} stepSecondary - Step increment for the secondary slider
+   * @param {Function} getMainValue - Getter for main slider value by axis
+   * @param {Function} setMainValue - Setter for main slider value by axis
+   * @param {Function} getSecondaryValue - Getter for secondary slider value by axis
+   * @param {Function} setSecondaryValue - Setter for secondary slider value by axis
+   */
   function addLinkedXYZSliders(parent, baseName, textMain, textSecondary, valMain, valSecondary, decimalPrecision, minMain, maxMain, stepMain, minSecondary, maxSecondary, stepSecondary, getMainValue, setMainValue, getSecondaryValue, setSecondaryValue){
     // Container principal
     var groupContainer = new BABYLON.GUI.StackPanel();
@@ -1993,15 +2437,26 @@ function add_ninethPanel_controls(){
     sliderSecondary.startValue = valSecondary;
     groupContainer.addControl(sliderSecondary);
 
-    // === FONCTIONS UTILITAIRES ===
+    /**
+     * Returns array of currently checked axis names.
+     * @returns {string[]} Array of checked axis names ('x', 'y', 'z')
+     */
     function getCheckedAxes(){
       return ['x', 'y', 'z'].filter(axis => axisState[axis].checked);
     }
 
+    /**
+     * Returns the color string for an axis (red/green/blue).
+     * @param {string} axis - Axis name ('x', 'y', or 'z')
+     * @returns {string} Hex color string for the axis
+     */
     function getAxisColor(axis){
       return axis === 'x' ? '#ff6666' : axis === 'y' ? '#66ff66' : '#6666ff';
     }
 
+    /**
+     * Updates header colors and slider values based on checked axes.
+     */
     function updateDisplay(){
       var checked = getCheckedAxes();
       
@@ -2120,18 +2575,22 @@ function add_ninethPanel_controls(){
   );
 }
 
+/**
+ * Sets equation inputs to morphing interpolation between current and target form.
+ * @param {string} targetFormName - Name of the target form to morph towards
+ */
 function inputEquaToMorphing(targetFormName){
-  const originFormName = glo.radios_formes.getCheck().header.getDescendants()[1].text;
+  const originFormName = glo.radiosFormes.getCheck().header.getDescendants()[1].text;
   const targetForm     = glo.formes.getFormByName(targetFormName, glo.coordsType);
   const originForm     = glo.formes.getFormByName(originFormName, glo.coordsType);
 
   /*const originForm = {
-    fx: glo.params.text_input_x,
-    fy: glo.params.text_input_y,
-    fz: glo.params.text_input_z,
-    alpha: glo.params.text_input_alpha,
-    beta: glo.params.text_input_beta,
-    theta: glo.params.text_input_theta,
+    fx: glo.params.textInputX,
+    fy: glo.params.textInputY,
+    fz: glo.params.textInputZ,
+    alpha: glo.params.textInputAlpha,
+    beta: glo.params.textInputBeta,
+    theta: glo.params.textInputTheta,
   };*/
 
   const fields = [
@@ -2154,24 +2613,30 @@ function inputEquaToMorphing(targetFormName){
   remakeRibbon();
 }
 
-function param_buttons(){
+/**
+ * Applies button design to all non-noAutoParam buttons.
+ */
+function paramButtons(){
   glo.allControls.haveThisClass('button').haveNotThisClass('noAutoParam').map(bt => { designButton(bt); });
 }
-function param_controls(){
+/**
+ * Configures layout params for all GUI controls (headers, panels, sliders, inputs).
+ */
+function paramControls(){
   glo.allControls.haveTheseClasses('header').haveNotThisClass('noAutoParam').map(hd => {
     parmamControl(hd, '', '', { h: 20, color: 'white', fontSize: 16, }, true, false);
   });
-  var pr_top = 1.5;
+  var prTop = 1.5;
   glo.allControls.haveTheseClasses('panel', 'right', 'first').haveNotThisClass('noAutoParam').map(pr => {
-    parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', w: 20, t: pr_top, }, false, false);
-    pr_top += glo.mainTopShift;
+    parmamControl(pr, '', '', { hAlign: 'right', vAlign: 'top', w: 20, t: prTop, }, false, false);
+    prTop += glo.mainTopShift;
   });
-  pr_top = 1.5;
+  prTop = 1.5;
   glo.allControls.haveTheseClasses('panel', 'left', 'first').haveNotThisClass('noAutoParam').map(pr => {
-    parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 21, t: pr_top, pL: 1, }, false, false);
+    parmamControl(pr, '', '', { hAlign: 'left', vAlign: 'top', w: 21, t: prTop, pL: 1, }, false, false);
     if(pr.name && (pr.name == "param" || pr.name == "type")){ pr.width = '10%'; }
     if(pr.name === "inputsEquations"){ pr.top = "20%"; }
-    pr_top += glo.mainTopShift;
+    prTop += glo.mainTopShift;
   });
   glo.allControls.haveTheseClasses('slider', 'left', 'first').map(sr => {
     parmamControl(sr, '', '', { hAlign: 'left', vAlign: 'top', h: 20, w: 98.125, background: 'grey', }, false, false);
@@ -2192,19 +2657,36 @@ function param_controls(){
   glo.allControls.haveThisClass('input').map(input => { input.subscribeToFocusAndBlurEvents(); });
 }
 
-function toggle_gui_controls(state){
+/**
+ * Shows/hides all first-class GUI controls.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
+function toggleGuiControls(state){
   glo.allControls.haveTheseClasses('first').map(ct => {
     if(ct.name != "but_hide" && ct.name != "hideSwitchHelp"){ ct.isVisible = state; ct.isEnabled = state; }
   });
 }
-function toggle_gui_controls_for_switch(state){
+/**
+ * Shows/hides main GUI panels, headers, and pickers.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
+function toggleGuiControlsForSwitch(state){
   glo.allControls.haveTheseClasses('panel', 'onlyMainGui').map(pn => { pn.isVisible = state; pn.isEnabled = state; });
   glo.allControls.haveTheseClasses('header', 'onlyMainGui').map(hd => { hd.isVisible = state; hd.isEnabled = state; });
   glo.allControls.haveTheseClasses('picker', 'onlyMainGui').map(pr => { pr.isVisible = state; pr.isEnabled = state; });
 }
-function toggle_gui_controls_suit(state){
+/**
+ * Shows/hides second-class GUI controls.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
+function toggleGuiControlsSuit(state){
   glo.allControls.haveThisClass('second').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }
+/**
+ * Shows/hides GUI controls matching a given CSS class.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ * @param {string} theClass - CSS class name to match controls against
+ */
 function toggleGuiControlsByClass(state, theClass){
   glo.allControls.haveThisClass(theClass).map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }

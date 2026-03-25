@@ -1,6 +1,15 @@
+//*****************************************************************************************************//
+//*******************************************PROTOTYPES************************************************//
+//*****************************************************************************************************//
+
+/**
+ * Computes and attaches a custom `uv_params` vertex buffer containing the
+ * real (u, v) parameter values for each vertex in the mesh grid.
+ * Used by the shader to access parametric coordinates alongside grid indices.
+ */
 BABYLON.Mesh.prototype.setDataShader = function() {
-    const nbStepsU = glo.params.steps_u;
-    const nbStepsV = glo.params.steps_v;
+    const nbStepsU = glo.params.stepsU;
+    const nbStepsV = glo.params.stepsV;
     const minU = !glo.slidersUVOnOneSign.u ? -glo.params.u : 0;
     const minV = !glo.slidersUVOnOneSign.v ? -glo.params.v : 0;
     const maxU = glo.params.u;
@@ -34,6 +43,11 @@ BABYLON.Mesh.prototype.setDataShader = function() {
     this.setVerticesBuffer(uvBuffer);
 };
 
+/**
+ * Recomputes normals from the current positions and applies the given indices.
+ * Rebuilds the entire VertexData (positions + normals + indices) on the mesh.
+ * @param {number[]|Uint32Array} [newIndices=this.getIndices()] - Triangle indices to use.
+ */
 BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices()) {
     // Récupérer les données de vertex actuelles
     let _currentPdata = this.getVerticesData(BABYLON.VertexBuffer.PositionKind);
@@ -51,6 +65,12 @@ BABYLON.Mesh.prototype.reBuildVertexData = function(newIndices = this.getIndices
     _vertexData.applyToMesh(this, true); // Le deuxième paramètre à true pour mettre à jour les données existantes
 };
 
+/**
+ * Applies a checkerboard pattern to the mesh by selectively keeping every Nth group of triangles.
+ * Modifies the index buffer so only alternating triangle groups are rendered.
+ * @param {number} [nb=glo.params.checkerboard] - Number of triangles per group.
+ * @param {number} [stepCoeff=glo.params.checkerboardNbSteps] - Step multiplier between groups.
+ */
 BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, stepCoeff = glo.params.checkerboardNbSteps){
 	let indices = this.savedIndices || this.getIndices();
 
@@ -68,11 +88,19 @@ BABYLON.Mesh.prototype.checkerboard = function(nb = glo.params.checkerboard, ste
 	this.reBuildVertexData(newIndices);
 }
 
+/**
+ * Estimates the download file size of the mesh based on the grid resolution.
+ * @returns {string} Human-readable size string (e.g. `"≈ 1.50 Mo"`).
+ */
 BABYLON.Mesh.prototype.weightToDownload = function() {
-	const weight = glo.params.steps_u * glo.params.steps_v / 18000;
+	const weight = glo.params.stepsU * glo.params.stepsV / 18000;
 	return `≈ ${weight.toFixed(2)} Mo`;
 }
 
+/**
+ * Returns the inverted (complementary) color: each component becomes `1 - component`.
+ * @returns {BABYLON.Color3} The inverted color.
+ */
 BABYLON.Color3.prototype.inv = function() {
 	return new BABYLON.Color3(1 - this.r, 1 - this.g, 1 - this.b);
 }

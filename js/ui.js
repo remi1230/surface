@@ -1,3 +1,10 @@
+/**
+ * Cycles through surface forms using the mouse wheel within the current coordinate type.
+ * Wraps around to the first or last form depending on scroll direction.
+ * Updates the radio button selection to match the newly selected form.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function whellSwitchForm(){
 	var formSelect = glo.formes.getFormSelect();
 	if(formSelect){
@@ -18,17 +25,27 @@ async function whellSwitchForm(){
 
 		var formSelected = glo.formes.getFormSelect();
 		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
-		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
+		glo.radiosFormes.setCheckByName(nameRadioFormToSelect);
 	}
 	else{
 		await glo.formes.setFormSelectByNum(glo.formes.getNumFirstFormInCoordType());
 
 		var formSelected = glo.formes.getFormSelect();
 		var nameRadioFormToSelect = "Radio-" + formSelected.form.text;
-		glo.radios_formes.setCheckByName(nameRadioFormToSelect);
+		glo.radiosFormes.setCheckByName(nameRadioFormToSelect);
 	}
 }
 
+/**
+ * Iterates a generator in the forward or reverse direction.
+ * In forward mode, advances the generator by one step.
+ * In reverse mode, cycles backward by finding the previous value in the generator sequence.
+ * @async
+ * @param {Generator} gen - The generator to iterate.
+ * @param {string} varToStoreValGen - The name of the global property (on `glo`) that stores the current generator value.
+ * @param {boolean} [normalSens=true] - If true, iterate forward; if false, iterate in reverse.
+ * @returns {Promise<void>}
+ */
 async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
 	let newOrient = '';
 
@@ -45,15 +62,28 @@ async function genInTwoWays(gen, varToStoreValGen, normalSens = true){
 	}
 }
 
+/**
+ * Switches the coordinate system type (cartesian, spherical, cylindrical) by cycling
+ * through available types. Updates the UI labels and rebuilds the radio button list.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchCoords(normalSens = true){
 	genInTwoWays(glo.coordinatesType, 'coordsType', normalSens);
 
 	switchDrawCoordsType();
-	add_radios();
+	addRadios();
 
 	glo.formesSuit = false;
 }
 
+/**
+ * Cycles through available fragment shaders and applies the selected one.
+ * Updates the shader editor content and the shader select dropdown.
+ * If a shader mesh instance exists, updates the fragment shader directly;
+ * otherwise, rebuilds the ribbon mesh.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ * @param {Object} [edit=glo.editor] - The code editor instance to update with the new shader source.
+ */
 function switchShader(normalSens = true, edit = glo.editor){
 	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
       fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
@@ -64,7 +94,7 @@ function switchShader(normalSens = true, edit = glo.editor){
 
 	  getById('shaderSelect').value = glo.numShaderSelect;
 
-	  // Mettre à jour uniquement le fragment shader sans reconstruire le mesh
+	  // Update only the fragment shader without rebuilding the mesh
 	  if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 		glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
 	  } else {
@@ -72,12 +102,18 @@ function switchShader(normalSens = true, edit = glo.editor){
 	  }
 }
 
+/**
+ * Cycles through symmetrization axis orders (e.g., 'xyz', 'xzy', 'yxz', etc.).
+ * Updates the button label and the `uSymOrder` shader uniform if a shader mesh exists;
+ * otherwise, rebuilds the ribbon mesh.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchSymmetrizeOrder(normalSens = true){
 	genInTwoWays(glo.symmetrizeOrders, 'symmetrizeOrder', normalSens);
 
 	glo.allControls.getByName('symmetrizeOrder').textBlock.text = "S order : " + glo.symmetrizeOrder.toUpperCase();
 
-	// Mettre à jour l'uniform uSymOrder directement si le shader mesh existe
+	// Update the uSymOrder uniform directly if the shader mesh exists
 	if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
 		const orderStr = (glo.symmetrizeOrder || 'xyz').toLowerCase();
 		const axisMap = { x: 0.0, y: 1.0, z: 2.0 };
@@ -91,12 +127,21 @@ function switchSymmetrizeOrder(normalSens = true){
 	}
 }
 
+/**
+ * Cycles through right-side GUI panels by toggling their visibility.
+ * @param {boolean} [normalSens=true] - If true, cycle forward; if false, cycle backward.
+ */
 function switchRightPanel(normalSens = true){
 	genInTwoWays(glo.switchGuiSelect, 'guiSelect', normalSens);
 
 	toggleRightPanels(glo.guiSelect);
 }
 
+/**
+ * Toggles visibility of right-side GUI panels, hiding all panels except the specified one.
+ * @param {string} rightPanelToShowClass - The CSS class of the panel to show.
+ * @param {boolean} [toShow=true] - If true, show the specified panel and hide others; if false, hide all panels.
+ */
 function toggleRightPanels(rightPanelToShowClass, toShow = true){
 	glo.rightPanelsClasses
 		.filter(rightPanelClass => toShow ? (rightPanelClass !== rightPanelToShowClass) : (1 === 1))
@@ -104,13 +149,19 @@ function toggleRightPanels(rightPanelToShowClass, toShow = true){
 	if(toShow){ toggleGuiControlsByClass(true, rightPanelToShowClass); }
 }
 
+/**
+ * Toggles between short and long notation for trigonometric expressions in equation inputs.
+ * Short form uses abbreviations like "cu" for "cos(u)", "sv" for "sin(v)", etc.
+ * Long form expands them back to full function calls.
+ * @param {boolean} long - If true, expand abbreviations to full form; if false, abbreviate to short form.
+ */
 function switchWritingType(long){
 	var f = {
-		x: glo.input_x.text,
-		y: glo.input_y.text,
-		z: glo.input_z.text,
-		alpha: glo.input_alpha.text,
-		beta: glo.input_beta.text,
+		x: glo.inputX.text,
+		y: glo.inputY.text,
+		z: glo.inputZ.text,
+		alpha: glo.inputAlpha.text,
+		beta: glo.inputBeta.text,
 	};
 
 	if(!long){
@@ -152,41 +203,51 @@ function switchWritingType(long){
 		}
 	}
 
-	glo.input_x.text = f.x;
-	glo.input_y.text = f.y;
-	glo.input_z.text = f.z;
-	glo.input_alpha.text = f.alpha;
-	glo.input_beta.text = f.beta;
+	glo.inputX.text = f.x;
+	glo.inputY.text = f.y;
+	glo.inputZ.text = f.z;
+	glo.inputAlpha.text = f.alpha;
+	glo.inputBeta.text = f.beta;
 
-	glo.params.text_input_x = f.x;
-	glo.params.text_input_y = f.y;
-	glo.params.text_input_z = f.z;
-	glo.params.text_input_alpha = f.alpha;
-	glo.params.text_input_beta = f.beta;
+	glo.params.textInputX = f.x;
+	glo.params.textInputY = f.y;
+	glo.params.textInputZ = f.z;
+	glo.params.textInputAlpha = f.alpha;
+	glo.params.textInputBeta = f.beta;
 }
 
-async function invElemInInput(toInv_1, toInv_2, makeCurve = true){
+/**
+ * Swaps two variables in all equation input fields (e.g., swapping 'u' and 'v').
+ * When swapping u and v, also swaps the corresponding step and range slider values.
+ * Optionally triggers a ribbon mesh rebuild.
+ * @async
+ * @param {string} toInv1 - The first variable name to swap.
+ * @param {string} toInv2 - The second variable name to swap.
+ * @param {boolean} [makeCurve=true] - If true, rebuild the ribbon mesh after swapping.
+ * @returns {Promise<void>}
+ */
+async function invElemInInput(toInv1, toInv2, makeCurve = true){
 	var f = {
-		x: glo.input_x.text,
-		y: glo.input_y.text,
-		z: glo.input_z.text,
-		alpha: glo.input_alpha.text,
-		beta: glo.input_beta.text,
+		x: glo.inputX.text,
+		y: glo.inputY.text,
+		z: glo.inputZ.text,
+		alpha: glo.inputAlpha.text,
+		beta: glo.inputBeta.text,
 	};
-	f = reg_inv(f, toInv_1, toInv_2);
-	glo.input_x.text = f.x;
-	glo.input_y.text = f.y;
-	glo.input_z.text = f.z;
-	glo.input_alpha.text = f.alpha;
-	glo.input_beta.text = f.beta;
+	f = regInv(f, toInv1, toInv2);
+	glo.inputX.text = f.x;
+	glo.inputY.text = f.y;
+	glo.inputZ.text = f.z;
+	glo.inputAlpha.text = f.alpha;
+	glo.inputBeta.text = f.beta;
 
-	glo.params.text_input_x = f.x;
-	glo.params.text_input_y = f.y;
-	glo.params.text_input_z = f.z;
-	glo.params.text_input_alpha = f.alpha;
-	glo.params.text_input_beta = f.beta;
+	glo.params.textInputX = f.x;
+	glo.params.textInputY = f.y;
+	glo.params.textInputZ = f.z;
+	glo.params.textInputAlpha = f.alpha;
+	glo.params.textInputBeta = f.beta;
 
-	if(toInv_1 === 'u' && toInv_2 === 'v'){
+	if(toInv1 === 'u' && toInv2 === 'v'){
 		let remakeCurve = true;
 		if(glo.allControls.getByName('stepU').value !== glo.allControls.getByName('stepV').value){
 			const stepU = glo.allControls.getByName('stepU').value; 
@@ -209,6 +270,13 @@ async function invElemInInput(toInv_1, toInv_2, makeCurve = true){
 	}
 }
 
+/**
+ * Animates a slider by incrementing its value based on speed and direction.
+ * The increment is calculated as a fraction of the slider's range.
+ * @param {string} name - The name of the slider control to animate.
+ * @param {number} [speed=1] - The animation speed multiplier. If 0, the increment is set to 1.
+ * @param {number} [dir=1] - The direction of animation (1 for forward, -1 for backward).
+ */
 function slidersAnim(name, speed = 1, dir = 1){
 	var slider = glo.allControls.getByName(name);
 	valToAdd = ((slider.maximum - slider.minimum) / 720) * speed;
@@ -216,31 +284,41 @@ function slidersAnim(name, speed = 1, dir = 1){
 	slider.value += valToAdd * dir;
 }
 
-function startAnim(durationRot, durationDist, nb_turns) {
-    var rot_animation = new BABYLON.Animation("rotAnim", "alpha", 30,
+/**
+ * Starts camera rotation and distance animations using BabylonJS animation system.
+ * The rotation animation loops continuously, while the distance animation plays once.
+ * @param {number} durationRot - The duration in frames for the rotation animation.
+ * @param {number} durationDist - The duration in frames for the distance animation.
+ * @param {number} nbTurns - The number of half-turns (multiples of PI) for the rotation.
+ */
+function startAnim(durationRot, durationDist, nbTurns) {
+    var rotAnimation = new BABYLON.Animation("rotAnim", "alpha", 30,
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_RELATIVE);
 
-    rot_animation.setKeys([
+    rotAnimation.setKeys([
         { frame: 0, value: 0 },
-        { frame: durationRot, value: nb_turns * Math.PI }
+        { frame: durationRot, value: nbTurns * Math.PI }
     ]);
 
-    var dist_animation = new BABYLON.Animation("distAnim", "radius", 30,
+    var distAnimation = new BABYLON.Animation("distAnim", "radius", 30,
         BABYLON.Animation.ANIMATIONTYPE_FLOAT,
         BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT);
 
 	const startForm   = glo.formes.getStartForm();	
     var currentRadius = startForm.orient ? (startForm.orient.distance || 16.66) : 16.66;
-    dist_animation.setKeys([
+    distAnimation.setKeys([
         { frame: 0, value: 0 },
         { frame: durationDist, value: currentRadius },
     ]);
 
-    glo.rotAnim  = glo.scene.beginDirectAnimation(glo.camera, [rot_animation], 0, durationRot, true, 1);
-    glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [dist_animation], 0, durationDist, false, 1);
+    glo.rotAnim  = glo.scene.beginDirectAnimation(glo.camera, [rotAnimation], 0, durationRot, true, 1);
+    glo.distAnim = glo.scene.beginDirectAnimation(glo.camera, [distAnimation], 0, durationDist, false, 1);
 }
 
+/**
+ * Stops the camera rotation animation if one is currently running.
+ */
 function stopRotAnim() {
     if (glo.rotAnim) {
         glo.rotAnim.stop();
@@ -248,6 +326,9 @@ function stopRotAnim() {
     }
 }
 
+/**
+ * Stops the camera distance animation if one is currently running.
+ */
 function stopDistAnim() {
     if (glo.distAnim) {
         glo.distAnim.stop();
@@ -255,17 +336,25 @@ function stopDistAnim() {
     }
 }
 
+/**
+ * Stops all camera animations (both rotation and distance).
+ */
 function stopAllCameraAnims() {
     stopRotAnim();
     stopDistAnim();
 }
 
+/**
+ * Synchronizes global parameter values (`glo.params`) to their corresponding GUI controls.
+ * Updates sliders (u, v, steps, A-M), equation text inputs, eval inputs, and symmetry input.
+ * Temporarily sets `glo.skipRebuild` to true to prevent triggering mesh rebuilds during sync.
+ */
 function paramsToControls(){
 	glo.skipRebuild = true;
 	glo.allControls.getByName('u').value = glo.params.u;
 	glo.allControls.getByName('v').value = glo.params.v;
-	glo.allControls.getByName('stepU').value = glo.params.steps_u;
-	glo.allControls.getByName('stepV').value = glo.params.steps_v;
+	glo.allControls.getByName('stepU').value = glo.params.stepsU;
+	glo.allControls.getByName('stepV').value = glo.params.stepsV;
 	glo.allControls.getByName('A').value = glo.params.A;
 	glo.allControls.getByName('B').value = glo.params.B;
 	glo.allControls.getByName('C').value = glo.params.C;
@@ -280,34 +369,45 @@ function paramsToControls(){
 	glo.allControls.getByName('L').value = glo.params.L;
 	glo.allControls.getByName('M').value = glo.params.M;
 
-	glo.allControls.getByName('inputX').text = glo.params.text_input_x;
-	glo.allControls.getByName('inputY').text = glo.params.text_input_y;
-	glo.allControls.getByName('inputZ').text = glo.params.text_input_z;
-	glo.allControls.getByName('inputAlpha').text = glo.params.text_input_alpha;
-	glo.allControls.getByName('inputBeta').text = glo.params.text_input_beta;
+	glo.allControls.getByName('inputX').text = glo.params.textInputX;
+	glo.allControls.getByName('inputY').text = glo.params.textInputY;
+	glo.allControls.getByName('inputZ').text = glo.params.textInputZ;
+	glo.allControls.getByName('inputAlpha').text = glo.params.textInputAlpha;
+	glo.allControls.getByName('inputBeta').text = glo.params.textInputBeta;
 
-	glo.allControls.getByName('inputEvalX').text = glo.params.text_input_eval_x;
-	glo.allControls.getByName('inputEvalY').text = glo.params.text_input_eval_y;
+	glo.allControls.getByName('inputEvalX').text = glo.params.textInputEvalX;
+	glo.allControls.getByName('inputEvalY').text = glo.params.textInputEvalY;
 
-	if(glo.input_sym_r){ glo.input_sym_r.text = glo.params.text_input_sym_r || ''; }
+	if(glo.inputSymR){ glo.inputSymR.text = glo.params.textInputSymR || ''; }
 	glo.skipRebuild = false;
 }
 
+/**
+ * Checks whether the current equation input texts match the equations of the
+ * currently selected radio button form. Compares X, Y, Z, Alpha, and Beta fields.
+ * @returns {boolean} True if all equation inputs match the selected form's equations.
+ */
 function isInputsEquationsSameAsRadioCheck(){
 	var p = glo.params;
 	var form = glo.formes.getFormByName(p.formName, p.coordsType);
 	var formAlpha = ""; var formBeta = "";
 	if(typeof(form.alpha) != "undefined"){ formAlpha = form.alpha; }
 	if(typeof(form.beta) != "undefined"){ formBeta = form.beta; }
-	if(p.text_input_x == form.fx && p.text_input_y == form.fy && p.text_input_z == form.fz && p.text_input_alpha == formAlpha && p.text_input_beta == formBeta){
+	if(p.textInputX == form.fx && p.textInputY == form.fy && p.textInputZ == form.fz && p.textInputAlpha == formAlpha && p.textInputBeta == formBeta){
 		return true;
 	}
 
 	return false;
 }
 
-function switchDrawCoordsType(update_slider_uv = true){
-	if(update_slider_uv){ change_slider_uv(); }
+/**
+ * Updates the UI labels for equation input headers based on the current coordinate system type.
+ * For cartesian: X, Y, Z; for spherical: R, Rot Y, Rot Z; for cylindrical: R, Rot Z, Z.
+ * Also updates the coordinate type button text and optionally adjusts UV sliders.
+ * @param {boolean} [updateSliderUv=true] - If true, also adjust the UV slider values for the new coordinate type.
+ */
+function switchDrawCoordsType(updateSliderUv = true){
+	if(updateSliderUv){ changeSliderUv(); }
 	switch (glo.coordsType) {
 		case 'cartesian':
 			changeHeaderText('header_inputX', 'X');
@@ -342,10 +442,20 @@ function switchDrawCoordsType(update_slider_uv = true){
 	}
 }
 
+/**
+ * Changes the text of a header control identified by name.
+ * @param {string} headerName - The name of the header control to update.
+ * @param {string} newText - The new text to display in the header.
+ */
 function changeHeaderText(headerName, newText){
 	glo.allControls.haveThisClass("header").getByName(headerName).text = newText;
 }
 
+/**
+ * Resets all equation input fields and parameter sliders to their default values.
+ * Clears button texts, resets text input parameters, resets symmetrize parameters to 0,
+ * and sets u and v sliders to PI.
+ */
 function resetEquationsParamSliders(){
 	glo.advancedTexture.getControlsByType('Button').forEach(input => {
 		input.text = '';
@@ -358,33 +468,53 @@ function resetEquationsParamSliders(){
 	glo.allControls.getByName('v').value = PI;
 }
 
-function change_slider_uv(){
-	if(glo.coordsType == 'spheric'){ glo.slider_u.value += 0.0000002; }
-	else if(glo.coordsType == 'cylindrical'){ glo.slider_u.value -= 0.0000001; }
-	else{ glo.slider_u.value -= 0.0000001; }
+/**
+ * Applies a tiny offset to the U slider value to trigger a recalculation
+ * when switching coordinate types. The offset direction depends on the coordinate type.
+ */
+function changeSliderUv(){
+	if(glo.coordsType == 'spheric'){ glo.sliderU.value += 0.0000002; }
+	else if(glo.coordsType == 'cylindrical'){ glo.sliderU.value -= 0.0000001; }
+	else{ glo.sliderU.value -= 0.0000001; }
 }
 
+/**
+ * Copies the value of the first equation input (X) to all other equation inputs
+ * (Y, Z, Alpha, Beta) and triggers a mesh rebuild.
+ */
 function firstInputToOthers(){
-	const val = glo.input_x.text;
+	const val = glo.inputX.text;
 
-	glo.input_beta.text  = val;
-	glo.input_alpha.text = val;
-	glo.input_z.text 	 = val;
-	glo.input_y.text 	 = val;
+	glo.inputBeta.text  = val;
+	glo.inputAlpha.text = val;
+	glo.inputZ.text 	 = val;
+	glo.inputY.text 	 = val;
 
-	glo.params.text_input_beta 	= val;
-	glo.params.text_input_alpha = val;
-	glo.params.text_input_z 	= val;
-	glo.params.text_input_y 	= val;
+	glo.params.textInputBeta 	= val;
+	glo.params.textInputAlpha = val;
+	glo.params.textInputZ 	= val;
+	glo.params.textInputY 	= val;
 
-	make_curves();
+	makeCurves();
 }
 
+/**
+ * Positions the camera target and location at the given 3D coordinates.
+ * @param {Object} pos - The position object.
+ * @param {number} pos.x - The X coordinate.
+ * @param {number} pos.y - The Y coordinate.
+ * @param {number} pos.z - The Z coordinate.
+ */
 function cameraOnPos(pos){
 	glo.camera.setTarget(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 	glo.camera.setPosition(new BABYLON.Vector3(pos.x, pos.y, pos.z));
 }
 
+/**
+ * Toggles a GUI control's background between its normal color and a dimmed (activated) color.
+ * The colors are derived from the current color picker button value.
+ * @param {string} controlName - The name of the GUI control whose background to toggle.
+ */
 function swapControlBackground(controlName){
 	let control = glo.allControls.getByName(controlName);
 
@@ -395,15 +525,24 @@ function swapControlBackground(controlName){
 	control.background = control.background === buttonBg ? buttonBgActived : buttonBg;
 }
 
+/**
+ * Applies the activated background style to all buttons listed in `glo.bgActivedButtons`,
+ * then applies special control parameter styling.
+ */
 function otherDesigns(){
 	glo.bgActivedButtons.forEach(buttonName => {
 		glo.allControls.getByName(buttonName).background = glo.controlConfig.backgroundActived;
 	});
 
-	param_special_controls();
+	paramSpecialControls();
 }
 
-function param_special_controls(){
+/**
+ * Applies custom positioning, sizing, and theming to special GUI controls.
+ * Configures layout for symmetrize controls, color picker panels, sliders, and inputs
+ * according to the current theme.
+ */
+function paramSpecialControls(){
 	glo.allControls.getByName('inputsColorsEquations').top = '27%';
 	glo.allControls.getByName('centerLocal').width         = '115px';
 	glo.allControls.getByName('symmetrizeOrder').width     = '115px';
@@ -450,6 +589,10 @@ function param_special_controls(){
 	glo.allControls.getByName('header_inputRSymmetrize').color    = 'white';
 }
 
+/**
+ * Applies theme styling to radio button controls and their header labels.
+ * Applies text theme to radio headers and button theme to radio buttons.
+ */
 function paramRadios(){
 	glo.allControls.haveTheseClasses('header', 'radio', 'left', 'first', 'noAutoParam').map(header => {
 		for(const prop in glo.theme.radio.text){ header[prop] = glo.theme.radio.text[prop]; }
@@ -459,40 +602,57 @@ function paramRadios(){
 	});
 }
 
+/**
+ * Doubles or halves the mesh resolution by scaling the step slider maximums and values.
+ * Triggers a ribbon mesh rebuild after the change.
+ * @param {string} [change='increase'] - Either 'increase' to double resolution or any other value to halve it.
+ */
 function changeResolution(change = 'increase'){
 	const coeff = change === 'increase' ? 2 : 0.5;
 	glo.resolutionCoeff *= coeff;
 
 	glo.skipRebuild = true;
-	glo.slider_nb_steps_u.maximum*=coeff;
-	glo.slider_nb_steps_v.maximum*=coeff;
+	glo.sliderStepsU.maximum*=coeff;
+	glo.sliderStepsV.maximum*=coeff;
 
-	glo.slider_nb_steps_u.value*=coeff;
-	glo.slider_nb_steps_v.value*=coeff;
+	glo.sliderStepsU.value*=coeff;
+	glo.sliderStepsV.value*=coeff;
 	glo.skipRebuild = false;
 
 	remakeRibbon();
 }
 
+/**
+ * Swaps u/v and X/Y notation in all equation input fields.
+ * When `glo.params.uvToXy` is true, replaces u->X and v->Y;
+ * otherwise, replaces X->u and Y->v.
+ * Also initializes eval inputs to 'u' and 'v' if they are empty.
+ */
 function uvToXy(){
 	const regs = glo.params.uvToXy ? [{exp: /u/gi, upd: "X"}, {exp: /v/gi, upd: "Y"}] : [{exp: /X/gi, upd: "u"}, {exp: /Y/gi, upd: "v"}];
 
-	["x", "y", "z", "alpha", "beta", "sym_r"].forEach(nameInput =>  {
+	["X", "Y", "Z", "Alpha", "Beta", "SymR"].forEach(nameInput =>  {
 		regs.forEach(reg => {
-			glo[`input_${nameInput}`].text = glo[`input_${nameInput}`].text.replace(reg.exp, reg.upd);
+			glo[`input${nameInput}`].text = glo[`input${nameInput}`].text.replace(reg.exp, reg.upd);
 		});
-		glo.params[`text_input_${nameInput}`] = glo[`input_${nameInput}`].text;
+		glo.params[`textInput${nameInput}`] = glo[`input${nameInput}`].text;
 	 });
 
-	 if(!glo.input_eval_x.text && !glo.input_eval_y.text){
-		glo.input_eval_x.text = 'u';
-		glo.input_eval_y.text = 'v';
+	 if(!glo.inputEvalX.text && !glo.inputEvalY.text){
+		glo.inputEvalX.text = 'u';
+		glo.inputEvalY.text = 'v';
 
-		glo.params.text_input_eval_x = 'u';
-		glo.params.text_input_eval_y = 'v';
+		glo.params.textInputEvalX = 'u';
+		glo.params.textInputEvalY = 'v';
 	 }
 }
 
+/**
+ * Applies regex-based equation normalization to all properties of the given object.
+ * Processes each non-falsy property through `regOne()`.
+ * @param {Object.<string, string>} f - An object whose string values are equation expressions to normalize.
+ * @returns {Object.<string, string>} The same object with all properties normalized.
+ */
 function reg(f) {
     for (var prop in f) {
         if(f[prop]){ f[prop] = regOne(f[prop]); }
@@ -501,52 +661,62 @@ function reg(f) {
     return f;
 }
 
+/**
+ * Debug/test version of `regOne()` that logs each regex transformation step to the console.
+ * Handles the special case of a lone apostrophe by replacing it with "0".
+ * @param {string} expReg - The equation expression string to normalize with verbose logging.
+ * @returns {string} The normalized expression.
+ */
 function regOneTest(expReg) {
 	console.log("=== regOne START ===");
 	console.log("Input:", expReg, "| Type:", typeof expReg);
 	
 	if (expReg == "'") {
-		console.log("Cas spécial: apostrophe détectée, remplacement par '0'");
+		console.log("Special case: apostrophe detected, replacing with '0'");
 		expReg = "0";
 	}
 	else if(expReg) {
 		expReg = expReg.toString();
-		console.log("Après toString():", expReg);
+		console.log("After toString():", expReg);
 		
 		for (let i = 0; i < glo.regs.length; i++) {
-			const avant = expReg;
+			const before = expReg;
 			expReg = expReg.replace(glo.regs[i].exp, glo.regs[i].upd);
-			if (avant !== expReg) {
-				console.log(`Regex #${i} a matché:`, glo.regs[i].exp);
-				console.log(`  Avant: "${avant}"`);
-				console.log(`  Après: "${expReg}"`);
+			if (before !== expReg) {
+				console.log(`Regex #${i} matched:`, glo.regs[i].exp);
+				console.log(`  Before: "${before}"`);
+				console.log(`  After: "${expReg}"`);
 			}
 		}
 	}
 	else {
-		console.log("expReg est falsy, aucune transformation");
+		console.log("expReg is falsy, no transformation applied");
 	}
 	
-	console.log("Output final:", expReg);
+	console.log("Final output:", expReg);
 	console.log("=== regOne END ===");
 	return expReg;
 }
 
 /**
- * Remplace l'opérateur *** par cpow() en gérant les parenthèses imbriquées.
- * Ex: (cos(u))***2 → cpow(cos(u),2)
- *     sin(u)***cos(v) → cpow(sin(u),cos(v))
- *     u***(2+v) → cpow(u,2+v)
+ * Replaces the `***` operator with `cpow()` function calls, handling nested parentheses.
+ * Examples:
+ *   - `(cos(u))***2` becomes `cpow(cos(u),2)`
+ *   - `sin(u)***cos(v)` becomes `cpow(sin(u),cos(v))`
+ *   - `u***(2+v)` becomes `cpow(u,2+v)`
+ * Strips superfluous wrapping parentheses from operands.
+ * @param {string} str - The expression string containing `***` operators.
+ * @returns {string} The expression with all `***` operators replaced by `cpow()` calls.
  */
 function replaceCpow(str) {
 	let starIdx;
 	while ((starIdx = str.indexOf('***')) !== -1) {
-		// --- Opérande gauche : remonter depuis starIdx-1 ---
+		// --- Left operand: scan backward from starIdx-1 ---
 		let leftEnd = starIdx - 1;
 		let leftStart;
 
 		if (str[leftEnd] === ')') {
-			// Groupe parenthésé : trouver la '(' correspondante
+			// Parenthesized group: find the matching '('
 			let depth = 1;
 			let i = leftEnd - 1;
 			while (i >= 0 && depth > 0) {
@@ -554,24 +724,24 @@ function replaceCpow(str) {
 				else if (str[i] === '(') depth--;
 				i--;
 			}
-			let parenStart = i + 1; // position de la '('
-			// Inclure un identifiant précédant la '(' (ex: cos, sin)
+			let parenStart = i + 1; // position of the '('
+			// Include an identifier preceding the '(' (e.g., cos, sin)
 			let idStart = parenStart;
 			while (idStart > 0 && /[a-zA-Z_$]/.test(str[idStart - 1])) idStart--;
 			leftStart = idStart;
 		} else {
-			// Identifiant ou nombre
+			// Identifier or number
 			let i = leftEnd;
 			while (i > 0 && /[\w$.]/.test(str[i - 1])) i--;
 			leftStart = i;
 		}
 
-		// --- Opérande droit : avancer depuis starIdx+3 ---
+		// --- Right operand: scan forward from starIdx+3 ---
 		let rightStart = starIdx + 3;
 		let rightEnd;
 
 		if (str[rightStart] === '(') {
-			// Groupe parenthésé
+			// Parenthesized group
 			let depth = 1;
 			let i = rightStart + 1;
 			while (i < str.length && depth > 0) {
@@ -579,12 +749,12 @@ function replaceCpow(str) {
 				else if (str[i] === ')') depth--;
 				i++;
 			}
-			rightEnd = i; // juste après la ')' fermante
+			rightEnd = i; // just after the closing ')'
 		} else {
-			// Identifiant ou nombre, potentiellement suivi de (...)
+			// Identifier or number, potentially followed by (...)
 			let i = rightStart;
 			while (i < str.length && /[\w$.]/.test(str[i])) i++;
-			// Si suivi de '(', inclure le groupe d'arguments
+			// If followed by '(', include the argument group
 			if (i < str.length && str[i] === '(') {
 				let depth = 1;
 				i++;
@@ -600,7 +770,7 @@ function replaceCpow(str) {
 		let left  = str.substring(leftStart, starIdx);
 		let right = str.substring(starIdx + 3, rightEnd);
 
-		// Retirer les parenthèses englobantes superflues sur les opérandes
+		// Remove superfluous wrapping parentheses from operands
 		if (left[0] === '(' && left[left.length - 1] === ')' && isBalancedWrap(left)) {
 			left = left.substring(1, left.length - 1);
 		}
@@ -613,17 +783,29 @@ function replaceCpow(str) {
 	return str;
 }
 
-/** Vérifie que les parenthèses extérieures englobent bien toute l'expression */
+/**
+ * Checks whether the outer parentheses of a string wrap the entire expression.
+ * Returns false if the opening parenthesis closes before the end of the string.
+ * @param {string} s - The string to check (expected to start with '(' and end with ')').
+ * @returns {boolean} True if the outer parentheses encompass the whole expression.
+ */
 function isBalancedWrap(s) {
 	let depth = 0;
 	for (let i = 0; i < s.length - 1; i++) {
 		if (s[i] === '(') depth++;
 		else if (s[i] === ')') depth--;
-		if (depth === 0) return false; // la '(' initiale se ferme avant la fin
+		if (depth === 0) return false; // the initial '(' closes before the end
 	}
 	return true;
 }
 
+/**
+ * Normalizes a single equation expression string by applying `replaceCpow()` for the `***` operator
+ * and then running all global regex replacements defined in `glo.regs`.
+ * A lone apostrophe is treated as "0".
+ * @param {string} expReg - The equation expression to normalize.
+ * @returns {string} The normalized expression.
+ */
 function regOne(expReg) {
 	if (expReg == "'") {
 		expReg = "0";
@@ -638,19 +820,34 @@ function regOne(expReg) {
     return expReg;
 }
 
-function reg_inv(f, toInv_1, toInv_2){
-	var reg_toInv_1 = new RegExp(toInv_1, "g");
-	var reg_toInv_tmp = new RegExp(toInv_1 + "_tmp", "g");
-	var reg_toInv_2 = new RegExp(toInv_2, "g");
+/**
+ * Swaps all occurrences of two variable names in every property of the given object.
+ * Uses a temporary placeholder to avoid double-replacement.
+ * @param {Object.<string, string>} f - An object whose string values contain the variables to swap.
+ * @param {string} toInv1 - The first variable name.
+ * @param {string} toInv2 - The second variable name.
+ * @returns {Object.<string, string>} The same object with variables swapped.
+ */
+function regInv(f, toInv1, toInv2){
+	var regToInv1 = new RegExp(toInv1, "g");
+	var regToInvTmp = new RegExp(toInv1 + "_tmp", "g");
+	var regToInv2 = new RegExp(toInv2, "g");
 	for(var prop in f){
-		f[prop] = f[prop].replace(reg_toInv_1, toInv_2 + "_tmp");
-		f[prop] = f[prop].replace(reg_toInv_2, toInv_1);
-		f[prop] = f[prop].replace(reg_toInv_tmp, toInv_2);
+		f[prop] = f[prop].replace(regToInv1, toInv2 + "_tmp");
+		f[prop] = f[prop].replace(regToInv2, toInv1);
+		f[prop] = f[prop].replace(regToInvTmp, toInv2);
 	}
 
 	return f;
 }
 
+/**
+ * Computes a centered square bounding box for image/video export based on canvas dimensions
+ * and the current video crop range setting.
+ * @param {number} [margin=20] - Additional margin in pixels added to the crop area.
+ * @param {number} [correction=1] - A scaling correction factor applied to the coefficient.
+ * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box in canvas coordinates.
+ */
 function getFixedExportBounds(margin = 20, correction = 1) {
     const w = glo.canvas.width;
     const h = glo.canvas.height;
@@ -667,6 +864,15 @@ function getFixedExportBounds(margin = 20, correction = 1) {
     };
 }
 
+/**
+ * Creates a video recorder that captures a cropped region of the BabylonJS canvas each frame.
+ * Doubles the hardware resolution during recording for higher quality output.
+ * Returns an object with `start()`, `stop()`, and `isRecording` members.
+ * @param {BABYLON.Mesh} mesh - The mesh being recorded (used for context).
+ * @param {BABYLON.Scene} scene - The BabylonJS scene to observe for after-render callbacks.
+ * @param {number} [fps=60] - The target frames per second for the recording.
+ * @returns {{start: Function, stop: Function, isRecording: boolean}} The recorder control object.
+ */
 function createMeshRecorder(mesh, scene, fps = 60) {
     const sourceCanvas = glo.engine.getRenderingCanvas();
     const captureCanvas = document.createElement('canvas');
@@ -677,6 +883,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
     let observer = null;
     let bounds = null;
 
+    /**
+     * Computes the centered square crop bounds based on the source canvas dimensions
+     * and the current video box range setting. Clamps values to canvas boundaries.
+     * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box.
+     */
     function computeBounds() {
         const sw = sourceCanvas.width;
         const sh = sourceCanvas.height;
@@ -693,6 +904,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
         };
     }
 
+    /**
+     * Initializes and starts the MediaRecorder, sets up the capture canvas,
+     * and registers an after-render observer to copy frames from the source canvas.
+     * On stop, downloads the recorded video as a file.
+     */
     function startRecording() {
         bounds = computeBounds();
         captureCanvas.width = bounds.width;
@@ -748,14 +964,17 @@ function createMeshRecorder(mesh, scene, fps = 60) {
     }
 
     return {
+        /**
+         * Starts mesh recording by doubling hardware resolution and beginning capture after 2 frames.
+         */
         start() {
-            // Ancrer l'espace GUI à la taille CSS affichée avant de doubler
-            // la résolution hardware, pour éviter le décalage des contrôles.
+            // Anchor the GUI space to the displayed CSS size before doubling
+            // the hardware resolution, to prevent control misalignment.
             glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
             glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
             glo.engine.setHardwareScalingLevel(1 / 2);
 
-            // Attendre 2 frames pour que le resize soit stabilisé
+            // Wait 2 frames for the resize to stabilize
             scene.onAfterRenderObservable.addOnce(() => {
                 scene.onAfterRenderObservable.addOnce(() => {
                     startRecording();
@@ -763,6 +982,9 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             });
         },
 
+        /**
+         * Stops the active media recording and restores normal scaling.
+         */
         stop() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
@@ -776,12 +998,21 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             }
         },
 
+        /**
+         * Returns whether the media recorder is currently recording.
+         * @returns {boolean}
+         */
         get isRecording() {
             return mediaRecorder?.state === 'recording';
         }
     };
 }
 
+/**
+ * Updates or creates the video crop box overlay in the GUI.
+ * Displays a yellow rectangle indicating the area that will be captured during recording.
+ * Positions the rectangle based on the current export bounds relative to the canvas center.
+ */
 function updateVideoCropBox() {
   if (glo.videoCropBox) {
     glo.videoCropBox.dispose();
@@ -800,8 +1031,8 @@ function updateVideoCropBox() {
   rect.width  = bounds.width + "px";
   rect.height = bounds.height + "px";
   
-  // Convertir de coordonnées écran (0,0 = top-left) 
-  // vers coordonnées GUI centrées (0,0 = center)
+  // Convert from screen coordinates (0,0 = top-left)
+  // to centered GUI coordinates (0,0 = center)
   const centerX = bounds.x + bounds.width / 2;
   const centerY = bounds.y + bounds.height / 2;
   
@@ -817,12 +1048,19 @@ function updateVideoCropBox() {
   rect.isVisible = true;
 }
 
+/**
+ * Hides the video crop box overlay if it exists.
+ */
 function hideVideoCropBox() {
   if (glo.videoCropBoxGUI) {
     glo.videoCropBoxGUI.isVisible = false;
   }
 }
 
+/**
+ * Toggles video recording on or off. When starting, creates a new mesh recorder
+ * and begins capturing. When stopping, finalizes and downloads the recorded video.
+ */
 function switchRecordingVideo(){
 	glo.video.recording = !glo.video.recording;
 
@@ -835,11 +1073,24 @@ function switchRecordingVideo(){
 	}
 }
 
+/**
+ * Parses a font size value, accepting either a number or a string (e.g., "14px").
+ * @param {number|string} fontSize - The font size to parse.
+ * @returns {number} The numeric font size value, or 0 if parsing fails.
+ */
 function parseFontSize(fontSize) {
     if (typeof fontSize === 'number') return fontSize;
     return parseFloat(fontSize) || 0;
 }
 
+/**
+ * Applies font family, weight, and optional size adjustment to a GUI control.
+ * Handles both controls with a `textBlock` property and those with direct font properties.
+ * @param {Object} control - The BabylonJS GUI control to style.
+ * @param {string} fontFamily - The CSS font family name to apply.
+ * @param {number} [fontWeight=400] - The CSS font weight value.
+ * @param {number} [fontSizeToAdd=0] - Additional pixels to add to the current font size. If 0, font size is unchanged.
+ */
 function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
 	if (control.textBlock) {
         control.textBlock.fontFamily = fontFamily;
@@ -857,6 +1108,13 @@ function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
     }
 }
 
+/**
+ * Applies font styling to all header controls (excluding radio and title classes).
+ * Title controls receive an extra +300 font weight boost.
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The base CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('header').haveNotThisClass('radio').haveNotThisClass('title').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
@@ -865,6 +1123,12 @@ function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false)
       applyFont(control, fontFamily, fontWeight+300, fontSizeToAdd);
   });
 }
+/**
+ * Applies font settings to all button controls (excluding radio buttons).
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
@@ -872,11 +1136,21 @@ function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false)
   glo.allControls.getByName('but_goBack').textBlock.fontSize = '20px';
   glo.allControls.getByName('but_goTo').textBlock.fontSize   = '20px';
 }
+/**
+ * Applies font settings to all input controls.
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToInputs(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('input').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
   });
 }
+/**
+ * Applies font weight and theme colors to headers and titles.
+ * @param {number} [fontWeight=600] - The CSS font weight for title controls.
+ */
 function applyFontStyleToTitle(fontWeight = 600) {
 	glo.allControls.haveThisClass('header').haveNotThisClass('title').forEach(control => {
 	  control.color = glo.theme.header.text.color;
@@ -887,17 +1161,30 @@ function applyFontStyleToTitle(fontWeight = 600) {
   });
   glo.allControls.haveThisClass('h1').forEach(control => { control.fontSize = 48; });
 }
+/**
+ * Customizes bar offset and thumb width for all slider controls.
+ * @param {string} barOffset - The bar offset value (e.g. "6px").
+ * @param {string|boolean} [thumbWidth=false] - The thumb width value, or false to keep default.
+ */
 function customSlidersBar(barOffset, thumbWidth = false) {
   glo.allControls.haveThisClass('slider').forEach(control => {
       control.barOffset = barOffset;
       if(thumbWidth) control.thumbWidth = thumbWidth;
   });
 }
+/**
+ * Sets height on all non-radio button controls.
+ * @param {number} [height=glo.theme.button.height] - The button height in pixels.
+ */
 function applyHeightToButtons(height = glo.theme.button.height){
 	glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(button => { button.height = `${height}px`; });
 }
 
-function styleUI(fontSizeToAdd = -1){		
+/**
+ * Applies complete UI styling (fonts, heights, slider bars) to all controls.
+ * @param {number} [fontSizeToAdd=-1] - Additional pixels to add to font sizes.
+ */
+function styleUI(fontSizeToAdd = -1){
 	applyFontToHeaders('Poppins', 400, fontSizeToAdd);
     applyFontToButtons('Poppins', 400, fontSizeToAdd);
     applyHeightToButtons();

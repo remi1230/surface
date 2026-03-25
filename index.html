@@ -41,61 +41,398 @@
     <canvas id="renderCanvas" touch-action="none"></canvas>
   </div>
 
-  <div id="helpModal" class="modal" style="min-width: 75%;  margin-top: -2%; ">
+  <div id="helpModal" class="modal">
     <div class="modal-content">
-      <h1 class="modal-title center-align" id="helpModalLabel" style="padding: 12px; ">HELP</h1>
-      <div id="intro">
-        <h3 class="center-align">Play with curved surfaces, write an equation f(u,v) in the x, y, z input fields</h3>
-      </div>
-      <div class="row">
-        <div class="col m10 s12 offset-m1">
-          <div id="help_interface_container">
-            <div id="fonctions">
-              <h4>List of normal deformation functions :</h4>
-              <div class="row" id="liste_fonctions">
-                <div class="col m6 s12">
-                  <h6 class="fonction_title"><kbd class="functions_list">m(coeff)</kbd></h6>
-                  <span>cos(x*coeff) * cos(y*coeff) * cos(z*coeff)</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">o(coeff)</kbd></h6>
-                  <span>cos(x*coeff) + cos(y*coeff) + cos(z*coeff)</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">a(coeff)</kbd></h6>
-                  <span>cos(coeff * x) * sin(coeff * y)</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">b(coeff)</kbd></h6>
-                  <span>hypot(cos(x), cos(y), cos(z))</span>
+      <button class="help-close-btn" id="helpCloseBtn">&times;</button>
+      <div class="help-layout">
 
-                  <h6 class="fonction_title"><kbd class="functions_list">q(GenType, GenType, GenType)</kbd></h6>
-                  <span>mix(GenType, GenType, GenType)</span>
-                </div>
-                
-                <div class="col m6 s12">
-                  <h6 class="fonction_title"><kbd class="functions_list">ce(coeff)</kbd></h6>
-                  <span>cos(exp(coeff*abs(x))) * cos(exp(coeff*abs(y))) * cos(exp(coeff*abs(z)))</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">hce(coeff)</kbd></h6>
-                  <span>hypot(ce(coeff))</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">h(val1, ...val4)</kbd></h6>
-                  <span>hypot(val1, ...val4)</span>
-                  
-                  <h6 class="fonction_title"><kbd class="functions_list">lcr(x1, y1, z1, x2, y2, z2)</kbd></h6>
-                  <span>Hypot(cross(v1, v2))</span>
+        <!-- Sidebar navigation -->
+        <nav class="help-sidebar">
+          <h2>HELP</h2>
+          <a href="#" data-section="help-start" class="active">Getting Started</a>
+          <a href="#" data-section="help-deform">Deformation Functions</a>
+          <a href="#" data-section="help-macros">Writing Shortcuts</a>
+          <a href="#" data-section="help-keys">Keyboard Shortcuts</a>
+          <a href="#" data-section="help-coords">Coordinate Systems</a>
+          <a href="#" data-section="help-shaders">Shader Editor</a>
+          <a href="#" data-section="help-symmetry">Symmetry &amp; Transforms</a>
+          <a href="#" data-section="help-io">Import / Export</a>
+        </nav>
 
-                  <h6 class="fonction_title"><kbd class="functions_list">r(GenType, GenType, GenType)</kbd></h6>
-                  <span>smoothstep(GenType, GenType, GenType)</span>
+        <!-- Content area -->
+        <div class="help-body">
 
-                  <h6 class="fonction_title"><kbd class="functions_list">g(GenType, GenType)</kbd></h6>
-                  <span>step(GenType, GenType)</span>
-                </div>
-              </div>
-              <div class="row" ><h4>Normal deformation consists of displacing each vertex of a mesh in the direction perpendicular to its surface.</h4></div>
-            </div>
+          <!-- ========== GETTING STARTED ========== -->
+          <div id="help-start" class="help-section active">
+            <h3>Getting Started</h3>
+            <p>SURFACE lets you create and explore parametric surfaces in real time. Write a mathematical equation <strong>f(u, v)</strong> in the X, Y, Z input fields and the mesh will update instantly.</p>
+
+            <h4>Quick start</h4>
+            <ul>
+              <li>Pick a <strong>form</strong> from the radio list on the left (Catenoid, Torus, Mobius...)</li>
+              <li>Adjust the <strong>U / V range</strong> sliders to change how much of the surface is drawn</li>
+              <li>Adjust the <strong>Steps U / V</strong> sliders to change mesh resolution</li>
+              <li>Edit the <strong>X, Y, Z equations</strong> directly to define a custom surface</li>
+              <li>Use <strong>variables A&ndash;M</strong> (right panel) as real-time parameters in your equations</li>
+            </ul>
+
+            <h4>Available variables</h4>
+            <table class="help-func-table">
+              <tr><th>Variable</th><th>Description</th></tr>
+              <tr><td><kbd>u, v</kbd></td><td>Parametric coordinates of the surface</td></tr>
+              <tr><td><kbd>x, y, z</kbd></td><td>Cartesian vertex position</td></tr>
+              <tr><td><kbd>xN, yN, zN</kbd></td><td>Vertex normal components</td></tr>
+              <tr><td><kbd>t</kbd></td><td>Time (animated)</td></tr>
+              <tr><td><kbd>A &ndash; M</kbd></td><td>User-adjustable mesh variable sliders</td></tr>
+              <tr><td><kbd>P, Q, S, T, U</kbd></td><td>Shader variable sliders</td></tr>
+              <tr><td><kbd>pi</kbd></td><td>&pi; &asymp; 3.14159</td></tr>
+              <tr><td><kbd>ep</kbd></td><td>Euler's number e &asymp; 2.71828</td></tr>
+            </table>
+
+            <div class="help-note">Normal deformation displaces each vertex of the mesh in the direction perpendicular to its surface, creating organic-looking bumps, waves, and patterns.</div>
           </div>
-        </div>
-      </div>
-    </div>
+
+          <!-- ========== DEFORMATION FUNCTIONS ========== -->
+          <div id="help-deform" class="help-section">
+            <h3>Deformation Functions</h3>
+            <p>These functions are available in both the equation inputs and the normal deformation shader. The variables <kbd>gx, gy, gz</kbd> refer to vertex position, and <kbd>gu, gv</kbd> to parametric coordinates.</p>
+
+            <h4>Surface deformation</h4>
+            <table class="help-func-table">
+              <tr><th>Function</th><th>Formula</th><th>Description</th></tr>
+              <tr>
+                <td><kbd>m()</kbd><br><kbd>m(c)</kbd><br><kbd>m(cx,cy,cz)</kbd></td>
+                <td>cos(cx&middot;x) &times; cos(cy&middot;y) &times; cos(cz&middot;z)</td>
+                <td>Multiplicative cosine &ndash; creates a 3D grid-like pattern</td>
+              </tr>
+              <tr>
+                <td><kbd>o()</kbd><br><kbd>o(c)</kbd><br><kbd>o(cx,cy,cz)</kbd></td>
+                <td>cos(cx&middot;x) + cos(cy&middot;y) + cos(cz&middot;z)</td>
+                <td>Additive cosine &ndash; creates gyroid / Schwarz-like shapes</td>
+              </tr>
+              <tr>
+                <td><kbd>f(nc, np)</kbd><br><kbd>f(nc, npx, npy, npz)</kbd><br><kbd>f(ncx,npx,ncy,npy,ncz,npz)</kbd></td>
+                <td>cos(nc&middot;x + np) &times; cos(nc&middot;y + np) &times; cos(nc&middot;z + np)</td>
+                <td>Phase-shifted cosine product &ndash; like m() with phase offset</td>
+              </tr>
+              <tr>
+                <td><kbd>a()</kbd><br><kbd>a(n)</kbd><br><kbd>a(nU, nV)</kbd></td>
+                <td>cos(nU&middot;u) &times; sin(nV&middot;v)</td>
+                <td>Angular UV deformation &ndash; pattern tied to parametric coords</td>
+              </tr>
+              <tr>
+                <td><kbd>b()</kbd><br><kbd>b(c)</kbd><br><kbd>b(cx,cy,cz)</kbd></td>
+                <td>length(cos(cx&middot;x), cos(cy&middot;y), cos(cz&middot;z))</td>
+                <td>Euclidean length of cosines</td>
+              </tr>
+              <tr>
+                <td><kbd>ce(c)</kbd></td>
+                <td>cos(e<sup>c|x|</sup>) &times; cos(e<sup>c|y|</sup>) &times; cos(e<sup>c|z|</sup>)</td>
+                <td>Exponential cosine &ndash; rapid frequency increase outward</td>
+              </tr>
+              <tr>
+                <td><kbd>se(c)</kbd></td>
+                <td>sin(e<sup>c|x|</sup>) &times; sin(e<sup>c|y|</sup>) &times; sin(e<sup>c|z|</sup>)</td>
+                <td>Exponential sine &ndash; same as ce() but with sin</td>
+              </tr>
+            </table>
+
+            <h4>Fragment shader only (color shader)</h4>
+            <table class="help-func-table">
+              <tr><th>Function</th><th>Formula</th><th>Description</th></tr>
+              <tr>
+                <td><kbd>hc(x,y,z)</kbd><br><kbd>hc(vec3 p)</kbd><br><kbd>hc(x,y,z,c)</kbd></td>
+                <td>length(cos(x), cos(y), cos(z))</td>
+                <td>Hypot of cosines &ndash; for color patterns</td>
+              </tr>
+            </table>
+
+            <h4>Math utilities</h4>
+            <table class="help-func-table">
+              <tr><th>Function</th><th>Formula</th><th>Description</th></tr>
+              <tr><td><kbd>c(v)</kbd></td><td>cos(v)</td><td>Short cosine alias</td></tr>
+              <tr><td><kbd>s(v)</kbd></td><td>sin(v)</td><td>Short sine alias</td></tr>
+              <tr><td><kbd>ca(v)</kbd></td><td>0.5 &times; cos(v) + 0.5</td><td>Cosine normalized to [0, 1]</td></tr>
+              <tr><td><kbd>sa(v)</kbd></td><td>0.5 &times; sin(v) + 0.5</td><td>Sine normalized to [0, 1]</td></tr>
+              <tr><td><kbd>h(x,y)</kbd> / <kbd>h(x,y,z)</kbd></td><td>length(vec2/3(...))</td><td>Euclidean distance (hypot)</td></tr>
+              <tr><td><kbd>q(a, b, t)</kbd></td><td>mix(a, b, t)</td><td>Linear interpolation</td></tr>
+              <tr><td><kbd>r(e0, e1, x)</kbd></td><td>smoothstep(e0, e1, x)</td><td>Smooth Hermite interpolation</td></tr>
+              <tr><td><kbd>g(edge, x)</kbd></td><td>step(edge, x)</td><td>Step function (0 or 1)</td></tr>
+              <tr><td><kbd>cpow(v, p)</kbd></td><td>sign(v) &times; |v|<sup>p</sup></td><td>Signed power (preserves sign)</td></tr>
+            </table>
+
+            <h4>Vector operations</h4>
+            <table class="help-func-table">
+              <tr><th>Function</th><th>Formula</th><th>Description</th></tr>
+              <tr><td><kbd>cr(x1,y1,z1, x2,y2,z2)</kbd></td><td>cross(v1, v2)</td><td>Cross product (returns vec3)</td></tr>
+              <tr><td><kbd>crl(x1,y1,z1, x2,y2,z2)</kbd></td><td>length(cross(v1, v2))</td><td>Cross product length</td></tr>
+              <tr><td><kbd>cc(x1,y1, x2,y2)</kbd></td><td>dot(v1, v2)</td><td>Dot product (2D or 3D)</td></tr>
+            </table>
+          </div>
+
+          <!-- ========== WRITING SHORTCUTS ========== -->
+          <div id="help-macros" class="help-section">
+            <h3>Writing Shortcuts</h3>
+            <p>The equation parser automatically expands shorthand notations. This lets you write compact formulas that get expanded before compilation.</p>
+
+            <h4>Trigonometric shortcuts</h4>
+            <table class="help-func-table">
+              <tr><th>You write</th><th>Expands to</th><th>Description</th></tr>
+              <tr><td><kbd>cu</kbd></td><td>cos(u)</td><td rowspan="2">c + variable = cos(variable)</td></tr>
+              <tr><td><kbd>cv</kbd></td><td>cos(v)</td></tr>
+              <tr><td><kbd>su</kbd></td><td>sin(u)</td><td rowspan="2">s + variable = sin(variable)</td></tr>
+              <tr><td><kbd>sv</kbd></td><td>sin(v)</td></tr>
+              <tr><td><kbd>cx</kbd></td><td>cos(x)</td><td rowspan="3">Also works with x, y, z, t</td></tr>
+              <tr><td><kbd>sy</kbd></td><td>sin(y)</td></tr>
+              <tr><td><kbd>ct</kbd></td><td>cos(t)</td></tr>
+            </table>
+
+            <h4>Combined UV shortcuts</h4>
+            <table class="help-func-table">
+              <tr><th>You write</th><th>Expands to</th></tr>
+              <tr><td><kbd>cufv</kbd> or <kbd>cvfu</kbd></td><td>cos(u&times;v)</td></tr>
+              <tr><td><kbd>cudv</kbd> or <kbd>cvdu</kbd></td><td>cos(u/v)</td></tr>
+              <tr><td><kbd>cupv</kbd> or <kbd>cvpu</kbd></td><td>cos(u+v)</td></tr>
+              <tr><td><kbd>cumv</kbd></td><td>cos(u&minus;v)</td></tr>
+              <tr><td><kbd>sufv</kbd> or <kbd>svfu</kbd></td><td>sin(u&times;v)</td></tr>
+              <tr><td><kbd>sudv</kbd> or <kbd>svdu</kbd></td><td>sin(u/v)</td></tr>
+              <tr><td><kbd>supv</kbd> or <kbd>svpu</kbd></td><td>sin(u+v)</td></tr>
+              <tr><td><kbd>sumv</kbd></td><td>sin(u&minus;v)</td></tr>
+            </table>
+
+            <h4>Implicit multiplication</h4>
+            <p>Variables and parentheses are automatically multiplied when juxtaposed:</p>
+            <table class="help-func-table">
+              <tr><th>You write</th><th>Expands to</th></tr>
+              <tr><td><kbd>2u</kbd></td><td>2*u</td></tr>
+              <tr><td><kbd>uv</kbd></td><td>u*v</td></tr>
+              <tr><td><kbd>3pi</kbd></td><td>3*pi</td></tr>
+              <tr><td><kbd>AB</kbd></td><td>A*B</td></tr>
+              <tr><td><kbd>)(</kbd></td><td>)*(</td></tr>
+            </table>
+
+            <h4>Other shortcuts</h4>
+            <table class="help-func-table">
+              <tr><th>You write</th><th>Expands to</th><th>Note</th></tr>
+              <tr><td><kbd>R</kbd></td><td>h(x,y,z)</td><td>Radius &ndash; distance from origin</td></tr>
+              <tr><td><kbd>l</kbd></td><td>log</td><td>Natural logarithm</td></tr>
+              <tr><td><kbd>&sup2;</kbd></td><td>**2</td><td>Square</td></tr>
+              <tr><td><kbd>&sup3;</kbd></td><td>**3</td><td>Cube</td></tr>
+              <tr><td><kbd>&ugrave;</kbd></td><td>*3mct</td><td>Time multiplier shortcut</td></tr>
+            </table>
+
+            <div class="help-note">Standalone letters <kbd>a</kbd>, <kbd>b</kbd>, <kbd>o</kbd>, <kbd>m</kbd> (when not part of a word) are expanded to their function call form: a(), b(), o(), m().</div>
+          </div>
+
+          <!-- ========== KEYBOARD SHORTCUTS ========== -->
+          <div id="help-keys" class="help-section">
+            <h3>Keyboard Shortcuts</h3>
+
+            <h4>Camera &amp; View</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">+</span></td><td>Zoom in</td></tr>
+              <tr><td><span class="help-shortcut-key">-</span></td><td>Zoom out</td></tr>
+              <tr><td><span class="help-shortcut-key">Shift</span> + <span class="help-shortcut-key">H</span></td><td>Center camera on origin</td></tr>
+              <tr><td><span class="help-shortcut-key">Shift</span> + <span class="help-shortcut-key">V</span></td><td>Align camera to axis view</td></tr>
+              <tr><td><span class="help-shortcut-key">Shift</span> + <span class="help-shortcut-key">B</span></td><td>Toggle wireframe</td></tr>
+              <tr><td><span class="help-shortcut-key">Alt</span> + <span class="help-shortcut-key">+</span></td><td>Increase auto-rotation speed</td></tr>
+              <tr><td><span class="help-shortcut-key">Alt</span> + <span class="help-shortcut-key">-</span></td><td>Decrease auto-rotation speed</td></tr>
+            </table>
+
+            <h4>UV Parameter Animation</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">7</span> / <span class="help-shortcut-key">8</span></td><td>Animate U &minus; / + (large step)</td></tr>
+              <tr><td><span class="help-shortcut-key">0</span> / <span class="help-shortcut-key">1</span></td><td>Animate U &minus; / + (small step)</td></tr>
+              <tr><td><span class="help-shortcut-key">4</span> / <span class="help-shortcut-key">5</span></td><td>Animate V &minus; / + (large step)</td></tr>
+              <tr><td><span class="help-shortcut-key">6</span> / <span class="help-shortcut-key">9</span></td><td>Animate V &minus; / + (small step)</td></tr>
+              <tr><td><span class="help-shortcut-key">u</span></td><td>Increase mesh resolution</td></tr>
+              <tr><td><span class="help-shortcut-key">j</span></td><td>Decrease mesh resolution</td></tr>
+            </table>
+
+            <h4>Time &amp; Animation</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">a</span></td><td>Toggle pause / play</td></tr>
+              <tr><td><span class="help-shortcut-key">f</span></td><td>Double time speed</td></tr>
+              <tr><td><span class="help-shortcut-key">q</span></td><td>Halve time speed</td></tr>
+            </table>
+
+            <h4>Colors &amp; Display</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">h</span></td><td>Randomize colors</td></tr>
+              <tr><td><span class="help-shortcut-key">"</span></td><td>Special randomize (high variation)</td></tr>
+              <tr><td><span class="help-shortcut-key">*</span></td><td>Initialize color UI</td></tr>
+            </table>
+
+            <h4>Other</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">$</span></td><td>Generate random surface</td></tr>
+              <tr><td><span class="help-shortcut-key">p</span></td><td>Open import dialog</td></tr>
+              <tr><td><span class="help-shortcut-key">'</span></td><td>Toggle UV &harr; XY mode</td></tr>
+              <tr><td><span class="help-shortcut-key">;</span> / <span class="help-shortcut-key">,</span></td><td>Switch writing type &minus; / +</td></tr>
+              <tr><td><span class="help-shortcut-key">&lt;</span></td><td>Toggle form suite mode</td></tr>
+              <tr><td><span class="help-shortcut-key">Shift</span> + <span class="help-shortcut-key">Q</span></td><td>Copy X equation to Y and Z</td></tr>
+            </table>
+
+            <h4>Shader Editor</h4>
+            <table class="help-func-table">
+              <tr><th>Key</th><th>Action</th></tr>
+              <tr><td><span class="help-shortcut-key">Ctrl</span> + <span class="help-shortcut-key">S</span></td><td>Compile shader</td></tr>
+              <tr><td><span class="help-shortcut-key">Ctrl</span> + <span class="help-shortcut-key">D</span></td><td>Duplicate line</td></tr>
+            </table>
+          </div>
+
+          <!-- ========== COORDINATE SYSTEMS ========== -->
+          <div id="help-coords" class="help-section">
+            <h3>Coordinate Systems</h3>
+            <p>SURFACE supports three coordinate systems. The equations you write in X, Y, Z are interpreted differently depending on the active system.</p>
+
+            <h4>Cartesian (default)</h4>
+            <table class="help-func-table">
+              <tr><th>Axis</th><th>Equation</th></tr>
+              <tr><td>X</td><td>x = f(u, v)</td></tr>
+              <tr><td>Y</td><td>y = f(u, v)</td></tr>
+              <tr><td>Z</td><td>z = f(u, v)</td></tr>
+            </table>
+            <p>Direct mapping &ndash; each axis is defined independently as a function of u and v.</p>
+
+            <h4>Spherical</h4>
+            <table class="help-func-table">
+              <tr><th>Input</th><th>Role</th><th>Conversion</th></tr>
+              <tr><td>X &rarr; r</td><td>Radius</td><td>x = r &times; sin(&theta;) &times; cos(&phi;)</td></tr>
+              <tr><td>Y &rarr; &theta;</td><td>Polar angle</td><td>y = r &times; sin(&theta;) &times; sin(&phi;)</td></tr>
+              <tr><td>Z &rarr; &phi;</td><td>Azimuthal angle</td><td>z = r &times; cos(&theta;)</td></tr>
+            </table>
+            <p>Best for spheres, globes, and closed shells.</p>
+
+            <h4>Cylindrical</h4>
+            <table class="help-func-table">
+              <tr><th>Input</th><th>Role</th><th>Conversion</th></tr>
+              <tr><td>X &rarr; r</td><td>Radius</td><td>x = r &times; cos(&theta;)</td></tr>
+              <tr><td>Y &rarr; &theta;</td><td>Angle</td><td>y = r &times; sin(&theta;)</td></tr>
+              <tr><td>Z &rarr; z</td><td>Height</td><td>z = z</td></tr>
+            </table>
+            <p>Best for tubes, spirals, and surfaces of revolution.</p>
+          </div>
+
+          <!-- ========== SHADER EDITOR ========== -->
+          <div id="help-shaders" class="help-section">
+            <h3>Shader Editor</h3>
+            <p>SURFACE includes two GLSL shader editors that let you customize the visual output in real time.</p>
+
+            <h4>Fragment (Color) Shader</h4>
+            <p>Controls the color of each pixel on the mesh surface. The editable zone starts after <kbd>vec3 col = meshBg;</kbd> and ends before <kbd>// __FOOTER_START__</kbd>.</p>
+            <ul>
+              <li><kbd>col</kbd> &ndash; the output color (vec3 RGB)</li>
+              <li><kbd>vPosition</kbd> &ndash; vertex position in world space</li>
+              <li><kbd>vNormal</kbd> &ndash; surface normal</li>
+              <li><kbd>vUV</kbd> &ndash; parametric UV coordinates</li>
+              <li><kbd>uTime</kbd> &ndash; elapsed time</li>
+              <li><kbd>meshBg</kbd> &ndash; default mesh background color</li>
+            </ul>
+
+            <h4>Normal Deformation Shader</h4>
+            <p>Displaces vertices along their normals. The editable zone is between <kbd>float result = 0.0;</kbd> and <kbd>return result;</kbd>.</p>
+            <ul>
+              <li><kbd>result</kbd> &ndash; the displacement amount (float)</li>
+              <li><kbd>x, y, z</kbd> &ndash; vertex position</li>
+              <li><kbd>nx, ny, nz</kbd> &ndash; normal direction</li>
+              <li>All deformation functions (m, o, f, a, b, etc.) are available</li>
+            </ul>
+
+            <h4>Shader management</h4>
+            <ul>
+              <li><strong>Select</strong> &ndash; switch between saved shaders via the dropdown</li>
+              <li><strong>New</strong> &ndash; create a new shader (named via first-line comment <kbd>// My Shader</kbd>)</li>
+              <li><strong>Save</strong> &ndash; save current shader to browser localStorage</li>
+              <li><strong>Delete</strong> &ndash; remove current shader</li>
+              <li><strong>Export / Import</strong> &ndash; download or upload all shaders as a .js file</li>
+              <li><strong>Opt 1, 2, 3</strong> &ndash; toggle shader options (checkboxes)</li>
+            </ul>
+
+            <div class="help-note">Shaders are saved in localStorage. The storage indicator shows "Local" when you have local modifications, or "Server" / "Default" when using the originals.</div>
+          </div>
+
+          <!-- ========== SYMMETRY & TRANSFORMS ========== -->
+          <div id="help-symmetry" class="help-section">
+            <h3>Symmetry &amp; Transformations</h3>
+
+            <h4>Symmetrize</h4>
+            <p>Repeats the mesh along each axis to create symmetric patterns.</p>
+            <table class="help-func-table">
+              <tr><th>Control</th><th>Description</th></tr>
+              <tr><td><kbd>X, Y, Z</kbd></td><td>Number of repetitions along each axis (1 = no repetition, up to 48)</td></tr>
+              <tr><td><kbd>Angle</kbd></td><td>Rotation angle between repetitions</td></tr>
+              <tr><td><kbd>Checkerboard</kbd></td><td>Alternating pattern of repetitions (0 = off)</td></tr>
+              <tr><td><kbd>Scale</kbd></td><td>Scale factor for normal deformation</td></tr>
+              <tr><td><kbd>S order</kbd></td><td>Order in which X, Y, Z symmetries are applied (click to cycle)</td></tr>
+              <tr><td><kbd>S ADD / MUL</kbd></td><td>Additive or multiplicative symmetry blending</td></tr>
+            </table>
+
+            <h4>Transformations</h4>
+            <table class="help-func-table">
+              <tr><th>Transform</th><th>Description</th></tr>
+              <tr><td><kbd>Scaling X/Y/Z</kbd></td><td>Scale the mesh along each axis</td></tr>
+              <tr><td><kbd>Rotation X/Y/Z</kbd></td><td>Rotate the mesh (in radians)</td></tr>
+              <tr><td><kbd>Position X/Y/Z</kbd></td><td>Translate the mesh</td></tr>
+              <tr><td><kbd>Center Symmetry X/Y/Z</kbd></td><td>Move the symmetry center point</td></tr>
+            </table>
+
+            <h4>Blender</h4>
+            <p>Blends two surface components together:</p>
+            <ul>
+              <li><kbd>U (X/Y/Z)</kbd> &ndash; first blend factor per axis</li>
+              <li><kbd>O (X/Y/Z)</kbd> &ndash; second blend factor per axis</li>
+            </ul>
+
+            <h4>Waves</h4>
+            <p>The Waves panel adds normal-based wave deformation with linked sliders:</p>
+            <ul>
+              <li><kbd>Norm X/Y/Z</kbd> &ndash; wave amplitude per axis</li>
+              <li><kbd>n X/Y/Z</kbd> &ndash; wave frequency coefficient per axis</li>
+            </ul>
+
+            <h4>Colors</h4>
+            <table class="help-func-table">
+              <tr><th>Control</th><th>Description</th></tr>
+              <tr><td><kbd>Add R/G/B</kbd></td><td>Add a constant color offset to the shader output</td></tr>
+              <tr><td><kbd>Tint</kbd></td><td>Overall color intensity multiplier (0&ndash;2)</td></tr>
+            </table>
+          </div>
+
+          <!-- ========== IMPORT / EXPORT ========== -->
+          <div id="help-io" class="help-section">
+            <h3>Import / Export</h3>
+
+            <h4>Export formats</h4>
+            <table class="help-func-table">
+              <tr><th>Format</th><th>Description</th><th>Best for</th></tr>
+              <tr><td><kbd>JSON</kbd></td><td>Full parametric surface data (equations, parameters, colors)</td><td>Reloading in SURFACE</td></tr>
+              <tr><td><kbd>OBJ</kbd></td><td>Standard 3D mesh (vertices + faces)</td><td>Blender, Maya, 3D printing prep</td></tr>
+              <tr><td><kbd>STL</kbd></td><td>Triangulated mesh</td><td>3D printing</td></tr>
+            </table>
+
+            <h4>Import</h4>
+            <ul>
+              <li><strong>JSON</strong> &ndash; restores a previously exported SURFACE scene</li>
+              <li><strong>OBJ</strong> &ndash; loads an external 3D mesh (replaces current surface)</li>
+              <li>Example JSON surfaces are available in the import dialog dropdown</li>
+            </ul>
+
+            <h4>Shader files</h4>
+            <ul>
+              <li><strong>Export shaders</strong> &ndash; downloads all fragment/normal shaders as a .js file</li>
+              <li><strong>Import shaders</strong> &ndash; load shaders from a .js file (replace or append)</li>
+            </ul>
+          </div>
+
+        </div><!-- /help-body -->
+      </div><!-- /help-layout -->
+    </div><!-- /modal-content -->
   </div>
 
   <div id="exportModal" class="modal overflow-hidden">
@@ -136,7 +473,7 @@
       <div class="file-field input-field">
         <div class="btn">
           <span>File</span>
-          <input type="file" id="jsonFileUpload" accept=".json" onChange="if(this.value !== ''){ download_JSON_mesh(event); }">
+          <input type="file" id="jsonFileUpload" accept=".json" onChange="if(this.value !== ''){ downloadJsonMesh(event); }">
         </div>
         <div class="file-path-wrapper">
           <input class="file-path validate" type="text">
@@ -183,7 +520,6 @@
           </div>
       </div>
 
-      <!-- Barre de gestion CRUD des shaders -->
       <div class="shader-crud-bar">
           <div class="shader-select-wrapper">
               <select id="shaderSelect" class="browser-default">
@@ -244,7 +580,6 @@
           <span class="editor-status" id="editorStatus"></span>
       </div>
       
-      <!-- Poignées de redimensionnement -->
       <div class="resize-handle resize-handle-n"></div>
       <div class="resize-handle resize-handle-s"></div>
       <div class="resize-handle resize-handle-e"></div>
@@ -271,7 +606,6 @@
           </div>
       </div>
 
-      <!-- Barre de gestion CRUD des shaders -->
       <div class="shader-crud-bar">
           <div class="shader-select-wrapper">
               <select id="shaderSelectNormal" class="browser-default">
@@ -331,8 +665,7 @@
           </a>
           <span class="editor-status" id="editorStatusNormal"></span>
       </div>
-      
-      <!-- Poignées de redimensionnement -->
+
       <div class="resize-handle resize-handle-n"></div>
       <div class="resize-handle resize-handle-s"></div>
       <div class="resize-handle resize-handle-e"></div>

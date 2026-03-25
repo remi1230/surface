@@ -706,6 +706,7 @@ const ShaderCRUDNormal = {
         return false;
     },
 
+    /** Deletes the current normal shader. */
     delete: function() {
         if (normalShaders.length <= 1) {
             updateStatus('Erreur: Impossible de supprimer le dernier shader', true, getById('editorStatusNormal'));
@@ -738,6 +739,7 @@ const ShaderCRUDNormal = {
         this.compileCurrentShader();
     },
 
+    /** Exports all normal shaders as a downloadable JS file. */
     exportAll: function() {
         let content = 'normalShaders = [\n';
         normalShaders.forEach((shader, index) => {
@@ -758,6 +760,10 @@ const ShaderCRUDNormal = {
         updateStatus('Fichier shaders-normal.js téléchargé', false, getById('editorStatusNormal'));
     },
 
+    /**
+     * Imports normal shaders from a file.
+     * @param {Event} e - The file input change event.
+     */
     importFromFile: function(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -806,6 +812,7 @@ const ShaderCRUDNormal = {
         e.target.value = '';
     },
 
+    /** Compiles the currently selected normal shader. */
     compileCurrentShader: function() {
         normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
 

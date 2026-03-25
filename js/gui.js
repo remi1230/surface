@@ -1878,6 +1878,9 @@ function addBlenderSliders(){
 
   makePanelTitle('BlenderPanelTitle', 'Blend', 24, 'eighth noAutoParam');
 
+  /**
+   * Sends blender values to shader or rebuilds ribbon.
+   */
   function updateBlender() {
     if (glo.ribbon && glo.ribbon.material && glo.ribbon.material.setVector4) {
       glo.ribbon.shaderMeshInstance.updateBlender();
@@ -1896,6 +1899,9 @@ function addBlenderSliders(){
   });//panel.background='green';
 }
 
+/**
+ * Creates sixth panel with misc sliders, UV one-sign toggles, and time controls.
+ */
 function addSixthPanelSliders(){
   let panelSliders                   = new BABYLON.GUI.StackPanel();
   let panelButton                    = new BABYLON.GUI.StackPanel();
@@ -1903,12 +1909,30 @@ function addSixthPanelSliders(){
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
   let panelTimeButtons               = new BABYLON.GUI.StackPanel();
 
+  /**
+   * Helper to create and register a GUI panel.
+   * @param {BABYLON.GUI.StackPanel} panel - Panel control to configure
+   * @param {string} name - Panel identifier
+   * @param {number} top - Top position in percent
+   * @param {boolean} [isVertical=true] - Whether the panel layout is vertical
+   * @param {number} [width=20] - Panel width in percent
+   * @param {number} [height] - Panel height in percent
+   * @param {string} [numUI='sixth'] - CSS class identifier for UI grouping
+   * @param {number} [paddingLeft=0] - Left padding
+   * @param {number} [left=0] - Left offset
+   */
   function addPanel(panel, name, top, isVertical = true, width = 20, height = undefined, numUI = 'sixth', paddingLeft = 0, left = 0){
     parmamControl(panel, name, `panel right ${numUI} noAutoParam`,
       {isVertical: isVertical, hAlign: 'right', vAlign: 'top', w: width, h: height, t: top, pR: 0.5, pL: paddingLeft, l: left}
     );
     glo.advancedTexture.addControl(panel);
   }
+  /**
+   * Returns a counter function incrementing by a fixed step.
+   * @param {number} start - Initial value
+   * @param {number} increment - Step size for each call
+   * @returns {Function} Counter function returning the next incremented value
+   */
   function createIncrementer(start, increment) {
     let count = start - increment;
     return function() {
@@ -1924,6 +1948,18 @@ function addSixthPanelSliders(){
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelTimeButtons, 'panelTimeButtons', 50, false, 20, 4, 'eleventh', 1.42);
 
+  /**
+   * Creates a slider with header and event callback for the sixth panel.
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel to add the slider to
+   * @param {string} name - Slider identifier
+   * @param {string} text - Display label for the slider header
+   * @param {number} val - Initial slider value
+   * @param {number} decimalPrecision - Number of decimal places to display
+   * @param {number} min - Minimum slider value
+   * @param {number} max - Maximum slider value
+   * @param {number} step - Slider step increment
+   * @param {Function} event - Callback invoked with the slider value on change
+   */
   function addSlider(parent, name, text, val, decimalPrecision, min, max, step, event){
     var header = new BABYLON.GUI.TextBlock();
     parmamControl(header, "header_" + name, 'header right sixth noAutoParam', { text: text + ": " + val, color: 'white', fontSize: 14, h: 20, pT: 4, }, true);

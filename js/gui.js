@@ -2269,6 +2269,11 @@ function addTransformationSliders(){
     }
   });
 
+  /**
+   * Updates color addition vector on the shader.
+   * @param {string} color - Color channel ('r', 'g', or 'b')
+   * @param {number} value - Color value to set
+   */
   function updColorsVec3(color, value) {
     glo.shaders.colors.toAdd[color] = value;
     if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
@@ -2294,6 +2299,9 @@ function addTransformationSliders(){
     });
 }
 
+/**
+ * Creates wave controls with linked XYZ sliders for norm parameters.
+ */
 function addNinthPanelControls(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'ninethPanelPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 41, pR: 0, pL: 0.5});
@@ -2301,7 +2309,26 @@ function addNinthPanelControls(){
 
   makePanelTitle("waveTitlePanel", "Waves", 37.5, "eighth noAutoParam");
 
-  // Slider combiné XYZ avec slider secondaire lié (n)
+  /**
+   * Creates a combined XYZ slider group with a secondary linked slider.
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel
+   * @param {string} baseName - Base name for control identifiers
+   * @param {string} textMain - Label for the main slider
+   * @param {string} textSecondary - Label for the secondary slider
+   * @param {number} valMain - Initial value for the main slider
+   * @param {number} valSecondary - Initial value for the secondary slider
+   * @param {number} decimalPrecision - Number of decimal places to display
+   * @param {number} minMain - Minimum value for the main slider
+   * @param {number} maxMain - Maximum value for the main slider
+   * @param {number} stepMain - Step increment for the main slider
+   * @param {number} minSecondary - Minimum value for the secondary slider
+   * @param {number} maxSecondary - Maximum value for the secondary slider
+   * @param {number} stepSecondary - Step increment for the secondary slider
+   * @param {Function} getMainValue - Getter for main slider value by axis
+   * @param {Function} setMainValue - Setter for main slider value by axis
+   * @param {Function} getSecondaryValue - Getter for secondary slider value by axis
+   * @param {Function} setSecondaryValue - Setter for secondary slider value by axis
+   */
   function addLinkedXYZSliders(parent, baseName, textMain, textSecondary, valMain, valSecondary, decimalPrecision, minMain, maxMain, stepMain, minSecondary, maxSecondary, stepSecondary, getMainValue, setMainValue, getSecondaryValue, setSecondaryValue){
     // Container principal
     var groupContainer = new BABYLON.GUI.StackPanel();
@@ -2410,15 +2437,26 @@ function addNinthPanelControls(){
     sliderSecondary.startValue = valSecondary;
     groupContainer.addControl(sliderSecondary);
 
-    // === FONCTIONS UTILITAIRES ===
+    /**
+     * Returns array of currently checked axis names.
+     * @returns {string[]} Array of checked axis names ('x', 'y', 'z')
+     */
     function getCheckedAxes(){
       return ['x', 'y', 'z'].filter(axis => axisState[axis].checked);
     }
 
+    /**
+     * Returns the color string for an axis (red/green/blue).
+     * @param {string} axis - Axis name ('x', 'y', or 'z')
+     * @returns {string} Hex color string for the axis
+     */
     function getAxisColor(axis){
       return axis === 'x' ? '#ff6666' : axis === 'y' ? '#66ff66' : '#6666ff';
     }
 
+    /**
+     * Updates header colors and slider values based on checked axes.
+     */
     function updateDisplay(){
       var checked = getCheckedAxes();
       
@@ -2537,6 +2575,10 @@ function addNinthPanelControls(){
   );
 }
 
+/**
+ * Sets equation inputs to morphing interpolation between current and target form.
+ * @param {string} targetFormName - Name of the target form to morph towards
+ */
 function inputEquaToMorphing(targetFormName){
   const originFormName = glo.radiosFormes.getCheck().header.getDescendants()[1].text;
   const targetForm     = glo.formes.getFormByName(targetFormName, glo.coordsType);
@@ -2571,9 +2613,15 @@ function inputEquaToMorphing(targetFormName){
   remakeRibbon();
 }
 
+/**
+ * Applies button design to all non-noAutoParam buttons.
+ */
 function paramButtons(){
   glo.allControls.haveThisClass('button').haveNotThisClass('noAutoParam').map(bt => { designButton(bt); });
 }
+/**
+ * Configures layout params for all GUI controls (headers, panels, sliders, inputs).
+ */
 function paramControls(){
   glo.allControls.haveTheseClasses('header').haveNotThisClass('noAutoParam').map(hd => {
     parmamControl(hd, '', '', { h: 20, color: 'white', fontSize: 16, }, true, false);
@@ -2609,19 +2657,36 @@ function paramControls(){
   glo.allControls.haveThisClass('input').map(input => { input.subscribeToFocusAndBlurEvents(); });
 }
 
+/**
+ * Shows/hides all first-class GUI controls.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
 function toggleGuiControls(state){
   glo.allControls.haveTheseClasses('first').map(ct => {
     if(ct.name != "but_hide" && ct.name != "hideSwitchHelp"){ ct.isVisible = state; ct.isEnabled = state; }
   });
 }
+/**
+ * Shows/hides main GUI panels, headers, and pickers.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
 function toggleGuiControlsForSwitch(state){
   glo.allControls.haveTheseClasses('panel', 'onlyMainGui').map(pn => { pn.isVisible = state; pn.isEnabled = state; });
   glo.allControls.haveTheseClasses('header', 'onlyMainGui').map(hd => { hd.isVisible = state; hd.isEnabled = state; });
   glo.allControls.haveTheseClasses('picker', 'onlyMainGui').map(pr => { pr.isVisible = state; pr.isEnabled = state; });
 }
+/**
+ * Shows/hides second-class GUI controls.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ */
 function toggleGuiControlsSuit(state){
   glo.allControls.haveThisClass('second').map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }
+/**
+ * Shows/hides GUI controls matching a given CSS class.
+ * @param {boolean} state - Whether to show (true) or hide (false) the controls
+ * @param {string} theClass - CSS class name to match controls against
+ */
 function toggleGuiControlsByClass(state, theClass){
   glo.allControls.haveThisClass(theClass).map(ct => { ct.isVisible = state; ct.isEnabled = state; });
 }

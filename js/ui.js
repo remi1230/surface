@@ -461,11 +461,23 @@ function resetEquationsParamSliders(){
 		input.text = '';
 	});
 	for(let prop in glo.params){
-		if(prop.includes('text_input')){ glo.params[prop] = ''; }
+		if(prop.includes('textInput')){glo.params[prop] = ''; }
 		else if(prop.includes('symmetrize') && !prop.includes('symmetrizeAngle')){ glo.params[prop] = 0; }
 	}
 	glo.allControls.getByName('u').value = PI;
 	glo.allControls.getByName('v').value = PI;
+
+	['X', 'Y', 'Z', 'Alpha', 'Beta', 'Theta', 'EvalX', 'EvalY'].forEach(inputVar => {
+		glo['input' + inputVar].text = '';
+	});
+
+	glo.resolutionCoeff = 4;
+
+	const res = 512;
+	glo.sliderStepsU.value = res;
+	glo.sliderStepsV.value = res;
+
+	glo.inputSymR.text = '';	
 }
 
 /**

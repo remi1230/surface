@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
    initExportModal();
    initImportModal();
+   initHelpModal();
    document.querySelectorAll('.modal:not(#exportModal):not(#importModal)').forEach(el => M.Modal.init(el));
    document.querySelectorAll('select').forEach(el => M.FormSelect.init(el));
    glo.formes.setStartForm();

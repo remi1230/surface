@@ -669,3 +669,35 @@ function updateStatus(message, isError = false, status = getById('editorStatus')
         status.style.color = isError ? '#ef5350' : '#4caf50';
     }
 }
+
+/**
+ * Initializes the help modal sidebar navigation.
+ * Handles section switching and close button behavior.
+ */
+function initHelpModal() {
+    const sidebar = document.querySelector('.help-sidebar');
+    if (!sidebar) return;
+
+    sidebar.addEventListener('click', function(e) {
+        const link = e.target.closest('a[data-section]');
+        if (!link) return;
+        e.preventDefault();
+
+        const sectionId = link.dataset.section;
+        const target = document.getElementById(sectionId);
+        if (!target) return;
+
+        sidebar.querySelectorAll('a').forEach(a => a.classList.remove('active'));
+        link.classList.add('active');
+
+        document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+        target.classList.add('active');
+    });
+
+    const closeBtn = getById('helpCloseBtn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            M.Modal.getInstance(getById('helpModal')).close();
+        });
+    }
+}

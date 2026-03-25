@@ -425,6 +425,7 @@ const ShaderCRUDNormal = {
     // Shader par défaut d'origine (pour réinitialisation)
     defaultNormalShaders: null,
 
+    /** Initializes the normal shader CRUD system, saves defaults, populates select, and binds events. */
     init: function() {
         // Sauvegarder les shaders par défaut au premier init
         if (this.defaultNormalShaders === null) {
@@ -437,10 +438,12 @@ const ShaderCRUDNormal = {
         this.updateStorageIndicator();
     },
 
+    /** Checks if normal shaders have local modifications in localStorage. @returns {boolean} */
     hasLocalChanges: function() {
         return localStorage.getItem('normalShaders') !== null;
     },
 
+    /** Updates the storage indicator DOM element to show local or default status. */
     updateStorageIndicator: function() {
         const indicator = getById('storageIndicatorNormal');
         if (indicator) {
@@ -456,6 +459,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Reloads default normal shaders, clearing any local changes. */
     reloadDefaults: function() {
         if (this.hasLocalChanges()) {
             const confirmReload = confirm(
@@ -482,6 +486,12 @@ const ShaderCRUDNormal = {
         updateStatus('Shaders normaux réinitialisés', false, getById('editorStatusNormal'));
     },
 
+    /**
+     * Extracts shader name from a first-line comment or returns a default name.
+     * @param {string} shaderCode - The shader source code.
+     * @param {number} index - The shader index used for the fallback name.
+     * @returns {string} The shader name.
+     */
     getShaderName: function(shaderCode, index) {
         if (!shaderCode) return `Normal ${index}`;
         const trimmed = shaderCode.trim();
@@ -490,6 +500,7 @@ const ShaderCRUDNormal = {
         return `Normal ${index}`;
     },
 
+    /** Fills the select dropdown with normal shader options. */
     populateSelect: function() {
         const select = getById('shaderSelectNormal');
         if (!select) return;
@@ -511,6 +522,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Syncs the select element value with currentShaderIndex. */
     updateSelectValue: function() {
         const select = getById('shaderSelectNormal');
         if (select && !this.isCreatingNew) {
@@ -518,6 +530,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Attaches DOM event listeners for normal shader CRUD buttons. */
     bindEvents: function() {
         const select = getById('shaderSelectNormal');
         if (select) {
@@ -566,6 +579,10 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /**
+     * Handles shader selection change in the dropdown.
+     * @param {Event} e - The change event.
+     */
     onSelectChange: function(e) {
         const value = e.target.value;
         if (value === 'new') return;
@@ -583,6 +600,10 @@ const ShaderCRUDNormal = {
         this.compileCurrentShader();
     },
 
+    /**
+     * Loads a normal shader into the Monaco editor.
+     * @param {number} index - The shader index to load.
+     */
     loadShaderInEditor: function(index) {
         if (glo.editorNormal) {
             const fullShader = normalShaderHeader + normalShaders[index] + normalShaderFooter;
@@ -591,6 +612,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Extracts the editable normal code portion from the editor. @returns {string} */
     extractNormCode: function() {
         if (!glo.editorNormal) return '';
 
@@ -606,6 +628,7 @@ const ShaderCRUDNormal = {
         return fullCode.slice(startIndex + startTag.length, endIndex);
     },
 
+    /** Creates a new normal shader with a user-provided name. */
     createNew: function() {
         this.isCreatingNew = true;
 
@@ -629,6 +652,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Saves the current normal shader to localStorage. */
     save: function() {
         const normCode = this.extractNormCode();
 
@@ -655,6 +679,7 @@ const ShaderCRUDNormal = {
         this.compileCurrentShader();
     },
 
+    /** Persists the normal shaders array to localStorage. @returns {boolean} */
     saveToStorage: function() {
         try {
             localStorage.setItem('normalShaders', JSON.stringify(normalShaders));
@@ -665,6 +690,7 @@ const ShaderCRUDNormal = {
         }
     },
 
+    /** Loads normal shaders from localStorage. @returns {boolean} */
     loadFromStorage: function() {
         try {
             const data = localStorage.getItem('normalShaders');

@@ -749,12 +749,12 @@ function replaceCpow(str) {
 				else if (str[i] === ')') depth--;
 				i++;
 			}
-			rightEnd = i; // juste après la ')' fermante
+			rightEnd = i; // just after the closing ')'
 		} else {
 			// Identifier or number, potentially followed by (...)
 			let i = rightStart;
 			while (i < str.length && /[\w$.]/.test(str[i])) i++;
-			// Si suivi de '(', inclure le groupe d'arguments
+			// If followed by '(', include the argument group
 			if (i < str.length && str[i] === '(') {
 				let depth = 1;
 				i++;
@@ -770,7 +770,7 @@ function replaceCpow(str) {
 		let left  = str.substring(leftStart, starIdx);
 		let right = str.substring(starIdx + 3, rightEnd);
 
-		// Retirer les parenthèses englobantes superflues sur les opérandes
+		// Remove superfluous wrapping parentheses from operands
 		if (left[0] === '(' && left[left.length - 1] === ')' && isBalancedWrap(left)) {
 			left = left.substring(1, left.length - 1);
 		}
@@ -783,17 +783,29 @@ function replaceCpow(str) {
 	return str;
 }
 
-/** Vérifie que les parenthèses extérieures englobent bien toute l'expression */
+/**
+ * Checks whether the outer parentheses of a string wrap the entire expression.
+ * Returns false if the opening parenthesis closes before the end of the string.
+ * @param {string} s - The string to check (expected to start with '(' and end with ')').
+ * @returns {boolean} True if the outer parentheses encompass the whole expression.
+ */
 function isBalancedWrap(s) {
 	let depth = 0;
 	for (let i = 0; i < s.length - 1; i++) {
 		if (s[i] === '(') depth++;
 		else if (s[i] === ')') depth--;
-		if (depth === 0) return false; // la '(' initiale se ferme avant la fin
+		if (depth === 0) return false; // the initial '(' closes before the end
 	}
 	return true;
 }
 
+/**
+ * Normalizes a single equation expression string by applying `replaceCpow()` for the `***` operator
+ * and then running all global regex replacements defined in `glo.regs`.
+ * A lone apostrophe is treated as "0".
+ * @param {string} expReg - The equation expression to normalize.
+ * @returns {string} The normalized expression.
+ */
 function regOne(expReg) {
 	if (expReg == "'") {
 		expReg = "0";
@@ -808,6 +820,14 @@ function regOne(expReg) {
     return expReg;
 }
 
+/**
+ * Swaps all occurrences of two variable names in every property of the given object.
+ * Uses a temporary placeholder to avoid double-replacement.
+ * @param {Object.<string, string>} f - An object whose string values contain the variables to swap.
+ * @param {string} toInv1 - The first variable name.
+ * @param {string} toInv2 - The second variable name.
+ * @returns {Object.<string, string>} The same object with variables swapped.
+ */
 function regInv(f, toInv1, toInv2){
 	var regToInv1 = new RegExp(toInv1, "g");
 	var regToInvTmp = new RegExp(toInv1 + "_tmp", "g");
@@ -821,6 +841,13 @@ function regInv(f, toInv1, toInv2){
 	return f;
 }
 
+/**
+ * Computes a centered square bounding box for image/video export based on canvas dimensions
+ * and the current video crop range setting.
+ * @param {number} [margin=20] - Additional margin in pixels added to the crop area.
+ * @param {number} [correction=1] - A scaling correction factor applied to the coefficient.
+ * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box in canvas coordinates.
+ */
 function getFixedExportBounds(margin = 20, correction = 1) {
     const w = glo.canvas.width;
     const h = glo.canvas.height;
@@ -837,6 +864,15 @@ function getFixedExportBounds(margin = 20, correction = 1) {
     };
 }
 
+/**
+ * Creates a video recorder that captures a cropped region of the BabylonJS canvas each frame.
+ * Doubles the hardware resolution during recording for higher quality output.
+ * Returns an object with `start()`, `stop()`, and `isRecording` members.
+ * @param {BABYLON.Mesh} mesh - The mesh being recorded (used for context).
+ * @param {BABYLON.Scene} scene - The BabylonJS scene to observe for after-render callbacks.
+ * @param {number} [fps=60] - The target frames per second for the recording.
+ * @returns {{start: Function, stop: Function, isRecording: boolean}} The recorder control object.
+ */
 function createMeshRecorder(mesh, scene, fps = 60) {
     const sourceCanvas = glo.engine.getRenderingCanvas();
     const captureCanvas = document.createElement('canvas');
@@ -847,6 +883,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
     let observer = null;
     let bounds = null;
 
+    /**
+     * Computes the centered square crop bounds based on the source canvas dimensions
+     * and the current video box range setting. Clamps values to canvas boundaries.
+     * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box.
+     */
     function computeBounds() {
         const sw = sourceCanvas.width;
         const sh = sourceCanvas.height;
@@ -863,6 +904,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
         };
     }
 
+    /**
+     * Initializes and starts the MediaRecorder, sets up the capture canvas,
+     * and registers an after-render observer to copy frames from the source canvas.
+     * On stop, downloads the recorded video as a file.
+     */
     function startRecording() {
         bounds = computeBounds();
         captureCanvas.width = bounds.width;
@@ -918,14 +964,17 @@ function createMeshRecorder(mesh, scene, fps = 60) {
     }
 
     return {
+        /**
+         * Starts mesh recording by doubling hardware resolution and beginning capture after 2 frames.
+         */
         start() {
-            // Ancrer l'espace GUI à la taille CSS affichée avant de doubler
-            // la résolution hardware, pour éviter le décalage des contrôles.
+            // Anchor the GUI space to the displayed CSS size before doubling
+            // the hardware resolution, to prevent control misalignment.
             glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
             glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
             glo.engine.setHardwareScalingLevel(1 / 2);
 
-            // Attendre 2 frames pour que le resize soit stabilisé
+            // Wait 2 frames for the resize to stabilize
             scene.onAfterRenderObservable.addOnce(() => {
                 scene.onAfterRenderObservable.addOnce(() => {
                     startRecording();
@@ -933,6 +982,9 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             });
         },
 
+        /**
+         * Stops the active media recording and restores normal scaling.
+         */
         stop() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
@@ -946,12 +998,21 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             }
         },
 
+        /**
+         * Returns whether the media recorder is currently recording.
+         * @returns {boolean}
+         */
         get isRecording() {
             return mediaRecorder?.state === 'recording';
         }
     };
 }
 
+/**
+ * Updates or creates the video crop box overlay in the GUI.
+ * Displays a yellow rectangle indicating the area that will be captured during recording.
+ * Positions the rectangle based on the current export bounds relative to the canvas center.
+ */
 function updateVideoCropBox() {
   if (glo.videoCropBox) {
     glo.videoCropBox.dispose();
@@ -970,8 +1031,8 @@ function updateVideoCropBox() {
   rect.width  = bounds.width + "px";
   rect.height = bounds.height + "px";
   
-  // Convertir de coordonnées écran (0,0 = top-left) 
-  // vers coordonnées GUI centrées (0,0 = center)
+  // Convert from screen coordinates (0,0 = top-left)
+  // to centered GUI coordinates (0,0 = center)
   const centerX = bounds.x + bounds.width / 2;
   const centerY = bounds.y + bounds.height / 2;
   
@@ -987,12 +1048,19 @@ function updateVideoCropBox() {
   rect.isVisible = true;
 }
 
+/**
+ * Hides the video crop box overlay if it exists.
+ */
 function hideVideoCropBox() {
   if (glo.videoCropBoxGUI) {
     glo.videoCropBoxGUI.isVisible = false;
   }
 }
 
+/**
+ * Toggles video recording on or off. When starting, creates a new mesh recorder
+ * and begins capturing. When stopping, finalizes and downloads the recorded video.
+ */
 function switchRecordingVideo(){
 	glo.video.recording = !glo.video.recording;
 
@@ -1005,11 +1073,24 @@ function switchRecordingVideo(){
 	}
 }
 
+/**
+ * Parses a font size value, accepting either a number or a string (e.g., "14px").
+ * @param {number|string} fontSize - The font size to parse.
+ * @returns {number} The numeric font size value, or 0 if parsing fails.
+ */
 function parseFontSize(fontSize) {
     if (typeof fontSize === 'number') return fontSize;
     return parseFloat(fontSize) || 0;
 }
 
+/**
+ * Applies font family, weight, and optional size adjustment to a GUI control.
+ * Handles both controls with a `textBlock` property and those with direct font properties.
+ * @param {Object} control - The BabylonJS GUI control to style.
+ * @param {string} fontFamily - The CSS font family name to apply.
+ * @param {number} [fontWeight=400] - The CSS font weight value.
+ * @param {number} [fontSizeToAdd=0] - Additional pixels to add to the current font size. If 0, font size is unchanged.
+ */
 function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
 	if (control.textBlock) {
         control.textBlock.fontFamily = fontFamily;
@@ -1027,6 +1108,13 @@ function applyFont(control, fontFamily, fontWeight = 400, fontSizeToAdd = 0) {
     }
 }
 
+/**
+ * Applies font styling to all header controls (excluding radio and title classes).
+ * Title controls receive an extra +300 font weight boost.
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The base CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('header').haveNotThisClass('radio').haveNotThisClass('title').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
@@ -1035,6 +1123,12 @@ function applyFontToHeaders(fontFamily, fontWeight = 400, fontSizeToAdd = false)
       applyFont(control, fontFamily, fontWeight+300, fontSizeToAdd);
   });
 }
+/**
+ * Applies font settings to all button controls (excluding radio buttons).
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
@@ -1042,11 +1136,21 @@ function applyFontToButtons(fontFamily, fontWeight = 400, fontSizeToAdd = false)
   glo.allControls.getByName('but_goBack').textBlock.fontSize = '20px';
   glo.allControls.getByName('but_goTo').textBlock.fontSize   = '20px';
 }
+/**
+ * Applies font settings to all input controls.
+ * @param {string} fontFamily - The CSS font family name.
+ * @param {number} [fontWeight=400] - The CSS font weight.
+ * @param {number|boolean} [fontSizeToAdd=false] - Additional pixels to add to font size, or false for no change.
+ */
 function applyFontToInputs(fontFamily, fontWeight = 400, fontSizeToAdd = false) {
   glo.allControls.haveThisClass('input').forEach(control => {
       applyFont(control, fontFamily, fontWeight, fontSizeToAdd);
   });
 }
+/**
+ * Applies font weight and theme colors to headers and titles.
+ * @param {number} [fontWeight=600] - The CSS font weight for title controls.
+ */
 function applyFontStyleToTitle(fontWeight = 600) {
 	glo.allControls.haveThisClass('header').haveNotThisClass('title').forEach(control => {
 	  control.color = glo.theme.header.text.color;
@@ -1057,17 +1161,30 @@ function applyFontStyleToTitle(fontWeight = 600) {
   });
   glo.allControls.haveThisClass('h1').forEach(control => { control.fontSize = 48; });
 }
+/**
+ * Customizes bar offset and thumb width for all slider controls.
+ * @param {string} barOffset - The bar offset value (e.g. "6px").
+ * @param {string|boolean} [thumbWidth=false] - The thumb width value, or false to keep default.
+ */
 function customSlidersBar(barOffset, thumbWidth = false) {
   glo.allControls.haveThisClass('slider').forEach(control => {
       control.barOffset = barOffset;
       if(thumbWidth) control.thumbWidth = thumbWidth;
   });
 }
+/**
+ * Sets height on all non-radio button controls.
+ * @param {number} [height=glo.theme.button.height] - The button height in pixels.
+ */
 function applyHeightToButtons(height = glo.theme.button.height){
 	glo.allControls.haveThisClass('button').haveNotThisClass('radio').forEach(button => { button.height = `${height}px`; });
 }
 
-function styleUI(fontSizeToAdd = -1){		
+/**
+ * Applies complete UI styling (fonts, heights, slider bars) to all controls.
+ * @param {number} [fontSizeToAdd=-1] - Additional pixels to add to font sizes.
+ */
+function styleUI(fontSizeToAdd = -1){
 	applyFontToHeaders('Poppins', 400, fontSizeToAdd);
     applyFontToButtons('Poppins', 400, fontSizeToAdd);
     applyHeightToButtons();

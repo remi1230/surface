@@ -635,15 +635,26 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   slider.width = "280px";
   rowContainer.addControl(slider);
 
+  /**
+   * Returns the list of currently checked axis keys.
+   * @returns {Array<string>} Checked axis keys (e.g. ['x', 'z']).
+   */
   function getCheckedAxes() {
     return axes.filter(function(axis) { return axisState[axis].checked; });
   }
 
+  /**
+   * Gets the display value based on the first checked axis, or the default value if none are checked.
+   * @returns {number} The value to display.
+   */
   function getDisplayValue() {
     var checked = getCheckedAxes();
     return checked.length === 0 ? val : axisState[checked[0]].value;
   }
 
+  /**
+   * Updates the slider position and header text/color to reflect the current axis selection.
+   */
   function updateSliderDisplay() {
     var displayVal = getDisplayValue();
     var checked = getCheckedAxes();
@@ -684,10 +695,34 @@ function addXYZSlider(parent, baseName, text, val, decimalPrecision, min, max, s
   return { header, slider, axisState };
 }
 
+/**
+ * Applies visual styling (color, corner radius, background, font size) to a button control.
+ * @param {BABYLON.GUI.Button} bt - The button to style.
+ * @param {string} [color=glo.buttonsColor] - The text/border color.
+ * @param {number} [cornerRadius=glo.buttonsRadius] - The corner radius in pixels.
+ * @param {BABYLON.Color3} [background=defaultTheme.pickerColorButton] - The background color (normalized RGB, converted to hex).
+ * @param {number} [fontSize=glo.buttonsFontsize] - The font size for the button text.
+ */
 function designButton(bt, color = glo.buttonsColor, cornerRadius = glo.buttonsRadius, background = defaultTheme.pickerColorButton, fontSize = glo.buttonsFontsize){
   bt.color = color; bt.cornerRadius = cornerRadius; bt.background = rgbNormalizedToHex(background); bt.textBlock.fontSize = fontSize;
 }
 
+/**
+ * Creates a styled button control and adds it to a parent panel.
+ * Left-click triggers eventLeft; right-click triggers eventRight.
+ * @param {string} numUI - The UI panel class identifier.
+ * @param {BABYLON.GUI.StackPanel} panel - The parent panel to add the button to.
+ * @param {string} name - The unique control name.
+ * @param {string} text - The button label text.
+ * @param {number|string} width - The button width in pixels.
+ * @param {number} height - The button height in pixels.
+ * @param {number} paddingLeft - The left padding in pixels.
+ * @param {number} paddingRight - The right padding in pixels.
+ * @param {Function} eventLeft - Callback invoked on left-click.
+ * @param {Function} [eventRight=eventLeft] - Callback invoked on right-click (defaults to eventLeft).
+ * @param {string} [side='right'] - The side class ('right' or 'left').
+ * @param {string|false} [hAlign=false] - Optional horizontal alignment ('left', 'right', 'center').
+ */
 function addButton(numUI, panel, name, text, width, height, paddingLeft, paddingRight, eventLeft, eventRight = eventLeft, side = 'right', hAlign = false){
     var button = BABYLON.GUI.Button.CreateSimpleButton(name, text);
     const options = {w: width, h: height, pL: paddingLeft, pR: paddingRight};
@@ -704,6 +739,11 @@ function addButton(numUI, panel, name, text, width, height, paddingLeft, padding
     panel.addControl(button);
 }
 
+/**
+ * Creates an invisible spacer rectangle for layout purposes.
+ * @param {string} [height="20px"] - The height of the spacer.
+ * @returns {BABYLON.GUI.Rectangle} A transparent rectangle control.
+ */
 function createSpacer(height = "20px") {
     const spacer = new BABYLON.GUI.Rectangle();
     spacer.width = "1px";
@@ -713,6 +753,12 @@ function createSpacer(height = "20px") {
     return spacer;
 }
 
+/**
+ * Creates the shader controls section including buttons for opening shader editors,
+ * switching shaders, inverting colors, toggling lighting, and video recording.
+ * Also creates lighting sliders (intensity, direction XYZ, radius, specular),
+ * grid scale slider, and video crop box range slider.
+ */
 function addShadersCtrl(){
   const paramsPanels = {
     shaders: {
@@ -779,8 +825,22 @@ function addShadersCtrl(){
 
   });
 
+  /**
+   * Creates a horizontal slider inside a vertical container with header and value display.
+   * Supports right-click reset and optional pointer-up callback.
+   * @param {BABYLON.GUI.StackPanel} parent - The parent panel.
+   * @param {string} name - The unique control name.
+   * @param {string} text - The label text.
+   * @param {number} val - The initial value.
+   * @param {number} decimalPrecision - Number of decimal places for display.
+   * @param {number} min - The minimum value.
+   * @param {number} max - The maximum value.
+   * @param {number} step - The step increment.
+   * @param {Function} event - Callback invoked with the new value on change.
+   * @param {Function|false} [upEvent=false] - Optional callback on pointer up.
+   */
   function addHorizontalSlider(parent, name, text, val, decimalPrecision, min, max, step, event, upEvent = false) {
-    // Créer un conteneur vertical pour ce slider
+    // Create a vertical container for this slider
     var container = new BABYLON.GUI.StackPanel();
     container.isVertical = true;
     container.width  = "86.5%"; // Pour en mettre 2 côte à côte
@@ -837,10 +897,21 @@ function addShadersCtrl(){
     parent.addControl(container);
   }
 
+  /**
+   * Updates a lighting float parameter in the global state and on the shader material.
+   * @param {string} varName - The property name in glo.shaders.light.
+   * @param {string} shaderVarName - The uniform name in the shader.
+   * @param {number} varValue - The new float value.
+   */
   function updLightingFloat(varName, shaderVarName, varValue){
     glo.shaders.light[varName] = varValue;
     if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
   }
+  /**
+   * Updates a single axis of the light direction vector and pushes it to the shader.
+   * @param {string} axis - The axis to update ('x', 'y', or 'z').
+   * @param {number} value - The new axis value.
+   */
   function updLightingVec3(axis, value){
     glo.shaders.light.direction[axis] = value;
     
@@ -852,6 +923,12 @@ function addShadersCtrl(){
       shaderMeshInstance.shaderMaterial.setVector3("lampPosition", shaderMeshInstance._vecLampPos);
     }
   }
+  /**
+   * Updates a specular lighting float parameter in the global state and on the shader material.
+   * @param {string} varName - The property name in glo.shaders.light.specular.
+   * @param {string} shaderVarName - The uniform name in the shader.
+   * @param {number} varValue - The new float value.
+   */
   function updLightingSpecularFloat(varName, shaderVarName, varValue){
     glo.shaders.light.specular[varName] = varValue;
     if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
@@ -904,6 +981,11 @@ function addShadersCtrl(){
   }, function(){ hideVideoCropBox(); });
 }
 
+/**
+ * Creates the bottom panel with HELP, SWITCH, and HIDE buttons.
+ * HELP opens a modal dialog, SWITCH toggles the right panel,
+ * and HIDE toggles visibility of all GUI controls.
+ */
 function addSwitchAndHelpButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = { isVertical: false, hAlign: 'right', vAlign: 'bottom', w: 17.125, pR:3, t: -1, };
@@ -946,6 +1028,11 @@ function addSwitchAndHelpButtons(){
     glo.guiSuitVisible = !glo.guiSuitVisible;
   });
 }
+/**
+ * Creates the top-right panel with AXIS, ROT (rotation type toggle),
+ * fullscreen, and resolution buttons. Also listens for fullscreen
+ * changes to resize the rendering engine.
+ */
 function addAxisAndRotButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 15, h: 5, t: 18.75, pL: -2.5 };
@@ -961,6 +1048,10 @@ function addAxisAndRotButtons(){
     }
   });
 
+  /**
+   * Updates the ROT button text to reflect the current rotation type (alpha, beta, theta, or none).
+   * @param {string} [rotType=glo.rotateType.current] - The rotation type identifier.
+   */
   function switchRotateTypeText(rotType = glo.rotateType.current){
     switch(rotType){
       case 'alpha':
@@ -999,16 +1090,16 @@ function addAxisAndRotButtons(){
       }
   });
 
-  // Écouter le changement de fullscreen pour resync le GUI
+  // Listen for fullscreen changes to resync the GUI
   document.addEventListener('fullscreenchange', () => {
       glo.fullScreen = !!document.fullscreenElement;
       button1.textBlock.text = glo.fullScreen ? "↘ S" : "↗ S";
 
       setTimeout(() => {
         if (!glo.fullScreen) {
-            // Après sortie du fullscreen, clientHeight peut encore reporter
-            // les dimensions plein écran. Forcer via style inline pour garantir
-            // que engine.resize() lise les bonnes dimensions.
+            // After exiting fullscreen, clientHeight may still report
+            // fullscreen dimensions. Force via inline style to ensure
+            // engine.resize() reads the correct dimensions.
             var canvas = glo.engine.getRenderingCanvas();
             canvas.style.width = window.innerWidth + 'px';
             canvas.style.height = window.innerHeight + 'px';
@@ -1032,6 +1123,10 @@ function addAxisAndRotButtons(){
     glo.advancedTexture.getControlByName('but_resolution').textBlock.text = `Rx${glo.resolutionCoeff}`;
   });
 }
+/**
+ * Creates the top-left panel with GRID, PLAN, CART (coordinate type toggle),
+ * IMP (import), and EXP (export) buttons.
+ */
 function addLinesAndDimButtons(){
   var topShift = 0;
   glo.formes.select.map( forme => {
@@ -1067,6 +1162,10 @@ function addLinesAndDimButtons(){
     exportModal();
   }, undefined, 'left');
 }
+/**
+ * Creates the bottom-left panel with navigation buttons ("<" and ">") to
+ * page through the available parametric surface forms (radio button lists).
+ */
 function addSwitchFormButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'left', vAlign: 'bottom', w: 20, l: 6.58, t: -1, };
@@ -1074,6 +1173,10 @@ function addSwitchFormButtons(){
   panel.height = '80px';
   glo.advancedTexture.addControl(panel);
 
+  /**
+   * Switches between the main and secondary form radio lists.
+   * @param {boolean} [down=true] - If true, show the next page; if false, the previous.
+   */
   function switchRadios(down = true){
     glo.formesSuit = down;
     addRadios(true);
@@ -1085,12 +1188,21 @@ function addSwitchFormButtons(){
   addButton("first", panel, "but_goTo", ">", 60, 30, 10, 0, function(){switchRadios(true)}, undefined, 'left');
 }
 
+/**
+ * Creates the view buttons panel (X, Y, Z) that orient the camera
+ * along each axis. Toggling a button switches between positive and
+ * negative views on that axis.
+ */
 function addViewsButtons(){
   var panel = new BABYLON.GUI.StackPanel();
   var options = {isVertical: false, hAlign: 'right', vAlign: 'top', w: 20, h: 5, t: 14.25, pL: 5.5  };
   parmamControl(panel, 'viewsButtonsPanel', 'panel right first noAutoParam', options);
   glo.advancedTexture.addControl(panel);
 
+  /**
+   * Updates the text labels of the X, Y, Z view buttons.
+   * @param {...string} texts - The new text values for each button in order.
+   */
   function changeButtonsTexts(...texts){
     var namesButtons = ["but_viewX", "but_viewY", "but_viewZ"];
     var n = 0;
@@ -1141,7 +1253,20 @@ function addViewsButtons(){
   });
 }
 
+/**
+ * Creates the U and V range sliders on the left side of the GUI.
+ * These sliders control the parametric range of the surface
+ * (from -value to +value, or 0 to value if one-sign mode is active).
+ * Supports right-click reset and mouse wheel adjustment.
+ */
 function addUvSliders(){
+  /**
+   * Creates a UV range slider with header, right-click reset, and mouse wheel support.
+   * @param {string} name - Slider identifier ('u' or 'v')
+   * @param {string} headerText - Display label for the slider header
+   * @param {string} gloPropToModify - Property name in glo.params to modify
+   * @param {string} gloPropToAssignInput - Property name in glo to store the slider reference
+   */
   function addSlider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
     parmamControl(panel, "panel_" + name, 'panel left first noAutoParam', 
@@ -1190,6 +1315,10 @@ function addUvSliders(){
   addSlider('v', 'V', 'v', 'sliderV');
 }
 
+/**
+ * Creates radio buttons for form selection in the GUI.
+ * @param {boolean} [suit=false] - Whether to show suit (second-class) forms only
+ */
 function addRadios(suit = false){
   var topShift = 0;
   var topShiftLineDim = 0;
@@ -1212,6 +1341,14 @@ function addRadios(suit = false){
     panel.addControl(header);
   }
 
+  /**
+   * Creates a single radio button with click handler for form switching.
+   * @param {string} text - Display text and form name for the radio button
+   * @param {BABYLON.GUI.StackPanel} parent - Parent panel to add the radio to
+   * @param {string} group - Radio button group name
+   * @param {boolean} [check=false] - Whether the radio is initially checked
+   * @param {string} typeCoords - Coordinate type for the form
+   */
   var addRadio = function(text, parent, group, check = false, typeCoords) {
     if(!glo.firstRadio){ check = false; }
     var button = new BABYLON.GUI.RadioButton();
@@ -1281,6 +1418,9 @@ function addRadios(suit = false){
   glo.firstRadio = false;
 }
 
+/**
+ * Creates the equation input fields (X, Y, Z, rotations) and symmetrize/eval panels.
+ */
 function addInputsEquations(){
   var panel                = new BABYLON.GUI.StackPanel();
   var panelSymsEquations   = new BABYLON.GUI.StackPanel();
@@ -1353,7 +1493,17 @@ function addInputsEquations(){
   });
 }
 
+/**
+ * Creates step U/V sliders controlling mesh resolution.
+ */
 function addStepUvSlider(){
+  /**
+   * Creates a step slider for U or V resolution.
+   * @param {string} name - Slider identifier ('stepU' or 'stepV')
+   * @param {string} headerText - Display label for the slider header
+   * @param {string} gloPropToModify - Property name in glo.params to modify
+   * @param {string} gloPropToAssignInput - Property name in glo to store the slider reference
+   */
   function addSlider(name, headerText, gloPropToModify, gloPropToAssignInput){
     var panel = new BABYLON.GUI.StackPanel();
     parmamControl(panel, "panel_" + name, 'panel right first');
@@ -1391,6 +1541,9 @@ function addStepUvSlider(){
   addSlider("stepV", "Steps V", "stepsV", "sliderStepsV");
 }
 
+/**
+ * Creates color picker controls for UI and mesh colors.
+ */
 function addColorPickers(){
   var panel1           = new BABYLON.GUI.StackPanel();
   var panel2           = new BABYLON.GUI.StackPanel();
@@ -1442,6 +1595,13 @@ function addColorPickers(){
   options.t = top.panelThemeButton; options.pL = 3.666; options.isVertical = true; options.h = 5; options.pL = 0; options.w = 13; options.l = -3.66;
   parmamControl(panelThemeButton, 'panelThemeButton', 'panel right first noAutoParam onlyMainGui', options);
 
+  /**
+   * Configures a text header for a color picker section.
+   * @param {BABYLON.GUI.StackPanel} panel - Parent panel to add the header to
+   * @param {BABYLON.GUI.TextBlock} header - The text block to configure
+   * @param {string} text - Display text for the header
+   * @param {Object} options - Configuration options (fontSize, name)
+   */
   function paramHeader(panel, header, text, options){
     header.text = text;
     header.color = "white";
@@ -1590,6 +1750,9 @@ function addColorPickers(){
   glo.advancedTexture.addControl(panelThemeButton);
 }
 
+/**
+ * Creates mesh variable sliders (A-M) and shader variable sliders (P, Q, S, T, U).
+ */
 function addStepABCDSliders(){
   makePanelTitle('paramEquationsSliders', 'Mesh variables', 24, 'second noAutoParam title');
 
@@ -1601,8 +1764,23 @@ function addStepABCDSliders(){
   parmamControl(panelShadersVariables, 'paramEquationsSlidersPanel', 'panel right seventh', {hAlign: 'right', vAlign: 'top', w: 20, t: 63, pL: 0});
   glo.advancedTexture.addControl(panelShadersVariables);
 
+  /**
+   * Updates a float parameter on the shader mesh instance.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatParam       = (param, val) => { glo.ribbon.shaderMeshInstance.updateFloatParam(param, val); }
+  /**
+   * Updates a mesh variable (A-M) in glo.params and shader.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatABCDParam   = (param, val) => { glo.params[param] = val; updFloatParam(param, val); }
+  /**
+   * Updates a shader user variable and shader float param.
+   * @param {string} param - Parameter name
+   * @param {number} val - Parameter value
+   */
   const updFloatShaderParam = (param, val) => { glo.shaders.uservars[param] = val; updFloatParam(param, val); }
 
   addSlider(panel, "sliderMeshVar-A", "A", 0, 1, -2*PI, 2*PI, 0.1, function(value){ updFloatABCDParam("A", value) }, 'second');
@@ -1625,6 +1803,9 @@ function addStepABCDSliders(){
   addSlider(panelShadersVariables, "shadersVariables-U", "Checkerboard", 2, 2, 0, 2, 0.01, function(value){ updFloatShaderParam("U", value) }, 'seventh');
 }
 
+/**
+ * Creates symmetrize controls (X, Y, Z repetition, angle, checkerboard, scale).
+ */
 function addSymmetrizeSliders(){
   var panel          = new BABYLON.GUI.StackPanel();
   var panelButton    = new BABYLON.GUI.StackPanel();
@@ -1687,6 +1868,9 @@ function addSymmetrizeSliders(){
   });
 }
 
+/**
+ * Creates blender U/O sliders for mesh blending.
+ */
 function addBlenderSliders(){
   var panel = new BABYLON.GUI.StackPanel();
   parmamControl(panel, 'paramBlenderSlidersPanel', 'panel right eighth noAutoParam', {hAlign: 'right', vAlign: 'top', w: 20, t: 27.5, pR: 0, pL: 0.5});

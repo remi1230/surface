@@ -65,7 +65,7 @@ getById('compileBtn')?.addEventListener('click', () => {
     if(validation.valid){
       updateStatus(`Prêt`, false);
       const startTag = "vec3 col = meshBg;";
-      const endTag = "// Inversion";
+      const endTag = "// __FOOTER_START__";
       const startIndex = fragmentShader.indexOf(startTag);
       const endIndex   = fragmentShader.indexOf(endTag);
       const finalCode  = fragmentShader.slice(startIndex + startTag.length, endIndex).trim();

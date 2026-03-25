@@ -1,0 +1,168 @@
+<p align="center">
+  <img src="logo.png" alt="SURFACE logo" width="120">
+</p>
+
+<h1 align="center">SURFACE</h1>
+
+<p align="center">
+  <strong>Real-time parametric surface explorer powered by BabylonJS and GLSL</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> &bull;
+  <a href="#getting-started">Getting Started</a> &bull;
+  <a href="#usage">Usage</a> &bull;
+  <a href="#keyboard-shortcuts">Shortcuts</a> &bull;
+  <a href="#project-structure">Structure</a> &bull;
+  <a href="#license">License</a>
+</p>
+
+---
+
+SURFACE is a browser-based tool for creating, exploring and exporting parametric surfaces. Write a mathematical equation **f(u, v)** and watch the 3D mesh update in real time. Customize colors with GLSL shaders, apply symmetries, animate with time, and export to OBJ/STL for 3D printing.
+
+## Features
+
+- **Parametric equations** &mdash; Define surfaces with X(u,v), Y(u,v), Z(u,v) in Cartesian, Spherical or Cylindrical coordinates
+- **50+ built-in surfaces** &mdash; Torus, Mobius, Catenoid, Klein Bottle, and many more
+- **GLSL shader editors** &mdash; Two Monaco-based editors for fragment (color) and normal deformation shaders
+- **Shorthand notation** &mdash; Write `cu` instead of `cos(u)`, implicit multiplication (`2u` &rarr; `2*u`), and 20+ custom functions (`m()`, `o()`, `f()`, `a()`, `b()`, `ce()`, etc.)
+- **Symmetrize** &mdash; Repeat the mesh along X/Y/Z axes with angle control and checkerboard patterns
+- **Transformations** &mdash; Scale, rotate, translate, and center-symmetry controls
+- **Wave deformation** &mdash; Normal-based wave displacement with per-axis amplitude and frequency
+- **Blender** &mdash; Blend surface components with per-axis control
+- **Color system** &mdash; Theme randomization, UI/mesh color pickers, color addition and tint
+- **Time animation** &mdash; Animated surfaces with play/pause, speed control, and the `t` variable
+- **Import / Export** &mdash; JSON (full scene), OBJ and STL formats; shader import/export as .js files
+- **Video recording** &mdash; Record the canvas as WebM video with crop box
+- **Fully client-side** &mdash; No server required, runs entirely in the browser
+
+## Getting Started
+
+### Prerequisites
+
+A modern browser with WebGL2 support (Chrome, Firefox, Edge, Safari 15+).
+
+### Run locally
+
+```bash
+git clone https://github.com/remi1230/surface.git
+cd surface
+```
+
+Open `index.html` in your browser, or serve it with any static server:
+
+```bash
+# Using Python
+python -m http.server 8000
+
+# Using Node.js
+npx serve .
+```
+
+Then open [http://localhost:8000](http://localhost:8000).
+
+> No build step or dependencies to install &mdash; all libraries are loaded from CDN.
+
+## Usage
+
+### Writing equations
+
+Enter parametric equations in the **X**, **Y**, **Z** input fields on the left panel. Available variables:
+
+| Variable | Description |
+|----------|-------------|
+| `u`, `v` | Parametric coordinates |
+| `t` | Time (animated) |
+| `A` &ndash; `M` | Adjustable mesh variable sliders |
+| `pi`, `ep` | &pi; and Euler's number |
+
+### Shorthand examples
+
+| You write | Expands to |
+|-----------|------------|
+| `cu` | `cos(u)` |
+| `sv` | `sin(v)` |
+| `cufv` | `cos(u*v)` |
+| `2u` | `2*u` |
+| `m` | `m()` &mdash; multiplicative cosine deformation |
+| `R` | `h(x,y,z)` &mdash; distance from origin |
+
+### Deformation functions
+
+| Function | Formula |
+|----------|---------|
+| `m(c)` | cos(cx) &times; cos(cy) &times; cos(cz) |
+| `o(c)` | cos(cx) + cos(cy) + cos(cz) |
+| `f(nc, np)` | cos(nc&middot;x + np) &times; cos(nc&middot;y + np) &times; cos(nc&middot;z + np) |
+| `a(n)` | cos(n&middot;u) &times; sin(n&middot;v) |
+| `b(c)` | length(cos(cx), cos(cy), cos(cz)) |
+| `ce(c)` | cos(e^(c\|x\|)) &times; cos(e^(c\|y\|)) &times; cos(e^(c\|z\|)) |
+| `q(a, b, t)` | mix (linear interpolation) |
+| `r(e0, e1, x)` | smoothstep |
+| `g(edge, x)` | step |
+| `h(x, y, z)` | Euclidean distance |
+
+See the in-app **HELP** button for the complete reference.
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `+` / `-` | Zoom in / out |
+| `h` | Randomize colors |
+| `$` | Generate random surface |
+| `a` | Toggle pause / play |
+| `f` / `q` | Double / halve time speed |
+| `7`/`8` | Animate U &minus;/+ |
+| `4`/`5` | Animate V &minus;/+ |
+| `u` / `j` | Increase / decrease resolution |
+| `Shift+H` | Center camera |
+| `Shift+B` | Toggle wireframe |
+| `Shift+V` | Align camera to axis |
+
+See the in-app HELP for the full list.
+
+## Project Structure
+
+```
+surface/
+├── index.html              # Main application page
+├── logo.png                # App logo
+├── LICENSE                 # MIT License
+├── css/
+│   ├── surface.css         # Main stylesheet
+│   ├── monaco.css          # Shader editor styles
+│   └── materialize-icons.css
+├── js/
+│   ├── bab.js              # BabylonJS scene setup and render loop
+│   ├── glo.js              # Global state and configuration
+│   ├── gui.js              # GUI panels, sliders, buttons (BabylonJS GUI)
+│   ├── ui.js               # UI helpers, font styling, video recording
+│   ├── ui-components.js    # Reusable UI component factories
+│   ├── events.js           # Keyboard/mouse event handlers
+│   ├── forms.js            # Built-in parametric surface definitions
+│   ├── ribbon.js           # Mesh generation (paths, ribbon, normals)
+│   ├── colors.js           # Color themes and randomization
+│   ├── grid.js             # 3D grid and axis display
+│   ├── modals.js           # Modal dialogs (export, import, help)
+│   ├── prototypes.js       # Array/object prototype extensions
+│   ├── GPUShaderMesh.js    # GPU shader mesh (GLSL generation, compilation)
+│   ├── shaders-frags.js    # Fragment shader code and definitions
+│   ├── shaders-crud.js     # Shader CRUD system (create, save, delete, import/export)
+│   └── shaders-loader.js   # Shader loading from server/localStorage
+├── json/
+│   └── import-exemples/    # Example surfaces (JSON)
+└── fonts/                  # Bundled fonts
+```
+
+## Technologies
+
+- [BabylonJS](https://www.babylonjs.com/) &mdash; 3D rendering engine
+- [BabylonJS GUI](https://doc.babylonjs.com/features/featuresDeepDive/gui) &mdash; In-canvas UI controls
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/) &mdash; Code editor for GLSL shaders
+- WebGL2 / GLSL &mdash; GPU-accelerated rendering and custom shaders
+
+## License
+
+[MIT](LICENSE)

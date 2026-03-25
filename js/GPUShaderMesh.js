@@ -58,6 +58,9 @@ class GPUShaderMeshComputer {
 			result = result.replace(/Y/g, evalY);
 		}
 
+		result = result.replace(/s(\d+)\((\w)/g, "s($1$2");
+		result = result.replace(/c(\d+)\((\w)/g, "c($1$2");
+
 		// Appliquer replaceCpow puis les regex de glo.regs
 		result = replaceCpow(result);
 		for (const reg of glo.regs) {

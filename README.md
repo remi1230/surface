@@ -9,6 +9,8 @@
 </p>
 
 <p align="center">
+  <a href="https://surfaces.netlify.app/">Launch App</a> &bull;
+  <a href="https://remi1230.github.io/surface/">Website</a> &bull;
   <a href="#features">Features</a> &bull;
   <a href="#getting-started">Getting Started</a> &bull;
   <a href="#usage">Usage</a> &bull;

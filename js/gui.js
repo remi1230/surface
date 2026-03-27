@@ -2584,30 +2584,21 @@ function inputEquaToMorphing(targetFormName){
   const targetForm     = glo.formes.getFormByName(targetFormName, glo.coordsType);
   const originForm     = glo.formes.getFormByName(originFormName, glo.coordsType);
 
-  /*const originForm = {
-    fx: glo.params.textInputX,
-    fy: glo.params.textInputY,
-    fz: glo.params.textInputZ,
-    alpha: glo.params.textInputAlpha,
-    beta: glo.params.textInputBeta,
-    theta: glo.params.textInputTheta,
-  };*/
-
   const fields = [
-    {equa: 'fx', code: 'x'}, 
-    {equa: 'fy', code: 'y'},
-    {equa: 'fz', code: 'z'},
-    {equa: 'alpha', code: 'alpha'},
-    {equa: 'beta', code: 'beta'},
-    {equa: 'theta', code: 'theta'},
+    {equa: 'fx', code: 'X'}, 
+    {equa: 'fy', code: 'Y'},
+    {equa: 'fz', code: 'Z'},
+    {equa: 'alpha', code: 'Alpha'},
+    {equa: 'beta', code: 'Beta'},
+    {equa: 'theta', code: 'Theta'},
   ];
 
   fields.forEach(field => { if(!targetForm[field.equa]){ targetForm[field.equa] = '0'; } });
   fields.forEach(field => { if(!originForm[field.equa]){ originForm[field.equa] = '0'; } });
 
   fields.forEach(field => {
-    glo['input_' + field.code].text = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
-    glo.params['text_input_' + field.code] = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
+    glo['input' + field.code].text = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
+    glo.params['textInput' + field.code] = `q(${originForm[field.equa]}, ${targetForm[field.equa]}, cat)`;
   });
 
   remakeRibbon();

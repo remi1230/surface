@@ -381,9 +381,10 @@ async function exportMesh(exportFormat) {
 function openShaderWindow(target = glo, key = 'editor', editWindow = glo.editorWindow, shaderFragmentSource = fragmentShader, editorContainer = getById('editor-container'), compileBtnId = 'compileBtn', statusEl = getById('editorStatus')){
 	editWindow.style.display = 'flex';
 
-	if (!target[key]) {
+	if (!target[key] && !target[key + '_loading']) {
+		target[key + '_loading'] = true;
 		initMonacoEditor(editorContainer, target, key, shaderFragmentSource, compileBtnId, statusEl);
-	} else {
+	} else if (target[key]) {
 		target[key].layout();
 		target[key].focus();
 	}
@@ -579,7 +580,9 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
         });
         require(['vs/editor/editor.main'], function() {
         window.M = savedM;
-        monaco.languages.register({ id: 'glsl' });
+        if (!monaco.languages.getLanguages().some(l => l.id === 'glsl')) {
+            monaco.languages.register({ id: 'glsl' });
+        }
 
         monaco.languages.setMonarchTokensProvider('glsl', {
             keywords: [
@@ -616,6 +619,7 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
             }
         });
 
+        delete target[key + '_loading'];
         target[key] = monaco.editor.create(container, {
             value: shaderFragmentSource,
             language: 'glsl',

@@ -108,7 +108,7 @@ const formsToselect = [
         orient: {axis: "X", direction: -1, alpha: PI/8, beta: -PI/6, distance: 6},
     },
     {text: "Cube", typeCoords: 'cartesian', udef: PI, vdef: PI/2, stepsU: 128, stepsV: 128,
-        fx: "(cucv)***2", fy: "(sucv)***2", fz: "Q/2(sv)***0", alpha: "", suit: true,
+        fx: "tanh((G+4)cucv)", fy: "tanh((G+4)sucv)", fz: "tanh((G+4)sv)", alpha: "", suit: true,
         orient: {axis: "X", direction: -1, alpha: 5*PI/8, beta: -PI/8, distance: 6},
     },
     {text: "Egg", typeCoords: 'cartesian', udef: PI, vdef: PI/2, stepsU: 128, stepsV: 128, uvCoeff: {x: 1, y: 0.375},

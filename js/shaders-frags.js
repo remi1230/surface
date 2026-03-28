@@ -385,8 +385,8 @@ function getFragmentUtilsGLSL() {
 return `
 vec3 npos(){ return normalize(vPosition); }
 
-float Ts(float c){ return 0.4999999*sin(c*time)+0.5; }
-float Tc(float c){ return 0.4999999*cos(c*time)+0.5; }
+float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
+float Tc(float c){ return 0.49999*cos(c*time)+0.5; }
 
 // Colors
 const vec3 LAMP_COLOR = vec3(0.5, 0.5, 0.5);

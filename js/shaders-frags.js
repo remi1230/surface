@@ -331,7 +331,7 @@ fragmentShaders = [
 `
     //Liquid
     float PI = 3.14159;
-    vec2 uvL = vec2(.125,.75)+(vUVParams*uvParamsCoeff-vec2(.125,.75))*.03;
+    vec2 uvL = vec2(.125,.75)+(S/12.0*vUVParams*uvParamsCoeff-vec2(.125,.75))*.03;
     float T=time*.25;
 
     vec3 c = clamp(1.-.7*vec3(

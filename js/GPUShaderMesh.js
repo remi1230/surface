@@ -393,6 +393,8 @@ float cpow(float val, float p) {
 
 float c(float val) { return cos(val); }
 float s(float val) { return sin(val); }
+float ca(float val) { return 0.499999 * cos(val) + 0.5; }
+float sa(float val) { return 0.499999 * sin(val) + 0.5; }
 
 // Rotation autour d'un axe arbitraire
 mat3 rotateAxis(vec3 axis, float angle) {

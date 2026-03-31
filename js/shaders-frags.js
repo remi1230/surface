@@ -40,19 +40,20 @@
  *  7 - Cosine position pattern
  *  8 - Checkerboard
  *  9 - Simple solid color
- * 10 - Lego (quantized position)
- * 11 - Position rainbow
- * 12 - Normal coloring
- * 13 - Atmosphere (Fresnel-like)
- * 14 - Rotating tile pattern
- * 15 - Hexagon cells
- * 16 - Truchet pattern
- * 17 - Fractional UV cells
- * 18 - Voronoi
- * 19 - Random Perlin noise
- * 20 - Starfield
- * 21 - Grid uvParams (heatmap)
- * 22 - Liquid
+ * 10 - Show mesh construction
+ * 11 - Lego (quantized position)
+ * 12 - Position rainbow
+ * 13 - Normal coloring
+ * 14 - Atmosphere (Fresnel-like)
+ * 15 - Rotating tile pattern
+ * 16 - Hexagon cells
+ * 17 - Truchet pattern
+ * 18 - Fractional UV cells
+ * 19 - Voronoi
+ * 20 - Random Perlin noise
+ * 21 - Starfield
+ * 22 - Grid uvParams (heatmap)
+ * 23 - Liquid
  *
  * @type {string[]}
  */
@@ -158,6 +159,27 @@ fragmentShaders = [
 `
     //Simple
     col = vec3(0.125, 0.75, 0.85);
+`,
+`
+    //Skeleton
+    col = vPosition;
+    float thickness = 0.0625; // à ajuster selon le rendu voulu
+
+    // distance aux deux plans x=y et x=-y
+    vec3 pos   = vPosition * Ts(1.0);
+    float pos1 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.y : pos.z) : pos.x;
+    float pos2 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.x : pos.y) : pos.z;
+
+    float d1 = abs(pos1 - pos2);
+    float d2 = abs(pos1 + pos2);
+    float d = min(d1, d2);
+
+    // bande lissée autour des ellipses
+    float line = 1.0 - smoothstep(0.0, thickness, d);
+
+    // discard tout ce qui n'est pas sur les ellipses
+    if (line < 0.05) discard;
+
 `,
 `
     //Lego

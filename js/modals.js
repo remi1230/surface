@@ -164,8 +164,6 @@ function applyImportedJSON(fileContent) {
 		uvToXyButton.textBlock.text = glo.params.uvToXy ? "XY → UV" : "UV → XY";
 	}
 
-    ['X', 'Y', 'Z'].forEach(axe => { glo.allControls.getByName('symmetrize' + axe).value = glo.params['symmetrize' + axe]; });
-
 	// Restore the selected color shader
 	if(contentJsonFile.shaderSelectIndex !== undefined){
 		var shaderIndex = parseInt(contentJsonFile.shaderSelectIndex);

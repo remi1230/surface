@@ -162,7 +162,7 @@ fragmentShaders = [
 `,
 `
     //Skeleton
-    col = vPosition;
+    col = palette(length(vNormal*normalize(vPosition)));
     float thickness = 0.0625; // à ajuster selon le rendu voulu
 
     // distance aux deux plans x=y et x=-y

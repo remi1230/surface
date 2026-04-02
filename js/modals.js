@@ -561,6 +561,27 @@ function loadMonacoLoader() {
 }
 
 /**
+ * Singleton promise that loads the Monaco AMD modules exactly once.
+ * Calling this multiple times always returns the same promise.
+ * @returns {Promise<void>} Resolves when monaco global is ready to use.
+ */
+let _monacoReady = null;
+function ensureMonacoLoaded() {
+    if (_monacoReady) return _monacoReady;
+    _monacoReady = loadMonacoLoader().then(() => new Promise((resolve) => {
+        const savedM = window.M;
+        require.config({
+            paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs' }
+        });
+        require(['vs/editor/editor.main'], function() {
+            window.M = savedM;
+            resolve();
+        });
+    }));
+    return _monacoReady;
+}
+
+/**
  * Initializes a Monaco code editor instance configured for GLSL shader editing.
  * Registers GLSL as a custom language with syntax highlighting for keywords,
  * built-in functions, numbers, strings, and comments. Adds keyboard shortcuts
@@ -573,13 +594,7 @@ function loadMonacoLoader() {
  * @param {HTMLElement} [statusEl=getById('editorStatus')] - The DOM element for displaying editor status messages.
  */
 function initMonacoEditor(container = getById('editor-container'), target = glo, key = 'editor', shaderFragmentSource = fragmentShader, compileBtnId = 'compileBtn', statusEl = getById('editorStatus')) {
-    loadMonacoLoader().then(() => {
-        const savedM = window.M;
-        require.config({
-            paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs' }
-        });
-        require(['vs/editor/editor.main'], function() {
-        window.M = savedM;
+    ensureMonacoLoaded().then(() => {
         if (!monaco.languages.getLanguages().some(l => l.id === 'glsl')) {
             monaco.languages.register({ id: 'glsl' });
         }
@@ -657,7 +672,6 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
 
         updateStatus('Ready', false, statusEl);
     });
-    });
 }
 
 /**
@@ -705,3 +719,6 @@ function initHelpModal() {
         });
     }
 }
+
+// Pre-load Monaco modules in the background so they are ready before the user opens an editor
+ensureMonacoLoaded();

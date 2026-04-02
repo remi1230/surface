@@ -109,7 +109,7 @@ fragmentShaders = [
     float lnpos = length(vNormal * pos);
 
     // Isocourbes
-    float freq = 10.0; // nombre de bandes
+    float freq = S-.5; // nombre de bandes
     float phase = fract(lnpos * freq);
     float fw = fwidth(lnpos * freq);
 
@@ -117,7 +117,7 @@ fragmentShaders = [
     float line = 1.0 - smoothstep(0.0, fw * 2.0, min(phase, 1.0 - phase));
 
     // Glow autour des isocourbes
-    float glowSize = 6.0;
+    float glowSize = P/8.0;
     float glow = 1.0 - smoothstep(0.0, fw * glowSize, min(phase, 1.0 - phase));
 
     vec3 col1 = palette(lnpos);
@@ -125,10 +125,10 @@ fragmentShaders = [
     col = mix(col1, col2, 0.5);
 
     // Composition
-    vec3 glowColor = rainbow(lnpos) * 1.5; // surexposé pour l'effet lumineux
+    vec3 glowColor = rainbow(lnpos) * (T+1.5); // surexposé pour l'effet lumineux
     col = mix(col, glowColor, glow * 0.4);
-    col = mix(col, vec3(1.0), line * 0.8);
-    
+    col = mix(col, vec3(1.0), line * Q/80.0);
+
 `,
 `
     //Norm&Pos

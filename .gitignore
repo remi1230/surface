@@ -1,4 +1,7 @@
-cdn/
+cdn/*
+!cdn/js/
+cdn/js/*
+!cdn/js/monaco/
 stats/
 MARKETING_ACTION_PLAN.md
 LAUNCH_TEXTS.md

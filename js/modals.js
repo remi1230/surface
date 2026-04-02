@@ -719,6 +719,3 @@ function initHelpModal() {
         });
     }
 }
-
-// Pre-load Monaco modules in the background so they are ready before the user opens an editor
-ensureMonacoLoaded();

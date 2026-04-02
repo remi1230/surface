@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', async function() {
    otherDesigns();
    paramRadios();
    styleUI();
+   // Pre-load Monaco modules in the background so they are ready before the user opens an editor
+   ensureMonacoLoaded();
 });
 
 /** Resizes the BabylonJS engine when the browser window is resized. */

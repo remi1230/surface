@@ -571,7 +571,7 @@ function ensureMonacoLoaded() {
     _monacoReady = loadMonacoLoader().then(() => new Promise((resolve) => {
         const savedM = window.M;
         require.config({
-            paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.53.0/min/vs' }
+            paths: { vs: 'cdn/js/monaco/vs' }
         });
         require(['vs/editor/editor.main'], function() {
             window.M = savedM;

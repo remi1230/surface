@@ -419,10 +419,10 @@ float m(float ncx, float ncy, float ncz) {
 	float deformCoeff2 = 1.0/deformCoeff1;
 	return deformCoeff2*cos(ncx * gx * deformCoeff1) * cos(ncy * gy * deformCoeff1) * cos(ncz * gz * deformCoeff1);
 }
-float m(float ncx, float ncy) {
+float m(float ncx, float ph) {
 	float deformCoeff1 = 6.0;
 	float deformCoeff2 = 1.0/deformCoeff1;
-	return deformCoeff2*cos(ncx * gx * deformCoeff1) * cos(ncy * gy * deformCoeff1) * cos(ncy * gz * deformCoeff1);
+	return deformCoeff2*cos(ncx * gx * deformCoeff1 + ph) * cos(ncx * gy * deformCoeff1 + ph) * cos(ncx * gz * deformCoeff1 + ph);
 }
 float m(float ncx) {
 	float deformCoeff1 = 6.0;
@@ -462,10 +462,10 @@ float o(float ncx, float ncy, float ncz) {
 	float deformCoeff2 = 1.0/deformCoeff1;
 	return deformCoeff2*(cos(ncx * gx * deformCoeff1) + cos(ncy * gy * deformCoeff1) + cos(ncz * gz * deformCoeff1));
 }
-float o(float ncx, float ncy) {
+float o(float ncx, float nct) {
 	float deformCoeff1 = 6.0;
 	float deformCoeff2 = 1.0/deformCoeff1;
-	return cos(ncx * gx * deformCoeff1) + cos(ncy * gy * deformCoeff1) + cos(ncy * gz * deformCoeff1);
+	return cos(ncx * gx * deformCoeff1 + nct) + cos(ncx * gy * deformCoeff1 + nct) + cos(ncx * gz * deformCoeff1 + nct);
 }
 float o(float ncx) {
 	float deformCoeff1 = 6.0;

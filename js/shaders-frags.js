@@ -174,7 +174,18 @@ fragmentShaders = [
 `,
 `
     //Simple
-    col = vec3(0.125, 0.75, 0.85);
+
+`,
+`
+    //Sweet
+    vec3 pos   = normalize(vPosition);
+    vec3 posN  = cross(vNormal, pos);
+    float posL = length(vPosition);
+    vec3 col1  = rainbop(posL, pos); 
+    vec3 col2  = cpalette(posL, pos); 
+
+    col = mix(col1, col2, 0.5);
+     
 `,
 `
     //Skeleton
@@ -205,10 +216,10 @@ fragmentShaders = [
     pos = vec3(m(pos), o(pos), hc(pos));
 
     vec3 col1 = rainbop(pos.x, pos);
-    vec3 col2 = rainbop(pos.y, pos);
+    vec3 col2 = cpalette(pos.y, pos);
     vec3 col3 = rainbop(pos.z, pos);
 
-    col = mix(col1, col2, Ts(2.0)*col3);
+    col = 1.0-mix(col1, col2, Ts(2.0)*col3);
 `,
 `
     //Position
@@ -235,7 +246,7 @@ fragmentShaders = [
     vec3 col1 = col;
     vec3 col2 = col;
 
-    vec3 pattern = rotateTilePattern(vUV, 8.0);
+    vec3 pattern = rotateTilePattern(vUV, S);
     vec2 st = pattern.xy;
     
     col = vec3(step(st.x,st.y));

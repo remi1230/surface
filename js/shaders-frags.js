@@ -184,7 +184,12 @@ fragmentShaders = [
     vec3 col1  = rainbop(posL, pos); 
     vec3 col2  = cpalette(posL, pos); 
 
-    col = mix(col1, col2, 0.5);
+    col = mix(col1, col2, pos);
+
+    vec3 po = fract(col * P/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
      
 `,
 `

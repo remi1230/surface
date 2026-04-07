@@ -922,58 +922,58 @@ function createMeshRecorder(mesh, scene, fps = 60) {
      * On stop, downloads the recorded video as a file.
      */
     function startRecording() {
-        bounds = computeBounds();
-        captureCanvas.width = bounds.width;
-        captureCanvas.height = bounds.height;
+		bounds = computeBounds();
+		captureCanvas.width = bounds.width;
+		captureCanvas.height = bounds.height;
 
-        chunks = [];
+		chunks = [];
 
-        let mimeType;
-        if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-            mimeType = 'video/webm;codecs=h264';
-        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-            mimeType = 'video/webm;codecs=vp9';
-        } else if (MediaRecorder.isTypeSupported('video/webm')) {
-            mimeType = 'video/webm';
-        } else {
-            mimeType = 'video/mp4';
-        }
+		let mimeType;
+		if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+			mimeType = 'video/webm;codecs=vp9';
+		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
+			mimeType = 'video/webm;codecs=h264';
+		} else if (MediaRecorder.isTypeSupported('video/webm')) {
+			mimeType = 'video/webm';
+		} else {
+			mimeType = 'video/mp4';
+		}
 
-        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+		const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
 
-        const stream = captureCanvas.captureStream(fps);
-        mediaRecorder = new MediaRecorder(stream, {
-            mimeType,
-            videoBitsPerSecond: 15000000
-        });
+		const stream = captureCanvas.captureStream(fps);
+		mediaRecorder = new MediaRecorder(stream, {
+			mimeType,
+			videoBitsPerSecond: 20_000_000
+		});
 
-        mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) chunks.push(e.data);
-        };
+		mediaRecorder.ondataavailable = e => {
+			if (e.data.size > 0) chunks.push(e.data);
+		};
 
-        mediaRecorder.onstop = () => {
-            if (chunks.length === 0) return;
-            const blob = new Blob(chunks, { type: mimeType });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `mesh-${Date.now()}.${extension}`;
-            a.click();
-            URL.revokeObjectURL(url);
-        };
+		mediaRecorder.onstop = () => {
+			if (chunks.length === 0) return;
+			const blob = new Blob(chunks, { type: mimeType });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `mesh-${Date.now()}.${extension}`;
+			a.click();
+			URL.revokeObjectURL(url);
+		};
 
-        mediaRecorder.onerror = e => console.error('Recorder error:', e);
+		mediaRecorder.onerror = e => console.error('Recorder error:', e);
 
-        observer = scene.onAfterRenderObservable.add(() => {
-            ctx.drawImage(
-                sourceCanvas,
-                bounds.x, bounds.y, bounds.width, bounds.height,
-                0, 0, captureCanvas.width, captureCanvas.height
-            );
-        });
+		observer = scene.onAfterRenderObservable.add(() => {
+			ctx.drawImage(
+				sourceCanvas,
+				bounds.x, bounds.y, bounds.width, bounds.height,
+				0, 0, captureCanvas.width, captureCanvas.height
+			);
+		});
 
-        mediaRecorder.start(1000);
-    }
+		mediaRecorder.start(1000);
+	}
 
     return {
         /**

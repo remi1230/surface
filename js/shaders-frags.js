@@ -177,6 +177,12 @@ fragmentShaders = [
 
 `,
 `
+    //Ghost
+    vec3 pos = vPosition;
+    vec3 posN = normalize(vPosition);
+    if(length(posN) > length(vNormal)){ discard; }  
+`,
+`
     //Sweet
     vec3 pos   = normalize(vPosition);
     vec3 posN  = cross(vNormal, pos);

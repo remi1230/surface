@@ -54,6 +54,7 @@
  * 21 - Starfield
  * 22 - Grid uvParams (heatmap)
  * 23 - Liquid
+ * 24 - Porcelain
  *
  * @type {string[]}
  */
@@ -424,6 +425,103 @@ fragmentShaders = [
     c0+=pow(length(sin(c0*PI*4.))/sqrt(3.)*1.0,20.)*(.3+.7*c0);
 
 	col = c0;
+
+`,
+`
+    //Porcelain
+    // =======================================================
+    // 1. Vecteurs de base
+    // =======================================================
+    vec3 V = normalize(cameraPosition - vWorldPosition);
+    vec3 L = normalize(lampPosition - vWorldPosition);
+
+    // Normale screen-space (fidèle à la géométrie GPU)
+    vec3 dpdx = dFdx(vWorldPosition);
+    vec3 dpdy = dFdy(vWorldPosition);
+    vec3 N = normalize(cross(dpdx, dpdy));
+    if (dot(N, V) < 0.0) N = -N;
+
+    // =======================================================
+    // 2. Courbure gaussienne & moyenne (screen-space)
+    // =======================================================
+    vec3 d2pdx2  = dFdx(dpdx);
+    vec3 d2pdy2  = dFdy(dpdy);
+    vec3 d2pdxdy = dFdx(dpdy);
+
+    float E = dot(dpdx, dpdx);
+    float F = dot(dpdx, dpdy);
+    float G = dot(dpdy, dpdy);
+
+    float e = dot(N, d2pdx2);
+    float f = dot(N, d2pdxdy);
+    float g = dot(N, d2pdy2);
+
+    float denom = E * G - F * F;
+    float gaussK = (denom != 0.0) ? (e * g - f * f) / denom : 0.0;
+    float meanH  = (denom != 0.0) ? (e * G - 2.0 * f * F + g * E) / (2.0 * denom) : 0.0;
+
+    // =======================================================
+    // 3. AO depuis la courbure
+    // =======================================================
+    float aoLoGauss = (P != 0.0) ? P : -2.0;
+    float aoHiGauss = (Q != 0.0) ? Q : 0.5;
+
+    float aoFromGauss = smoothstep(aoLoGauss, aoHiGauss, gaussK);
+    float aoFromMean  = smoothstep(-3.0, 1.0, meanH);
+    float aoStrength  = (opt3 != 0.0) ? opt3 : 0.6;
+    float ao = mix(1.0, aoFromGauss * aoFromMean, aoStrength);
+
+    // =======================================================
+    // 4. Éclairage
+    // =======================================================
+
+    // Wrap diffuse (faux SSS)
+    float wrap = (opt2 != 0.0) ? opt2 : 0.3;
+    float NdotL = dot(N, L);
+    float diffuse = max(0.0, (NdotL + wrap) / (1.0 + wrap));
+
+    // Atténuation distance lampe
+    float dist = length(lampPosition - vWorldPosition);
+    float atten = lampIntensity / (1.0 + dist * dist / (lampRadius * lampRadius));
+
+    // Blinn-Phong spéculaire
+    vec3 H = normalize(L + V);
+    float NdotH = max(0.0, dot(N, H));
+    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+
+    // Fresnel rim
+    float fresnelPow = (opt1 != 0.0) ? opt1 : 3.0;
+    float NdotV = max(0.0, dot(N, V));
+    float fresnel = pow(1.0 - NdotV, fresnelPow);
+
+    // =======================================================
+    // 5. Composition
+    // =======================================================
+    vec3 rimColor = meshFg;
+    vec3 specColor = mix(vec3(0.9, 0.95, 1.0), meshFg, 0.3);
+
+    // Ambient
+    col = meshBg * 0.12;
+
+    // Diffuse + AO + atténuation lampe
+    col += meshBg * diffuse * ao * atten;
+
+    // Spéculaire
+    col += specColor * spec * atten;
+
+    // Fresnel rim
+    col += rimColor * fresnel * tintColor;
+
+    // Teinte chaude dans les creux
+    float cavity = 1.0 - aoFromGauss;
+    col += vec3(0.05, 0.03, 0.01) * cavity;
+
+    // Ajout couleur libre (colorsToAdd)
+    col += colorsToAdd;
+
+    // Tone mapping + gamma
+    col = col / (col + vec3(1.0));
+    col = pow(col, vec3(1.0 / 2.2));
 
 `,
 

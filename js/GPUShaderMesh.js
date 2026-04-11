@@ -447,7 +447,7 @@ float o(float ncx, float ncy, float ncz) {
 float o(float ncx, float nct) {
 	float deformCoeff1 = 6.0;
 	float deformCoeff2 = 1.0/deformCoeff1;
-	return cos(ncx * gx * deformCoeff1 + nct) + cos(ncx * gy * deformCoeff1 + nct) + cos(ncx * gz * deformCoeff1 + nct);
+	return deformCoeff2*(cos(ncx * gx * deformCoeff1 + nct) + cos(ncx * gy * deformCoeff1 + nct) + cos(ncx * gz * deformCoeff1 + nct));
 }
 float o(float ncx) {
 	float deformCoeff1 = 6.0;

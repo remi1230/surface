@@ -719,6 +719,8 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 	float yN = norm.y;
 	float zN = norm.z;
 
+	float N = xN * yN * zN;
+
 	gx = x; gy = y; gz = z;
 	gu = u; gv = v;
 

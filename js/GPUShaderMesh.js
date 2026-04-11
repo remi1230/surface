@@ -464,8 +464,8 @@ float o() {
 float b(float ncx, float ncy, float ncz) {
 	return length(vec3(cos(ncx * gx), cos(ncy * gy), cos(ncz * gz)));
 }
-float b(float ncx, float ncy) {
-	return length(vec3(cos(ncx * gx), cos(ncy * gy), cos(ncy * gz)));
+float b(float ncx, float ncp) {
+	return length(vec3(cos(ncx * gx + ncp), cos(ncx * gy + ncp), cos(ncx * gz + ncp)));
 }
 float b(float ncx) {
 	return length(vec3(cos(ncx * gx), cos(ncx * gy), cos(ncx * gz)));
@@ -488,9 +488,14 @@ float a() {
 float ce(float c) {
 	return cos(exp(c*abs(gx))) * cos(exp(c*abs(gy))) * cos(exp(c*abs(gz)));
 }
-
 float se(float c) {
 	return sin(exp(c*abs(gx))) * sin(exp(c*abs(gy))) * sin(exp(c*abs(gz)));
+}
+float ce(float c, float p) {
+	return cos(exp(c*abs(gx)) + p) * cos(exp(c*abs(gy)) + p) * cos(exp(c*abs(gz)) + p);
+}
+float se(float c, float p) {
+	return sin(exp(c*abs(gx)) + p) * sin(exp(c*abs(gy)) + p) * sin(exp(c*abs(gz)) + p);
 }
 
 // Fonction h() - hypot

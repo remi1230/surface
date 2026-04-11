@@ -153,8 +153,8 @@ fragmentShaders = [
     col = mix(col1, col2, 0.5);
 `,
 `
-    //CosPos
-    vec3 pos    = vPosition-npos()*0.75;
+    //Butterfly
+    vec3 pos    = npos() * P / 32.0;
     float c     = P/4.0;
     float val   = hc(pos, o(pos, c));
     vec3 valCol = cpalette(val, palette(val));
@@ -196,6 +196,8 @@ fragmentShaders = [
     float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
 
     col += tube;
+
+    col = 1.0 - col;
      
 `,
 `
@@ -814,6 +816,12 @@ float m(vec3 p){
 float m(vec3 p, float coeff){
     return cos(coeff*p.x) * cos(coeff*p.y) * cos(coeff*p.z);
 }
+float m(vec3 p, float coeff, float phase){
+    return cos(coeff*p.x + phase) * cos(coeff*p.y + phase) * cos(coeff*p.z + phase);
+}
+float m(vec3 p, float coeff, vec3 phase){
+    return cos(coeff*p.x + phase.x) * cos(coeff*p.y + phase.y) * cos(coeff*p.z + phase.z);
+}
 float m(float x, float y, float z){
     return cos(x) * cos(y) * cos(z);
 }
@@ -833,6 +841,12 @@ float o(vec3 p){
 float o(vec3 p, float coeff){
     return cos(coeff*p.x) + cos(coeff*p.y) + cos(coeff*p.z);
 }
+float o(vec3 p, float coeff, float phase){
+    return cos(coeff*p.x + phase) + cos(coeff*p.y + phase) + cos(coeff*p.z + phase);
+}
+float o(vec3 p, float coeff, vec3 phase){
+    return cos(coeff*p.x + phase.x) + cos(coeff*p.y + phase.y) + cos(coeff*p.z + phase.z);
+}
 float o(float x, float y, float z){
     return cos(x) + cos(y) + cos(z);
 }
@@ -845,6 +859,12 @@ float hc(vec3 p){
 }
 float hc(vec3 p, float coeff){
     return length(vec3(cos(coeff*p.x), cos(coeff*p.y), cos(coeff*p.z)));
+}
+float hc(vec3 p, float coeff, float phase){
+    return length(vec3(cos(coeff*p.x + phase), cos(coeff*p.y + phase), cos(coeff*p.z + phase)));
+}
+float hc(vec3 p, float coeff, vec3 phase){
+    return length(vec3(cos(coeff*p.x + phase.x), cos(coeff*p.y + phase.y), cos(coeff*p.z + phase.z)));
 }
 float hc(float x, float y, float z){
     return length(vec3(cos(x), cos(y), cos(z)));

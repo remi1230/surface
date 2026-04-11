@@ -438,24 +438,6 @@ vec3 m(vec3 pos) {
 	return vec3(m(pos.x), m(pos.y), m(pos.z));
 }
 
-float f(float nc, float np){
-	float deformCoeff1 = 6.0;
-	float deformCoeff2 = 1.0/deformCoeff1;
-	return deformCoeff2*cos(nc * gx * deformCoeff1 + np) * cos(nc * gy * deformCoeff1 + np) * cos(nc * gz * deformCoeff1 + np);
-}
-
-float f(float nc, float npx, float npy, float npz){
-	float deformCoeff1 = 6.0;
-	float deformCoeff2 = 1.0/deformCoeff1;
-	return deformCoeff2*cos(nc * gx * deformCoeff1 + npx) * cos(nc * gy * deformCoeff1 + npy) * cos(nc * gz * deformCoeff1 + npz);
-}
-
-float f(float ncx, float npx, float ncy, float npy, float ncz, float npz){
-	float deformCoeff1 = 6.0;
-	float deformCoeff2 = 1.0/deformCoeff1;
-	return deformCoeff2*cos(ncx * gx * deformCoeff1 + npx) * cos(ncy * gy * deformCoeff1 + npy) * cos(ncz * gz * deformCoeff1 + npz);
-}
-
 // Fonctions de déformation o()
 float o(float ncx, float ncy, float ncz) {
 	float deformCoeff1 = 6.0;

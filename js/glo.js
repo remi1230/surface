@@ -437,6 +437,7 @@ var glo = {
 		{ exp: /t\*a\(\)\*n\*h\(/g, upd: "tanh(" },
 		{ exp: /m\(\)\*a\(\)\*x\*\(/g, upd: "max(" },
 		{ exp: /m\(\)\*i\*n\*\(/g, upd: "min(" },
+		{ exp: /t\*ru\*n\*c\(/g, upd: "trunc(" },
 	],
 	/** @type {string} Active coordinate system ("cartesian", "spheric", or "cylindrical"). */
 	coordsType: 'cartesian',

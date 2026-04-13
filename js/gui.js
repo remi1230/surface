@@ -2074,18 +2074,14 @@ function addSixthPanelSliders(){
     await invElemInInput("u", "v");
   });
   addButton("eleventh", panelTimeButtons, "minusTimeButton", "Time -", 95, buttonSizes.height, 0, 0, async function(value){
-    glo.timeCoeff /= 2;
+    glo.clock.slowDown();
   });
   addButton("eleventh", panelTimeButtons, "resetTimeButton", "Stop", 120, buttonSizes.height, 25, 0, async function(value){
-    glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
-    glo.pause          = !glo.pause;
-
-    glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
-
-    glo.advancedTexture.getControlByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
+    const paused = glo.clock.togglePause();
+    glo.advancedTexture.getControlByName('resetTimeButton').textBlock.text = paused ? 'PLAY' : 'STOP';
   });
   addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 120, buttonSizes.height, 25, 0, async function(value){
-    glo.timeCoeff *= 2;
+    glo.clock.speedUp();
   });
 }
 

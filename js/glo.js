@@ -10,6 +10,74 @@
 const getById = function (id) { return document.getElementById(id); };
 
 /**
+ * Virtual clock for animation time management.
+ * Accumulates elapsed time via delta-time so that pause/resume works seamlessly
+ * (no time jump on resume, time freezes exactly where it was on pause).
+ * Cost: one performance.now() call per .time access — same as before.
+ */
+class AnimationClock {
+	constructor(baseSpeed = 0.001) {
+		this._elapsed = 0;
+		this._lastTick = performance.now();
+		this._speed = baseSpeed;
+		this._paused = false;
+	}
+
+	/** @returns {number} Current accumulated time (auto-updates on each access). */
+	get time() {
+		this._update();
+		return this._elapsed;
+	}
+
+	/** @returns {boolean} Whether the clock is paused. */
+	get paused() { return this._paused; }
+
+	/** @returns {number} Current speed multiplier. */
+	get speed() { return this._speed; }
+	set speed(s) { this._update(); this._speed = s; }
+
+	/** @private Flush accumulated delta into _elapsed. */
+	_update() {
+		const now = performance.now();
+		if (!this._paused) {
+			this._elapsed += (now - this._lastTick) * this._speed;
+		}
+		this._lastTick = now;
+	}
+
+	pause() {
+		this._update();
+		this._paused = true;
+	}
+
+	resume() {
+		this._lastTick = performance.now();
+		this._paused = false;
+	}
+
+	/** Toggles pause/resume. @returns {boolean} New paused state. */
+	togglePause() {
+		if (this._paused) this.resume(); else this.pause();
+		return this._paused;
+	}
+
+	speedUp(factor = 2)  { this._update(); this._speed *= factor; }
+	slowDown(factor = 2) { this._update(); this._speed /= factor; }
+
+	/** Reset elapsed time to 0. */
+	reset() {
+		this._elapsed = 0;
+		this._lastTick = performance.now();
+	}
+
+	/** Jump to a specific time value. */
+	setTime(t) {
+		this._elapsed = t;
+		this._lastTick = performance.now();
+	}
+}
+
+/**
  * Default color theme used at application startup.
  * Each property maps to a BabylonJS GUI color picker control by name.
  * @type {{pickerColorBackground: BABYLON.Color3, pickerColorButton: BABYLON.Color3, pickerColorMeshBg: BABYLON.Color3}}
@@ -952,7 +1020,7 @@ var glo = {
 		opt2: false,
 		opt3: false,
 	},
-	timeCoeff: 0.001,
+	clock: new AnimationClock(0.001),
 	shaderMaterial: true,
     shaderColor:true,
 	editorWindow: getById('shaderEditor'),

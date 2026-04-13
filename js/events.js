@@ -274,13 +274,11 @@ const keyboardShortcuts = [
    { key: "9",  action: () => slidersAnim('v', 0, 0.001) },
    { key: ";",  action: () => switchWritingType(false) },
    { key: ",",  action: () => switchWritingType(true) },
-   { key: "f",  action: () => glo.timeCoeff *= 2 },
-   { key: "q",  action: () => glo.timeCoeff /= 2 },
-   { key: "a",  action: () => {
-      glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
-      glo.pause          = !glo.pause;
-      glo.timeCoeff      = glo.pause ? 0 : glo.savedTimeCoeff;
-      glo.allControls.getByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
+   { key: "f",  action: () => glo.clock.speedUp() },
+   { key: "q",  action: () => glo.clock.slowDown() },
+   { key: " ",  action: () => {
+      const paused = glo.clock.togglePause();
+      glo.allControls.getByName('resetTimeButton').textBlock.text = paused ? 'PLAY' : 'STOP';
    }},
    { key: "'",  action: () => { glo.params.uvToXy = !glo.params.uvToXy; uvToXy(); } },
    { key: '"',  action: () => specialRandomizeColorsApp() },

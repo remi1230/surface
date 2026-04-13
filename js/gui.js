@@ -1908,6 +1908,7 @@ function addSixthPanelSliders(){
   let panelButtonSlidersUVOnOneSignU = new BABYLON.GUI.StackPanel();
   let panelButtonSlidersUVOnOneSignV = new BABYLON.GUI.StackPanel();
   let panelTimeButtons               = new BABYLON.GUI.StackPanel();
+  let panelTimePlayButtons           = new BABYLON.GUI.StackPanel();
 
   /**
    * Helper to create and register a GUI panel.
@@ -1942,11 +1943,12 @@ function addSixthPanelSliders(){
   }
   addPanel(panelButton, 'panelButtonUvToXy', 38, true, 19.125, undefined, 'sixth', -0.33);
   addPanel(panelSliders, 'panelSliders', 45.5, true, 20, undefined, 'sixth', -0.5, 0.5);
-  const posPanel = createIncrementer(57.5, 5);
+  const posPanel = createIncrementer(62.5, 5);
 
   addPanel(panelButtonSlidersUVOnOneSignU, 'panelButtonSlidersUVOnOneSignU', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelButtonSlidersUVOnOneSignV, 'panelButtonSlidersUVOnOneSignV', posPanel(), false, 20, 4, 'eleventh', 1.42);
   addPanel(panelTimeButtons, 'panelTimeButtons', 50, false, 20, 4, 'eleventh', 1.42);
+  addPanel(panelTimePlayButtons, 'panelTimePlayButtons', 54.5, false, 20, 4, 'eleventh', 1.42);
 
   /**
    * Creates a slider with header and event callback for the sixth panel.
@@ -2074,18 +2076,23 @@ function addSixthPanelSliders(){
     await invElemInInput("u", "v");
   });
   addButton("eleventh", panelTimeButtons, "minusTimeButton", "Time -", 95, buttonSizes.height, 0, 0, async function(value){
-    glo.timeCoeff /= 2;
+    glo.clock.slowDown();
   });
-  addButton("eleventh", panelTimeButtons, "resetTimeButton", "Stop", 120, buttonSizes.height, 25, 0, async function(value){
-    glo.savedTimeCoeff = glo.pause ? glo.savedTimeCoeff : glo.timeCoeff;
-    glo.pause          = !glo.pause;
-
-    glo.timeCoeff = glo.pause ? 0 : glo.savedTimeCoeff;
-
-    glo.advancedTexture.getControlByName('resetTimeButton').textBlock.text = glo.pause ? 'PLAY' : 'STOP';
+  addButton("eleventh", panelTimeButtons, "toggleTimeButton", "Stop", 120, buttonSizes.height, 25, 0, async function(value){
+    const paused = glo.clock.togglePause();
+    glo.advancedTexture.getControlByName('toggleTimeButton').textBlock.text = paused ? 'PLAY' : 'STOP';
   });
   addButton("eleventh", panelTimeButtons, "majorTimeButton", "Time +", 120, buttonSizes.height, 25, 0, async function(value){
-    glo.timeCoeff *= 2;
+    glo.clock.speedUp();
+  });
+  addButton("eleventh", panelTimePlayButtons, "backToTimeButton", "⏮", 95, buttonSizes.height, 0, 0, async function(value){
+    glo.clock.setTime(glo.clock.time - .25);
+  });
+  addButton("eleventh", panelTimePlayButtons, "resetTimeButton", "RAZ", 120, buttonSizes.height, 25, 0, async function(value){
+    glo.clock.setTime(0);
+  });
+  addButton("eleventh", panelTimePlayButtons, "goToTimeButton", "⏭", 120, buttonSizes.height, 25, 0, async function(value){
+    glo.clock.setTime(glo.clock.time + .25);
   });
 }
 
@@ -2183,9 +2190,6 @@ function addEleventhPanelSliders(){
   addButton("eleventh", panelButton4, "camToZeroButton", "View on ⊙", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
     cameraOnPos({x: 0, y: 0, z: 0});
   });
-  addButton("eleventh", panelButton6, "moveToMeshButton", "Cam +", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
-    glo.camera.radius/=1.0625;
-  });
   addButton("eleventh", panelButton6, "moveFromMeshButton", "Cam -", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
     glo.camera.radius*=1.0625;
   });
@@ -2193,6 +2197,10 @@ function addEleventhPanelSliders(){
     cameraOnPos({x: 0, y: 0, z: 0});
     viewOnAxis();
   });
+  addButton("eleventh", panelButton6, "moveToMeshButton", "Cam +", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
+    glo.camera.radius/=1.0625;
+  });
+  
 
   makePanelTitle("rotateSpeed", "Rotate", 68, "sixth", 2);
   addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotateSpeed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){

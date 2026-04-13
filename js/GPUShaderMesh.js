@@ -310,7 +310,7 @@ class ShaderMeshBase {
 		this.opt2 = glo.shaderOpt.opt2 ? 1.0 : 0.0;
 		this.opt3 = glo.shaderOpt.opt3 ? 1.0 : 0.0;
 
-		this.t = performance.now() * glo.timeCoeff;
+		this.t = glo.clock.time;
 
 		// Blender
 		this.blenderInfos = glo.params.blender;
@@ -947,7 +947,7 @@ void main() {
 
 		// Single observer for per-frame updates (time + camera)
 		this.cameraObserver = glo.scene.onBeforeRenderObservable.add(() => {
-			const t = performance.now() * glo.timeCoeff;
+			const t = glo.clock.time;
 			this.shaderMaterial.setFloat("time", t);
 			this.shaderMaterial.setFloat("t", t);
 			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
@@ -1041,7 +1041,7 @@ void main() {
 		mat.setVector3("uSymCenter", this._vecSymCenter);
 
 		// Temps
-		mat.setFloat("t", performance.now() * glo.timeCoeff);
+		mat.setFloat("t", glo.clock.time);
 
 		// FirstPoint (reuse pre-allocated vector)
 		this._vecFirstPoint.set(glo.firstPoint?.x || 1, glo.firstPoint?.y || 0, glo.firstPoint?.z || 0);
@@ -1587,7 +1587,7 @@ void main() {
 
 		// Single observer for per-frame updates (time + camera)
 		this.cameraObserver = glo.scene.onBeforeRenderObservable.add(() => {
-			const t = performance.now() * glo.timeCoeff;
+			const t = glo.clock.time;
 			this.shaderMaterial.setFloat("time", t);
 			this.shaderMaterial.setFloat("t", t);
 			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
@@ -1851,7 +1851,7 @@ void main() { fragColor = vec4(0.0); }`;
 		setF('M', glo.params.M);
 
 		// Temps et epsilon
-		setF('t', performance.now() * glo.timeCoeff);
+		setF('t', glo.clock.time);
 		setF('eps', 0.001);
 		setF('scaleNorm', glo.scaleNorm || 1.0);
 		setI('deformationEnabled', deformationEnabled ? 1 : 0);

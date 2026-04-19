@@ -838,7 +838,7 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform vec3 colorsToAdd;
 uniform vec3 backgroundColor;
-uniform float tintColor;
+uniform float colorRotation;
 uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
@@ -903,7 +903,7 @@ void main() {
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'tintColor', 'backgroundColor',
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'colorRotation', 'backgroundColor',
 					"gridU", "gridV", "lineWidth", "uvCoeff", "uvParamsCoeff", "invcol", "islight"
 				]
 			}
@@ -1067,7 +1067,7 @@ void main() {
 		mat.setVector3("colorsToAdd", this._colorsToAdd);
 		this._backgroundCanvasColor.set(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
 		mat.setVector3("backgroundColor", this._backgroundCanvasColor);
-		mat.setFloat("tintColor", glo.shaders.colors.tint);
+		mat.setFloat("colorRotation", glo.shaders.colors.rotation);
 		mat.setFloat("lampIntensity", glo.shaders.light.intensity);
 		mat.setFloat("lampRadius", glo.shaders.light.radius);
 		mat.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);

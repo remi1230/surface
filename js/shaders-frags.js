@@ -523,7 +523,7 @@ fragmentShaders = [
     col += specColor * spec * atten;
 
     // Fresnel rim
-    col += rimColor * fresnel * tintColor;
+    col += rimColor * fresnel;
 
     // Teinte chaude dans les creux
     float cavity = 1.0 - aoFromGauss;
@@ -709,6 +709,23 @@ vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec3 hueRotateYIQ(vec3 col, float angleRad) {
+    float c = cos(angleRad);
+    float s = sin(angleRad);
+    mat3 m = mat3(
+        0.299 + 0.701 * c + 0.168 * s,
+        0.299 - 0.299 * c - 0.328 * s,
+        0.299 - 0.300 * c + 1.250 * s,
+        0.587 - 0.587 * c + 0.330 * s,
+        0.587 + 0.413 * c + 0.035 * s,
+        0.587 - 0.588 * c - 1.050 * s,
+        0.114 - 0.114 * c - 0.497 * s,
+        0.114 - 0.114 * c + 0.292 * s,
+        0.114 + 0.886 * c - 0.203 * s
+    );
+    return m * col;
 }
 
 vec2 rotate2D (vec2 _st, float _angle) {
@@ -1073,7 +1090,7 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform vec3 colorsToAdd;
 uniform vec3 backgroundColor;
-uniform float tintColor;
+uniform float colorRotation;
 uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
@@ -1089,8 +1106,9 @@ void main(){
  * Common GLSL footer appended to every fragment shader.
  *
  * Handles discard based on brightness threshold (U uniform), color inversion
- * (controlled by the INV button), tint color multiplication, additive color
- * adjustment, and optional Blinn-Phong lighting (controlled by the lamp button).
+ * (controlled by the INV button), hue rotation via a YIQ luma-chroma matrix,
+ * additive color adjustment, and optional Blinn-Phong lighting (controlled by
+ * the lamp button).
  * Applies tone mapping and gamma correction when lighting is active.
  * Outputs the final color to `fragColor`.
  *
@@ -1104,7 +1122,9 @@ fragmentShaderFooter = `
     // Color inversion when INV button is active
 	col = mix(col, vec3(1.0)-col, invcol);
 
-    col *= tintColor;
+    // Hue rotation (degrees, cycle 0..360) via YIQ luma-chroma matrix
+    col = hueRotateYIQ(col, radians(colorRotation));
+
     col += colorsToAdd;
 
 	// Lighting when the lamp button is active

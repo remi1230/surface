@@ -410,7 +410,7 @@ mat3 rotateAxis(vec3 axis, float angle) {
 }
 
 // Variables globales pour les fonctions de déformation
-float gx, gy, gz, gu, gv;
+float gx, gy, gz, gu, gv, gxN, gyN, gzN;
 
 
 // Fonctions de déformation m()
@@ -532,6 +532,13 @@ float cc(float vx1, float vy1, float vx2, float vy2){
 
 float cc(float vx1, float vy1, float vz1, float vx2, float vy2, float vz2){
 	return dot(vec3(vx1, vy1, vz1), vec3(vx2, vy2, vz2));
+}
+
+float cp(float n){
+	return cos(gxN * n) * cos(gyN * n) * cos(gzN * n);
+}
+float cp(float n, float p){
+	return cos(gxN * n + p) * cos(gyN * n + p) * cos(gzN * n + p);
 }
 
 `;
@@ -728,6 +735,7 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 
 	gx = x; gy = y; gz = z;
 	gu = u; gv = v;
+	gxN = xN; gyN = yN; gzN = zN;
 
 	float R = length(pos);
 	float xzLen = length(pos.xz);

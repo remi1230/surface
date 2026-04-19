@@ -155,17 +155,17 @@ fragmentShaders = [
 `,
 `
     //Butterfly
-    vec3 pos    = npos() * P / 32.0;
+    vec3 pos    = (opt1 == 0.0 ? vPosition*5./12. : npos()) * P / 24.0;
     float c     = P/4.0;
-    float val   = hc(pos, o(pos, c));
-    vec3 valCol = cpalette(val, palette(val));
+    float val   = hc(pos, o(pos, c, -time), 0.25*time);
+    vec3 valCol = rainbop(val*(0.5*Ts(-0.0625)), rainbop(.5+Ts(0.0625), 0.25*pos)*val+time*0.0625);
 
-    col = vec3(val > 0.0 ? valCol : 1.0-valCol);
+    col = 1.0 - vec3(val > 0.0 ? valCol : 1.0-valCol);
 
 `,
 `
     //Checkerboard
-    float val   = f(vPosition * (opt1 == 0.0 ? vec3(1.0) : vNormal), P/32.0, time);
+    float val   = 0.1667 * m(6. * vPosition * (opt1 == 0.0 ? vec3(1.0) : vNormal), P/32.0, time);
     float c     = S/2.0;
     vec3 valCol = cpalette(val*c, cpalette(1.0/(c/2.0), heatmap(val*c)));
 
@@ -233,7 +233,7 @@ fragmentShaders = [
     vec3 col2 = cpalette(pos.y, pos);
     vec3 col3 = rainbop(pos.z, pos);
 
-    col = 1.0-mix(col1, col2, Ts(2.0)*col3);
+    col = 1.0-mix(col1, col2, Ts(0.5)*col3);
 `,
 `
     //Position
@@ -279,6 +279,19 @@ fragmentShaders = [
     if(col == vec3(0.0)){
         col = palette(d+time*0.125);
     }
+`,
+`   
+    //Harlequin
+    vec3 pos = opt1 == 0.0 ? vPosition * P / 6.0 : .5 * npos() * P;
+    
+    float coeff = opt2 == 0.0 ? 1.0 : .125;
+    float phase = time;
+    float val1 = m(pos, coeff, phase);
+    float val2 = o(pos, coeff, phase);
+    float val3 = hc(pos, coeff, phase);
+    float val4 = m(exp(val1), cos(.5*val2), 1.4142*val3);
+    
+    col = 1.0 - rainbop(val4, -cos(val4*pos));
 `,
 `   
     //Truchet
@@ -927,10 +940,14 @@ float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
-float f(vec3 p, float nc, float np){
-	float deformCoeff1 = 6.0;
-	float deformCoeff2 = 1.0/deformCoeff1;
-	return deformCoeff2*cos(nc * p.x * deformCoeff1 + np) * cos(nc * p.y * deformCoeff1 + np) * cos(nc * p.z * deformCoeff1 + np);
+float f(vec3 p){
+	return cos(p.x + p.y + p.z);
+}
+float f(vec3 p, float coeff){
+	return cos(coeff * (p.x + p.y + p.z));
+}
+float f(vec3 p, float coeff, float phase){
+	return cos(coeff * (p.x + p.y + p.z) + phase);
 }
 
 float o(vec3 p){
@@ -969,6 +986,16 @@ float hc(float x, float y, float z){
 }
 float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
+}
+
+float g(vec3 p){
+    return cos(p.x * p.y * p.z);
+}
+float g(vec3 p, float coeff){
+    return cos(p.x * p.y * p.z * coeff);
+}
+float g(vec3 p, float coeff, float phase){
+    return cos(p.x * p.y * p.z * coeff + phase);
 }
 
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {

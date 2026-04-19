@@ -2296,13 +2296,13 @@ function addTransformationSliders(){
     checked.forEach(function(axis) { updColorsVec3(axis, value); });
   }, ['r', 'g', 'b']);
 
-  addSlider(panelVarColorTint, "varTintSlider", "Tint", 1, 2, 0, 2, 0.01,
+  addSlider(panelVarColorTint, "varTintSlider", "Hue", 0, 0, 0, 360, 1,
     function(value){
-      glo.shaders.colors.tint = value;
+      glo.shaders.colors.rotation = value;
 
       if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
         let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
-        shaderMeshInstance.shaderMaterial.setFloat("tintColor", value);
+        shaderMeshInstance.shaderMaterial.setFloat("colorRotation", value);
       }
     });
 }

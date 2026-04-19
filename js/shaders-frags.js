@@ -523,7 +523,7 @@ fragmentShaders = [
     col += specColor * spec * atten;
 
     // Fresnel rim
-    col += rimColor * fresnel * tintColor;
+    col += rimColor * fresnel;
 
     // Teinte chaude dans les creux
     float cavity = 1.0 - aoFromGauss;
@@ -709,6 +709,45 @@ vec3 hsv2rgb(vec3 c) {
     vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
     vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec3 rgb2hsl(vec3 c) {
+    float maxC = max(max(c.r, c.g), c.b);
+    float minC = min(min(c.r, c.g), c.b);
+    float l = (maxC + minC) * 0.5;
+    float h = 0.0;
+    float s = 0.0;
+    float d = maxC - minC;
+    if (d > 0.0) {
+        s = l > 0.5 ? d / (2.0 - maxC - minC) : d / (maxC + minC);
+        if (maxC == c.r)      h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+        else if (maxC == c.g) h = (c.b - c.r) / d + 2.0;
+        else                  h = (c.r - c.g) / d + 4.0;
+        h /= 6.0;
+    }
+    return vec3(h, s, l);
+}
+
+float hue2rgb(float p, float q, float t) {
+    t = fract(t);
+    if (t < 1.0 / 6.0) return p + (q - p) * 6.0 * t;
+    if (t < 0.5)       return q;
+    if (t < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t) * 6.0;
+    return p;
+}
+
+vec3 hsl2rgb(vec3 hsl) {
+    float h = hsl.x;
+    float s = hsl.y;
+    float l = hsl.z;
+    if (s <= 0.0) return vec3(l);
+    float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+    float p = 2.0 * l - q;
+    return vec3(
+        hue2rgb(p, q, h + 1.0 / 3.0),
+        hue2rgb(p, q, h),
+        hue2rgb(p, q, h - 1.0 / 3.0)
+    );
 }
 
 vec2 rotate2D (vec2 _st, float _angle) {
@@ -1073,7 +1112,7 @@ uniform vec3 meshFg;
 uniform vec3 lampPosition;
 uniform vec3 colorsToAdd;
 uniform vec3 backgroundColor;
-uniform float tintColor;
+uniform float colorRotation;
 uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
@@ -1089,7 +1128,7 @@ void main(){
  * Common GLSL footer appended to every fragment shader.
  *
  * Handles discard based on brightness threshold (U uniform), color inversion
- * (controlled by the INV button), tint color multiplication, additive color
+ * (controlled by the INV button), hue rotation in HSL space, additive color
  * adjustment, and optional Blinn-Phong lighting (controlled by the lamp button).
  * Applies tone mapping and gamma correction when lighting is active.
  * Outputs the final color to `fragColor`.
@@ -1104,7 +1143,11 @@ fragmentShaderFooter = `
     // Color inversion when INV button is active
 	col = mix(col, vec3(1.0)-col, invcol);
 
-    col *= tintColor;
+    // Hue rotation (degrees, cycle 0..360) via HSL
+    vec3 hsl = rgb2hsl(col);
+    hsl.x = fract(hsl.x + colorRotation / 360.0);
+    col = hsl2rgb(hsl);
+
     col += colorsToAdd;
 
 	// Lighting when the lamp button is active

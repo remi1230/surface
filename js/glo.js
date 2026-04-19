@@ -1002,7 +1002,7 @@ var glo = {
 		},
 		colors:{
 			toAdd:{r: 0, g: 0, b: 0},
-			tint: 1,
+			rotation: 0,
 		}
 	},
 	/** @type {Object} Video recording state (canvas, stream, MediaRecorder, chunks). */

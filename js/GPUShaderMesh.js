@@ -556,6 +556,52 @@ float cp(float n, float p){
 	}
 
 	/**
+	 * Builds the GLSL block that rotates `deformNormal` (the normal used for
+	 * displacement) using the user equations stored in
+	 * `glo.params.textInputNormalAlpha` (Z rotation) and
+	 * `glo.params.textInputNormalBeta` (Y rotation). Emits no code when both
+	 * inputs are empty, so unused rotations cost nothing per vertex. The
+	 * equations may reference u, v, x, y, z, xN, yN, zN and time `t`.
+	 * @returns {string} GLSL block, possibly empty.
+	 */
+	buildNormalRotationGLSL() {
+		const alphaText = (glo.params.textInputNormalAlpha || '').trim();
+		const betaText  = (glo.params.textInputNormalBeta  || '').trim();
+		if (!alphaText && !betaText) return '';
+
+		const glslAlpha = alphaText ? this.computer.transformExpressionToGLSL(alphaText) : '0.0';
+		const glslBeta  = betaText  ? this.computer.transformExpressionToGLSL(betaText)  : '0.0';
+
+		const betaBlock = betaText ? `
+		if (normBeta != 0.0) {
+			float c = cos(normBeta);
+			float s = sin(normBeta);
+			float tx = deformNormal.x * c + deformNormal.z * s;
+			float tz = -deformNormal.x * s + deformNormal.z * c;
+			deformNormal.x = tx;
+			deformNormal.z = tz;
+		}` : '';
+
+		const alphaBlock = alphaText ? `
+		if (normAlpha != 0.0) {
+			float c = cos(normAlpha);
+			float s = sin(normAlpha);
+			float tx = deformNormal.x * c - deformNormal.y * s;
+			float ty = deformNormal.x * s + deformNormal.y * c;
+			deformNormal.x = tx;
+			deformNormal.y = ty;
+		}` : '';
+
+		return `
+	{
+		float x = pos.x, y = pos.y, z = pos.z;
+		float xN = deformNormal.x, yN = deformNormal.y, zN = deformNormal.z;
+		float normBeta  = ${glslBeta};
+		float normAlpha = ${glslAlpha};${betaBlock}${alphaBlock}
+	}`;
+	}
+
+	/**
 	 * Generates the complete vertex shader source (GLSL ES 3.0).
 	 *
 	 * The shader computes, per vertex:
@@ -578,6 +624,8 @@ float cp(float n, float p){
 		} else {
 			glslDeformBlock = 'return 0.0;';
 		}
+
+		const glslNormalRotation = this.buildNormalRotationGLSL();
 
 		return `#version 300 es
 precision highp float;
@@ -786,17 +834,23 @@ void main() {
 	}
 
 	// ============================================================
+	// ETAPE 3a : Rotation utilisateur de la normale de déformation
+	// ============================================================
+	vec3 deformNormal = normal;
+	${glslNormalRotation}
+
+	// ============================================================
 	// ETAPE 3b : Déformation par normales (ondes de surface via sliders)
 	// ============================================================
-	pos = applyNormDeformation(pos, normal);
+	pos = applyNormDeformation(pos, deformNormal);
 
 	// ============================================================
 	// ETAPE 4 : Appliquer la déformation le long de la normale (si activée)
 	// ============================================================
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
-		float deform = computeDeformation(u, v, pos, normal) * scaleNorm;
-		finalPosition = pos + normal * deform;
+		float deform = computeDeformation(u, v, pos, deformNormal) * scaleNorm;
+		finalPosition = pos + deformNormal * deform;
 	}
 
 	// ============================================================
@@ -1388,6 +1442,8 @@ void main() {
 			glslDeformBlock = 'return 0.0;';
 		}
 
+		const glslNormalRotation = this.buildNormalRotationGLSL();
+
 		return `#version 300 es
 precision highp float;
 
@@ -1506,14 +1562,18 @@ void main() {
 		norm = posLen > 0.001 ? pos / posLen : vec3(0.0, 1.0, 0.0);
 	}
 
+	// Rotation utilisateur de la normale de déformation
+	vec3 deformNormal = norm;
+	${glslNormalRotation}
+
 	// Déformation par normales (ondes de surface via sliders)
-	pos = applyNormDeformation(pos, norm);
+	pos = applyNormDeformation(pos, deformNormal);
 
 	// Déformation le long de la normale (si activée)
 	vec3 finalPosition = pos;
 	if (deformationEnabled == 1) {
-		float deform = computeDeformation(u, v, pos, norm) * scaleNorm;
-		finalPosition = pos + norm * deform;
+		float deform = computeDeformation(u, v, pos, deformNormal) * scaleNorm;
+		finalPosition = pos + deformNormal * deform;
 	}
 
 	// Sorties

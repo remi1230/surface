@@ -2097,6 +2097,55 @@ function addSixthPanelSliders(){
 }
 
 /**
+ * Attaches keyboard + paste handlers to a Normal Rotation equation input so
+ * typing an equation updates `glo.params[paramKey]` and recompiles the vertex
+ * shader. Tab navigation matches the other equation inputs.
+ * @param {BABYLON.GUI.InputText} input
+ * @param {string} paramKey - Key in `glo.params` to update with the input text.
+ */
+function attachNormalRotationInput(input, paramKey){
+  if(!input) return;
+
+  function commit(){
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance){
+      glo.ribbon.shaderMeshInstance.updateDeformationExpression();
+    }
+  }
+
+  input.onKeyboardEventProcessedObservable.add((event) => {
+    const key = event.key;
+    const text = input.text;
+
+    if(key !== "Control" && key !== "c" && key !== "v" && key !== "F12"){
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    glo.params[paramKey] = text;
+
+    if(key === "Tab"){
+      const inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
+      const lastIndex = inputsEquations.length - 3;
+      let newIndex = 0;
+      if(!event.shiftKey){
+        newIndex = input.inputsEquationsIndex < lastIndex ? input.inputsEquationsIndex + 1 : 0;
+      } else {
+        newIndex = input.inputsEquationsIndex > 0 ? input.inputsEquationsIndex - 1 : lastIndex;
+      }
+      glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+    }
+    else if(key === "Enter" || !key.match(/Arrow/g)){
+      commit();
+    }
+  });
+
+  input.onTextPasteObservable.add(() => {
+    glo.params[paramKey] = input.text;
+    commit();
+  });
+}
+
+/**
  * Creates miscellaneous controls (reset, writing type, plans, UV increment, camera controls, rotate).
  */
 function addEleventhPanelSliders(){
@@ -2208,37 +2257,9 @@ function addEleventhPanelSliders(){
   makePanelTitle("panelRotateNormalTitle", "Rotate Normal", 72, "eleventh", 2);
   addInput(panelRotateNormal, "Alpha", "", "inputNormalAlpha", "header right eleventh", "input equation right eleventh", "textInputNormalAlpha", "inputNormalAlpha", false, "100%");
   addInput(panelRotateNormal, "Beta", "", "inputNormalBeta", "header right eleventh", "input equation right eleventh", "textInputNormalBeta", "inputNormalBeta", false, "100%");
-  
-  /*glo.inputSymR.onKeyboardEventProcessedObservable.add(async (event) => {
-      let key = event.key;
-      let text = glo.inputSymR.text;
 
-      if (key !== "Control" && key !== "c" && key !== "v" && key !== "F12") {
-          event.stopPropagation();
-          event.preventDefault();
-      }
-
-      glo.params.textInputSymR = text;
-
-      if (key === "Enter" || (key !== "Tab" && !key.match(/Arrow/g))) {
-          glo.ribbon.shaderMeshInstance.updateDeformationExpression();
-      }
-      else if (key == "Tab") {
-        var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
-        var inputsEquationsLastIndex = inputsEquations.length - 3;
-        var newIndex = 0;
-        if(!event.shiftKey){
-          if(glo.inputSymR.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = glo.inputSymR.inputsEquationsIndex + 1; }
-          else{ newIndex = 0; }
-          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-        }
-        else{
-          if(glo.inputSymR.inputsEquationsIndex > 0){ newIndex = glo.inputSymR.inputsEquationsIndex - 1; }
-          else{ newIndex = inputsEquationsLastIndex; }
-          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
-        }
-      }
-  });*/
+  attachNormalRotationInput(glo.inputNormalAlpha, 'textInputNormalAlpha');
+  attachNormalRotationInput(glo.inputNormalBeta,  'textInputNormalBeta');
 
   makePanelTitle("rotateSpeed", "Rotate", 68, "sixth", 2);
   addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotateSpeed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){

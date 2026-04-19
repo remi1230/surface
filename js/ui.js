@@ -378,6 +378,9 @@ function paramsToControls(){
 	glo.allControls.getByName('inputEvalX').text = glo.params.textInputEvalX;
 	glo.allControls.getByName('inputEvalY').text = glo.params.textInputEvalY;
 
+	if(glo.inputNormalAlpha){ glo.inputNormalAlpha.text = glo.params.textInputNormalAlpha || ''; }
+	if(glo.inputNormalBeta){  glo.inputNormalBeta.text  = glo.params.textInputNormalBeta  || ''; }
+
 	if(glo.inputSymR){ glo.inputSymR.text = glo.params.textInputSymR || ''; }
 	glo.skipRebuild = false;
 }
@@ -467,8 +470,8 @@ function resetEquationsParamSliders(){
 	glo.allControls.getByName('u').value = PI;
 	glo.allControls.getByName('v').value = PI;
 
-	['X', 'Y', 'Z', 'Alpha', 'Beta', 'Theta', 'EvalX', 'EvalY'].forEach(inputVar => {
-		glo['input' + inputVar].text = '';
+	['X', 'Y', 'Z', 'Alpha', 'Beta', 'Theta', 'EvalX', 'EvalY', 'NormalAlpha', 'NormalBeta'].forEach(inputVar => {
+		if(glo['input' + inputVar]){ glo['input' + inputVar].text = ''; }
 	});
 
 	glo.resolutionCoeff = 4;

@@ -641,6 +641,8 @@ var glo = {
 		textInputAlpha: "",
 		textInputBeta: "",
 		textInputTheta: "",
+		textInputNormalAlpha: "",
+		textInputNormalBeta: "",
 		textInputEvalX: "u",
 		textInputEvalY: "v",
 		symmetrizeX: 0,

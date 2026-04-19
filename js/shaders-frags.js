@@ -711,43 +711,21 @@ vec3 hsv2rgb(vec3 c) {
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-vec3 rgb2hsl(vec3 c) {
-    float maxC = max(max(c.r, c.g), c.b);
-    float minC = min(min(c.r, c.g), c.b);
-    float l = (maxC + minC) * 0.5;
-    float h = 0.0;
-    float s = 0.0;
-    float d = maxC - minC;
-    if (d > 0.0) {
-        s = l > 0.5 ? d / (2.0 - maxC - minC) : d / (maxC + minC);
-        if (maxC == c.r)      h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
-        else if (maxC == c.g) h = (c.b - c.r) / d + 2.0;
-        else                  h = (c.r - c.g) / d + 4.0;
-        h /= 6.0;
-    }
-    return vec3(h, s, l);
-}
-
-float hue2rgb(float p, float q, float t) {
-    t = fract(t);
-    if (t < 1.0 / 6.0) return p + (q - p) * 6.0 * t;
-    if (t < 0.5)       return q;
-    if (t < 2.0 / 3.0) return p + (q - p) * (2.0 / 3.0 - t) * 6.0;
-    return p;
-}
-
-vec3 hsl2rgb(vec3 hsl) {
-    float h = hsl.x;
-    float s = hsl.y;
-    float l = hsl.z;
-    if (s <= 0.0) return vec3(l);
-    float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
-    float p = 2.0 * l - q;
-    return vec3(
-        hue2rgb(p, q, h + 1.0 / 3.0),
-        hue2rgb(p, q, h),
-        hue2rgb(p, q, h - 1.0 / 3.0)
+vec3 hueRotateYIQ(vec3 col, float angleRad) {
+    float c = cos(angleRad);
+    float s = sin(angleRad);
+    mat3 m = mat3(
+        0.299 + 0.701 * c + 0.168 * s,
+        0.299 - 0.299 * c - 0.328 * s,
+        0.299 - 0.300 * c + 1.250 * s,
+        0.587 - 0.587 * c + 0.330 * s,
+        0.587 + 0.413 * c + 0.035 * s,
+        0.587 - 0.588 * c - 1.050 * s,
+        0.114 - 0.114 * c - 0.497 * s,
+        0.114 - 0.114 * c + 0.292 * s,
+        0.114 + 0.886 * c - 0.203 * s
     );
+    return m * col;
 }
 
 vec2 rotate2D (vec2 _st, float _angle) {
@@ -1128,8 +1106,9 @@ void main(){
  * Common GLSL footer appended to every fragment shader.
  *
  * Handles discard based on brightness threshold (U uniform), color inversion
- * (controlled by the INV button), hue rotation in HSL space, additive color
- * adjustment, and optional Blinn-Phong lighting (controlled by the lamp button).
+ * (controlled by the INV button), hue rotation via a YIQ luma-chroma matrix,
+ * additive color adjustment, and optional Blinn-Phong lighting (controlled by
+ * the lamp button).
  * Applies tone mapping and gamma correction when lighting is active.
  * Outputs the final color to `fragColor`.
  *
@@ -1143,10 +1122,8 @@ fragmentShaderFooter = `
     // Color inversion when INV button is active
 	col = mix(col, vec3(1.0)-col, invcol);
 
-    // Hue rotation (degrees, cycle 0..360) via HSL
-    vec3 hsl = rgb2hsl(col);
-    hsl.x = fract(hsl.x + colorRotation / 360.0);
-    col = hsl2rgb(hsl);
+    // Hue rotation (degrees, cycle 0..360) via YIQ luma-chroma matrix
+    col = hueRotateYIQ(col, radians(colorRotation));
 
     col += colorsToAdd;
 

@@ -2105,6 +2105,7 @@ function addEleventhPanelSliders(){
   let panelButton4      = new BABYLON.GUI.StackPanel();
   let panelButton6      = new BABYLON.GUI.StackPanel();
   let panelRotateCamera = new BABYLON.GUI.StackPanel();
+  let panelRotateNormal = new BABYLON.GUI.StackPanel();
 
   /**
    * Helper to create and register a GUI panel for eleventh panel.
@@ -2144,7 +2145,10 @@ function addEleventhPanelSliders(){
   addPanel(panelButton3, 'panelButtonEleventh3', posPanel(), false);
   addPanel(panelButton4, 'panelButtonEleventh4', posPanel(), false);
   addPanel(panelButton6, 'panelButtonEleventh6', 45, false);
+  addPanel(panelRotateNormal, 'panelRotateNormal', 76, true, 18.5, 10);
   addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 10, 'sixth');
+
+  panelRotateNormal.paddingRight = '0.5%';
 
   const buttonSizes = {width: 120, height: 33};
 
@@ -2200,7 +2204,41 @@ function addEleventhPanelSliders(){
   addButton("eleventh", panelButton6, "moveToMeshButton", "Cam +", buttonSizes.width, buttonSizes.height, 25, 0, function(value){
     glo.camera.radius/=1.0625;
   });
+
+  makePanelTitle("panelRotateNormalTitle", "Rotate Normal", 72, "eleventh", 2);
+  addInput(panelRotateNormal, "Alpha", "", "inputNormalAlpha", "header right eleventh", "input equation right eleventh", "textInputNormalAlpha", "inputNormalAlpha", false, "100%");
+  addInput(panelRotateNormal, "Beta", "", "inputNormalBeta", "header right eleventh", "input equation right eleventh", "textInputNormalBeta", "inputNormalBeta", false, "100%");
   
+  /*glo.inputSymR.onKeyboardEventProcessedObservable.add(async (event) => {
+      let key = event.key;
+      let text = glo.inputSymR.text;
+
+      if (key !== "Control" && key !== "c" && key !== "v" && key !== "F12") {
+          event.stopPropagation();
+          event.preventDefault();
+      }
+
+      glo.params.textInputSymR = text;
+
+      if (key === "Enter" || (key !== "Tab" && !key.match(/Arrow/g))) {
+          glo.ribbon.shaderMeshInstance.updateDeformationExpression();
+      }
+      else if (key == "Tab") {
+        var inputsEquations = glo.allControls.haveTheseClasses("input", "equation");
+        var inputsEquationsLastIndex = inputsEquations.length - 3;
+        var newIndex = 0;
+        if(!event.shiftKey){
+          if(glo.inputSymR.inputsEquationsIndex < inputsEquationsLastIndex){ newIndex = glo.inputSymR.inputsEquationsIndex + 1; }
+          else{ newIndex = 0; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
+        else{
+          if(glo.inputSymR.inputsEquationsIndex > 0){ newIndex = glo.inputSymR.inputsEquationsIndex - 1; }
+          else{ newIndex = inputsEquationsLastIndex; }
+          glo.advancedTexture.moveFocusToControl(inputsEquations[newIndex]);
+        }
+      }
+  });*/
 
   makePanelTitle("rotateSpeed", "Rotate", 68, "sixth", 2);
   addSlider(panelRotateCamera, "rotateSpeedSlider", "Speed", Math.round(glo.rotateSpeed*1000, 3)/1000, 3, -0.1, 0.1, 0.001, function(value){

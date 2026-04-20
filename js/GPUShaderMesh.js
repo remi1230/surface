@@ -791,6 +791,10 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 
 	float i = aIndex.x;
 	float j = aIndex.y;
+	// iP/jP : versions périodiques de i/j — coïncident au premier et au dernier
+	// sommet d'une rangée/colonne, utiles pour refermer la couture sur surface fermée.
+	float iP = mod(i, max(uStepsU, 1.0));
+	float jP = mod(j, max(uStepsV, 1.0));
 	float n = i * uStepsV + j;
 	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;
@@ -1536,6 +1540,10 @@ float computeDeformation(float u, float v, vec3 pos, vec3 norm) {
 
 	float i = aIndex.x;
 	float j = aIndex.y;
+	// iP/jP : versions périodiques de i/j — coïncident au premier et au dernier
+	// sommet d'une rangée/colonne, utiles pour refermer la couture sur surface fermée.
+	float iP = mod(i, max(uStepsU, 1.0));
+	float jP = mod(j, max(uStepsV, 1.0));
 	float n = i * uStepsV + j;
 	float k = mod(i, 2.0) < 1.0 ? -1.0 : 1.0;
 	float d = mod(j, 2.0) < 1.0 ? -1.0 : 1.0;

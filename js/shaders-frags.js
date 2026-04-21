@@ -653,36 +653,37 @@ vec3 light(vec3 lampPos, vec3 baseColor) {
     // Master intensity derived from the existing lampIntensity slider.
     float I = lampIntensity * 0.05;
 
-    vec3 keyDir, fillDir, rimDir;
+    vec3 Lo = vec3(0.0);
 
     if (opt2 == 1.0) {
-        // Camera-relative 3-point lighting: lights orbit with the camera so the
-        // visible face is always lit the same way. lampPos is ignored in this mode.
-        vec3 worldUp  = vec3(0.0, 1.0, 0.0);
-        vec3 camBack  = normalize(cameraPosition);
-        // Guard against gimbal collapse when the camera is aligned with world up.
-        if (abs(dot(camBack, worldUp)) > 0.999) worldUp = vec3(0.0, 0.0, 1.0);
-        vec3 camRight = normalize(cross(worldUp, camBack));
-        vec3 camUp    = normalize(cross(camBack, camRight));
+        // World-fixed multidirectional: 6 orthogonal fill lights (±X/±Y/±Z) bathe
+        // the object so no face is ever in shadow, + 1 key driven by lampPos to
+        // preserve shape and highlights.
+        vec3 keyDir  = normalize(lampPos);
+        vec3 keyCol  = vec3(1.00, 0.95, 0.85) * I * 0.5;
+        Lo += cookTorranceBRDF(N, V, keyDir, keyCol, baseColor, roughness, metallic, F0);
 
-        keyDir  = normalize( camRight * 0.5 + camUp * 0.7  + camBack * 0.5);
-        fillDir = normalize(-camRight * 0.7 + camUp * 0.15 + camBack * 0.4);
-        rimDir  = normalize(-camBack * 0.9 + camUp * 0.3);
+        vec3 fillCol = vec3(1.00, 1.00, 1.00) * I * 0.2;
+        Lo += cookTorranceBRDF(N, V, vec3( 1.0,  0.0,  0.0), fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, vec3(-1.0,  0.0,  0.0), fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, vec3( 0.0,  1.0,  0.0), fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, vec3( 0.0, -1.0,  0.0), fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, vec3( 0.0,  0.0,  1.0), fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, vec3( 0.0,  0.0, -1.0), fillCol, baseColor, roughness, metallic, F0);
     } else {
-        // World-space: lampPos drives the key, fill/rim fixed in world.
-        keyDir  = normalize(lampPos);
-        fillDir = normalize(vec3(-0.7, 0.15, 0.5));
-        rimDir  = normalize(vec3(0.0, 0.3, -1.0));
+        // Studio 3-point: lampPos drives the key, fill/rim fixed in world.
+        vec3 keyDir  = normalize(lampPos);
+        vec3 fillDir = normalize(vec3(-0.7, 0.15, 0.5));
+        vec3 rimDir  = normalize(vec3(0.0, 0.3, -1.0));
+
+        vec3 keyCol  = vec3(1.00, 0.95, 0.85) * I;
+        vec3 fillCol = vec3(0.60, 0.75, 1.00) * I * 0.3;
+        vec3 rimCol  = vec3(1.00, 1.00, 1.00) * I * 0.5;
+
+        Lo += cookTorranceBRDF(N, V, keyDir,  keyCol,  baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, fillDir, fillCol, baseColor, roughness, metallic, F0);
+        Lo += cookTorranceBRDF(N, V, rimDir,  rimCol,  baseColor, roughness, metallic, F0);
     }
-
-    vec3 keyCol  = vec3(1.00, 0.95, 0.85) * I;
-    vec3 fillCol = vec3(0.60, 0.75, 1.00) * I * 0.3;
-    vec3 rimCol  = vec3(1.00, 1.00, 1.00) * I * 0.5;
-
-    vec3 Lo = vec3(0.0);
-    Lo += cookTorranceBRDF(N, V, keyDir,  keyCol,  baseColor, roughness, metallic, F0);
-    Lo += cookTorranceBRDF(N, V, fillDir, fillCol, baseColor, roughness, metallic, F0);
-    Lo += cookTorranceBRDF(N, V, rimDir,  rimCol,  baseColor, roughness, metallic, F0);
 
     // Hemispheric ambient (IBL substitute), derived from backgroundColor.
     vec3  skyColor    = backgroundColor * 0.6 + vec3(0.06, 0.09, 0.13);
@@ -1203,9 +1204,10 @@ fragmentShaderFooter = `
     col += colorsToAdd;
 
 	// PBR Cook-Torrance lighting (key/fill/rim directionals + hemispheric ambient, no IBL)
-	// opt2 toggles camera-relative mode (lights follow the camera — ideal for turntable videos).
-	// opt1 adds an opposite key lamp in world-space mode only; it is redundant (and would double
-	// intensity) in camera mode since lampPosition is ignored there.
+	// opt2 switches to world-fixed multidirectional lighting (6 orthogonal fills + key
+	// driven by lampPosition) — ideal for turntable videos where the object must stay
+	// visible from every angle.
+	// opt1 adds an opposite key lamp in studio 3-point mode (opt2 == 0.0).
 	if(islight == 1.0){
 		if(opt2 == 0.0 && opt1 == 1.0){
 			col = light(lampPosition, col) + light(-lampPosition, col);

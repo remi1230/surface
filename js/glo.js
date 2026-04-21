@@ -265,15 +265,6 @@ var glo = {
 							if(glo.shaders.light.specular.power !== glo.shaders.lightOrigin.specular.power){
 								glo.allControls.getByName('lightSpecularPower').value = glo.shaders.lightOrigin.specular.power;
 							}
-							if(glo.shaders.light.pbr.roughness !== glo.shaders.lightOrigin.pbr.roughness){
-								glo.allControls.getByName('lightRoughness').value = glo.shaders.lightOrigin.pbr.roughness;
-							}
-							if(glo.shaders.light.pbr.metallic !== glo.shaders.lightOrigin.pbr.metallic){
-								glo.allControls.getByName('lightMetallic').value = glo.shaders.lightOrigin.pbr.metallic;
-							}
-							if(glo.shaders.light.pbr.F0 !== glo.shaders.lightOrigin.pbr.F0){
-								glo.allControls.getByName('lightF0').value = glo.shaders.lightOrigin.pbr.F0;
-							}
 						}
 
 						await makeCurves();
@@ -1001,17 +992,15 @@ var glo = {
 		},
 		light:{
 			direction: {x: 5, y: 5, z: 5},
-			intensity: 100,
+			intensity: 60,
 			radius: 100.0,
 			specular: {power: 1.75, intensity: 4.0},
-			pbr: {roughness: 0.4, metallic: 0.0, F0: 0.04},
 		},
 		lightOrigin:{
 			direction: {x: 5, y: 5, z: 5},
-			intensity: 100,
+			intensity: 60,
 			radius: 100.0,
 			specular: {power: 1.75, intensity: 4.0},
-			pbr: {roughness: 0.4, metallic: 0.0, F0: 0.04},
 		},
 		colors:{
 			toAdd:{r: 0, g: 0, b: 0},

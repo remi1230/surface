@@ -495,12 +495,12 @@ fragmentShaders = [
 
     // Atténuation distance lampe
     float dist = length(lampPosition - vWorldPosition);
-    float atten = lampIntensity / (1.0 + dist * dist / 10000.0);
+    float atten = lampIntensity / (1.0 + dist * dist / (lampRadius * lampRadius));
 
     // Blinn-Phong spéculaire
     vec3 H = normalize(L + V);
     float NdotH = max(0.0, dot(N, H));
-    float spec = pow(NdotH, 48.0) * 32.0;
+    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
 
     // Fresnel rim
     float fresnelPow = (opt1 != 0.0) ? opt1 : 3.0;
@@ -594,88 +594,33 @@ float flicker(float t) {
     return 1.0 + 0.02 * sin(t * 15.0) * sin(t * 23.0 + 1.5);
 }
 
-// ---- PBR Cook-Torrance (D GGX + G Smith Schlick-GGX + F Schlick) ----
-const float PBR_PI = 3.14159265359;
-
-float D_GGX(float NdotH, float roughness) {
-    float a  = roughness * roughness;
-    float a2 = a * a;
-    float d  = NdotH * NdotH * (a2 - 1.0) + 1.0;
-    return a2 / max(PBR_PI * d * d, 1e-7);
-}
-
-float G_SchlickGGX(float NdotX, float k) {
-    return NdotX / (NdotX * (1.0 - k) + k);
-}
-
-float G_Smith(float NdotV, float NdotL, float roughness) {
-    float r = roughness + 1.0;
-    float k = (r * r) * 0.125;
-    return G_SchlickGGX(NdotV, k) * G_SchlickGGX(NdotL, k);
-}
-
-vec3 F_Schlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}
-
-vec3 cookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 lightCol,
-                      vec3 albedo, float roughness, float metallic, vec3 F0) {
-    float NdotL = max(dot(N, L), 0.0);
-    if (NdotL <= 0.0) return vec3(0.0);
-
-    vec3  H     = normalize(L + V);
-    float NdotV = max(dot(N, V), 1e-4);
-    float NdotH = max(dot(N, H), 0.0);
-    float VdotH = max(dot(V, H), 0.0);
-
-    float D = D_GGX(NdotH, roughness);
-    float G = G_Smith(NdotV, NdotL, roughness);
-    vec3  F = F_Schlick(VdotH, F0);
-
-    vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 1e-4);
-    vec3 kD       = (1.0 - F) * (1.0 - metallic);
-    vec3 diffuse  = kD * albedo / PBR_PI;
-
-    return (diffuse + specular) * lightCol * NdotL;
-}
-
-// Studio 3-point directional lighting (key/fill/rim) without IBL.
-// lampPos is reinterpreted as the key-light direction (user-driven via the lamp GUI sliders).
 vec3 light(vec3 lampPos, vec3 baseColor) {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(cameraPosition - vWorldPosition);
-    if (dot(N, V) < 0.0) N = -N;
 
-    float roughness = clamp(pbrRoughness, 0.04, 1.0);
-    float metallic  = clamp(pbrMetallic, 0.0, 1.0);
-    vec3  F0        = mix(vec3(pbrF0), baseColor, metallic);
+    if (dot(N, V) < 0.0) {
+        N = -N;
+    }
 
-    // Master intensity derived from the existing lampIntensity slider.
-    float I = lampIntensity * 0.05;
+    lampPos = vec3(lampPos.x, lampPos.y, lampPos.z * 3.0);
 
-    vec3 keyDir  = normalize(lampPos);
-    vec3 keyCol  = vec3(1.00, 0.95, 0.85) * I;
+    vec3 toLight = lampPos - vWorldPosition;
+    float dist = length(toLight);
+    vec3 L = normalize(toLight);
 
-    vec3 fillDir = normalize(vec3(-0.7, 0.15, 0.5));
-    vec3 fillCol = vec3(0.60, 0.75, 1.00) * I * 0.3;
+    float att = calcAttenuation(dist, lampRadius, lampIntensity*2.0);
 
-    vec3 rimDir  = normalize(vec3(0.0, 0.3, -1.0));
-    vec3 rimCol  = vec3(1.00, 1.00, 1.00) * I * 0.5;
+    float NdotL = max(dot(N, L), 0.0);
+    vec3 diffuse = baseColor * NdotL * att;
 
-    vec3 Lo = vec3(0.0);
-    Lo += cookTorranceBRDF(N, V, keyDir,  keyCol,  baseColor, roughness, metallic, F0);
-    Lo += cookTorranceBRDF(N, V, fillDir, fillCol, baseColor, roughness, metallic, F0);
-    Lo += cookTorranceBRDF(N, V, rimDir,  rimCol,  baseColor, roughness, metallic, F0);
+    vec3 halfDir = normalize(L + V);
+    float NdotH = max(dot(N, halfDir), 0.0);
+    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    vec3 specular = baseColor * spec * att;
 
-    // Hemispheric ambient (IBL substitute), derived from backgroundColor.
-    vec3  skyColor    = backgroundColor * 0.6 + vec3(0.06, 0.09, 0.13);
-    vec3  groundColor = backgroundColor * 0.15 + vec3(0.02, 0.02, 0.02);
-    float hemi        = clamp(N.y * 0.5 + 0.5, 0.0, 1.0);
-    vec3  ambientIrr  = mix(groundColor, skyColor, hemi);
-    vec3  kDamb       = (1.0 - F0) * (1.0 - metallic);
-    vec3  ambient     = kDamb * baseColor * ambientIrr;
+    vec3 ambient = vec3(0.05);
 
-    return Lo + ambient;
+    return ambient + diffuse + specular;
 }
 
 vec3 random_perlin( vec3 p ) {
@@ -1150,9 +1095,6 @@ uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
 uniform float lampSpecularPower;
-uniform float pbrRoughness;
-uniform float pbrMetallic;
-uniform float pbrF0;
 
 ${getFragmentUtilsGLSL()}
 
@@ -1185,9 +1127,9 @@ fragmentShaderFooter = `
 
     col += colorsToAdd;
 
-	// PBR Cook-Torrance lighting (key/fill/rim directionals + hemispheric ambient, no IBL)
+	// Lighting when the lamp button is active
 	if(islight == 1.0){
-		col = opt1 == 0.0 ? light(lampPosition, col) : light(lampPosition, col) + light(-lampPosition, col);
+		col*= (light(lampPosition, col) + light(-lampPosition, col));
 		col = col / (col + vec3(1.0));
 		col = pow(col, vec3(1.0 / 2.2));
 	}

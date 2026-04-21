@@ -995,12 +995,14 @@ var glo = {
 			intensity: 60,
 			radius: 100.0,
 			specular: {power: 1.75, intensity: 4.0},
+			pbr: {roughness: 0.4, metallic: 0.0, F0: 0.04},
 		},
 		lightOrigin:{
 			direction: {x: 5, y: 5, z: 5},
 			intensity: 60,
 			radius: 100.0,
 			specular: {power: 1.75, intensity: 4.0},
+			pbr: {roughness: 0.4, metallic: 0.0, F0: 0.04},
 		},
 		colors:{
 			toAdd:{r: 0, g: 0, b: 0},

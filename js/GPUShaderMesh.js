@@ -901,6 +901,9 @@ uniform float lampIntensity;
 uniform float lampRadius;
 uniform float lampSpecularIntensity;
 uniform float lampSpecularPower;
+uniform float pbrRoughness;
+uniform float pbrMetallic;
+uniform float pbrF0;
 uniform float invcol;
 uniform float gridU;
 uniform float gridV;
@@ -961,7 +964,7 @@ void main() {
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'colorRotation', 'backgroundColor',
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'pbrRoughness', 'pbrMetallic', 'pbrF0', 'colorsToAdd', 'colorRotation', 'backgroundColor',
 					"gridU", "gridV", "lineWidth", "uvCoeff", "uvParamsCoeff", "invcol", "islight"
 				]
 			}
@@ -1130,6 +1133,9 @@ void main() {
 		mat.setFloat("lampRadius", glo.shaders.light.radius);
 		mat.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
 		mat.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
+		mat.setFloat("pbrRoughness", glo.shaders.light.pbr.roughness);
+		mat.setFloat("pbrMetallic", glo.shaders.light.pbr.metallic);
+		mat.setFloat("pbrF0", glo.shaders.light.pbr.F0);
 
 		// Grille
 		mat.setFloat("gridU", glo.params.stepsU);
@@ -1218,6 +1224,9 @@ void main() {
 		this.shaderMaterial.setFloat("lampRadius", glo.shaders.light.radius);
 		this.shaderMaterial.setFloat("lampSpecularIntensity", glo.shaders.light.specular.intensity);
 		this.shaderMaterial.setFloat("lampSpecularPower", glo.shaders.light.specular.power);
+		this.shaderMaterial.setFloat("pbrRoughness", glo.shaders.light.pbr.roughness);
+		this.shaderMaterial.setFloat("pbrMetallic", glo.shaders.light.pbr.metallic);
+		this.shaderMaterial.setFloat("pbrF0", glo.shaders.light.pbr.F0);
 	}
 
 	/**

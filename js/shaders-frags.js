@@ -640,7 +640,7 @@ vec3 cookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 lightCol,
 }
 
 // Studio 3-point directional lighting (key/fill/rim) without IBL.
-// `lampPos` is reinterpreted as the key-light direction (user-driven via the lamp GUI sliders).
+// lampPos is reinterpreted as the key-light direction (user-driven via the lamp GUI sliders).
 vec3 light(vec3 lampPos, vec3 baseColor) {
     vec3 N = normalize(vNormal);
     vec3 V = normalize(cameraPosition - vWorldPosition);

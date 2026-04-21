@@ -933,6 +933,16 @@ function addShadersCtrl(){
     glo.shaders.light.specular[varName] = varValue;
     if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
   }
+  /**
+   * Updates a PBR lighting float parameter (roughness/metallic/F0) in the global state and on the shader material.
+   * @param {string} varName - The property name in glo.shaders.light.pbr.
+   * @param {string} shaderVarName - The uniform name in the shader.
+   * @param {number} varValue - The new float value.
+   */
+  function updLightingPBRFloat(varName, shaderVarName, varValue){
+    glo.shaders.light.pbr[varName] = varValue;
+    if(glo.ribbon && glo.ribbon.shaderMeshInstance) glo.ribbon.shaderMeshInstance.updateFloatParam(shaderVarName, varValue);
+  }
 
   const lightInfos = glo.shaders.light;
   const dirRange   = 5;
@@ -957,6 +967,15 @@ function addShadersCtrl(){
   }, 'seventh');
   addSlider(panelLight, "lightSpecularPower", "Specular power", lightInfos.specular.power, 2, 0, 2, 0.01, async function(value){
     updLightingSpecularFloat('power', 'lampSpecularPower', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightRoughness", "Roughness", lightInfos.pbr.roughness, 2, 0.04, 1.0, 0.01, async function(value){
+    updLightingPBRFloat('roughness', 'pbrRoughness', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightMetallic", "Metallic", lightInfos.pbr.metallic, 2, 0, 1, 0.01, async function(value){
+    updLightingPBRFloat('metallic', 'pbrMetallic', value);
+  }, 'seventh');
+  addSlider(panelLight, "lightF0", "F0", lightInfos.pbr.F0, 3, 0.02, 0.2, 0.001, async function(value){
+    updLightingPBRFloat('F0', 'pbrF0', value);
   }, 'seventh');
   addSlider(panelGrid, "gridScaleSlider", "Scale", glo.params.gridScaleValue, 1, 0, 20, 1, async function(value){
     glo.params.gridScaleValue = value;

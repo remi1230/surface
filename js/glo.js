@@ -265,6 +265,15 @@ var glo = {
 							if(glo.shaders.light.specular.power !== glo.shaders.lightOrigin.specular.power){
 								glo.allControls.getByName('lightSpecularPower').value = glo.shaders.lightOrigin.specular.power;
 							}
+							if(glo.shaders.light.pbr.roughness !== glo.shaders.lightOrigin.pbr.roughness){
+								glo.allControls.getByName('lightRoughness').value = glo.shaders.lightOrigin.pbr.roughness;
+							}
+							if(glo.shaders.light.pbr.metallic !== glo.shaders.lightOrigin.pbr.metallic){
+								glo.allControls.getByName('lightMetallic').value = glo.shaders.lightOrigin.pbr.metallic;
+							}
+							if(glo.shaders.light.pbr.F0 !== glo.shaders.lightOrigin.pbr.F0){
+								glo.allControls.getByName('lightF0').value = glo.shaders.lightOrigin.pbr.F0;
+							}
 						}
 
 						await makeCurves();

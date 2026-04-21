@@ -595,15 +595,13 @@ float flicker(float t) {
 }
 
 // ---- PBR Cook-Torrance (D GGX + G Smith Schlick-GGX + F Schlick) ----
-#ifndef PI
-#define PI 3.14159265359
-#endif
+const float PBR_PI = 3.14159265359;
 
 float D_GGX(float NdotH, float roughness) {
     float a  = roughness * roughness;
     float a2 = a * a;
     float d  = NdotH * NdotH * (a2 - 1.0) + 1.0;
-    return a2 / max(PI * d * d, 1e-7);
+    return a2 / max(PBR_PI * d * d, 1e-7);
 }
 
 float G_SchlickGGX(float NdotX, float k) {
@@ -636,7 +634,7 @@ vec3 cookTorranceBRDF(vec3 N, vec3 V, vec3 L, vec3 lightCol,
 
     vec3 specular = (D * G * F) / max(4.0 * NdotV * NdotL, 1e-4);
     vec3 kD       = (1.0 - F) * (1.0 - metallic);
-    vec3 diffuse  = kD * albedo / PI;
+    vec3 diffuse  = kD * albedo / PBR_PI;
 
     return (diffuse + specular) * lightCol * NdotL;
 }

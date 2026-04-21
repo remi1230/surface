@@ -495,12 +495,12 @@ fragmentShaders = [
 
     // Atténuation distance lampe
     float dist = length(lampPosition - vWorldPosition);
-    float atten = lampIntensity / (1.0 + dist * dist / (lampRadius * lampRadius));
+    float atten = lampIntensity / (1.0 + dist * dist / 10000.0);
 
     // Blinn-Phong spéculaire
     vec3 H = normalize(L + V);
     float NdotH = max(0.0, dot(N, H));
-    float spec = pow(NdotH, lampSpecularPower) * lampSpecularIntensity;
+    float spec = pow(NdotH, 48.0) * 32.0;
 
     // Fresnel rim
     float fresnelPow = (opt1 != 0.0) ? opt1 : 3.0;
@@ -1187,7 +1187,7 @@ fragmentShaderFooter = `
 
 	// PBR Cook-Torrance lighting (key/fill/rim directionals + hemispheric ambient, no IBL)
 	if(islight == 1.0){
-		col = light(lampPosition, col);
+		col = opt1 == 0.0 ? light(lampPosition, col) : light(lampPosition, col) + light(-lampPosition, col);
 		col = col / (col + vec3(1.0));
 		col = pow(col, vec3(1.0 / 2.2));
 	}

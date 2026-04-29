@@ -144,7 +144,7 @@ const formsToselect = [
         orient: {distance: 20, axis: "Z", direction: 1, alpha: -PI/3, beta: -PI/6},
     },
     {text: "Dbl tongue", typeCoords: 'spheric', udef: PI, vdef: PI, stepsU: 128, stepsV: 128,
-        fx: "u", fy: "v", fz: "Qc(u+v)cv",
+        fx: "u", fy: "v", fz: ".5pic(u+v)cv",
         orient: {distance: 15, axis: "X", direction: 1, alpha: 3*PI/4, beta: -PI/8},
     },
     {text: "Dbl drop", typeCoords: 'spheric', udef: PI/2, vdef: PI, stepsU: 128, stepsV: 128,

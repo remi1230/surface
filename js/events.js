@@ -274,8 +274,12 @@ const keyboardShortcuts = [
    { key: "9",  action: () => slidersAnim('v', 0, 0.001) },
    { key: ";",  action: () => switchWritingType(false) },
    { key: ",",  action: () => switchWritingType(true) },
-   { key: "f",  action: () => glo.clock.speedUp() },
-   { key: "q",  action: () => glo.clock.slowDown() },
+   { key: "F10",  action: () => glo.clock.setTime(glo.clock.time + .25) },
+   { key: "F8",  action: () => glo.clock.setTime(glo.clock.time - .25) },
+   { key: "F9",  action: () => {
+      const paused = glo.clock.togglePause();
+      glo.allControls.getByName('resetTimeButton').textBlock.text = paused ? 'PLAY' : 'STOP';
+   }},
    { key: " ",  action: () => {
       const paused = glo.clock.togglePause();
       glo.allControls.getByName('resetTimeButton').textBlock.text = paused ? 'PLAY' : 'STOP';

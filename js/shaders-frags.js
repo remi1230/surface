@@ -77,13 +77,77 @@ fragmentShaders = [
 
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
+`   
+    //StreetArt
+    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
+    float val1 = m(pos*0.125)*mh(pos*.25);
+    float val2 = oh(pos*0.1875)-o(pos, 0.333, .5*time);
+    float val3 = hch(pos*0.125);
+
+    float val4 = .125*o(.5*pos, hc(val1,val2,val3));
+    col = 1.0 - cpalette(val4, rainbow(val4));
+
+    col = hueRotateYIQ(col, radians(92.));
+    
+`,
+`   
+    //StreetArt II
+    vec3 pos  = npos(-1.);
+    vec3 posN = vec3(m(
+        pos,
+        o(pos, 1., .25*time),
+        2.* m(2.*pos)
+    )) * 115. * P / (64.*64.);
+
+    col = rainbop(.25*length(posN), pos);
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+
+    col = 1.0 - col;
+    col = hueRotateYIQ(col, radians(180.));
+    
+`,
+`   
+    //StreetArt III
+    vec3 pos  = npos(-1.);
+    vec3 posN = vec3(m(
+        cos(8.*pos),
+        o(pos, 1., .25*time),
+        2.* m(2.*pos)
+    )) * 115. * P / (64.*64.);
+
+    col = rainbop(.25*length(posN), pos);
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+
+    col = 1.0 - col;
+    col = hueRotateYIQ(col, radians(180.));
+    
+`,
 `
    //Grid
-    float epaisseur = 0.1;
-    vec2 uv = fract(uvCoeff * vUV * P) - 0.5;
-    float tube = min(abs(uv.x*2.0), abs(uv.y));
-    if(tube > epaisseur) discard;
-    col = 1.0-backgroundColor;  
+    col = meshFg;
+    float coeffLine = S/3.0;
+
+	// Grid
+	float gu = fract(vUV.x * P * uvCoeff.x);
+	float gv = fract(vUV.y * Q * uvCoeff.y);
+
+	float edgeU = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / P;
+    float edgeV = 1.0 - (lineWidth * coeffLine * ((S-2.0)/6.0)) / Q;
+    float fw = fwidth(vUV.x * P); // width of one pixel in UV space
+    float fh = fwidth(vUV.y * Q);
+    float lineU = smoothstep(edgeU - fw, edgeU + fw, gu);
+    float lineV = smoothstep(edgeV - fh, edgeV + fh, gv);
+    float line = min(lineU + lineV, 1.0);
+
+    if(line < 0.5) discard;  
 `,
 `
     // Hexagonal grid
@@ -99,7 +163,7 @@ fragmentShaders = [
 `
     // Position-based grid
     float epaisseur = S/200.0;
-    vec3 pos = fract(vPosition * P/8.0) - 0.5;
+    vec3 pos = fract(npos(-1.) * P/8.0) - 0.5;
     float tube = min(abs(pos.x*2.0), min(abs(pos.y), abs(pos.z)));
     if(tube > epaisseur) discard;
     col = 1.0-backgroundColor;
@@ -151,7 +215,8 @@ fragmentShaders = [
     vec3 col1 = palette(3.0*lnpos+time*0.125);
     vec3 col2 = rainbow(8.0*lnpos+time*0.25);
 
-    col = mix(col1, col2, 0.5);
+    col = 1.0 - mix(col1, col2, 0.5);
+    col = hueRotateYIQ(col, radians(180.));
 `,
 `
     //Butterfly
@@ -179,9 +244,42 @@ fragmentShaders = [
 `,
 `
     //Ghost
-    vec3 pos = vPosition;
     vec3 posN = normalize(vPosition);
     if(length(posN) > length(vNormal)){ discard; }  
+`,
+`
+    //Mother-of-pearl
+    vec3 pos  = npos() / (opt1 == 1.0 ? 8. : 1.);
+    col -= cos(2.*o(la(pos), length(ea(pos)), time));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col += tube;
+    col = 1.0 - col;   
+`,
+`
+    //Log-Exp
+    vec3 pos  = npos() / (opt1 == 1.0 ? 8. : 1.);
+    col -= cos(2.*o(la(pos*vNormal), length(ea(pos)), time));
+    col += abs(cos(3.*vNormal*pos));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col += tube;
+    col = 1.0 - col;
+     
+`,
+`
+    //Stained glass
+    vec3 pos = npos() * P / (opt1 == 0. ? 32. : 96.);
+    col -= m(ea(pos*vNormal), 4., time);
+    col *= o(la(pos), 4., time);
+    col -= .5*cos(3.*col*vNormal*pos);
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col += 2.*tube;
+     
 `,
 `
     //Sweet
@@ -281,17 +379,98 @@ fragmentShaders = [
     }
 `,
 `   
+    //Jungle
+    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
+    float val1 = m(pos*0.125)*mh(pos*.25);
+    float val2 = oh(pos*0.1875)-o(pos, 0.333, .25*time);
+    float val3 = hch(pos*0.125);
+
+    float val4 = .125*hc(.5*pos, h(val1,val2,val3));
+    col = 1.0 - cpalette(val4, rainbow(val4-.2*val1));
+
+    col = hueRotateYIQ(col, radians(92.));
+`,
+`   
+    //Glowy
+    vec3 pos  = npos();
+
+    vec3 posN = vec3(
+        2.*m(8.*pos * 1.4*cos(pos.x) + time), 
+        o(4.*la(pos) * cos(2.72*pos.z), 1., time), 
+        0.
+    ) * P / 64.;
+
+    col = rainbop(.25*length(posN), posN);
+
+    col = 1.0 - col;
+    col = hueRotateYIQ(col, radians(180.));
+
+`,
+`   
+    //Glowy II
+    vec3 pos = .42 * npos() * (1.5*P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
+
+    float val1 = m(pos*.41667, .5, .125*time);
+    float val2 = o(pos*.41667, .5, -.125*time);
+    float val3 = hc(pos*.41667, 2., .125*time);
+
+    vec3 val   = vec3(val1, val2, val3);
+    float valL = length(val);
+
+    col = 1.0 - cpalette(2.*cos(2.*valL), rainbop(valL, val));
+
+    col = hueRotateYIQ(col, radians(92.));
+`,
+`   
+    //Glowy III
+    vec3 pos   = npos() * P / (opt1 == 0.0 ? 32.0 : 64.0);
+    float val1 = m(m(pos*12.), o(pos*12.), .5*ec(pos*.75));
+    float val2 = length(pos);
+    float val3 = o(pos*val2);
+
+    vec3 vCol   = vec3(val1, val2, val3);
+    float vColL = length(vCol);
+
+    col = rainbop(vColL, cos(pos)+vCol+time);
+    col = hueRotateYIQ(col, radians(144.));
+    col = 1.0 - col;
+    
+`,
+`   
+    //Glowy IV
+    vec3 p = npos() / P;
+    vec3 n = vNormal;
+    vec3 pn = p*n;
+    vec3 pdn = 8.*rainbop(dot(p, n), pn);
+
+    col /= 8.*(m(pdn, 5.*o(pdn*.5), time));
+    
+`,
+`   
     //Harlequin
-    vec3 pos = opt1 == 0.0 ? vPosition * P / 6.0 : .5 * npos() * P;
+    vec3 pos = opt1 == 0.0 ? vPosition * P / 8.0 : .42 * npos() * P;
     
     float coeff = opt2 == 0.0 ? 1.0 : .125;
     float phase = time;
     float val1 = m(pos, coeff, phase);
     float val2 = o(pos, coeff, phase);
     float val3 = hc(pos, coeff, phase);
-    float val4 = m(exp(val1), cos(.5*val2), 1.4142*val3);
+    float val4 = m(val1, cos(.5*val2), 1.4142*val3);
     
     col = 1.0 - rainbop(val4, -cos(val4*pos));
+
+`,
+`   
+    //Harlequin II
+    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 4.0);
+    float val1 = mh(pos*0.125);
+    float val2 = oh(pos*0.125);
+    float val3 = hch(pos*0.125);
+
+    float val4 = .00125*mh(val1, val2, val3);
+    
+    col = 1.0 - cpalette(val4, rainbow(val4));
+    
 `,
 `   
     //Truchet
@@ -556,7 +735,8 @@ fragmentShaders = [
  */
 function getFragmentUtilsGLSL() {
 return `
-vec3 npos(){ return normalize(vPosition); }
+vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
+vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition; }
 
 float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.49999*cos(c*time)+0.5; }
@@ -957,6 +1137,25 @@ float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
+float mh(vec3 p){
+    return cosh(p.x) * cosh(p.y) * cosh(p.z);
+}
+float mh(vec3 p, float coeff){
+    return cosh(coeff*p.x) * cosh(coeff*p.y) * cosh(coeff*p.z);
+}
+float mh(vec3 p, float coeff, float phase){
+    return cosh(abs(coeff*p.x + phase)) * cosh(abs(coeff*p.y + phase)) * cosh(abs(coeff*p.z + phase));
+}
+float mh(vec3 p, float coeff, vec3 phase){
+    return cosh(coeff*p.x + phase.x) * cosh(coeff*p.y + phase.y) * cosh(coeff*p.z + phase.z);
+}
+float mh(float x, float y, float z){
+    return cosh(x) * cosh(y) * cosh(z);
+}
+float mh(float x, float y, float z, float coeff){
+    return cosh(coeff*x) * cosh(coeff*y) * cosh(coeff*z);
+}
+
 float f(vec3 p){
 	return cos(p.x + p.y + p.z);
 }
@@ -986,6 +1185,25 @@ float o(float x, float y, float z, float coeff){
     return cos(coeff*x) + cos(coeff*y) + cos(coeff*z);
 }
 
+float oh(vec3 p){
+    return cosh(p.x) + cosh(p.y) + cosh(p.z);
+}
+float oh(vec3 p, float coeff){
+    return cosh(coeff*p.x) + cosh(coeff*p.y) + cosh(coeff*p.z);
+}
+float oh(vec3 p, float coeff, float phase){
+    return cosh(coeff*p.x + phase) + cosh(coeff*p.y + phase) + cosh(coeff*p.z + phase);
+}
+float oh(vec3 p, float coeff, vec3 phase){
+    return cosh(coeff*p.x + phase.x) + cosh(coeff*p.y + phase.y) + cosh(coeff*p.z + phase.z);
+}
+float oh(float x, float y, float z){
+    return cosh(x) + cosh(y) + cosh(z);
+}
+float oh(float x, float y, float z, float coeff){
+    return cosh(coeff*x) + cosh(coeff*y) + cosh(coeff*z);
+}
+
 float hc(vec3 p){
     return length(vec3(cos(p.x), cos(p.y), cos(p.z)));
 }
@@ -1005,6 +1223,35 @@ float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
+float hch(vec3 p){
+    return length(vec3(cosh(p.x), cosh(p.y), cosh(p.z)));
+}
+float hch(vec3 p, float coeff){
+    return length(vec3(cosh(coeff*p.x), cosh(coeff*p.y), cosh(coeff*p.z)));
+}
+float hch(vec3 p, float coeff, float phase){
+    return length(vec3(cosh(coeff*p.x + phase), cosh(coeff*p.y + phase), cosh(coeff*p.z + phase)));
+}
+float hch(vec3 p, float coeff, vec3 phase){
+    return length(vec3(cosh(coeff*p.x + phase.x), cosh(coeff*p.y + phase.y), cosh(coeff*p.z + phase.z)));
+}
+float hch(float x, float y, float z){
+    return length(vec3(cosh(x), cosh(y), cosh(z)));
+}
+float hch(float x, float y, float z, float coeff){
+    return length(vec3(cosh(coeff*x), cosh(coeff*y), cosh(coeff*z)));
+}
+
+float ec(vec3 p){
+    return exp(abs(cos(p.x))) * exp(abs(cos(p.y))) * exp(abs(cos(p.z)));
+}
+float ec(vec3 p, float c){
+    return exp(abs(cos(c*p.x))) * exp(abs(cos(c*p.y))) * exp(abs(cos(c*p.z)));
+}
+float ec(vec3 p, float c, float ph){
+    return exp(abs(cos(c*p.x + ph))) * exp(abs(cos(c*p.y + ph))) * exp(abs(cos(c*p.z + ph)));
+}
+
 float g(vec3 p){
     return cos(p.x * p.y * p.z);
 }
@@ -1014,6 +1261,25 @@ float g(vec3 p, float coeff){
 float g(vec3 p, float coeff, float phase){
     return cos(p.x * p.y * p.z * coeff + phase);
 }
+
+float h(float x, float y){
+    return length(vec2(x, y));
+}
+float h(float x, float y, float z){
+    return length(vec3(x, y, z));
+}
+float h(float x, float y, float z, float w){
+    return length(vec4(x, y, z, w));
+}
+
+float ea(float v){return exp(abs(v));}
+vec2  ea(vec2  v){return exp(abs(v));}
+vec3  ea(vec3  v){return exp(abs(v));}
+vec4  ea(vec4  v){return exp(abs(v));}
+float la(float v){return log(abs(v));}
+vec2  la(vec2  v){return log(abs(v));}
+vec3  la(vec3  v){return log(abs(v));}
+vec4  la(vec4  v){return log(abs(v));}
 
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 N = normalize(normal);
@@ -1056,6 +1322,8 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
  */
 fragmentShaderHeader = `#version 300 es
 precision highp float;
+
+
 
 // Varyings received from the vertex shader
 in vec3 vPosition;

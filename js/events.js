@@ -302,6 +302,7 @@ const keyboardShortcuts = [
    { key: "b",  shift: true, action: () => { glo.wireframe = !glo.wireframe; glo.ribbon.material.wireframe = glo.wireframe; } },
    { key: "v",  shift: true, action: () => viewOnAxis() },
    { key: "q",  shift: true, action: () => firstInputToOthers() },
+   { key: "l",  shift: true, action: () => toggleLoopRecordMode() },
 ];
 
 getById('univers_div').addEventListener("keydown", function (e) {

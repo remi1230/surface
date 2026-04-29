@@ -821,7 +821,7 @@ function addShadersCtrl(){
   addButton("fourth noAutoParam", panelVideo, "videoButton", "►", "13.75%", 30, 0, 0, async function(){
       switchRecordingVideo();
 
-      glo.advancedTexture.getControlByName('videoButton').textBlock.text = glo.video.recording ? "⏹" : "►";
+      glo.advancedTexture.getControlByName('videoButton').textBlock.text = videoButtonText();
 
   });
 

@@ -1075,16 +1075,95 @@ function hideVideoCropBox() {
 /**
  * Toggles video recording on or off. When starting, creates a new mesh recorder
  * and begins capturing. When stopping, finalizes and downloads the recorded video.
+ *
+ * When {@link glo.loopRecordMode} is enabled, starting also kicks off mesh
+ * rotation, and stopping is deferred until the rotation has accumulated an
+ * integer number of full turns so the resulting video loops perfectly.
  */
 function switchRecordingVideo(){
-	glo.video.recording = !glo.video.recording;
+	if (glo.video.loopPendingStop) return;
 
-	if(glo.video.recording){
+	if (!glo.video.recording) {
+		glo.video.recording = true;
 		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
 		glo.video.recorder.start();
+
+		if (glo.loopRecordMode) {
+			glo.video.loopActive = true;
+			glo.video.loopPendingStop = false;
+			glo.video.loopRotAccum = 0;
+			glo.video.loopPrevRotateType = glo.rotateType;
+			if (glo.rotateType === 'none' || glo.rotateType?.current === 'none') {
+				glo.rotateType = { current: 'alpha', next: 'beta' };
+			}
+		}
 	}
-	else{
-		glo.video.recorder.stop();
+	else {
+		if (glo.video.loopActive) {
+			const TWO_PI = 2 * Math.PI;
+			const accum = glo.video.loopRotAccum;
+			const speedSign = glo.rotateSpeed >= 0 ? 1 : -1;
+			glo.video.loopRotTarget = speedSign > 0
+				? (Math.floor(accum / TWO_PI) + 1) * TWO_PI
+				: (Math.ceil(accum / TWO_PI) - 1) * TWO_PI;
+			glo.video.loopPendingStop = true;
+		}
+		else {
+			glo.video.recording = false;
+			glo.video.recorder.stop();
+		}
+	}
+}
+
+/**
+ * Finalizes a loop-mode recording: stops the recorder, restores the rotation
+ * type that was active before the take, and resets loop state. Called from
+ * {@link rotateCamera} when the accumulated rotation reaches an integer
+ * number of full turns.
+ */
+function finishLoopRecording(){
+	if (glo.video.recorder) glo.video.recorder.stop();
+	glo.video.recording       = false;
+	glo.video.loopActive      = false;
+	glo.video.loopPendingStop = false;
+	glo.rotateType            = glo.video.loopPrevRotateType ?? 'none';
+	glo.video.loopPrevRotateType = null;
+
+	const btn = glo.advancedTexture?.getControlByName('videoButton');
+	if (btn) btn.textBlock.text = videoButtonText();
+}
+
+/**
+ * Returns the symbol to display on the video record button based on the
+ * current recording / loop-mode state.
+ * @returns {string}
+ */
+function videoButtonText(){
+	if (glo.video.loopPendingStop) return "⏳";
+	if (glo.video.recording)       return "⏹";
+	if (glo.loopRecordMode)        return "🔁";
+	return "►";
+}
+
+/**
+ * Toggles the "perfect loop" recording mode. While enabled, pressing the
+ * video record button starts mesh rotation alongside the recording, and
+ * stopping waits for the next integer number of full turns before finishing.
+ */
+function toggleLoopRecordMode(){
+	if (glo.video.recording || glo.video.loopPendingStop) return;
+	glo.loopRecordMode = !glo.loopRecordMode;
+
+	const btn = glo.advancedTexture?.getControlByName('videoButton');
+	if (btn) btn.textBlock.text = videoButtonText();
+
+	if (typeof M !== 'undefined' && M.toast) {
+		M.toast({
+			html: glo.loopRecordMode
+				? '🔁 Mode boucle parfaite : ON'
+				: '🔁 Mode boucle parfaite : OFF',
+			displayLength: 1500
+		});
 	}
 }
 

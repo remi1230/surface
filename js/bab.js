@@ -126,7 +126,29 @@ function rotateCamera() {
     glo.camera.inertialBetaOffset  = 0;
 
     const dt = glo.engine.getDeltaTime() / 1000; // en secondes
-    const speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
+    let speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
+
+    const axis = glo.rotateType.current;
+    const rotates = axis === 'alpha' || axis === 'beta' || axis === 'teta';
+
+    let finishLoop = false;
+    if (glo.video.loopActive && rotates) {
+        const newAccum = glo.video.loopRotAccum + speed;
+        if (glo.video.loopPendingStop) {
+            const target = glo.video.loopRotTarget;
+            const reached = speed >= 0 ? newAccum >= target : newAccum <= target;
+            if (reached) {
+                speed = target - glo.video.loopRotAccum;
+                glo.video.loopRotAccum = target;
+                finishLoop = true;
+            } else {
+                glo.video.loopRotAccum = newAccum;
+            }
+        } else {
+            glo.video.loopRotAccum = newAccum;
+        }
+    }
+
     switch (glo.rotateType.current) {
       case 'alpha':
         glo.camera.alpha += speed;
@@ -142,4 +164,6 @@ function rotateCamera() {
 
     glo.camera.inertialAlphaOffset = savedAlpha;
     glo.camera.inertialBetaOffset  = savedBeta;
+
+    if (finishLoop) finishLoopRecording();
 }

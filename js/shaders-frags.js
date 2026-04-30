@@ -391,23 +391,39 @@ fragmentShaders = [
     col = hueRotateYIQ(col, radians(92.));
 `,
 `   
-    //Glowy
+    //Carpet
+    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
+    col += sin(8.*m(p*8.*cos(8.*p*cos(p*2.*sin(p)))));
+
+    //col = normalize(col);
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col += .5*tube;
+    col = 1.0 - col;
+`,
+`   
+    //Ara
     vec3 pos  = npos();
 
+    float c = 2.72;
+    float k = 2.;
+    float w = 2.;
+
     vec3 posN = vec3(
-        2.*m(8.*pos * 1.4*cos(pos.x) + time), 
-        o(4.*la(pos) * cos(2.72*pos.z), 1., time), 
-        0.
+        hc(w*la(pos) * cos(c*pos.z), k, time), 
+        o(w*la(pos) * cos(c*pos.z), k, time), 
+        m(w*la(pos) * cos(c*pos.z), k, time)
     ) * P / 64.;
 
-    col = rainbop(.25*length(posN), posN);
+    col = cos(1.618*posN)*sin(8.*pos);
 
-    col = 1.0 - col;
+    //col = 1.0 - col;
     col = hueRotateYIQ(col, radians(180.));
 
 `,
 `   
-    //Glowy II
+    //Glowy
     vec3 pos = .42 * npos() * (1.5*P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
 
     float val1 = m(pos*.41667, .5, .125*time);

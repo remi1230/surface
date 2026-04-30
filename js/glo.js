@@ -1015,7 +1015,14 @@ var glo = {
 		meshRecorder: null,
 		chunks: [],
 		recording: false,
+		loopActive: false,
+		loopPendingStop: false,
+		loopRotAccum: 0,
+		loopRotTarget: 0,
+		loopPrevRotateType: null,
 	},
+	/** @type {boolean} Toggle for "perfect loop" recording: rotation starts/stops with the recording and stops on an integer number of turns. */
+	loopRecordMode: false,
 	/** @type {Object} Optional shader feature toggles (opt1, opt2, opt3). */
 	shaderOpt: {
 		opt1: false,

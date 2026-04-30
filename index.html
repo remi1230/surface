@@ -34,12 +34,23 @@
   <script src="js/grid.js" defer></script>
   <script src="js/gui.js" defer></script>
   <script src="js/bab.js" defer></script>
+  <script src="js/history.js" defer></script>
   <script src="js/events.js" defer></script>
 </head>
 
 <body>
   <div id="univers_div">
     <canvas id="renderCanvas" touch-action="none"></canvas>
+  </div>
+
+  <div id="historyPanel" class="history-panel" title="Undo / Redo (Ctrl+Z / Ctrl+Shift+Z)">
+    <button id="historyUndoBtn" class="history-btn" title="Undo (Ctrl+Z)" type="button">
+      <i class="material-icons">undo</i>
+    </button>
+    <span id="historyLabel" class="history-label"></span>
+    <button id="historyRedoBtn" class="history-btn" title="Redo (Ctrl+Shift+Z)" type="button">
+      <i class="material-icons">redo</i>
+    </button>
   </div>
 
   <div id="helpModal" class="modal">

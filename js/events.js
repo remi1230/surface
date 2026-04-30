@@ -325,3 +325,96 @@ getById('univers_div').addEventListener("keydown", function (e) {
       }
    }
 });
+
+// =====================================================================================
+// HISTORY (undo/redo) integration
+//
+// All hooks here run only on user-driven state changes, never per render frame —
+// the GPU render loop (engine.runRenderLoop in bab.js) is untouched.
+// =====================================================================================
+
+(function wireHistory() {
+   if (typeof History === 'undefined') { return; }
+
+   History.init();
+
+   // Wrap makeCurves: every mesh rebuild path (sliders, equations, form select,
+   // import, symmetry, transforms…) flows through here. We commit a debounced
+   // snapshot so a slider drag or equation typing does not flood the stack.
+   if (typeof makeCurves === 'function') {
+      const _origMakeCurves = makeCurves;
+      makeCurves = async function () {
+         const result = await _origMakeCurves.apply(this, arguments);
+         if (!History.suspended) { History.commitDebounced(); }
+         return result;
+      };
+   }
+
+   // Shader compile (fragment): commit immediately on success, no debounce needed.
+   const _origCompileBtn = getById('compileBtn');
+   if (_origCompileBtn) {
+      _origCompileBtn.addEventListener('click', () => {
+         // Run after the existing compile handler completes so fragmentShaders[i] is up to date.
+         setTimeout(() => { if (!History.suspended) { History.commit('Compile shader'); } }, 0);
+      });
+   }
+   const _origCompileBtnNormal = getById('compileBtnNormal');
+   if (_origCompileBtnNormal) {
+      _origCompileBtnNormal.addEventListener('click', () => {
+         setTimeout(() => { if (!History.suspended) { History.commit('Compile normal shader'); } }, 0);
+      });
+   }
+
+   // Document-level Ctrl+Z / Ctrl+Shift+Z (and Ctrl+Y) — works regardless of focus,
+   // except when typing in the Monaco editor (which has its own undo/redo).
+   document.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) { return; }
+      const key = e.key.toLowerCase();
+      const isUndo = (key === 'z' && !e.shiftKey);
+      const isRedo = (key === 'y') || (key === 'z' && e.shiftKey);
+      if (!isUndo && !isRedo) { return; }
+
+      // Let Monaco handle its own undo/redo when focused inside the editor.
+      const target = e.target;
+      if (target && target.closest && target.closest('.monaco-editor')) { return; }
+
+      e.preventDefault();
+      e.stopPropagation();
+      if (isUndo) { History.undo(); } else { History.redo(); }
+      refreshHistoryUI();
+   }, true);
+
+   // Minimal floating UI: undo/redo buttons + label of last action.
+   function refreshHistoryUI() {
+      const undoBtn = getById('historyUndoBtn');
+      const redoBtn = getById('historyRedoBtn');
+      const labelEl = getById('historyLabel');
+      if (undoBtn) { undoBtn.disabled = !History.canUndo(); undoBtn.classList.toggle('disabled', !History.canUndo()); }
+      if (redoBtn) { redoBtn.disabled = !History.canRedo(); redoBtn.classList.toggle('disabled', !History.canRedo()); }
+      if (labelEl) {
+         const top = History.past[History.past.length - 1];
+         labelEl.textContent = top ? top.label : '';
+      }
+   }
+   History.onChange(refreshHistoryUI);
+
+   // Hook UI buttons after DOM is ready.
+   function setupHistoryButtons() {
+      const undoBtn = getById('historyUndoBtn');
+      const redoBtn = getById('historyRedoBtn');
+      if (undoBtn && !undoBtn._wired) {
+         undoBtn._wired = true;
+         undoBtn.addEventListener('click', () => { History.undo(); refreshHistoryUI(); });
+      }
+      if (redoBtn && !redoBtn._wired) {
+         redoBtn._wired = true;
+         redoBtn.addEventListener('click', () => { History.redo(); refreshHistoryUI(); });
+      }
+      refreshHistoryUI();
+   }
+   if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupHistoryButtons);
+   } else {
+      setupHistoryButtons();
+   }
+})();

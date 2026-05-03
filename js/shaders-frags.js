@@ -882,8 +882,8 @@ fragmentShaders = [
     float cavity = 1.0 - aoFromGauss;
     col += vec3(0.05, 0.03, 0.01) * cavity;
 
-    // Ajout couleur libre (colorsToAdd)
-    col += colorsToAdd;
+    // Contraste
+    col = (col - 0.5) * colorContrast + 0.5;
 
     // Tone mapping + gamma
     col = col / (col + vec3(1.0));
@@ -1540,7 +1540,7 @@ uniform float opt3;
 uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
-uniform vec3 colorsToAdd;
+uniform float colorContrast;
 uniform vec3 backgroundColor;
 uniform float colorRotation;
 uniform float lampIntensity;
@@ -1559,7 +1559,7 @@ void main(){
  *
  * Handles discard based on brightness threshold (U uniform), color inversion
  * (controlled by the INV button), hue rotation via a YIQ luma-chroma matrix,
- * additive color adjustment, and optional Blinn-Phong lighting (controlled by
+ * contrast adjustment, and optional Blinn-Phong lighting (controlled by
  * the lamp button).
  * Applies tone mapping and gamma correction when lighting is active.
  * Outputs the final color to `fragColor`.
@@ -1577,7 +1577,7 @@ fragmentShaderFooter = `
     // Hue rotation (degrees, cycle 0..360) via YIQ luma-chroma matrix
     col = hueRotateYIQ(col, radians(colorRotation));
 
-    col += colorsToAdd;
+    col = (col - 0.5) * colorContrast + 0.5;
 
 	// Lighting when the lamp button is active
 	if(islight == 1.0){

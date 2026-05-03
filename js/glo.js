@@ -1003,7 +1003,7 @@ var glo = {
 			specular: {power: 1.75, intensity: 4.0},
 		},
 		colors:{
-			toAdd:{r: 0, g: 0, b: 0},
+			contrast: 1,
 			rotation: 0,
 		}
 	},

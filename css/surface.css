@@ -499,6 +499,31 @@ input[type="checkbox"]:checked::after {
 .toast.red.darken-2 { background: #c62828; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
+/* --- History panel (undo/redo) ---------------------------- */
+.history-panel {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 9000; display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px; border-radius: 18px;
+  background: rgba(20, 22, 30, 0.55); backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  pointer-events: auto; user-select: none;
+}
+.history-btn {
+  width: 28px; height: 28px; border-radius: 50%; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: rgba(255,255,255,.08); color: #e6ebf6;
+  cursor: pointer; transition: background .15s, opacity .15s;
+}
+.history-btn:hover:not(.disabled) { background: rgba(255,255,255,.18); }
+.history-btn.disabled, .history-btn:disabled { opacity: .35; cursor: default; }
+.history-btn i.material-icons { font-size: 18px; }
+.history-label {
+  color: #cfd6e6; font-size: 12px; font-weight: 500;
+  min-width: 0; max-width: 180px; padding: 0 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-family: 'Poppins', sans-serif;
+}
+
 /* --- Utility classes -------------------------------------- */
 .center-align { text-align: center; }
 .browser-default { -webkit-appearance: auto; appearance: auto; }

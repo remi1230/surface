@@ -130,6 +130,106 @@ fragmentShaders = [
     col = hueRotateYIQ(col, radians(180.));
     
 `,
+`   
+    //Smoky
+    vec3 p  = npos() / (opt1 == 1. ? 2.72 : .707);
+    col *= .25*ec(8.*p-o(p, 8., time));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    
+`,
+`   
+    //Pinky
+    vec3 p = npos();
+
+    col -= o(p*16.*cos(p*5.));
+
+    col += ea(2.*p);
+    col -= la(.25*p);
+
+    col = vec3(m(col), o(col), hc(col));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+
+    col = hueRotateYIQ(col, radians(180.));
+    
+`,
+`   
+    //Scribble
+    vec3 p = npos() * (opt1 == 0.0 ? 1. : .375);
+
+    col -= m(p);
+
+    col -= .75*ea(2.*p);
+    col -= la(.25*p+2.72)-.33*ec(p*col+2.);
+
+    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., time));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col *= .5 - (tube + .25*cos(8.*tube - 1.5));
+
+    col = hueRotateYIQ(col, radians(140.));
+    
+`,
+`   
+    //Scribble II
+    vec3 p = npos();
+
+    col -= hc(p*8., 1., 0.);
+
+    col -= .75*ea(2.*p);
+    col -= la(.25*p+2.72)-.33*ec(col);
+
+    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., time));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col *= tube + .25*cos(8.*tube - 1.5);
+
+    col = hueRotateYIQ(col, radians(140.));
+    
+`,
+`   
+    //Sweet puzzle
+    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
+    col += o(16.*p);
+    col += 2.72*m(24.*p);
+    col += cpalette(lc(p), .25*col*p);
+
+
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+    col  = 1. - col;
+    
+`,
+`   
+    //White glow
+    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
+    col += o(16.*p);
+    col += 2.72*m(24.*p);
+    col *= (1.*o(p, 8., time));
+
+    col = rainbop(m(col*.5), col*p);
+
+
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+    col  = 1. - col;
+    
+`,
 `
    //Grid
     col = meshFg;
@@ -241,6 +341,23 @@ fragmentShaders = [
 `
     //Simple
 
+`,
+`
+    //Simple II
+    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
+    col -= cos(64.*m(p));
+
+`,
+`
+    //Nice colors
+    vec3 p  = npos() / (opt1 == 1. ? 2.72 : .707);
+    col -= cos(6.*o(o(8.*p), 1., 0.));
+
+    col -= .72*cos(1.4142*col+.125);
+    col -= 1.44*sin(1.4142*col+.125);
+
+    col = rainbop(m(col*.725), col);
+    
 `,
 `
     //Ghost
@@ -389,18 +506,53 @@ fragmentShaders = [
     col = 1.0 - cpalette(val4, rainbow(val4-.2*val1));
 
     col = hueRotateYIQ(col, radians(92.));
+
 `,
 `   
     //Carpet
-    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
-    col += sin(8.*m(p*8.*cos(8.*p*cos(p*2.*sin(p)))));
-
-    //col = normalize(col);
+    vec3 p  = npos(-1.);
+    col += .0625*ec(-time+abs(p*8.), 1., 8.*m(p));
+    col -= .5*o(-time+abs(p*8.), 1., 8.*m(p));
 
     vec3 po = fract(col * Q/32.0) - 0.5;
     float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
     col += .5*tube;
-    col = 1.0 - col;
+    col  = 1. - col;
+
+    col = hueRotateYIQ(col, radians(212.));
+
+`,
+`   
+    //Carpet II
+    vec3 p  = npos(-1.);
+    col -= cos(8.*o(p*2.));
+    col -= sin(8.*m(p*2.));
+    col -= lc(col);
+    col += .125*ec(1.25*cos(col*1.25));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    //col += tube;
+    col  = 1. - col;
+
+    col = hueRotateYIQ(col, radians(212.));
+
+`,
+`   
+    //Tubes
+    vec3 p  = npos(-1.);
+    col *= (8.*o(p*(3.+2.*abs(cos(.25*time))), 1., 0.*m(1.*p)));
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+    //col  = 1. - col;
+
+    col = hueRotateYIQ(col, radians(212.));
+
 `,
 `   
     //Ara
@@ -438,22 +590,28 @@ fragmentShaders = [
     col = hueRotateYIQ(col, radians(92.));
 `,
 `   
-    //Glowy III
+    //Glowy II
     vec3 pos   = npos() * P / (opt1 == 0.0 ? 32.0 : 64.0);
-    float val1 = m(m(pos*12.), o(pos*12.), .5*ec(pos*.75));
+    float val1 = m(m(pos*12.), o(pos*16.), .5*ec(pos*.75));
     float val2 = length(pos);
     float val3 = o(pos*val2);
 
     vec3 vCol   = vec3(val1, val2, val3);
     float vColL = length(vCol);
 
-    col = rainbop(vColL, cos(pos)+vCol+time);
-    col = hueRotateYIQ(col, radians(144.));
+    col = rainbop(vColL, .5*cos(pos)*vCol+time*.33);
+
+    vec3 po = fract(col * Q/32.0) - 0.5;
+    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+
+    col += tube;
+
+    col = hueRotateYIQ(col, radians(128.));
     col = 1.0 - col;
     
 `,
 `   
-    //Glowy IV
+    //Glowy III
     vec3 p = npos() / P;
     vec3 n = vNormal;
     vec3 pn = p*n;
@@ -1266,6 +1424,16 @@ float ec(vec3 p, float c){
 }
 float ec(vec3 p, float c, float ph){
     return exp(abs(cos(c*p.x + ph))) * exp(abs(cos(c*p.y + ph))) * exp(abs(cos(c*p.z + ph)));
+}
+
+float lc(vec3 p){
+    return log(abs(cos(p.x))) * log(abs(cos(p.y))) * log(abs(cos(p.z)));
+}
+float lc(vec3 p, float c){
+    return log(abs(cos(c*p.x))) * log(abs(cos(c*p.y))) * log(abs(cos(c*p.z)));
+}
+float lc(vec3 p, float c, float ph){
+    return log(abs(cos(c*p.x + ph))) * log(abs(cos(c*p.y + ph))) * log(abs(cos(c*p.z + ph)));
 }
 
 float g(vec3 p){

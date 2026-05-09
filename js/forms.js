@@ -81,7 +81,7 @@ const formsToselect = [
     {text: "Sphere", typeCoords: 'cartesian', udef: PI, vdef: PI/2, stepsU: 128, stepsV: 128, 
         uvCoeff: {x: 1, y: 0.5}, uvParamsCoeff: {x: 1, y: 1},
         fx: "2cucv", fy: "2sucv", fz: "2sv", 
-        orient:{distance: 10, alpha: 10, beta: -PI/5},
+        orient:{distance: 10, alpha: PI/4, beta: -PI/8},
     },
     {text: "Torus", typeCoords: 'cartesian', udef: PI, vdef: PI, stepsU: 128, stepsV: 32, uvCoeff: {x: 1.5, y: 0.375},
         fx: "(cv + e)cu", fy: "(cv + e)su", fz: "sv", start: true, check : true,

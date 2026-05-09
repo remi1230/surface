@@ -1003,7 +1003,7 @@ var glo = {
 			specular: {power: 1.75, intensity: 4.0},
 		},
 		colors:{
-			toAdd:{r: 0, g: 0, b: 0},
+			contrast: 1,
 			rotation: 0,
 		}
 	},
@@ -1042,7 +1042,7 @@ var glo = {
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['updateRots'],
 	centerSymmetry: {x: 0, y: 0, z: 0},
-	rotateSpeed: 1/450 * PI,
+	rotateSpeed: 0.005,
 	rotateType: 'none',
 	axisSize: 5,
 	planSize: 5,

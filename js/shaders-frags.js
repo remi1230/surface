@@ -101,10 +101,7 @@ fragmentShaders = [
 
     col = rainbop(.25*length(posN), pos);
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
 
     col = 1.0 - col;
     col = hueRotateYIQ(col, radians(180.));
@@ -121,22 +118,45 @@ fragmentShaders = [
 
     col = rainbop(.25*length(posN), pos);
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
 
     col = 1.0 - col;
     col = hueRotateYIQ(col, radians(180.));
     
 `,
 `   
+    //MOH
+    vec3 p  = npos() / (opt1 == 1. ? .25 : .09375);
+    col = vec3(0.);
+
+    vec3 moh = vec3(m(p), o(p), hc(p));
+
+    col = rainbop(length(moh), moh-time);
+
+    col += .5*tube(col, 2.);
+
+    col = hueRotateYIQ(col, radians(144.));
+
+    col -= edge(cos(col), 5./12.);
+    
+`,
+`   
     //Smoky
     vec3 p  = npos() / (opt1 == 1. ? 2.72 : .707);
     col *= .25*ec(8.*p-o(p, 8., time));
+    
+`,
+`   
+    //2Work
+    vec3 p = npos();
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col.rb += m(p*8., 1., 0.);
+    col.bg += o(ec(p)*ea(p*.7), 1., 0.);
+    
+    col *= m(p);
+    col -= hc(p);
+
+    col += 8.*tube(col+time*.0333, 5.);
     
 `,
 `   
@@ -150,10 +170,7 @@ fragmentShaders = [
 
     col = vec3(m(col), o(col), hc(col));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
 
     col = hueRotateYIQ(col, radians(180.));
     
@@ -179,22 +196,56 @@ fragmentShaders = [
 `,
 `   
     //Scribble II
-    vec3 p = npos();
+    vec3 p = npos()*.618;
 
-    col -= hc(p*8., 1., 0.);
+    col -= hc(p*5., 1., 0.);
 
-    col -= .75*ea(2.*p);
+    col -= .75*ea(2.71828*p);
     col -= la(.25*p+2.72)-.33*ec(col);
 
-    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., time));
+    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., .25*time));
 
     vec3 po = fract(col * Q/32.0) - 0.5;
     float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
 
-    col *= tube + .25*cos(8.*tube - 1.5);
+    col *= .58333-(tube + .25*cos(8.*tube - 1.5));
 
-    col = hueRotateYIQ(col, radians(140.));
+    col = hueRotateYIQ(col, radians(100.));
     
+`,
+`   
+    //Lines
+    vec3 p  = npos(-1.);
+    col *= p/(8.*o(p*(16.), 1., 1.*ec(2.5*p)+time*3.));
+
+    col += tube(col, 2.);
+
+    col = hueRotateYIQ(col, radians(212.));
+    
+`,
+`   
+    //Modern
+    vec3 p  = npos() / (opt1 == 1. ? 5. : 5.);
+
+    col = .25*ea(p*P/8.);
+    col += 2.*o(p/col*Q);
+    col -= 8.*m(8.*p);
+    col *= tan(.3*col);
+
+    col += .667*tube(col, 2.);
+
+    col = hueRotateYIQ(col, radians(144.));
+    
+`,
+`   
+    //Exp-Abs
+    vec3 p  = npos() * .25;
+
+    col += o(P/ea(p));
+
+    col -= .0707*edge(col, 2.);
+    col += .0707*spec(col, 1.618);
+    col += .067*tube(col, 4.);
 `,
 `   
     //Sweet puzzle
@@ -205,10 +256,7 @@ fragmentShaders = [
 
 
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
     col  = 1. - col;
     
 `,
@@ -223,10 +271,7 @@ fragmentShaders = [
 
 
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
     col  = 1. - col;
     
 `,
@@ -264,8 +309,8 @@ fragmentShaders = [
     // Position-based grid
     float epaisseur = S/200.0;
     vec3 pos = fract(npos(-1.) * P/8.0) - 0.5;
-    float tube = min(abs(pos.x*2.0), min(abs(pos.y), abs(pos.z)));
-    if(tube > epaisseur) discard;
+    float tub = min(abs(pos.x*2.0), min(abs(pos.y), abs(pos.z)));
+    if(tub > epaisseur) discard;
     col = 1.0-backgroundColor;
 `,
 `
@@ -369,9 +414,7 @@ fragmentShaders = [
     vec3 pos  = npos() / (opt1 == 1.0 ? 8. : 1.);
     col -= cos(2.*o(la(pos), length(ea(pos)), time));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-    col += tube;
+    col += tube(col, 2.);
     col = 1.0 - col;   
 `,
 `
@@ -380,9 +423,7 @@ fragmentShaders = [
     col -= cos(2.*o(la(pos*vNormal), length(ea(pos)), time));
     col += abs(cos(3.*vNormal*pos));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-    col += tube;
+    col += tube(col, 2.);
     col = 1.0 - col;
      
 `,
@@ -393,9 +434,7 @@ fragmentShaders = [
     col *= o(la(pos), 4., time);
     col -= .5*cos(3.*col*vNormal*pos);
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-    col += 2.*tube;
+    col += 2.*tube(col, 2.);
      
 `,
 `
@@ -408,10 +447,7 @@ fragmentShaders = [
 
     col = mix(col1, col2, pos);
 
-    vec3 po = fract(col * P/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
 
     col = 1.0 - col;
      
@@ -453,11 +489,35 @@ fragmentShaders = [
 `
     //Position
     col = 1.0-rainbow(length(vPosition));
+    col += 2.*tube(vPosition*col, 1.);
+
 `,
 `
     //Normal
     col = vNormal;
 
+    
+`,
+`
+    //Smooth
+    vec3 p  = npos() / (opt1 == 1. ? .25 : .125);
+    vec3 n  = vNormal / (opt1 == 1. ? .25 : .125);
+
+    col /= 1.+(m(p)+m(n));
+
+    col -= .375+spec(col*1., 1.);
+
+    
+`,
+`
+    //HDR
+    vec3 p  = npos() / (opt1 == 1. ? .25 : .125);
+    vec3 n  = vNormal / (opt1 == 1. ? .25 : .125);
+
+    col /= 1.+(m(p*2.)+o(n*2.));
+
+    col += tube(col, 2.);
+    col *= hdr(col, 1.);
     
 `,
 `
@@ -514,10 +574,7 @@ fragmentShaders = [
     col += .0625*ec(-time+abs(p*8.), 1., 8.*m(p));
     col -= .5*o(-time+abs(p*8.), 1., 8.*m(p));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += .5*tube;
+    col += .5*tube(col, 2.);
     col  = 1. - col;
 
     col = hueRotateYIQ(col, radians(212.));
@@ -531,10 +588,6 @@ fragmentShaders = [
     col -= lc(col);
     col += .125*ec(1.25*cos(col*1.25));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    //col += tube;
     col  = 1. - col;
 
     col = hueRotateYIQ(col, radians(212.));
@@ -545,10 +598,7 @@ fragmentShaders = [
     vec3 p  = npos(-1.);
     col *= (8.*o(p*(3.+2.*abs(cos(.25*time))), 1., 0.*m(1.*p)));
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
     //col  = 1. - col;
 
     col = hueRotateYIQ(col, radians(212.));
@@ -570,7 +620,7 @@ fragmentShaders = [
 
     col = cos(1.618*posN)*sin(8.*pos);
 
-    //col = 1.0 - col;
+    col += tube(col, 1.);
     col = hueRotateYIQ(col, radians(180.));
 
 `,
@@ -601,10 +651,7 @@ fragmentShaders = [
 
     col = rainbop(vColL, .5*cos(pos)*vCol+time*.33);
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col += tube;
+    col += tube(col, 2.);
 
     col = hueRotateYIQ(col, radians(128.));
     col = 1.0 - col;
@@ -725,6 +772,7 @@ fragmentShaders = [
 `,
 `
     //Starfield
+    vec3 p = npos(-1.) * (opt1 == 0.0 ? 1. : 2.);
     vec3 blend = abs(normalize(vNormal));
     blend = pow(blend, vec3(8.0));
     blend /= (blend.x + blend.y + blend.z);
@@ -740,12 +788,13 @@ fragmentShaders = [
         float scale = mix(20., .5, depth);
         float fade = depth*smoothstep(1.,.9,depth);
         float off = i*453.2-time*.05;
-        if(blend.z > 0.05) colXY += StarLayer(vPosition.xy*scale+off)*fade;
-        if(blend.y > 0.05) colXZ += StarLayer(vPosition.xz*scale+off)*fade;
-        if(blend.x > 0.05) colYZ += StarLayer(vPosition.yz*scale+off)*fade;
+        if(blend.z > 0.05) colXY += StarLayer(p.xy*scale+off)*fade;
+        if(blend.y > 0.05) colXZ += StarLayer(p.xz*scale+off)*fade;
+        if(blend.x > 0.05) colYZ += StarLayer(p.yz*scale+off)*fade;
     }
 
     col = (colXY*blend.z + colXZ*blend.y + colYZ*blend.x) * 1.37 * (6.0/NUM_LAYERS);
+    col += tube(col, 1.618);
 
 `,
 `
@@ -755,42 +804,57 @@ fragmentShaders = [
     vec3 val2 = heatmap(cos(uv.y*P/2.0));
 
     col = val1 + val2;
+    col += .5*tube(col, 0.5);
 
 `,
 `
     //Liquid
     float PI = 3.14159;
-    vec2 uvL = vec2(.125,.75)+(S/12.0*vUVParams*uvParamsCoeff-vec2(.125,.75))*.03;
-    float T=time*.25;
+    vec3 pL = vec3(.125, .75, .5) + (vPosition - vec3(.125, .75, .5)) * .03;
+    float T = time * .25;
 
-    vec3 c = clamp(1.-.7*vec3(
-        length(uvL-vec2(.1,0)),
-        length(uvL-vec2(.9,0)),
-        length(uvL-vec2(.5,1))
-        ),0.,1.)*2.-1.;
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
 
-    vec3 c0=vec3(0);
-    float w0=0.;
-    const float N=16.;
-    for(float i=0.;i<N;i++)
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 16.;
+    for (float i = 0.; i < N; i++)
     {
-        float wt=(i*i/N/N-.2)*.3;
-        float wp=0.5+(i+1.)*(i+1.5)*0.001;
-        float wb=.05+i/N*0.1;
-    	c.zx=rotL(c.zx,1.6+T*0.65*wt+(uvL.x+.7)*23.*wp);
-    	c.xy=rotL(c.xy,c.z*c.x*wb+1.7+T*wt+(uvL.y+1.1)*15.*wp);
-    	c.yz=rotL(c.yz,c.x*c.y*wb+2.4-T*0.79*wt+(uvL.x+uvL.y*(fract(i/2.)-0.25)*4.)*17.*wp);
-    	c.zx=rotL(c.zx,c.y*c.z*wb+1.6-T*0.65*wt+(uvL.x+.7)*23.*wp);
-    	c.xy=rotL(c.xy,c.z*c.x*wb+1.7-T*wt+(uvL.y+1.1)*15.*wp);
-        float w=(1.5-i/N);
-        c0+=c*w;
-        w0+=w;
-    }
-    c0=c0/w0*2.+.5;//*(1.-pow(uvL.y-.5,2.)*2.)*2.+.5;
-    c0*=.5+dot(c0,vec3(1,1,1))/sqrt(3.)*.5;
-    c0+=pow(length(sin(c0*PI*4.))/sqrt(3.)*1.0,20.)*(.3+.7*c0);
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
 
-	col = c0;
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    col = c0;
 
 `,
 `
@@ -882,8 +946,8 @@ fragmentShaders = [
     float cavity = 1.0 - aoFromGauss;
     col += vec3(0.05, 0.03, 0.01) * cavity;
 
-    // Ajout couleur libre (colorsToAdd)
-    col += colorsToAdd;
+    // Contraste
+    col = (col - 0.5) * colorContrast + 0.5;
 
     // Tone mapping + gamma
     col = col / (col + vec3(1.0));
@@ -914,6 +978,36 @@ vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition;
 
 float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.49999*cos(c*time)+0.5; }
+
+float tube(vec3 col, float nb){
+    vec3 po = fract(col * nb) - 0.5;
+    return min(abs(po.x), min(abs(po.y), abs(po.z)));
+}
+
+vec3 spec(vec3 col, float coeff){
+    return sin(col * 3.14159 * 6.0) * 0.1 + vec3(sin(col.r * 10.0), sin(col.g * 10.0 + 2.0), sin(col.b * 10.0 + 4.0)) * coeff;
+}
+
+vec3 post(vec3 col, float levels, float coeff){
+    return mix(col, floor(col * levels) / levels, coeff);
+}
+
+float edge(vec3 col){
+    return pow(length(fract(col * 3.0) - 0.5) * 2.0, 8.0);
+}
+float edge(vec3 col, float coeffCol){
+    return pow(length(fract(col * coeffCol) - 0.5) * 2.0, 8.0);
+}
+float edge(vec3 col, float coeffCol, float powEdge){
+    return pow(length(fract(col * coeffCol) - 0.5) * 2.0, powEdge);
+}
+
+vec3 bright(vec3 col){
+    float b = max(0.0, dot(col, vec3(0.333)) - 0.7);
+    col /= 1.+(vec3(b * b) * vec3(1.0, 0.8, 0.6) * 2.0);
+
+    return col;
+}
 
 // Colors
 const vec3 LAMP_COLOR = vec3(0.5, 0.5, 0.5);
@@ -1465,6 +1559,48 @@ vec2  la(vec2  v){return log(abs(v));}
 vec3  la(vec3  v){return log(abs(v));}
 vec4  la(vec4  v){return log(abs(v));}
 
+
+float pulse(vec3 col){
+    return pow(length(sin(col * 3.14159 * 3.0)) / sqrt(3.0), 8.0);
+}
+float pulse(vec3 col, float size){
+    return pow(length(sin(col * 3.14159 * size)) / sqrt(3.0), 8.0);
+}
+float pulse(vec3 col, float size, float intensity){
+    return pow(length(sin(col * 3.14159 * size)) / sqrt(intensity), 8.0);
+}
+float pulse(vec3 col, float size, float intensity, float po){
+    return pow(length(sin(col * 3.14159 * size)) / sqrt(intensity), po);
+}
+
+float rim(){
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float ri = 1.0 - max(dot(viewDir, normalize(vNormal)), 0.0);
+    return ri = pow(ri, 2.0);
+}
+float rim(float po){
+    vec3 viewDir = normalize(cameraPosition - vWorldPosition);
+    float ri = 1.0 - max(dot(viewDir, normalize(vNormal)), 0.0);
+    return ri = pow(ri, po);
+}
+
+vec3 hot(vec3 col){
+    vec3 h = max(col - 0.7, 0.0);
+    return h * h * 4.0;
+}
+vec3 hot(vec3 col, float n){
+    vec3 h = max(col - n, 0.0);
+    return h * h * 4.0;
+}
+vec3 hot(vec3 col, float n, float po){
+    vec3 h = max(col - n, 0.0);
+    return h * h * po;
+}
+    
+vec3 hdr(vec3 col, float val){
+    return pow(col, vec3(val));
+}
+
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 N = normalize(normal);
     vec3 V = normalize(cameraPosition - pos);
@@ -1540,7 +1676,7 @@ uniform float opt3;
 uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
-uniform vec3 colorsToAdd;
+uniform float colorContrast;
 uniform vec3 backgroundColor;
 uniform float colorRotation;
 uniform float lampIntensity;
@@ -1559,7 +1695,7 @@ void main(){
  *
  * Handles discard based on brightness threshold (U uniform), color inversion
  * (controlled by the INV button), hue rotation via a YIQ luma-chroma matrix,
- * additive color adjustment, and optional Blinn-Phong lighting (controlled by
+ * contrast adjustment, and optional Blinn-Phong lighting (controlled by
  * the lamp button).
  * Applies tone mapping and gamma correction when lighting is active.
  * Outputs the final color to `fragColor`.
@@ -1577,7 +1713,7 @@ fragmentShaderFooter = `
     // Hue rotation (degrees, cycle 0..360) via YIQ luma-chroma matrix
     col = hueRotateYIQ(col, radians(colorRotation));
 
-    col += colorsToAdd;
+    col = (col - 0.5) * colorContrast + 0.5;
 
 	// Lighting when the lamp button is active
 	if(islight == 1.0){

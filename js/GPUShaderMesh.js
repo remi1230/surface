@@ -336,7 +336,6 @@ class ShaderMeshBase {
 		this._vecMeshBg = new BABYLON.Vector3(0, 0, 0);
 		this._vecMeshFg = new BABYLON.Vector3(0, 0, 0);
 		this._vecLampPos = new BABYLON.Vector3(0, 0, 0);
-		this._colorsToAdd = new BABYLON.Vector3(0, 0, 0);
 		this._backgroundCanvasColor = new BABYLON.Vector3(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
 		this._uvCoeff = new BABYLON.Vector2(glo.uvCoeff.x, glo.uvCoeff.y);
 		this._uvParamsCoeff = new BABYLON.Vector2(glo.uvParamsCoeff.x, glo.uvParamsCoeff.y);
@@ -894,7 +893,7 @@ uniform vec3 cameraPosition;
 uniform vec3 meshBg;
 uniform vec3 meshFg;
 uniform vec3 lampPosition;
-uniform vec3 colorsToAdd;
+uniform float colorContrast;
 uniform vec3 backgroundColor;
 uniform float colorRotation;
 uniform float lampIntensity;
@@ -961,7 +960,7 @@ void main() {
 					"normValX", "normCoeffX", "normValY", "normCoeffY", "normValZ", "normCoeffZ",
 					"uSymX", "uSymY", "uSymZ", "uSymAngle", "uSymOrder", "uSymCenter",
 					"cameraPosition", "meshBg", "meshFg",
-					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorsToAdd', 'colorRotation', 'backgroundColor',
+					"lampPosition", "lampIntensity", "lampRadius", 'lampSpecularIntensity', 'lampSpecularPower', 'colorContrast', 'colorRotation', 'backgroundColor',
 					"gridU", "gridV", "lineWidth", "uvCoeff", "uvParamsCoeff", "invcol", "islight"
 				]
 			}
@@ -1121,8 +1120,7 @@ void main() {
 		mat.setVector3("meshFg", this._vecMeshFg);
 		this._vecLampPos.set(glo.shaders.light.direction.x, glo.shaders.light.direction.y, glo.shaders.light.direction.z);
 		mat.setVector3("lampPosition", this._vecLampPos);
-		this._colorsToAdd.set(glo.shaders.colors.toAdd.r, glo.shaders.colors.toAdd.g, glo.shaders.colors.toAdd.b);
-		mat.setVector3("colorsToAdd", this._colorsToAdd);
+		mat.setFloat("colorContrast", glo.shaders.colors.contrast);
 		this._backgroundCanvasColor.set(glo.backgroundColor.r, glo.backgroundColor.g, glo.backgroundColor.b);
 		mat.setVector3("backgroundColor", this._backgroundCanvasColor);
 		mat.setFloat("colorRotation", glo.shaders.colors.rotation);

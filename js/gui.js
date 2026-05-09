@@ -2336,24 +2336,15 @@ function addTransformationSliders(){
     }
   });
 
-  /**
-   * Updates color addition vector on the shader.
-   * @param {string} color - Color channel ('r', 'g', or 'b')
-   * @param {number} value - Color value to set
-   */
-  function updColorsVec3(color, value) {
-    glo.shaders.colors.toAdd[color] = value;
-    if (glo.ribbon && glo.ribbon.shaderMeshInstance) {
-      let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
-      const colorsToAdd = glo.shaders.colors.toAdd;
-      shaderMeshInstance._colorsToAdd.set(colorsToAdd.r, colorsToAdd.g, colorsToAdd.b);
-      shaderMeshInstance.shaderMaterial.setVector3("colorsToAdd", shaderMeshInstance._colorsToAdd);
-    }
-  }
+  addSlider(panelVarColor, "contrastSlider", "Contrast", 1, 2, 0, 2, .01,
+    function(value){
+      glo.shaders.colors.contrast = value;
 
-  addXYZSlider(panelVarColor, "varingColor", "Add", 0, 2, -1, 1, .01, function(value, checked) {
-    checked.forEach(function(axis) { updColorsVec3(axis, value); });
-  }, ['r', 'g', 'b']);
+      if(glo.ribbon && glo.ribbon.shaderMeshInstance) {
+        let shaderMeshInstance = glo.ribbon.shaderMeshInstance;
+        shaderMeshInstance.shaderMaterial.setFloat("colorContrast", value);
+      }
+    });
 
   addSlider(panelVarColorTint, "varTintSlider", "Hue", 0, 0, 0, 360, 1,
     function(value){

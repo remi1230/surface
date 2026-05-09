@@ -1652,6 +1652,12 @@ in vec3 vNormal;
 in vec2 vUV;
 in vec2 vUVParams;
 
+// Coordonnées sphériques du fragment courant (calculées une seule fois en début de main()).
+// Convention y-up : x = rayon R, y = latitude (angle / plan xz, [-PI/2, PI/2]),
+// z = azimut autour de y ([-PI, PI]). Coût : 2 length + 2 atan par fragment, et 0 si inutilisé
+// (dead-code elimination du compilateur GLSL).
+vec3 vSpherePos;
+
 // Fragment shader output
 out vec4 fragColor;
 
@@ -1687,6 +1693,7 @@ uniform float lampSpecularPower;
 ${getFragmentUtilsGLSL()}
 
 void main(){
+    vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
     vec3 col = meshBg;
 `;
 

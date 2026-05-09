@@ -887,6 +887,9 @@ in vec3 vNormal;
 in vec2 vUV;
 in vec2 vUVParams;
 
+// Coordonnées sphériques du fragment courant : x=rayon, y=latitude, z=azimut (y-up).
+vec3 vSpherePos;
+
 out vec4 fragColor;
 
 uniform vec3 cameraPosition;
@@ -922,6 +925,7 @@ uniform float U;
 ${getFragmentUtilsGLSL()}
 
 void main() {
+	vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
 	vec3 col = meshBg;
 
 	${mainFrag}

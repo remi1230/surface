@@ -809,7 +809,6 @@ fragmentShaders = [
 `,
 `
     //Liquid
-    float PI = 3.14159;
     vec3 pL = vec3(.125, .75, .5) + (vPosition - vec3(.125, .75, .5)) * .03;
     float T = time * .25;
 
@@ -1197,8 +1196,6 @@ mat2 rot(float _angle){
 }
 
 vec3 rotateTilePattern(vec2 _st, float coeff){
-    float PI = 3.14159265359;
-
     _st *= coeff;
 
     float index = 0.0;
@@ -1643,7 +1640,9 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 fragmentShaderHeader = `#version 300 es
 precision highp float;
 
-
+#define PI       3.14159265358979
+#define TWO_PI   6.28318530717958
+#define HALF_PI  1.57079632679490
 
 // Varyings received from the vertex shader
 in vec3 vPosition;

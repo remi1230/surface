@@ -881,6 +881,10 @@ void main() {
 		return `#version 300 es
 precision highp float;
 
+#define PI       3.14159265358979
+#define TWO_PI   6.28318530717958
+#define HALF_PI  1.57079632679490
+
 in vec3 vPosition;
 in vec3 vWorldPosition;
 in vec3 vNormal;

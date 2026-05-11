@@ -662,6 +662,17 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
             }
         });
 
+        // Auto-compile the colors fragment shader on every content change (debounced)
+        if (compileBtnId === 'compileBtn') {
+            let autoCompileTimer = null;
+            target[key].onDidChangeModelContent(() => {
+                clearTimeout(autoCompileTimer);
+                autoCompileTimer = setTimeout(() => {
+                    getById(compileBtnId)?.click();
+                }, 200);
+            });
+        }
+
         target[key].addAction({
             id: 'duplicate-line',
             label: 'Duplicate line',

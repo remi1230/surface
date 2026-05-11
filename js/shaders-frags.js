@@ -102,6 +102,7 @@ fragmentShaders = [
     col = rainbop(.25*length(posN), pos);
 
     col += tube(col, 2.);
+    col += post(col, 8., .7);
 
     col = 1.0 - col;
     col = hueRotateYIQ(col, radians(180.));
@@ -119,6 +120,7 @@ fragmentShaders = [
     col = rainbop(.25*length(posN), pos);
 
     col += tube(col, 2.);
+    col += post(col, 8., .7);
 
     col = 1.0 - col;
     col = hueRotateYIQ(col, radians(180.));
@@ -148,15 +150,9 @@ fragmentShaders = [
 `,
 `   
     //2Work
-    vec3 p = npos();
+    vec3 p = npos(-1.);
 
-    col.rb += m(p*8., 1., 0.);
-    col.bg += o(ec(p)*ea(p*.7), 1., 0.);
-    
-    col *= m(p);
-    col -= hc(p);
-
-    col += 8.*tube(col+time*.0333, 5.);
+    col *= 12.*tube(p*6., o(p*p*p/PI-PI)-m(p*PI+PI));
     
 `,
 `   
@@ -170,7 +166,7 @@ fragmentShaders = [
 
     col = vec3(m(col), o(col), hc(col));
 
-    col += tube(col, 2.);
+    col += tube(col, m(col*2.));
 
     col = hueRotateYIQ(col, radians(180.));
     
@@ -184,7 +180,7 @@ fragmentShaders = [
     col -= .75*ea(2.*p);
     col -= la(.25*p+2.72)-.33*ec(p*col+2.);
 
-    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., time));
+    col *= .25*PI*vec3(m(col), hc(col), o(col, 2., time));
 
     vec3 po = fract(col * Q/32.0) - 0.5;
     float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
@@ -203,7 +199,7 @@ fragmentShaders = [
     col -= .75*ea(2.71828*p);
     col -= la(.25*p+2.72)-.33*ec(col);
 
-    col *= .25*3.14159*vec3(m(col), hc(col), o(col, 2., .25*time));
+    col *= .25*PI*vec3(m(col), hc(col), o(col, 2., .25*time));
 
     vec3 po = fract(col * Q/32.0) - 0.5;
     float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
@@ -214,7 +210,7 @@ fragmentShaders = [
     
 `,
 `   
-    //Lines
+    //Glitter
     vec3 p  = npos(-1.);
     col *= p/(8.*o(p*(16.), 1., 1.*ec(2.5*p)+time*3.));
 
@@ -391,6 +387,52 @@ fragmentShaders = [
     //Simple II
     vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
     col -= cos(64.*m(p));
+
+`,
+`
+    //Rosette
+    vec3 p  = npos(-1.);
+    vec3 ps = nspos(-1.);
+
+    col += .5-o(ps*16.);
+
+`,
+`
+    //Lines
+    float nb = opt1 == 0.0 ? 16. : 8.;
+
+    vec3 n  = vNormal * nb;
+    vec3 p  = npos() * nb;
+    vec3 ps = nspos() * nb;
+
+    vec3 na  = abs(n) + 1.;
+    vec3 pa  = abs(p) + 8.;
+    vec3 psa = abs(ps) + 8.;
+    
+    //col *= 24.*tube(col*p*2., o(p*.125));
+    col /= 2.*cos(8.*cpow(na.x/pa.z, na.y/pa.z));
+    col /= o(col, 8.);
+
+`,
+`
+    //No pole
+    float nb = opt1 == 0.0 ? 16. : 8.;
+
+    vec3 n  = vNormal * nb;
+    vec3 p  = npos() * nb;
+    vec3 ps = nspos() * nb;
+
+    vec3 na  = abs(cos(2.*n)) + 5.;
+    vec3 pa  = abs(p*8.) + 10.;
+    vec3 psa = abs(ps) + 1.;
+    
+    //col -= 1.;
+    col *= E*cos(36.*cpow(cos(.5*na.x)/pa.z, na.y/pa.z));
+    col *= E*sin(6.*cpow(na.x/pa.z, na.y/pa.z));
+
+    col += 3.*tube(col, 1.);
+
+    col = 1. - col;
 
 `,
 `
@@ -809,7 +851,6 @@ fragmentShaders = [
 `,
 `
     //Liquid
-    float PI = 3.14159;
     vec3 pL = vec3(.125, .75, .5) + (vPosition - vec3(.125, .75, .5)) * .03;
     float T = time * .25;
 
@@ -878,7 +919,7 @@ fragmentShaders = [
     vec3 d2pdy2  = dFdy(dpdy);
     vec3 d2pdxdy = dFdx(dpdy);
 
-    float E = dot(dpdx, dpdx);
+    float D = dot(dpdx, dpdx);
     float F = dot(dpdx, dpdy);
     float G = dot(dpdy, dpdy);
 
@@ -886,7 +927,7 @@ fragmentShaders = [
     float f = dot(N, d2pdxdy);
     float g = dot(N, d2pdy2);
 
-    float denom = E * G - F * F;
+    float denom = D * G - F * F;
     float gaussK = (denom != 0.0) ? (e * g - f * f) / denom : 0.0;
     float meanH  = (denom != 0.0) ? (e * G - 2.0 * f * F + g * E) / (2.0 * denom) : 0.0;
 
@@ -976,6 +1017,9 @@ return `
 vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
 vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition; }
 
+vec3 nspos(){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y / PI, vSpherePos.z / TWO_PI)) : vec3(vSpherePos.x, vSpherePos.y / PI, vSpherePos.z / TWO_PI); }
+vec3 nspos(float n){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z)) : vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z); }
+
 float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.49999*cos(c*time)+0.5; }
 
@@ -985,7 +1029,7 @@ float tube(vec3 col, float nb){
 }
 
 vec3 spec(vec3 col, float coeff){
-    return sin(col * 3.14159 * 6.0) * 0.1 + vec3(sin(col.r * 10.0), sin(col.g * 10.0 + 2.0), sin(col.b * 10.0 + 4.0)) * coeff;
+    return sin(col * PI * 6.0) * 0.1 + vec3(sin(col.r * 10.0), sin(col.g * 10.0 + 2.0), sin(col.b * 10.0 + 4.0)) * coeff;
 }
 
 vec3 post(vec3 col, float levels, float coeff){
@@ -1197,8 +1241,6 @@ mat2 rot(float _angle){
 }
 
 vec3 rotateTilePattern(vec2 _st, float coeff){
-    float PI = 3.14159265359;
-
     _st *= coeff;
 
     float index = 0.0;
@@ -1561,16 +1603,16 @@ vec4  la(vec4  v){return log(abs(v));}
 
 
 float pulse(vec3 col){
-    return pow(length(sin(col * 3.14159 * 3.0)) / sqrt(3.0), 8.0);
+    return pow(length(sin(col * PI * 3.0)) / sqrt(3.0), 8.0);
 }
 float pulse(vec3 col, float size){
-    return pow(length(sin(col * 3.14159 * size)) / sqrt(3.0), 8.0);
+    return pow(length(sin(col * PI * size)) / sqrt(3.0), 8.0);
 }
 float pulse(vec3 col, float size, float intensity){
-    return pow(length(sin(col * 3.14159 * size)) / sqrt(intensity), 8.0);
+    return pow(length(sin(col * PI * size)) / sqrt(intensity), 8.0);
 }
 float pulse(vec3 col, float size, float intensity, float po){
-    return pow(length(sin(col * 3.14159 * size)) / sqrt(intensity), po);
+    return pow(length(sin(col * PI * size)) / sqrt(intensity), po);
 }
 
 float rim(){
@@ -1643,7 +1685,10 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 fragmentShaderHeader = `#version 300 es
 precision highp float;
 
-
+#define PI       3.14159265358979
+#define TWO_PI   6.28318530717958
+#define HALF_PI  1.57079632679490
+#define E        2.71828182845904
 
 // Varyings received from the vertex shader
 in vec3 vPosition;
@@ -1651,6 +1696,12 @@ in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUV;
 in vec2 vUVParams;
+
+// Coordonnées sphériques du fragment courant (calculées une seule fois en début de main()).
+// Convention y-up : x = rayon R, y = latitude (angle / plan xz, [-PI/2, PI/2]),
+// z = azimut autour de y ([-PI, PI]). Coût : 2 length + 2 atan par fragment, et 0 si inutilisé
+// (dead-code elimination du compilateur GLSL).
+vec3 vSpherePos;
 
 // Fragment shader output
 out vec4 fragColor;
@@ -1687,6 +1738,7 @@ uniform float lampSpecularPower;
 ${getFragmentUtilsGLSL()}
 
 void main(){
+    vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
     vec3 col = meshBg;
 `;
 

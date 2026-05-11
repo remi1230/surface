@@ -881,11 +881,19 @@ void main() {
 		return `#version 300 es
 precision highp float;
 
+#define PI       3.14159265358979
+#define TWO_PI   6.28318530717958
+#define HALF_PI  1.57079632679490
+#define E        2.71828182845904
+
 in vec3 vPosition;
 in vec3 vWorldPosition;
 in vec3 vNormal;
 in vec2 vUV;
 in vec2 vUVParams;
+
+// Coordonnées sphériques du fragment courant : x=rayon, y=latitude, z=azimut (y-up).
+vec3 vSpherePos;
 
 out vec4 fragColor;
 
@@ -922,6 +930,7 @@ uniform float U;
 ${getFragmentUtilsGLSL()}
 
 void main() {
+	vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
 	vec3 col = meshBg;
 
 	${mainFrag}

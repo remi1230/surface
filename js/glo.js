@@ -1044,6 +1044,30 @@ var glo = {
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotateSpeed: 0.005,
 	rotateType: 'none',
+	/** @type {'orbit'|'travelling'} Active camera mode — toggled with the `c` key. */
+	cameraMode: 'orbit',
+	/**
+	 * State for the cinematic spiral travelling camera (TargetCamera).
+	 * Populated when entering travelling mode; consumed each frame to animate the path.
+	 * Tunable parameters control rotation speed, in/out breathing and vertical wobble.
+	 */
+	travelling: {
+		startTime: 0,
+		center: null,
+		baseRadius: 16,
+		startAlpha: 0,
+		startBeta: Math.PI / 2,
+		/** Angular speed around the mesh (rad/s). */
+		angSpeed: 0.5,
+		/** Radial in/out frequency (rad/s) — lower than angSpeed gives a spiral. */
+		radSpeed: 0.17,
+		/** Radius oscillation amplitude as a ratio of baseRadius. */
+		radAmpRatio: 0.4,
+		/** Vertical (beta) wobble amplitude (rad). */
+		betaAmp: 0.25,
+		/** Vertical (beta) wobble frequency (rad/s). */
+		betaSpeed: 0.25,
+	},
 	axisSize: 5,
 	planSize: 5,
 	scaleNorm: 1,

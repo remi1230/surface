@@ -291,6 +291,7 @@ const keyboardShortcuts = [
    { key: '<',  action: () => { glo.formesSuit = !glo.formesSuit; addRadios(true); paramRadios(); } },
    { key: 'u',  action: () => changeResolution('increase') },
    { key: 'j',  action: () => changeResolution('decrease') },
+   { key: 'c',  action: () => toggleTravelling() },
 
    // --- Alt ---
    { key: "+",  alt: true, action: () => glo.rotateSpeed *= 1.2 },

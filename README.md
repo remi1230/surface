@@ -120,6 +120,7 @@ See the in-app **HELP** button for the complete reference.
 | `Shift+H` | Center camera |
 | `Shift+B` | Toggle wireframe |
 | `Shift+V` | Align camera to axis |
+| `c` | Toggle cinematic spiral travelling camera |
 
 See the in-app HELP for the full list.
 

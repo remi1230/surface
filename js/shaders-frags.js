@@ -78,38 +78,21 @@ fragmentShaders = [
 	col = mix(col, meshFg, min(line, 1.0));  
 `,
 `   
+    //Drawing
+    vec3 p = 1. + abs(npos()*PI);
+
+    float pm = acosh(p.x) * acosh(p.y) * acosh(p.z);
+
+    col *= la(.25*pm-E*col);
+    col -= cos(col*8.);
+    
+
+    col += .125-tube(col*p, PI/4.);
+    col += .125*rainbop(length(p/PI), p*col*2.);
+    
+`,
+`   
     //StreetArt
-    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
-    float val1 = m(pos*0.125)*mh(pos*.25);
-    float val2 = oh(pos*0.1875)-o(pos, 0.333, .5*time);
-    float val3 = hch(pos*0.125);
-
-    float val4 = .125*o(.5*pos, hc(val1,val2,val3));
-    col = 1.0 - cpalette(val4, rainbow(val4));
-
-    col = hueRotateYIQ(col, radians(92.));
-    
-`,
-`   
-    //StreetArt II
-    vec3 pos  = npos(-1.);
-    vec3 posN = vec3(m(
-        pos,
-        o(pos, 1., .25*time),
-        2.* m(2.*pos)
-    )) * 115. * P / (64.*64.);
-
-    col = rainbop(.25*length(posN), pos);
-
-    col += tube(col, 2.);
-    col += post(col, 8., .7);
-
-    col = 1.0 - col;
-    col = hueRotateYIQ(col, radians(180.));
-    
-`,
-`   
-    //StreetArt III
     vec3 pos  = npos(-1.);
     vec3 posN = vec3(m(
         cos(8.*pos),
@@ -150,9 +133,113 @@ fragmentShaders = [
 `,
 `   
     //2Work
-    vec3 p = npos(-1.);
+    vec3 p = npos() * (opt1 == 0. ? 1. : .25);
+    float pl = length(p);
+    for (float i = 14.; i < 20.; i+=2.) {
+        p = fract(p*1.0)-.5;
+        col *= -1.+m(p*i*2.);
+        col *= 1.+.5*tube(col, 1.);
+    }
 
-    col *= 12.*tube(p*6., o(p*p*p/PI-PI)-m(p*PI+PI));
+    col += E*tube(col, .5);
+    col += .75*spec(col, .707);
+    
+    
+`,
+`   
+    //2Work II
+    vec3 p = npos() * (opt1 == 0. ? .5 : .25);
+    float pl = length(p);
+    for (float i = 14.; i < 18.; i+=1.) {
+        p = fract(p*.5*pl*pl*6.)-.5;
+        col *= -1.+m(p*i*2.);
+    }
+
+    col = rainbop(length(col), col*m(col));
+
+    //col += E*tube(col, .5);
+    col += .5*spec(col, .407);
+    
+    
+`,
+`   
+    //Art
+    vec3 p = npos();
+    float pl = length(p);
+    for (float i = 70.; i < 120.; i+=10.) {
+        p = p*1.025;
+        col *= .333-o(c(p*.58333)*p*i*.25);
+        col += .1875*spec(cos(p), 1.);
+        col += W*tube(col, 1.);
+    }
+    
+`,
+`   
+    //Art II
+    vec3 p = npos();
+    float pl = length(p);
+    for (float i = 70.; i < 120.; i+=5.) {
+        p = p*1.05;
+        col *= .333-o(.58333*c(p*.58333)*p*p*i*.25);
+        col += .1875*spec(cos(p), 1.);
+        //col += 2.*tube(col, 1.);
+    }
+
+    col += 2.*tube(col, 1.);
+    
+`,
+`   
+    //8 Poles
+    vec3 p = npos() * (opt1 == 0. ? 8. : 4.);
+    
+    for (float i = 1.; i < 18.; i+=1.) {
+        col += m(p*i);
+    }
+    
+`,
+`   
+    //8 Poles II
+    vec3 p = npos() * (opt1 == 0. ? 8. : 4.);
+    
+    for (float i = 1.; i < 18.; i+=.75) {
+        col += m(p*i);
+    }
+    
+`,
+`   
+    //Blackboard
+    vec3 p = npos(-1.) * (opt1 == 0. ? 4. : 8.);
+    
+    for (float i = 1.; i < 24.; i+=.58333) {
+        col /= 1.1125+m(p*i);
+    }
+    
+`,
+`   
+    //Sweet light
+    vec3 p = npos(-1.) * (opt1 == 0. ? 4. : 8.);
+    
+    for (float i = 0.; i < 6.; i+=.75) {
+        col /= 1.+m(p*i);
+        //col += .0125*palette(hc(col));
+    }
+
+    col = 1.-col;
+    col = hueRotateYIQ(col, radians(189.));
+    
+`,
+`   
+    //Sweet light II
+    vec3 p = npos(-1.) * (opt1 == 0. ? 4. : 8.);
+    
+    for (float i = 0.; i < 6.; i+=.888) {
+        col /= (1.+o(p*i))*1.25;
+        col += .03125*palette(hc(col));
+        col *= 1.+.2*spec(col, 1.);
+    }
+
+    //col = 1.-col;
+    col = hueRotateYIQ(col, radians(189.));
     
 `,
 `   
@@ -173,25 +260,6 @@ fragmentShaders = [
 `,
 `   
     //Scribble
-    vec3 p = npos() * (opt1 == 0.0 ? 1. : .375);
-
-    col -= m(p);
-
-    col -= .75*ea(2.*p);
-    col -= la(.25*p+2.72)-.33*ec(p*col+2.);
-
-    col *= .25*PI*vec3(m(col), hc(col), o(col, 2., time));
-
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
-
-    col *= .5 - (tube + .25*cos(8.*tube - 1.5));
-
-    col = hueRotateYIQ(col, radians(140.));
-    
-`,
-`   
-    //Scribble II
     vec3 p = npos()*.618;
 
     col -= hc(p*5., 1., 0.);
@@ -234,26 +302,19 @@ fragmentShaders = [
     
 `,
 `   
-    //Exp-Abs
-    vec3 p  = npos() * .25;
+    //Palace
+    float t = time*.1875;
+    vec3 p = npos()*PI/3.;
 
-    col += o(P/ea(p));
+    float c = 1./2.125;
 
-    col -= .0707*edge(col, 2.);
-    col += .0707*spec(col, 1.618);
-    col += .067*tube(col, 4.);
-`,
-`   
-    //Sweet puzzle
-    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
-    col += o(16.*p);
-    col += 2.72*m(24.*p);
-    col += cpalette(lc(p), .25*col*p);
+    for (float i = 0.; i < 4.; i++) {
+        col += Z*o(p*col*i*Z*.25);
+    }
 
-
-
-    col += tube(col, 2.);
-    col  = 1. - col;
+    col += 1.25*tube(col, 1.);
+    col = palette(m(col));
+    col = hueRotateYIQ(col, radians(180.));
     
 `,
 `   
@@ -269,6 +330,28 @@ fragmentShaders = [
 
     col += tube(col, 2.);
     col  = 1. - col;
+    
+`,
+`   
+    //Disco
+    vec3 p = npos();
+
+    vec3 p0  = p;
+    col = vec3(0);
+    for (float i = 0.0; i < 4.0; i++) {
+        p = fract(p * 1.5) - 0.5;
+
+        float d = length(p) * .667*ea(-.000125*length(p0));
+
+        vec3 color = palette(length(p0) + i*.4 + time*.4);
+
+        d = sin(d*8. + time)/8.;
+        d = abs(d);
+
+        d = pow(0.01 / d, 1.2);
+
+        col += color * d;
+    }
     
 `,
 `
@@ -337,29 +420,6 @@ fragmentShaders = [
 
 `,
 `
-    //Norm&Pos
-    float coeff = 1.0+Ts(0.25);
-    float lnpos = coeff*length(vNormal*(npos()));
-    
-    vec3 col1 = fract(coeff*palette(lnpos));
-    vec3 col2 = fract(3.0*rainbow(lnpos));
-    vec3 col3 = 1.0 - mix(col1, col2, dot(col1,col2));
-    vec3 col4 = 1.0 - mix(col1, col2, cross(col1,col2));
-
-    if(opt1 == 0.0) col = mix(col3, col4, Ts(1.0));
-    else col = mix(col3, col4, Ts(0.0666*dot(col3+npos(),col4-npos())));
-`,
-`
-    //Norm&Pos2
-    float lnpos = length(vNormal*(npos()));
-    
-    vec3 col1 = palette(3.0*lnpos+time*0.125);
-    vec3 col2 = rainbow(8.0*lnpos+time*0.25);
-
-    col = 1.0 - mix(col1, col2, 0.5);
-    col = hueRotateYIQ(col, radians(180.));
-`,
-`
     //Butterfly
     vec3 pos    = (opt1 == 0.0 ? vPosition*5./12. : npos()) * P / 24.0;
     float c     = P/4.0;
@@ -381,12 +441,6 @@ fragmentShaders = [
 `,
 `
     //Simple
-
-`,
-`
-    //Simple II
-    vec3 p  = npos(-1.) / (opt1 == 1. ? 1. : 2.72);
-    col -= cos(64.*m(p));
 
 `,
 `
@@ -436,17 +490,6 @@ fragmentShaders = [
 
 `,
 `
-    //Nice colors
-    vec3 p  = npos() / (opt1 == 1. ? 2.72 : .707);
-    col -= cos(6.*o(o(8.*p), 1., 0.));
-
-    col -= .72*cos(1.4142*col+.125);
-    col -= 1.44*sin(1.4142*col+.125);
-
-    col = rainbop(m(col*.725), col);
-    
-`,
-`
     //Ghost
     vec3 posN = normalize(vPosition);
     if(length(posN) > length(vNormal)){ discard; }  
@@ -462,7 +505,7 @@ fragmentShaders = [
 `
     //Log-Exp
     vec3 pos  = npos() / (opt1 == 1.0 ? 8. : 1.);
-    col -= cos(2.*o(la(pos*vNormal), length(ea(pos)), time));
+    col -= cos(2.*o(la(.000333+pos*vNormal), length(ea(pos)), time));
     col += abs(cos(3.*vNormal*pos));
 
     col += tube(col, 2.);
@@ -598,19 +641,6 @@ fragmentShaders = [
     }
 `,
 `   
-    //Jungle
-    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
-    float val1 = m(pos*0.125)*mh(pos*.25);
-    float val2 = oh(pos*0.1875)-o(pos, 0.333, .25*time);
-    float val3 = hch(pos*0.125);
-
-    float val4 = .125*hc(.5*pos, h(val1,val2,val3));
-    col = 1.0 - cpalette(val4, rainbow(val4-.2*val1));
-
-    col = hueRotateYIQ(col, radians(92.));
-
-`,
-`   
     //Carpet
     vec3 p  = npos(-1.);
     col += .0625*ec(-time+abs(p*8.), 1., 8.*m(p));
@@ -711,28 +741,26 @@ fragmentShaders = [
 `,
 `   
     //Harlequin
-    vec3 pos = opt1 == 0.0 ? vPosition * P / 8.0 : .42 * npos() * P;
+    vec3 p = npos(-1.);
+
+    p -= .5*cpow(o(p*.5), hc(p*2.));
     
-    float coeff = opt2 == 0.0 ? 1.0 : .125;
-    float phase = time;
-    float val1 = m(pos, coeff, phase);
-    float val2 = o(pos, coeff, phase);
-    float val3 = hc(pos, coeff, phase);
-    float val4 = m(val1, cos(.5*val2), 1.4142*val3);
-    
-    col = 1.0 - rainbop(val4, -cos(val4*pos));
+    col *= tube(p*.25, E);
+
+    col = rainbop(m(col*2.), 22.5*col);
 
 `,
 `   
     //Harlequin II
-    vec3 pos   = .42 * npos() * (P+2.) / (opt1 == 0.0 ? 2.0 : 4.0);
-    float val1 = mh(pos*0.125);
-    float val2 = oh(pos*0.125);
-    float val3 = hch(pos*0.125);
+    vec3 p = npos()*PI;
 
-    float val4 = .00125*mh(val1, val2, val3);
+    col += .333*exp(PI*c(p));
+    col += o(2.*PI*s(p), .6667, 0.);
     
-    col = 1.0 - cpalette(val4, rainbow(val4));
+
+    col *= .125-tube(col*p, PI/4.);
+
+    col += rainbop(length(p/PI), p*col*2.);
     
 `,
 `   
@@ -1689,6 +1717,11 @@ precision highp float;
 #define TWO_PI   6.28318530717958
 #define HALF_PI  1.57079632679490
 #define E        2.71828182845904
+#define Z        1.61803398874989
+#define W        1.41421356237309
+
+#define c(x) (cos (x))
+#define s(x) (sin (x))
 
 // Varyings received from the vertex shader
 in vec3 vPosition;

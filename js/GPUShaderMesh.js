@@ -885,6 +885,11 @@ precision highp float;
 #define TWO_PI   6.28318530717958
 #define HALF_PI  1.57079632679490
 #define E        2.71828182845904
+#define Z        1.61803398874989
+#define W        1.41421356237309
+
+#define c(x) (cos (x))
+#define s(x) (sin (x))
 
 in vec3 vPosition;
 in vec3 vWorldPosition;

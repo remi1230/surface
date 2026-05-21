@@ -1053,19 +1053,23 @@ var glo = {
 	 */
 	travelling: {
 		startTime: 0,
+		/** Pivot of the spiral — set to the orbit camera's target on entry. */
 		center: null,
+		/** Snapshot of (camera.position − target) at entry; rotated each frame. */
+		initialOffset: null,
+		/** Snapshot of the orbit camera's upVector at entry — defines the rotation axis. */
+		up: null,
+		/** Initial distance to center; baseline for the radius oscillation. */
 		baseRadius: 16,
-		startAlpha: 0,
-		startBeta: Math.PI / 2,
-		/** Angular speed around the mesh (rad/s). */
+		/** Angular speed of the spiral around `up` (rad/s). */
 		angSpeed: 0.5,
-		/** Radial in/out frequency (rad/s) — lower than angSpeed gives a spiral. */
+		/** Frequency of the in/out breathing (rad/s). Period = 2π / radSpeed. */
 		radSpeed: 0.17,
-		/** Radius oscillation amplitude as a ratio of baseRadius. */
+		/** Radius oscillation amplitude as a fraction of baseRadius. 0 = no breathing. */
 		radAmpRatio: 0.4,
-		/** Vertical (beta) wobble amplitude (rad). */
+		/** Vertical tilt amplitude (rad). 0 = pure flat spiral. */
 		betaAmp: 0.25,
-		/** Vertical (beta) wobble frequency (rad/s). */
+		/** Vertical tilt frequency (rad/s). */
 		betaSpeed: 0.25,
 	},
 	axisSize: 5,

@@ -103,11 +103,17 @@ function startTravelling() {
   const trav  = glo.travCamera;
   const t     = glo.travelling;
 
-  t.center     = orbit.getTarget().clone();
-  t.baseRadius = orbit.radius;
-  t.startAlpha = orbit.alpha;
-  t.startBeta  = orbit.beta;
-  t.startTime  = performance.now();
+  // Snapshot the orbit pose as a world-space offset + up axis. Working in world
+  // vectors (rather than ArcRotate alpha/beta) keeps the spiral consistent
+  // regardless of which upVector the user had set (Y-up vs Z-up forms).
+  const offset = orbit.position.subtract(orbit.getTarget());
+  t.center        = orbit.getTarget().clone();
+  t.initialOffset = offset.clone();
+  t.baseRadius    = offset.length();
+  t.up            = orbit.upVector.clone();
+  t.startTime     = performance.now();
+
+  trav.upVector = t.up.clone();
 
   orbit.detachControl(glo.canvas);
   glo.scene.activeCamera = trav;
@@ -133,25 +139,39 @@ function stopTravelling() {
 
 /**
  * Per-frame update for the travelling camera. Computes a spiral path around
- * {@link glo.travelling.center}: continuous longitude rotation, sinusoidal
- * radius breathing (so the camera approaches and recedes), and a gentle beta
- * wobble for a 3D feel. Conversion uses the BabylonJS ArcRotate convention
- * (x = r·cosα·sinβ, y = r·cosβ, z = r·sinα·sinβ).
+ * {@link glo.travelling.center} in a frame defined by the captured upVector,
+ * so behaviour is identical whether the user navigated with Y-up or Z-up.
+ *
+ * Steps each frame, starting from the snapshotted offset vector v₀:
+ *   1. Rotate v₀ around `up` by angle α(t) = angSpeed · t — the orbital motion.
+ *   2. Scale by (1 + radAmpRatio · sin(radSpeed · t)) — the in/out breathing.
+ *   3. Tilt around an axis perpendicular to (up, v) by betaAmp · sin(betaSpeed · t)
+ *      — a vertical wobble that turns a flat circle into a true 3D spiral.
+ * Final camera position = center + v.
  */
 function updateTravellingCamera() {
-  const s = glo.travelling;
+  const s  = glo.travelling;
   const dt = (performance.now() - s.startTime) / 1000;
 
-  const alpha  = s.startAlpha + dt * s.angSpeed;
-  const beta   = s.startBeta  + s.betaAmp * Math.sin(dt * s.betaSpeed);
-  const radius = s.baseRadius * (1 + s.radAmpRatio * Math.sin(dt * s.radSpeed));
+  const angle = dt * s.angSpeed;
+  const rot   = BABYLON.Quaternion.RotationAxis(s.up, angle);
+  const v     = s.initialOffset.clone();
+  v.rotateByQuaternionToRef(rot, v);
 
-  const sinB = Math.sin(beta);
-  const x = s.center.x + radius * Math.cos(alpha) * sinB;
-  const y = s.center.y + radius * Math.cos(beta);
-  const z = s.center.z + radius * Math.sin(alpha) * sinB;
+  const rScale = 1 + s.radAmpRatio * Math.sin(dt * s.radSpeed);
+  v.scaleInPlace(rScale);
 
-  glo.travCamera.position.set(x, y, z);
+  if (s.betaAmp !== 0) {
+    const perp = BABYLON.Vector3.Cross(s.up, v);
+    if (perp.lengthSquared() > 1e-8) {
+      perp.normalize();
+      const wobble = s.betaAmp * Math.sin(dt * s.betaSpeed);
+      const wRot   = BABYLON.Quaternion.RotationAxis(perp, wobble);
+      v.rotateByQuaternionToRef(wRot, v);
+    }
+  }
+
+  glo.travCamera.position.copyFrom(s.center).addInPlace(v);
   glo.travCamera.setTarget(s.center);
 }
 

@@ -433,9 +433,49 @@ float m() {
 	float deformCoeff2 = 1.0/deformCoeff1;
 	return deformCoeff2*cos(gx * deformCoeff1) * cos(gy * deformCoeff1) * cos(gz * deformCoeff1);
 }
-vec3 m(vec3 pos) {
-	return vec3(m(pos.x), m(pos.y), m(pos.z));
+
+
+
+float m(vec3 p){
+    return cos(p.x) * cos(p.y) * cos(p.z);
 }
+float m(vec3 p, float coeff){
+    return cos(coeff*p.x) * cos(coeff*p.y) * cos(coeff*p.z);
+}
+float m(vec3 p, float coeff, float phase){
+    return cos(coeff*p.x + phase) * cos(coeff*p.y + phase) * cos(coeff*p.z + phase);
+}
+float m(vec3 p, float coeff, vec3 phase){
+    return cos(coeff*p.x + phase.x) * cos(coeff*p.y + phase.y) * cos(coeff*p.z + phase.z);
+}
+
+
+float me(vec3 p){
+    return cos(exp(abs(p.x))) * cos(exp(abs(p.y))) * cos(exp(abs(p.z)));
+}
+float me(vec3 p, float coeff){
+    return cos(coeff*exp(abs(p.x))) * cos(coeff*exp(abs(p.y))) * cos(coeff*exp(abs(p.z)));
+}
+float me(vec3 p, float coeff, float phase){
+    return cos(coeff*exp(abs(p.x + phase))) * cos(coeff*exp(abs(p.y + phase))) * cos(coeff*exp(abs(p.z + phase)));
+}
+float me(vec3 p, float coeff, vec3 phase){
+    return cos(coeff*exp(abs(p.x + phase.x))) * cos(coeff*exp(abs(p.y + phase.y))) * cos(coeff*exp(abs(p.z + phase.z)));
+}
+
+float o(vec3 p){
+    return cos(p.x) + cos(p.y) + cos(p.z);
+}
+float o(vec3 p, float coeff){
+    return cos(coeff*p.x) + cos(coeff*p.y) + cos(coeff*p.z);
+}
+float o(vec3 p, float coeff, float phase){
+    return cos(coeff*p.x + phase) + cos(coeff*p.y + phase) + cos(coeff*p.z + phase);
+}
+float o(vec3 p, float coeff, vec3 phase){
+    return cos(coeff*p.x + phase.x) + cos(coeff*p.y + phase.y) + cos(coeff*p.z + phase.z);
+}
+
 
 // Fonctions de déformation o()
 float o(float ncx, float ncy, float ncz) {
@@ -538,6 +578,21 @@ float cp(float n){
 }
 float cp(float n, float p){
 	return cos(gxN * n + p) * cos(gyN * n + p) * cos(gzN * n + p);
+}
+
+float tube(vec3 col, float nb){
+    vec3 po = fract(col * nb) - 0.5;
+    return min(abs(po.x), min(abs(po.y), abs(po.z)));
+}
+
+float edge(vec3 col){
+    return pow(length(fract(col * 3.0) - 0.5) * 2.0, 8.0);
+}
+float edge(vec3 col, float coeffCol){
+    return pow(length(fract(col * coeffCol) - 0.5) * 2.0, 8.0);
+}
+float edge(vec3 col, float coeffCol, float powEdge){
+    return pow(length(fract(col * coeffCol) - 0.5) * 2.0, powEdge);
 }
 
 `;
@@ -890,6 +945,9 @@ precision highp float;
 
 #define c(x) (cos (x))
 #define s(x) (sin (x))
+#define pit(x, c, p) (cpow (x,x*c+p))
+#define ins(func, x, y) (func (x) * (1.+func(x*y)))
+#define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
 
 in vec3 vPosition;
 in vec3 vWorldPosition;

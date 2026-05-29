@@ -1042,8 +1042,36 @@ var glo = {
 	videoBoxRange: 1.414,
 	bgActivedButtons: ['updateRots'],
 	centerSymmetry: {x: 0, y: 0, z: 0},
-	rotateSpeed: 0.005,
+	rotateSpeed: -0.004,
 	rotateType: 'none',
+	/** @type {'orbit'|'travelling'} Active camera mode — toggled with the `c` key. */
+	cameraMode: 'orbit',
+	/**
+	 * State for the cinematic spiral travelling camera (TargetCamera).
+	 * Populated when entering travelling mode; consumed each frame to animate the path.
+	 * Tunable parameters control rotation speed, in/out breathing and vertical wobble.
+	 */
+	travelling: {
+		startTime: 0,
+		/** Pivot of the spiral — set to the orbit camera's target on entry. */
+		center: null,
+		/** Snapshot of (camera.position − target) at entry; rotated each frame. */
+		initialOffset: null,
+		/** Snapshot of the orbit camera's upVector at entry — defines the rotation axis. */
+		up: null,
+		/** Initial distance to center; baseline for the radius oscillation. */
+		baseRadius: 16,
+		/** Angular speed of the spiral around `up` (rad/s). */
+		angSpeed: .25,
+		/** Frequency of the in/out breathing (rad/s). Period = 2π / radSpeed. */
+		radSpeed: 0.0,
+		/** Radius oscillation amplitude as a fraction of baseRadius. 0 = no breathing. */
+		radAmpRatio: 1.0,
+		/** Vertical tilt amplitude (rad). 0 = pure flat spiral. */
+		betaAmp: PI/4,
+		/** Vertical tilt frequency (rad/s). */
+		betaSpeed: -.0625,
+	},
 	axisSize: 5,
 	planSize: 5,
 	scaleNorm: 1,

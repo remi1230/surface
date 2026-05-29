@@ -291,6 +291,7 @@ const keyboardShortcuts = [
    { key: '<',  action: () => { glo.formesSuit = !glo.formesSuit; addRadios(true); paramRadios(); } },
    { key: 'u',  action: () => changeResolution('increase') },
    { key: 'j',  action: () => changeResolution('decrease') },
+   { key: 'c',  action: () => toggleTravelling() },
 
    // --- Alt ---
    { key: "+",  alt: true, action: () => glo.rotateSpeed *= 1.2 },
@@ -306,6 +307,11 @@ const keyboardShortcuts = [
 ];
 
 getById('univers_div').addEventListener("keydown", function (e) {
+   // Babylon GUI InputText whitelists `c`/`v` so Ctrl+C / Ctrl+V still copy/paste —
+   // which means bare `c` and `v` also bubble to here. Skip global shortcuts while
+   // any GUI input has focus to keep typing from triggering them.
+   if (glo.advancedTexture && glo.advancedTexture.focusedControl) return;
+   
    const pressedKey  = e.key.toLowerCase();
    const pressedCtrl  = !!e.ctrlKey;
    const pressedShift = !!e.shiftKey;

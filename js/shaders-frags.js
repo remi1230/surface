@@ -2372,8 +2372,20 @@ uniform float lampSpecularPower;
 
 ${getFragmentUtilsGLSL()}
 
+// Accès à l'équation du maillage. Stub neutre pour la validation dans l'éditeur :
+// les vraies valeurs (eqPos/eqX/eqY/eqZ et eqx/eqy/eqz) sont injectées à la
+// compilation par createFragmentShader(), à partir de l'équation paramétrique courante.
+float eqx, eqy, eqz;
+vec3 eqPos(float u, float v) { return vec3(0.0); }
+float eqX(float u, float v) { return 0.0; }
+float eqY(float u, float v) { return 0.0; }
+float eqZ(float u, float v) { return 0.0; }
+
 void main(){
     vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
+    // Coordonnées paramétriques du fragment courant, exposées au code couleur.
+    float u = vUVParams.x;
+    float v = vUVParams.y;
     vec3 col = meshBg;
 `;
 

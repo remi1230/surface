@@ -924,15 +924,144 @@ void main() {
 	}
 
 	/**
-	 * Generates the complete fragment shader source (GLSL ES 3.0).
-	 * Injects the user's color code (`mainFrag`) between the mesh background color
-	 * initialization and the lighting/post-processing footer.
+	 * Builds the complete fragment shader source (GLSL ES 3.0) for the given color code.
+	 *
+	 * When the color code references the mesh equation (`eqPos`, `eqX`/`eqY`/`eqZ`, or the
+	 * `eqx`/`eqy`/`eqz` shorthands), the parametric equation is exposed in the fragment
+	 * stage via {@link getEquationAccessorsGLSL} so distance functions can sample the
+	 * surface at any `(u, v)`. The compact equation is translated to GLSL exactly like the
+	 * vertex shader (`cu` -> `cos(u)`, etc.), since both reuse {@link getPositionGLSL}.
+	 * If the equation cannot be expressed in the fragment stage, a neutral stub is used so
+	 * the color shader never fails to compile. Color code that does not reference the
+	 * equation produces the exact same shader as before (zero added cost).
 	 *
 	 * @param {string} [mainFrag=fragmentShaders[glo.numShaderSelect]] - The body of the
 	 *   fragment shader (user-editable color/pattern code).
 	 * @returns {string} Full fragment shader GLSL source.
 	 */
 	createFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
+		const code = mainFrag || '';
+
+		// Voie courante : le code couleur n'accède pas à l'équation -> shader inchangé.
+		if (!/\beq(?:Pos|[xyzXYZ])\b/.test(code)) {
+			return this._composeFragmentShader(code, '', '');
+		}
+
+		// Pré-calcul des raccourcis eqx/eqy/eqz au fragment courant : une seule
+		// évaluation de eqPos, et uniquement si ces variables sont utilisées.
+		const eqInit = /\beq[xyz]\b/.test(code)
+			? '\tvec3 _eqUV = eqPos(u, v);\n\teqx = _eqUV.x; eqy = _eqUV.y; eqz = _eqUV.z;\n'
+			: '';
+
+		const realShader = this._composeFragmentShader(code, this.getEquationAccessorsGLSL(), eqInit);
+
+		// Filet de sécurité : si l'équation ne se traduit pas dans l'étage fragment,
+		// on retombe sur un stub neutre (eq* = 0) plutôt que de casser le color shader.
+		const canCompile = !this.computer || typeof this.computer.validateShader !== 'function'
+			|| this.computer.validateShader(realShader, 'fragment').valid;
+
+		return canCompile
+			? realShader
+			: this._composeFragmentShader(code, this.getEquationAccessorsStubGLSL(), eqInit);
+	}
+
+	/**
+	 * Returns the GLSL block exposing the mesh's parametric equation to the fragment
+	 * stage. Mirrors the vertex-side `computePosition` minus blender/symmetry/deformation
+	 * (the pure equation), so the surface point can be sampled at any `(u, v)`.
+	 *
+	 * Provides `vec3 eqPos(float u, float v)`, the components `eqX`/`eqY`/`eqZ`, and the
+	 * globals `eqx`/`eqy`/`eqz` (current-fragment value, filled in `main()` on demand).
+	 * Only declares uniforms not already present in the fragment header; they are already
+	 * uploaded by {@link updateAllUniforms}, so no extra CPU work is required.
+	 *
+	 * @returns {string} GLSL definitions block.
+	 */
+	getEquationAccessorsGLSL() {
+		return `
+// ============================================================
+// ACCÈS À L'ÉQUATION DU MAILLAGE DEPUIS LE FRAGMENT SHADER
+// eqPos(u, v) recalcule la position paramétrique pure (sans blender, symétrie
+// ni déformation) pour un (u, v) quelconque — utile pour des fonctions de
+// distance. eqx/eqy/eqz = valeur au fragment courant.
+// ============================================================
+// Ici 'E' désigne le coefficient (uniform), pas la constante e : on suspend la
+// macro #define E le temps de définir les accesseurs d'équation, puis on la restaure.
+#undef E
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float uMinU, uMaxU, uStepU;
+uniform float uMinV, uMaxV, uStepV;
+uniform float uStepsU, uStepsV;
+uniform vec3 uFirstPoint;
+
+mat3 rotateAxis(vec3 axis, float angle) {
+	vec3 a = normalize(axis);
+	float c = cos(angle);
+	float s = sin(angle);
+	float t = 1.0 - c;
+	return mat3(
+		t*a.x*a.x + c,      t*a.x*a.y - s*a.z,  t*a.x*a.z + s*a.y,
+		t*a.x*a.y + s*a.z,  t*a.y*a.y + c,      t*a.y*a.z - s*a.x,
+		t*a.x*a.z - s*a.y,  t*a.y*a.z + s*a.x,  t*a.z*a.z + c
+	);
+}
+
+float eqx, eqy, eqz;
+
+vec3 eqPos(float u, float v) {
+	// Reconstruction des indices de grille pour rester cohérent avec le sommet.
+	float i = uStepU != 0.0 ? (u - uMinU) / uStepU : 0.0;
+	float j = uStepV != 0.0 ? (v - uMinV) / uStepV : 0.0;
+	float d = mod(j, 2.0) == 0.0 ? -1.0 : 1.0;
+	float k = mod(i, 2.0) == 0.0 ? -1.0 : 1.0;
+	float p = mod(i, 2.0) == 0.0 ? -u : u;
+	float w = mod(j, 2.0) == 0.0 ? -v : v;
+	float n = i * (uStepsV + 1.0) + j;
+
+	vec3 outPos;
+	${this.getPositionGLSL()}
+	return outPos;
+}
+
+float eqX(float u, float v) { return eqPos(u, v).x; }
+float eqY(float u, float v) { return eqPos(u, v).y; }
+float eqZ(float u, float v) { return eqPos(u, v).z; }
+
+// Restaure E comme constante mathématique (e) pour le code couleur utilisateur.
+#define E 2.71828182845904
+`;
+	}
+
+	/**
+	 * Neutral fallback for {@link getEquationAccessorsGLSL}: same symbols, but the
+	 * equation always evaluates to `vec3(0.0)`. Used when the live equation cannot be
+	 * compiled in the fragment stage so the color shader still works (eq* = 0).
+	 *
+	 * @returns {string} GLSL definitions block.
+	 */
+	getEquationAccessorsStubGLSL() {
+		return `
+// Accès équation (stub neutre — la valeur réelle est injectée à la compilation).
+float eqx, eqy, eqz;
+vec3 eqPos(float u, float v) { return vec3(0.0); }
+float eqX(float u, float v) { return 0.0; }
+float eqY(float u, float v) { return 0.0; }
+float eqZ(float u, float v) { return 0.0; }
+`;
+	}
+
+	/**
+	 * Assembles the full fragment shader from the shared header/footer, optionally
+	 * inserting an equation-accessor block (after the utility functions) and an
+	 * init snippet (at the top of `main()`, right after `col` is initialized).
+	 *
+	 * @private
+	 * @param {string} mainFrag - User color/pattern code injected into `main()`.
+	 * @param {string} [accessorsGLSL=''] - GLSL block defining `eqPos`/`eqX`/`eqY`/`eqZ`.
+	 * @param {string} [eqInit=''] - GLSL statements run at the start of `main()`.
+	 * @returns {string} Full fragment shader GLSL source.
+	 */
+	_composeFragmentShader(mainFrag, accessorsGLSL = '', eqInit = '') {
 		return `#version 300 es
 precision highp float;
 
@@ -991,11 +1120,14 @@ uniform float U;
 #define time t
 
 ${getFragmentUtilsGLSL()}
-
+${accessorsGLSL}
 void main() {
 	vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
+	// Coordonnées paramétriques du fragment courant, exposées au code couleur.
+	float u = vUVParams.x;
+	float v = vUVParams.y;
 	vec3 col = meshBg;
-
+${eqInit}
 	${mainFrag}
 
 	${fragmentShaderFooter}

@@ -2354,6 +2354,8 @@ uniform float U;
 uniform float lineWidth;
 uniform vec2 uvCoeff;
 uniform vec2 uvParamsCoeff;
+// Bornes du domaine paramétrique (min/max de u et v), disponibles dans le code couleur.
+uniform float uMinU, uMaxU, uMinV, uMaxV;
 uniform float invcol;
 uniform float islight;
 uniform float opt1;

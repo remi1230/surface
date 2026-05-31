@@ -1088,6 +1088,11 @@ function switchRecordingVideo(){
 		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
 		glo.video.recorder.start();
 
+		// Verrouille l'animation sur les frames pendant la capture (rotation + temps t) :
+		// chaque frame rendue = un pas fixe, pour une vidéo fluide et déterministe.
+		// 60 = fps de capture (createMeshRecorder / captureStream).
+		glo.clock.setFrameLocked(true, 60);
+
 		if (glo.loopRecordMode) {
 			glo.video.loopActive = true;
 			glo.video.loopPendingStop = false;
@@ -1111,6 +1116,8 @@ function switchRecordingVideo(){
 		else {
 			glo.video.recording = false;
 			glo.video.recorder.stop();
+			// Fin de capture (hors mode boucle) : retour au temps réel.
+			glo.clock.setFrameLocked(false);
 		}
 	}
 }
@@ -1123,6 +1130,8 @@ function switchRecordingVideo(){
  */
 function finishLoopRecording(){
 	if (glo.video.recorder) glo.video.recorder.stop();
+	// Fin de capture (mode boucle) : retour au temps réel.
+	glo.clock.setFrameLocked(false);
 	glo.video.recording       = false;
 	glo.video.loopActive      = false;
 	glo.video.loopPendingStop = false;

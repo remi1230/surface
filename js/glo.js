@@ -21,6 +21,12 @@ class AnimationClock {
 		this._lastTick = performance.now();
 		this._speed = baseSpeed;
 		this._paused = false;
+		// Frame-locked mode: time advances by a FIXED step per rendered frame
+		// (via tickFrame) instead of wall-clock delta. Used during recording so the
+		// captured animation is deterministic and loops perfectly. _frameDtMs is the
+		// virtual delta per frame (default 1000/60 ms = 60 fps capture).
+		this._frameLocked = false;
+		this._frameDtMs = 1000 / 60;
 	}
 
 	/** @returns {number} Current accumulated time (auto-updates on each access). */
@@ -36,13 +42,39 @@ class AnimationClock {
 	get speed() { return this._speed; }
 	set speed(s) { this._update(); this._speed = s; }
 
-	/** @private Flush accumulated delta into _elapsed. */
+	/** @returns {boolean} Whether time advances per-frame (true) or by wall-clock (false). */
+	get frameLocked() { return this._frameLocked; }
+
+	/** @private Flush accumulated delta into _elapsed. No-op when frame-locked (time is driven by tickFrame). */
 	_update() {
 		const now = performance.now();
-		if (!this._paused) {
+		if (!this._paused && !this._frameLocked) {
 			this._elapsed += (now - this._lastTick) * this._speed;
 		}
 		this._lastTick = now;
+	}
+
+	/**
+	 * Advances the clock by exactly one fixed frame step. Call once per rendered
+	 * frame while frame-locked; ignored otherwise (and while paused), so wall-clock
+	 * mode keeps accumulating via {@link _update}.
+	 */
+	tickFrame() {
+		if (this._paused || !this._frameLocked) return;
+		this._elapsed += this._frameDtMs * this._speed;
+	}
+
+	/**
+	 * Switches between wall-clock and frame-locked time without jumping `_elapsed`.
+	 * Flushes any pending delta under the current mode, then sets the new mode.
+	 * @param {boolean} locked - true to advance per-frame (via tickFrame), false for wall-clock.
+	 * @param {number} [fps=60] - Frames per second the fixed step represents (must match capture fps).
+	 */
+	setFrameLocked(locked, fps = 60) {
+		this._update();
+		this._frameLocked = locked;
+		if (fps > 0) this._frameDtMs = 1000 / fps;
+		this._lastTick = performance.now();
 	}
 
 	pause() {

@@ -108,6 +108,77 @@ fragmentShaders = [
     
 `,
 `   
+    //UVP
+    col *= vec3(.8, .9, .87);
+    vec3 p = npos(-1.) * 8.;
+    u *= 8.;
+    v *= 8.;
+
+    vec3 uvp = vec3(u, v, m(p)); 
+
+    for(float i = 0.; i < 8.; i+=4.){
+        col += .125*o(uvp*(2.-i*.5))*(1.+m(p));
+    }
+
+    col += 4.*tube(col, 4.);
+    
+    
+    col = 1. - col;
+    
+`,
+`   
+    //Manufacturing
+    float d   = 1e9;
+    float dom = uMaxV - uMinV;
+    float vt  = mod(t*dom*0.125 - uMinV, dom) + uMinV;   // iso-ligne mobile, reste dans le domaine
+    const float N = 48.0;                                 // nb d'échantillons par courbe
+    for(float k = 0.0; k <= N; k += 1.0){
+        float p = mix(uMinU, uMaxU, k / N);               // points régulièrement espacés
+        d = min(d, distance(vPosition, eqPos(p,  vt)));   // courbe iso-v (u varie)
+        d = min(d, distance(vPosition, eqPos(vt, p )));   // courbe iso-u (v varie)
+    }
+
+    float sz = 0.02 * S / 12.;
+    col += 1.-vec3(smoothstep(sz, sz + .01, d));
+    col /= 1.+vec3(smoothstep(sz + .02, sz + .03, d));
+    
+`,
+`
+    //Skeleton
+    col = palette(length(vNormal*normalize(vPosition)));
+    float thickness = 0.0625; // à ajuster selon le rendu voulu
+
+    // distance aux deux plans x=y et x=-y
+    vec3 pos   = vPosition * Ts(1.0);
+    float pos1 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.y : pos.z) : pos.x;
+    float pos2 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.x : pos.y) : pos.z;
+
+    float d1 = abs(pos1 - pos2);
+    float d2 = abs(pos1 + pos2);
+    float d = min(d1, d2);
+
+    // bande lissée autour des ellipses
+    float line = 1.0 - smoothstep(0.0, thickness, d);
+
+    // discard tout ce qui n'est pas sur les ellipses
+    if (line < 0.05) discard;
+
+`,
+`   
+    //EQN
+    float hu = (uMaxU - uMinU) / gridU;   // pas en u  (= uStepU)
+    float hv = (uMaxV - uMinV) / gridV;   // pas en v  (= uStepV)
+
+    // Dérivées partielles (différence avant, comme ton exemple)
+    vec3 dPdu = (eqPos(u + hu, v) - eqPos(u, v)) / hu;   // ∂P/∂u  (tangente en u)
+    vec3 dPdv = (eqPos(u, v + hv) - eqPos(u, v)) / hv;   // ∂P/∂v  (tangente en v)
+
+    // Normale analytique de la surface
+    vec3 N = normalize(cross(dPdu, dPdv));
+    col = N * 0.5 + 0.5;                                  // visualise la normale
+    
+`,
+`   
     //Pavage
     col = vec3(.02, .5, .5);
     vec3 p = npos(-1.) / (opt1 == 1. ? 1. : 2.);
@@ -930,27 +1001,6 @@ fragmentShaders = [
 
     col = 1.0 - col;
      
-`,
-`
-    //Skeleton
-    col = palette(length(vNormal*normalize(vPosition)));
-    float thickness = 0.0625; // à ajuster selon le rendu voulu
-
-    // distance aux deux plans x=y et x=-y
-    vec3 pos   = vPosition * Ts(1.0);
-    float pos1 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.y : pos.z) : pos.x;
-    float pos2 = opt1 == 0.0 ? (opt2 == 0.0 ? pos.x : pos.y) : pos.z;
-
-    float d1 = abs(pos1 - pos2);
-    float d2 = abs(pos1 + pos2);
-    float d = min(d1, d2);
-
-    // bande lissée autour des ellipses
-    float line = 1.0 - smoothstep(0.0, thickness, d);
-
-    // discard tout ce qui n'est pas sur les ellipses
-    if (line < 0.05) discard;
-
 `,
 `
     //Lego
@@ -2324,6 +2374,8 @@ precision highp float;
 #define pit(x, c, p) (cpow (x,x*c+p))
 #define ins(func, x, y) (func (x) * (1.+func(x*y)))
 #define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
+#define fmax(f1, f2, p, rangeMin, rangeMax) max(f1(p*rangeMin), f2(p*rangeMax))
+#define fmin(f1, f2, p, rangeMin, rangeMax) min(f1(p*rangeMin), f2(p*rangeMax))
 
 // Varyings received from the vertex shader
 in vec3 vPosition;
@@ -2354,6 +2406,8 @@ uniform float U;
 uniform float lineWidth;
 uniform vec2 uvCoeff;
 uniform vec2 uvParamsCoeff;
+// Bornes du domaine paramétrique (min/max de u et v), disponibles dans le code couleur.
+uniform float uMinU, uMaxU, uMinV, uMaxV;
 uniform float invcol;
 uniform float islight;
 uniform float opt1;
@@ -2372,8 +2426,20 @@ uniform float lampSpecularPower;
 
 ${getFragmentUtilsGLSL()}
 
+// Accès à l'équation du maillage. Stub neutre pour la validation dans l'éditeur :
+// les vraies valeurs (eqPos/eqX/eqY/eqZ et eqx/eqy/eqz) sont injectées à la
+// compilation par createFragmentShader(), à partir de l'équation paramétrique courante.
+float eqx, eqy, eqz;
+vec3 eqPos(float u, float v) { return vec3(0.0); }
+float eqX(float u, float v) { return 0.0; }
+float eqY(float u, float v) { return 0.0; }
+float eqZ(float u, float v) { return 0.0; }
+
 void main(){
     vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
+    // Coordonnées paramétriques du fragment courant, exposées au code couleur.
+    float u = vUVParams.x;
+    float v = vUVParams.y;
     vec3 col = meshBg;
 `;
 

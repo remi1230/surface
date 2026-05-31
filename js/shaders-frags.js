@@ -205,16 +205,18 @@ fragmentShaders = [
     
 `,
 `   
-    //DiscoKube
-    float n = .5;
+    //CE
+    float n = 2.125;
     float k = .5;
     float nb = opt1 == 1. ? n*.5 : n*1.;
     vec3 p  = abs(npos()) * nb;
     col = vec3(k, k, k);
 
-    //col += c(64.*exp(p.x)*exp(p.y)*exp(p.z));
-    col += ce(ce(p)*p,44., t*8.);
-    col += spec(p*col, .25);
+    col += se(p-m(p));
+    col *= 1.+tube(col, 1.);
+    col *= 1.+.5*spec(col, 1.);
+
+    col = 1. - col;
     
 `,
 `   
@@ -1488,7 +1490,7 @@ return `
 vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
 vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition; }
 
-vec3 nspos(){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y / PI, vSpherePos.z / TWO_PI)) : vec3(vSpherePos.x, vSpherePos.y / PI, vSpherePos.z / TWO_PI); }
+vec3 nspos(){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z)) : vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z); }
 vec3 nspos(float n){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z)) : vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z); }
 
 float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
@@ -2163,7 +2165,13 @@ float ce(vec3 p){
     return cos(exp(p.x)*exp(p.y)*exp(p.z));
 }
 float ce(vec3 p, float c, float ph){
-    return cos(exp(p.x)*exp(p.y)*exp(p.z) * c + ph);
+    return sin(exp(p.x)*exp(p.y)*exp(p.z) * c + ph);
+}
+float se(vec3 p){
+    return sin(exp(p.x)*exp(p.y)*exp(p.z));
+}
+float se(vec3 p, float c, float ph){
+    return sin(exp(p.x)*exp(p.y)*exp(p.z) * c + ph);
 }
 
 float ec(vec3 p){

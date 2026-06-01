@@ -2197,7 +2197,7 @@ function addEleventhPanelSliders(){
   addPanel(panelButton6, 'panelButtonEleventh6', 45, false);
   addPanel(panelRotateNormal, 'panelRotateNormal', 76, true, 18.5, 10);
   addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 5, 'sixth');
-  addPanel(panelRotateCameraB, 'panelRotateCameraB', 76, false, 14.4, 5, 'sixth');
+  addPanel(panelRotateCameraB, 'panelRotateCameraB', 76, false, 13.44, 5, 'sixth');
 
   panelRotateNormal.paddingRight = '0.5%';
 
@@ -2270,12 +2270,12 @@ function addEleventhPanelSliders(){
 
   panelRotateCamera.addControl(createSpacer("15px"));
 
-  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp", "ROT Alpha", 90, buttonSizes.height, 0, 0, function(value){
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp", "Alpha", 70, buttonSizes.height, 0, 0, function(value){
     glo.camera.alpha += PI/4;
   }, function(value){
     glo.camera.alpha -= PI/4;
   });
-  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft", "ROT Beta", 90, buttonSizes.height, 5, 0, function(value){
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft", "Beta", 80, buttonSizes.height, 10, 0, function(value){
     glo.camera.beta += PI/4;
   }, function(value){
     glo.camera.beta -= PI/4;

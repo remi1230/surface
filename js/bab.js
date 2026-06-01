@@ -211,6 +211,10 @@ Game = function(canvasId) {
     });
   });
   _this.scene.registerBeforeRender(() => {
+    // Frame-locked clock: advance one fixed step per rendered frame, before the
+    // mesh material reads `t`. No-op in wall-clock mode (see AnimationClock).
+    glo.clock.tickFrame();
+
     if (glo.cameraMode === 'travelling') {
       updateTravellingCamera();
       return;
@@ -251,8 +255,17 @@ function rotateCamera() {
     glo.camera.inertialAlphaOffset = 0;
     glo.camera.inertialBetaOffset  = 0;
 
-    const dt = glo.engine.getDeltaTime() / 1000; // en secondes
-    let speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
+    // Frame-locked (recording): fixed step per frame so the rotation is deterministic
+    // and loops exactly. glo.rotateSpeed equals the wall-clock step at dt = 1/60 s
+    // (rotateSpeed * (1/60) * 60), so the perceived speed is unchanged at 60 fps.
+    // Otherwise: wall-clock step, normalised to ~60 fps.
+    let speed;
+    if (glo.clock.frameLocked) {
+        speed = glo.rotateSpeed;
+    } else {
+        const dt = glo.engine.getDeltaTime() / 1000; // en secondes
+        speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
+    }
 
     const axis = glo.rotateType.current;
     const rotates = axis === 'alpha' || axis === 'beta' || axis === 'teta';

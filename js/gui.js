@@ -2149,12 +2149,13 @@ function attachNormalRotationInput(input, paramKey){
  * Creates miscellaneous controls (reset, writing type, plans, UV increment, camera controls, rotate).
  */
 function addEleventhPanelSliders(){
-  let panelButton2      = new BABYLON.GUI.StackPanel();
-  let panelButton3      = new BABYLON.GUI.StackPanel();
-  let panelButton4      = new BABYLON.GUI.StackPanel();
-  let panelButton6      = new BABYLON.GUI.StackPanel();
-  let panelRotateCamera = new BABYLON.GUI.StackPanel();
-  let panelRotateNormal = new BABYLON.GUI.StackPanel();
+  let panelButton2       = new BABYLON.GUI.StackPanel();
+  let panelButton3       = new BABYLON.GUI.StackPanel();
+  let panelButton4       = new BABYLON.GUI.StackPanel();
+  let panelButton6       = new BABYLON.GUI.StackPanel();
+  let panelRotateCamera  = new BABYLON.GUI.StackPanel();
+  let panelRotateCameraB = new BABYLON.GUI.StackPanel();
+  let panelRotateNormal  = new BABYLON.GUI.StackPanel();
 
   /**
    * Helper to create and register a GUI panel for eleventh panel.
@@ -2195,7 +2196,8 @@ function addEleventhPanelSliders(){
   addPanel(panelButton4, 'panelButtonEleventh4', posPanel(), false);
   addPanel(panelButton6, 'panelButtonEleventh6', 45, false);
   addPanel(panelRotateNormal, 'panelRotateNormal', 76, true, 18.5, 10);
-  addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 10, 'sixth');
+  addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 5, 'sixth');
+  addPanel(panelRotateCameraB, 'panelRotateCameraB', 76, false, 14.4, 5, 'sixth');
 
   panelRotateNormal.paddingRight = '0.5%';
 
@@ -2268,12 +2270,18 @@ function addEleventhPanelSliders(){
 
   panelRotateCamera.addControl(createSpacer("15px"));
 
-  addButton("'sixth'", panelRotateCamera, "rotateViewButton", "+ ROT", 79.5, buttonSizes.height, 0, 0, function(value){
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp", "ROT Alpha", 90, buttonSizes.height, 0, 0, function(value){
     glo.camera.alpha += PI/4;
   }, function(value){
     glo.camera.alpha -= PI/4;
   });
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft", "ROT Beta", 90, buttonSizes.height, 5, 0, function(value){
+    glo.camera.beta += PI/4;
+  }, function(value){
+    glo.camera.beta -= PI/4;
+  });
 }
+
 
 /**
  * Creates transformation sliders (scaling, rotation, position, center symmetry) and color controls.

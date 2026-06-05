@@ -608,22 +608,51 @@ fragmentShaders = [
     
 `,
 `   
-    //Scribble
-    vec3 p = npos()*.618;
+    //GoodWithO
+    float nb = 6.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
 
-    col -= hc(p*5., 1., 0.);
+    vec3 val = eqPos(length(c(p)), length(c(p)));
 
-    col -= .75*ea(2.71828*p);
-    col -= la(.25*p+2.72)-.33*ec(col);
+    col *= 1. + val;
 
-    col *= .25*PI*vec3(m(col), hc(col), o(col, 2., .25*time));
+    col *= 1. + 6.* tube(col, 6.);
 
-    vec3 po = fract(col * Q/32.0) - 0.5;
-    float tube = min(abs(po.x), min(abs(po.y), abs(po.z)));
+    col = 1. - col;
 
-    col *= .58333-(tube + .25*cos(8.*tube - 1.5));
+    
+`,
+`   
+    //GoodWithO II
+    float nb = 8.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
 
-    col = hueRotateYIQ(col, radians(100.));
+    vec3 val = eqPos(o(p), length(c(p)));
+
+    col /= 1. + val;
+
+    col *= 1. + 6.* tube(col, 6.);
+
+    col = hueRotateYIQ(col, radians(144.));
+    
+    
+`,
+`   
+    //GoodWithO III
+    float nb = 12.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
+
+    vec3 val = eqPos(o(p), length(s(p)));
+
+    col /= 1. + val;
+
+    col *= 1. + 6.* tube(col, 6.);
+
+    col = hueRotateYIQ(col, radians(144.));
+    
     
 `,
 `   
@@ -876,14 +905,14 @@ fragmentShaders = [
     float glowSize = P/8.0;
     float glow = 1.0 - smoothstep(0.0, fw * glowSize, min(phase, 1.0 - phase));
 
-    vec3 col1 = palette(lnpos);
-    vec3 col2 = rainbow(lnpos);
-    col = mix(col1, col2, 0.5);
+    col = vec3(lnpos);
 
     // Composition
-    vec3 glowColor = rainbow(lnpos) * (T+1.5); // surexposé pour l'effet lumineux
-    col = mix(col, glowColor, glow * 0.4);
-    col = mix(col, vec3(1.0), line * Q/80.0);
+    vec3 glowColor = palette(lnpos) * (T+1.5); // surexposé pour l'effet lumineux
+    col = mix(col, glowColor, glow * 0.5);
+    col = mix(col, vec3(1.0), line * Q/64.0);
+
+    col = 1. - col;
 
 `,
 `
@@ -2448,6 +2477,7 @@ void main(){
     // Coordonnées paramétriques du fragment courant, exposées au code couleur.
     float u = vUVParams.x;
     float v = vUVParams.y;
+
     vec3 col = meshBg;
 `;
 

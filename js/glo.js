@@ -538,6 +538,8 @@ var glo = {
 		{ exp: /m\(\)\*a\(\)\*x\*\(/g, upd: "max(" },
 		{ exp: /m\(\)\*i\*n\*\(/g, upd: "min(" },
 		{ exp: /t\*ru\*n\*c\(/g, upd: "trunc(" },
+		{ exp: /sm\(\)\*sin\(t\)\*ep\*\(/g, upd: "smoothstep(" },
+		{ exp: /sin\(t\)\*ep\*\(/g, upd: "step(" },
 	],
 	/** @type {string} Active coordinate system ("cartesian", "spheric", or "cylindrical"). */
 	coordsType: 'cartesian',

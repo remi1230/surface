@@ -541,10 +541,94 @@ function makeResizable(editWindow = glo.editorWindow, target = glo, key = 'edito
 // Enable dragging for both editor windows
 makeDraggable();
 makeDraggable(glo.editorWindowNormal);
+if (glo.editorWindowGeometry) { makeDraggable(glo.editorWindowGeometry); }
 
 // Enable resizing for both editor windows
 makeResizable();
 makeResizable(glo.editorWindowNormal, glo, 'editorNormal');
+if (glo.editorWindowGeometry) { makeResizable(glo.editorWindowGeometry, glo, 'editorGeometry'); }
+
+// ==================== MESH (GEOMETRY) EDITOR — DOCUMENT BUILDER ====================
+
+/**
+ * Marker comment lines delimiting the editable zone of the mesh editor document.
+ * Only the slice strictly between them is extracted and injected (verbatim) into
+ * the vertex shader's `computePosition()`, so the extracted code never contains
+ * the markers themselves (no accumulation across compile/reopen cycles).
+ * @type {string}
+ */
+const GEOMETRY_EDIT_START = '//<<< début de la zone éditable (ne pas supprimer cette ligne)';
+/** @type {string} */
+const GEOMETRY_EDIT_END   = '//>>> fin de la zone éditable (ne pas supprimer cette ligne)';
+
+/**
+ * Read-only footer of the mesh editor document (end marker + return + closing brace).
+ * @type {string}
+ */
+const geometryShaderFooter = `\t${GEOMETRY_EDIT_END}
+\treturn outPos;
+}`;
+
+/**
+ * Formats a number for display in a directive, trimming useless trailing zeros.
+ * @param {number} x
+ * @returns {string}
+ */
+function fmtGeometryNumber(x) {
+	return (Math.round(Number(x) * 1e6) / 1e6).toString();
+}
+
+/**
+ * Builds the read-only header of the mesh editor document. Exposes the current
+ * resolution/domain as `@`-directives (re-read on compile) and documents the
+ * variables and helpers available inside the editable zone.
+ * @returns {string} GLSL header text ending with the start marker.
+ */
+function geometryShaderHeader() {
+	const p = glo.params;
+	return `// ============================================================
+//  ÉDITEUR DE MAILLAGE — position GLSL (système : ${glo.coordsType})
+// ------------------------------------------------------------
+//  Résolution & domaine (modifiables, relus à la compilation) :
+//  @stepsU ${Math.round(p.stepsU)}
+//  @stepsV ${Math.round(p.stepsV)}
+//  @uRange ${fmtGeometryNumber(p.u)}
+//  @vRange ${fmtGeometryNumber(p.v)}
+// ------------------------------------------------------------
+//  Domaine paramétrique : u ∈ [-uRange, uRange], v ∈ [-vRange, vRange].
+//  Variables disponibles : u, v (paramètres), i, j (indices grille),
+//  d, k, p, w, n (auxiliaires), t (temps), A..U (coeffs/macros),
+//  uStepsU, uStepsV, uFirstPoint (vec3).
+//  Fonctions : rotateAxis(axis, angle), sin, cos, pow, length, ...
+//  ➜ Écrivez la position finale du sommet dans 'outPos'.
+// ============================================================
+vec3 computeMeshPosition(float u, float v) {
+\tvec3 outPos = vec3(0.0);
+\t${GEOMETRY_EDIT_START}
+`;
+}
+
+/**
+ * Composes the full text shown in the mesh editor: header + editable body + footer.
+ * The body is the active custom code when set, otherwise the GLSL generated from
+ * the current coordinate-system equations (a ready-to-edit starting template).
+ * @returns {string} Full editor document.
+ */
+function buildGeometryEditorValue() {
+	const inst = glo.ribbon && glo.ribbon.shaderMeshInstance;
+	let body;
+	if (glo.geometryShaderCode != null) {
+		body = glo.geometryShaderCode;
+	} else if (inst && typeof inst.getPositionGLSL === 'function') {
+		body = inst.getPositionGLSL();
+	} else {
+		body = '\toutPos = vec3(u, v, 0.0);\n';
+	}
+	// Normaliser les bords (stable au fil des cycles compile→réouverture) :
+	// retirer les sauts de ligne de tête et collapser tout l'espace de fin en un seul "\n".
+	body = body.replace(/^\n+/, '').replace(/\s+$/, '\n');
+	return geometryShaderHeader() + body + geometryShaderFooter;
+}
 
 /**
  * Dynamically loads the Monaco editor's AMD loader script if not already present.

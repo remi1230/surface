@@ -192,6 +192,9 @@ var glo = {
 					if(draw){
 						glo.HDstepUV = false;
 
+						// Sélectionner une forme de la galerie quitte le mode "maillage GLSL custom".
+						glo.geometryShaderCode = null;
+
 						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
 						var ftheta = typeof(sel.theta) != "undefined" ? ftheta = sel.theta : ftheta = "";
@@ -1071,6 +1074,9 @@ var glo = {
 	editorWindowGeometry: getById('shaderEditorGeometry'),
 	editor: null,
 	editorNormal: null,
+	editorGeometry: null,
+	/** @type {string|null} Custom GLSL position code from the mesh editor (null = use equations). */
+	geometryShaderCode: null,
 	editorNormalIsOpened: false,
 	numNormalShaderSelect: 0,
 	videoBoxRange: 1.414,

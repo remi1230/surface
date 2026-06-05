@@ -267,6 +267,9 @@ class ShaderMeshBase {
 		this.coordSystem = 'cartesian';
 		this._importedMode = false;
 		this._normEditorCode = null;
+		// Code GLSL de position issu de l'éditeur de maillage (null = équations).
+		// Lu depuis le global pour survivre aux reconstructions du mesh (remakeRibbon).
+		this._positionEditorCode = (typeof glo !== 'undefined' && glo.geometryShaderCode) ? glo.geometryShaderCode : null;
 
 		// Traiter les équations
 		this.equa = equa;
@@ -656,6 +659,16 @@ float edge(vec3 col, float coeffCol, float powEdge){
 	}
 
 	/**
+	 * Returns the GLSL block that fills `outPos`: either the raw code from the
+	 * mesh (geometry) editor, when set, or the coordinate-system equation code
+	 * produced by {@link getPositionGLSL}. Both write to the pre-declared `outPos`.
+	 * @returns {string} GLSL code block writing to `outPos`.
+	 */
+	_effectivePositionGLSL() {
+		return this._positionEditorCode ? this._positionEditorCode : this.getPositionGLSL();
+	}
+
+	/**
 	 * Generates the complete vertex shader source (GLSL ES 3.0).
 	 *
 	 * The shader computes, per vertex:
@@ -742,7 +755,7 @@ vec3 computePosition(float u, float v, float i, float j) {
 
 	vec3 outPos;
 
-	${this.getPositionGLSL()}
+	${this._effectivePositionGLSL()}
 
 	// Appliquer le blender
 	float xzLen = length(outPos.xz);

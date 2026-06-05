@@ -795,26 +795,34 @@ function addShadersCtrl(){
 
   [panelButtons, panel3Buttons, panelLight, panelGrid, panelVideo] = panels;
 
-  addButton("fourth noAutoParam", panelButtons, "openShaderEditorButton", "Color", "17.5%", 30, 10, 0, async function(){
+  addButton("fourth noAutoParam", panelButtons, "openShaderEditorButton", "Color", "14.5%", 30, 10, 0, async function(){
       glo.editorWindow.style.display = glo.editorWindow.style.display === 'none' ? 'flex' : 'none';
       if(glo.editorWindow.style.display === 'flex'){ openShaderWindow(); }
   });
-  addButton("fourth noAutoParam", panelButtons, "openNormalEditorButton", "Norm", "17.5%", 30, 10, 0, async function(){
+  addButton("fourth noAutoParam", panelButtons, "openNormalEditorButton", "Norm", "14.5%", 30, 10, 0, async function(){
       glo.editorWindowNormal.style.display = glo.editorWindowNormal.style.display === 'none' ? 'flex' : 'none';
       if(glo.editorWindowNormal.style.display === 'flex'){
           normalShader = normalShaderHeader + normalShaders[glo.numNormalShaderSelect] + normalShaderFooter;
           openShaderWindow(glo, 'editorNormal', glo.editorWindowNormal, normalShader, getById('editor-Normal-container'), 'compileBtnNormal', document.getElementById('editorStatusNormal'));
       }
   });
-  addButton("fourth noAutoParam", panelButtons, "nextShaderEditorButton", "Next", "17.5%", 30, 10, 0, function(){
+  addButton("fourth noAutoParam", panelButtons, "openGeometryEditorButton", "Geom", "14.5%", 30, 10, 0, async function(){
+      glo.editorWindowGeometry.style.display = glo.editorWindowGeometry.style.display === 'none' ? 'flex' : 'none';
+      if(glo.editorWindowGeometry.style.display === 'flex'){
+          const geometryDoc = buildGeometryEditorValue();
+          if(glo.editorGeometry){ glo.editorGeometry.setValue(geometryDoc); }
+          openShaderWindow(glo, 'editorGeometry', glo.editorWindowGeometry, geometryDoc, getById('editor-Geometry-container'), 'compileBtnGeometry', document.getElementById('editorStatusGeometry'));
+      }
+  });
+  addButton("fourth noAutoParam", panelButtons, "nextShaderEditorButton", "Next", "14.5%", 30, 10, 0, function(){
       switchShader();
   }, function(){ switchShader(false); });
-  addButton("fourth noAutoParam", panelButtons, "invcolShaderEditorButton", "Inv", "17.5%", 30, 10, 0, async function(){
+  addButton("fourth noAutoParam", panelButtons, "invcolShaderEditorButton", "Inv", "14.5%", 30, 10, 0, async function(){
       glo.shaders.params.invcol = !glo.shaders.params.invcol;
       swapControlBackground("invcolShaderEditorButton");
       glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("invcol", glo.shaders.params.invcol ? 1.0 : 0.0);
   });
-  addButton("fourth noAutoParam", panelButtons, "shaderLightButton", "💡", "17.5%", 30, 10, 0, async function(){
+  addButton("fourth noAutoParam", panelButtons, "shaderLightButton", "💡", "14.5%", 30, 10, 0, async function(){
       glo.shaders.params.islight = !glo.shaders.params.islight;
       glo.ribbon.shaderMeshInstance.shaderMaterial.setFloat("islight", glo.shaders.params.islight ? 1.0 : 0.0);
   }, false, 'fourth noAutoParam');

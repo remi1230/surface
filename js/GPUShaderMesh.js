@@ -1032,7 +1032,7 @@ vec3 eqPos(float u, float v) {
 	float n = i * (uStepsV + 1.0) + j;
 
 	vec3 outPos;
-	${this.getPositionGLSL()}
+	${this._effectivePositionGLSL()}
 	return outPos;
 }
 

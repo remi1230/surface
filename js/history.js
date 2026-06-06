@@ -71,6 +71,8 @@ const History = {
 			normalShaderIndex: normalShaderIndex,
 			shaderCode: shaderCode,
 			normalShaderCode: normalShaderCode,
+			geometryShaderCode: glo.geometryShaderCode || null,
+			geometryShaderIndex: (typeof glo.numGeometryShaderSelect === 'number') ? glo.numGeometryShaderSelect : -1,
 		};
 	},
 
@@ -89,6 +91,10 @@ const History = {
 		if (prev.normalShaderIndex !== next.normalShaderIndex) { return 'NormShader #' + next.normalShaderIndex; }
 		if (prev.shaderCode !== next.shaderCode) { return 'Edit shader'; }
 		if (prev.normalShaderCode !== next.normalShaderCode) { return 'Edit normal shader'; }
+		if (prev.geometryShaderCode !== next.geometryShaderCode) {
+			return next.geometryShaderCode ? 'Edit mesh' : 'Mesh: équations';
+		}
+		if (prev.geometryShaderIndex !== next.geometryShaderIndex) { return 'Mesh #' + next.geometryShaderIndex; }
 
 		var p = prev.params || {};
 		var n = next.params || {};
@@ -319,6 +325,16 @@ const History = {
 				}
 			}
 
+			// 7b) Restore custom mesh (geometry) code + CRUD selection BEFORE the rebuild,
+			// so the new ShaderMesh constructor picks up glo.geometryShaderCode.
+			glo.geometryShaderCode = state.geometryShaderCode || null;
+			if (typeof state.geometryShaderIndex === 'number') {
+				glo.numGeometryShaderSelect = state.geometryShaderIndex;
+			}
+			if (typeof ShaderCRUDGeometry !== 'undefined' && typeof ShaderCRUDGeometry.updateSelectValue === 'function') {
+				ShaderCRUDGeometry.updateSelectValue();
+			}
+
 			// 8) Single mesh rebuild and shader push (one GPU recompilation max).
 			// Awaited so `suspended` stays true for the whole rebuild — otherwise the
 			// wrapped makeCurves would push a redundant commit.
@@ -331,6 +347,11 @@ const History = {
 				if (state.normalShaderCode && typeof glo.ribbon.shaderMeshInstance.updateNormDeformGLSL === 'function') {
 					glo.ribbon.shaderMeshInstance.updateNormDeformGLSL(state.normalShaderCode);
 				}
+			}
+
+			// Refresh the mesh editor (after rebuild so equation templates are up to date).
+			if (glo.editorGeometry && typeof buildGeometryEditorValue === 'function') {
+				glo.editorGeometry.setValue(buildGeometryEditorValue());
 			}
 
 			this._lastSnapshotForDiff = state;

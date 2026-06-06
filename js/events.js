@@ -247,6 +247,112 @@ getById('toggleFullscreenNormal')?.addEventListener('click', function() {
    }
 });
 
+// ==================== MESH (GEOMETRY) SHADER EDITOR EVENTS ====================
+
+/**
+ * Compiles the mesh editor: extracts the editable position GLSL between the
+ * markers, validates it on the GPU, applies the resolution/domain directives,
+ * then rebuilds the mesh with the custom position code active.
+ */
+getById('compileBtnGeometry')?.addEventListener('click', async () => {
+   const statusEl = getById('editorStatusGeometry');
+   if (!glo.editorGeometry) return;
+
+   const fullCode = glo.editorGeometry.getValue();
+
+   // Extraire la zone éditable entre les marqueurs (cf. geometryShaderHeader/Footer).
+   const startTag = GEOMETRY_EDIT_START;
+   const endTag   = GEOMETRY_EDIT_END;
+   const startIndex = fullCode.indexOf(startTag);
+   const endIndex   = fullCode.indexOf(endTag);
+   if (startIndex === -1 || endIndex === -1) {
+      updateStatus('Erreur: marqueurs manquants', true, statusEl);
+      return;
+   }
+   const posCode = fullCode.slice(startIndex + startTag.length, endIndex);
+
+   // Valider le GLSL en compilant un vertex shader candidat sur l'instance courante.
+   const inst = glo.ribbon && glo.ribbon.shaderMeshInstance;
+   if (inst) {
+      const prevCode = inst._positionEditorCode;
+      inst._positionEditorCode = posCode;
+      let validation;
+      try {
+         const vs = inst.createVertexShader(inst._lastDeformExpression || null);
+         validation = inst.computer.validateShader(vs);
+      } catch (e) {
+         validation = { valid: false, error: String(e) };
+      }
+      inst._positionEditorCode = prevCode;
+      if (!validation || !validation.valid) {
+         updateStatus('Erreur GLSL: ' + ((validation && validation.error) || 'compilation'), true, statusEl);
+         return;
+      }
+   }
+
+   // Le code custom devient actif (global => survit aux reconstructions du mesh).
+   glo.geometryShaderCode = posCode;
+
+   // Lire les directives de résolution / domaine depuis l'en-tête.
+   const directive = (name, fallback) => {
+      const m = fullCode.match(new RegExp('@' + name + '\\s+(-?[0-9]+(?:\\.[0-9]+)?)'));
+      return m ? parseFloat(m[1]) : fallback;
+   };
+   const stepsU = Math.max(1, Math.round(directive('stepsU', glo.params.stepsU)));
+   const stepsV = Math.max(1, Math.round(directive('stepsV', glo.params.stepsV)));
+   const uRange = directive('uRange', glo.params.u);
+   const vRange = directive('vRange', glo.params.v);
+
+   // Appliquer résolution & domaine sans déclencher de reconstructions en cascade.
+   glo.skipRebuild = true;
+   glo.params.stepsU = stepsU; if (glo.sliderStepsU) { glo.sliderStepsU.value = stepsU; }
+   glo.params.stepsV = stepsV; if (glo.sliderStepsV) { glo.sliderStepsV.value = stepsV; }
+   glo.params.u = uRange;      if (glo.sliderU)      { glo.sliderU.value = uRange; }
+   glo.params.v = vRange;      if (glo.sliderV)      { glo.sliderV.value = vRange; }
+   glo.skipRebuild = false;
+
+   getPathsInfos();
+   await remakeRibbon();
+
+   updateStatus('Maillage compilé', false, statusEl);
+});
+
+/** Reverts the mesh editor to equation-based geometry and refreshes its content. */
+getById('resetBtnGeometry')?.addEventListener('click', async () => {
+   const statusEl = getById('editorStatusGeometry');
+   glo.geometryShaderCode = null;
+   await remakeRibbon();
+   if (glo.editorGeometry) {
+      glo.editorGeometry.setValue(buildGeometryEditorValue());
+   }
+   updateStatus('Réinitialisé (équations)', false, statusEl);
+});
+
+/** Closes the mesh (geometry) shader editor panel. */
+getById('closeEditorGeometry')?.addEventListener('click', () => {
+   glo.editorWindowGeometry.style.display = 'none';
+});
+
+/** Toggles the mesh (geometry) shader editor between normal and fullscreen mode. */
+let isFullscreenGeometry = false;
+getById('toggleFullscreenGeometry')?.addEventListener('click', function() {
+   const icon = this.querySelector('i');
+
+   if (!isFullscreenGeometry) {
+      glo.editorWindowGeometry.classList.add('fullscreen');
+      icon.textContent = 'fullscreen_exit';
+      isFullscreenGeometry = true;
+   } else {
+      glo.editorWindowGeometry.classList.remove('fullscreen');
+      icon.textContent = 'fullscreen';
+      isFullscreenGeometry = false;
+   }
+
+   if (glo.editorGeometry) {
+      setTimeout(() => glo.editorGeometry.layout(), 100);
+   }
+});
+
 /** Triggers export when Enter is pressed in the filename input field. */
 getById('filename').addEventListener("keydown", function (e) {
    if(e.key === 'Enter'){ getById('exportButton').click(); }

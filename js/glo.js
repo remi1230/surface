@@ -143,6 +143,8 @@ let fragmentShaders = [];
 let normalShader, normalShaderHeader, normalShaderFooter;
 /** @type {string[]} Array of normal shader source code snippets. */
 let normalShaders = [];
+/** @type {string[]} Array of saved custom mesh (geometry) GLSL bodies, named via a `// Name` first line. */
+let geometryShaders = [];
 
 /** @type {boolean} Whether the canvas is currently in fullscreen mode. */
 let isFullscreen = false;
@@ -194,6 +196,10 @@ var glo = {
 
 						// Sélectionner une forme de la galerie quitte le mode "maillage GLSL custom".
 						glo.geometryShaderCode = null;
+						glo.numGeometryShaderSelect = -1;
+						if (typeof ShaderCRUDGeometry !== 'undefined' && typeof ShaderCRUDGeometry.updateSelectValue === 'function') {
+							ShaderCRUDGeometry.updateSelectValue();
+						}
 
 						var falpha = typeof(sel.alpha) != "undefined" ? falpha = sel.alpha  : falpha = "";
 						var fbeta  = typeof(sel.beta)  != "undefined" ? fbeta  = sel.beta   : fbeta  = "";
@@ -1077,6 +1083,8 @@ var glo = {
 	editorGeometry: null,
 	/** @type {string|null} Custom GLSL position code from the mesh editor (null = use equations). */
 	geometryShaderCode: null,
+	/** @type {number} Active saved-mesh index in `geometryShaders`, or -1 for equations mode. */
+	numGeometryShaderSelect: -1,
 	editorNormalIsOpened: false,
 	numNormalShaderSelect: 0,
 	videoBoxRange: 1.414,

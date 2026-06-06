@@ -691,6 +691,33 @@
           </div>
       </div>
 
+      <div class="shader-crud-bar">
+          <div class="shader-select-wrapper">
+              <select id="shaderSelectGeometry" class="browser-default">
+                  <option value="eq">⚙ Équations (forme)</option>
+              </select>
+              <span id="storageIndicatorGeometry" class="storage-indicator" title="Source des maillages"></span>
+          </div>
+          <div class="shader-crud-buttons">
+              <a href="#!" class="btn-small waves-effect waves-light teal" id="newShaderBtnGeometry" title="Nouveau maillage">
+                  <i class="material-icons">add</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light blue" id="saveShaderBtnGeometry" title="Sauvegarder">
+                  <i class="material-icons">save</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light red" id="deleteShaderBtnGeometry" title="Supprimer">
+                  <i class="material-icons">delete</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light orange" id="exportShadersBtnGeometry" title="Exporter tous les maillages">
+                  <i class="material-icons">file_download</i>
+              </a>
+              <a href="#!" class="btn-small waves-effect waves-light purple" id="importShadersBtnGeometry" title="Importer des maillages">
+                  <i class="material-icons">file_upload</i>
+              </a>
+              <input type="file" id="importShadersFileGeometry" accept=".js" style="display: none;">
+          </div>
+      </div>
+
       <div class="editor-body">
           <div id="editor-Geometry-container"></div>
       </div>

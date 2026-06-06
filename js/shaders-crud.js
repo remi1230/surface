@@ -823,11 +823,324 @@ const ShaderCRUDNormal = {
     }
 };
 
+// ==================== SHADER CRUD GEOMETRY (MESH) ====================
+//
+// Gère une liste de maillages GLSL custom nommés (sauvegardés dans localStorage),
+// en parallèle de l'option "Équations (forme)" qui désactive le code custom.
+// Calqué sur ShaderCRUDNormal, adapté à la dualité équations / maillage custom.
+
+const ShaderCRUDGeometry = {
+    isCreatingNew: false,
+
+    /** Initializes the mesh CRUD: loads saved meshes, populates the select, binds events. */
+    init: function() {
+        this.loadFromStorage();
+        this.populateSelect();
+        this.bindEvents();
+        // Démarrage en mode équations (aucun maillage custom appliqué).
+        glo.numGeometryShaderSelect = -1;
+        this.updateSelectValue();
+        this.updateStorageIndicator();
+    },
+
+    /** @returns {boolean} True if saved meshes exist in localStorage. */
+    hasLocalChanges: function() {
+        return localStorage.getItem('geometryShaders') !== null;
+    },
+
+    /** Updates the storage indicator DOM element. */
+    updateStorageIndicator: function() {
+        const indicator = getById('storageIndicatorGeometry');
+        if (!indicator) return;
+        if (this.hasLocalChanges()) {
+            indicator.textContent = '💾 Local';
+            indicator.title = 'Maillages sauvegardés localement.';
+        } else {
+            indicator.textContent = '⚙ Équations';
+            indicator.title = 'Aucun maillage custom sauvegardé.';
+        }
+        indicator.style.display = 'inline-block';
+    },
+
+    /**
+     * Extracts the mesh name from a `// Name` first-line comment, or a default.
+     * @param {string} code - The mesh GLSL body.
+     * @param {number} index - Fallback index.
+     * @returns {string}
+     */
+    getShaderName: function(code, index) {
+        if (!code) return `Maillage ${index}`;
+        const match = code.trim().match(/\/\/\s*(.+)/);
+        return (match && match[1]) ? match[1].trim() : `Maillage ${index}`;
+    },
+
+    /** Fills the dropdown: equations sentinel + saved meshes. */
+    populateSelect: function() {
+        const select = getById('shaderSelectGeometry');
+        if (!select) return;
+        select.innerHTML = '';
+
+        const eqOpt = document.createElement('option');
+        eqOpt.value = 'eq';
+        eqOpt.textContent = '⚙ Équations (forme)';
+        select.appendChild(eqOpt);
+
+        geometryShaders.forEach((code, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = this.getShaderName(code, index);
+            select.appendChild(option);
+        });
+
+        if (this.isCreatingNew) {
+            const option = document.createElement('option');
+            option.value = 'new';
+            option.textContent = '* Nouveau maillage *';
+            select.appendChild(option);
+            select.value = 'new';
+        }
+    },
+
+    /** Syncs the dropdown value with the active selection. */
+    updateSelectValue: function() {
+        const select = getById('shaderSelectGeometry');
+        if (!select || this.isCreatingNew) return;
+        select.value = glo.numGeometryShaderSelect >= 0 ? String(glo.numGeometryShaderSelect) : 'eq';
+    },
+
+    /** Binds DOM events for the mesh CRUD controls. */
+    bindEvents: function() {
+        const select = getById('shaderSelectGeometry');
+        if (select) select.addEventListener('change', (e) => this.onSelectChange(e));
+
+        const newBtn = getById('newShaderBtnGeometry');
+        if (newBtn) newBtn.addEventListener('click', (e) => { e.preventDefault(); this.createNew(); });
+
+        const saveBtn = getById('saveShaderBtnGeometry');
+        if (saveBtn) saveBtn.addEventListener('click', (e) => { e.preventDefault(); this.save(); });
+
+        const deleteBtn = getById('deleteShaderBtnGeometry');
+        if (deleteBtn) deleteBtn.addEventListener('click', (e) => { e.preventDefault(); this.delete(); });
+
+        const exportBtn = getById('exportShadersBtnGeometry');
+        if (exportBtn) exportBtn.addEventListener('click', (e) => { e.preventDefault(); this.exportAll(); });
+
+        const importBtn = getById('importShadersBtnGeometry');
+        if (importBtn) importBtn.addEventListener('click', (e) => { e.preventDefault(); getById('importShadersFileGeometry').click(); });
+
+        const importFile = getById('importShadersFileGeometry');
+        if (importFile) importFile.addEventListener('change', (e) => this.importFromFile(e));
+
+        const storageIndicator = getById('storageIndicatorGeometry');
+        if (storageIndicator) storageIndicator.addEventListener('click', (e) => { e.preventDefault(); this.updateStorageIndicator(); });
+    },
+
+    /**
+     * Handles dropdown selection: equations sentinel or a saved mesh.
+     * @param {Event} e
+     */
+    onSelectChange: function(e) {
+        const value = e.target.value;
+        if (value === 'new') return;
+
+        if (this.isCreatingNew) {
+            this.isCreatingNew = false;
+            this.populateSelect();
+        }
+
+        if (value === 'eq') {
+            this.applyEquations();
+        } else {
+            this.applyMesh(parseInt(value));
+        }
+    },
+
+    /** Reverts to equation-based geometry and refreshes the editor. */
+    applyEquations: async function() {
+        glo.geometryShaderCode = null;
+        glo.numGeometryShaderSelect = -1;
+        this.updateSelectValue();
+        await remakeRibbon();
+        if (glo.editorGeometry) glo.editorGeometry.setValue(composeGeometryDoc(null));
+        updateStatus('Équations (forme)', false, getById('editorStatusGeometry'));
+    },
+
+    /**
+     * Applies a saved mesh by index and refreshes the editor.
+     * @param {number} index
+     */
+    applyMesh: async function(index) {
+        if (index < 0 || index >= geometryShaders.length) return;
+        glo.numGeometryShaderSelect = index;
+        glo.geometryShaderCode = geometryShaders[index];
+        this.updateSelectValue();
+        await remakeRibbon();
+        if (glo.editorGeometry) glo.editorGeometry.setValue(composeGeometryDoc(geometryShaders[index]));
+        updateStatus(this.getShaderName(geometryShaders[index], index) + ' chargé', false, getById('editorStatusGeometry'));
+    },
+
+    /** Extracts the editable GLSL body from the editor (between markers). @returns {string} */
+    extractCode: function() {
+        if (!glo.editorGeometry || typeof GEOMETRY_EDIT_START === 'undefined') return '';
+        const full = glo.editorGeometry.getValue();
+        const s = full.indexOf(GEOMETRY_EDIT_START);
+        const en = full.indexOf(GEOMETRY_EDIT_END);
+        if (s === -1 || en === -1) return '';
+        return full.slice(s + GEOMETRY_EDIT_START.length, en);
+    },
+
+    /** Returns the current editor body, or the current equation GLSL as a fallback. @returns {string} */
+    currentBodyOrEquation: function() {
+        let body = this.extractCode();
+        if (body.trim()) return body;
+        const inst = glo.ribbon && glo.ribbon.shaderMeshInstance;
+        return (inst && typeof inst.getPositionGLSL === 'function') ? inst.getPositionGLSL() : '\toutPos = vec3(u, v, 0.0);';
+    },
+
+    /** Creates a new named mesh seeded from the current editor body. */
+    createNew: function() {
+        const name = prompt('Nom du nouveau maillage :', 'Nouveau maillage');
+        if (name === null) return;
+
+        const body = this.currentBodyOrEquation();
+        const named = `\t// ${name}\n${body.replace(/^\s*\n/, '')}`;
+
+        geometryShaders.push(named);
+        const index = geometryShaders.length - 1;
+        this.isCreatingNew = false;
+        this.saveToStorage();
+        this.populateSelect();
+        this.applyMesh(index);
+    },
+
+    /** Saves the current editor body to the active slot, or creates a new mesh when in equations mode. */
+    save: function() {
+        const body = this.extractCode();
+        if (!body.trim()) {
+            updateStatus('Erreur: maillage vide', true, getById('editorStatusGeometry'));
+            return;
+        }
+
+        if (glo.numGeometryShaderSelect >= 0) {
+            const index = glo.numGeometryShaderSelect;
+            geometryShaders[index] = body;
+            glo.geometryShaderCode = body;
+            this.saveToStorage();
+            this.populateSelect();
+            this.updateSelectValue();
+            updateStatus(this.getShaderName(body, index) + ' sauvegardé (local)', false, getById('editorStatusGeometry'));
+        } else {
+            // Mode équations : enregistrer comme nouveau maillage nommé.
+            this.createNew();
+        }
+    },
+
+    /** Persists the meshes array to localStorage. @returns {boolean} */
+    saveToStorage: function() {
+        try {
+            localStorage.setItem('geometryShaders', JSON.stringify(geometryShaders));
+            this.updateStorageIndicator();
+            return true;
+        } catch (e) { return false; }
+    },
+
+    /** Loads the meshes array from localStorage. @returns {boolean} */
+    loadFromStorage: function() {
+        try {
+            const data = localStorage.getItem('geometryShaders');
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (Array.isArray(parsed)) {
+                    geometryShaders.length = 0;
+                    parsed.forEach(s => geometryShaders.push(s));
+                    return true;
+                }
+            }
+        } catch (e) {}
+        return false;
+    },
+
+    /** Deletes the active saved mesh and falls back to equations mode. */
+    delete: function() {
+        const index = glo.numGeometryShaderSelect;
+        if (index < 0) {
+            updateStatus('Rien à supprimer (mode équations)', false, getById('editorStatusGeometry'));
+            return;
+        }
+        const name = this.getShaderName(geometryShaders[index], index);
+        if (!confirm('Supprimer "' + name + '" ?')) return;
+
+        geometryShaders.splice(index, 1);
+        this.saveToStorage();
+        this.populateSelect();
+        updateStatus(name + ' supprimé', false, getById('editorStatusGeometry'));
+        // Revenir aux équations après suppression.
+        this.applyEquations();
+    },
+
+    /** Exports all saved meshes as a downloadable JS file. */
+    exportAll: function() {
+        let content = 'geometryShaders = [\n';
+        geometryShaders.forEach((code, index) => {
+            content += '`' + code + '`';
+            if (index < geometryShaders.length - 1) content += ',';
+            content += '\n';
+        });
+        content += '];\n';
+
+        const blob = new Blob([content], { type: 'application/javascript' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'shaders-geometry.js';
+        a.click();
+        URL.revokeObjectURL(url);
+        updateStatus('Fichier shaders-geometry.js téléchargé', false, getById('editorStatusGeometry'));
+    },
+
+    /**
+     * Imports meshes from a file (replace or append).
+     * @param {Event} e
+     */
+    importFromFile: function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            try {
+                const content = ev.target.result;
+                const match = content.match(/geometryShaders\s*=\s*\[([\s\S]*)\];/);
+                if (!match) throw new Error('Format invalide');
+                const inner = match[1];
+                const meshes = [];
+                const regex = /`([\s\S]*?)`/g;
+                let m;
+                while ((m = regex.exec(inner)) !== null) meshes.push(m[1]);
+                if (meshes.length === 0) throw new Error('Aucun maillage trouvé');
+
+                const replace = confirm('Comment importer ?\n\nOK = Remplacer tous\nAnnuler = Ajouter aux existants');
+                if (replace) { geometryShaders.length = 0; }
+                meshes.forEach(s => geometryShaders.push(s));
+
+                this.saveToStorage();
+                this.populateSelect();
+                this.updateSelectValue();
+                updateStatus('Import réussi: ' + meshes.length + ' maillages', false, getById('editorStatusGeometry'));
+            } catch (err) {
+                updateStatus('Erreur import: ' + err.message, true, getById('editorStatusGeometry'));
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    },
+};
+
 // Initialiser le système CRUD quand le DOM est prêt
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         ShaderCRUD.init();
         ShaderCRUDNormal.loadFromStorage();
         ShaderCRUDNormal.init();
+        ShaderCRUDGeometry.init();
     }, 500);
 });

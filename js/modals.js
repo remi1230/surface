@@ -609,25 +609,32 @@ vec3 computeMeshPosition(float u, float v) {
 }
 
 /**
- * Composes the full text shown in the mesh editor: header + editable body + footer.
- * The body is the active custom code when set, otherwise the GLSL generated from
- * the current coordinate-system equations (a ready-to-edit starting template).
+ * Composes the full mesh editor document (header + editable body + footer) for an
+ * arbitrary GLSL body. When `body` is null/empty, falls back to the GLSL generated
+ * from the current coordinate-system equations (a ready-to-edit starting template).
+ * @param {string|null} [body] - The editable GLSL body to wrap.
  * @returns {string} Full editor document.
  */
-function buildGeometryEditorValue() {
-	const inst = glo.ribbon && glo.ribbon.shaderMeshInstance;
-	let body;
-	if (glo.geometryShaderCode != null) {
-		body = glo.geometryShaderCode;
-	} else if (inst && typeof inst.getPositionGLSL === 'function') {
-		body = inst.getPositionGLSL();
-	} else {
-		body = '\toutPos = vec3(u, v, 0.0);\n';
+function composeGeometryDoc(body) {
+	if (body == null || body === '') {
+		const inst = glo.ribbon && glo.ribbon.shaderMeshInstance;
+		body = (inst && typeof inst.getPositionGLSL === 'function')
+			? inst.getPositionGLSL()
+			: '\toutPos = vec3(u, v, 0.0);\n';
 	}
 	// Normaliser les bords (stable au fil des cycles compile→réouverture) :
 	// retirer les sauts de ligne de tête et collapser tout l'espace de fin en un seul "\n".
 	body = body.replace(/^\n+/, '').replace(/\s+$/, '\n');
 	return geometryShaderHeader() + body + geometryShaderFooter;
+}
+
+/**
+ * Composes the full editor document for the currently active mesh definition
+ * (custom code when set, otherwise the equation template).
+ * @returns {string} Full editor document.
+ */
+function buildGeometryEditorValue() {
+	return composeGeometryDoc(glo.geometryShaderCode);
 }
 
 /**

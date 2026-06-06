@@ -293,6 +293,12 @@ getById('compileBtnGeometry')?.addEventListener('click', async () => {
    // Le code custom devient actif (global => survit aux reconstructions du mesh).
    glo.geometryShaderCode = posCode;
 
+   // Synchroniser le slot CRUD actif en mémoire ("Sauvegarder" le persiste).
+   if (typeof ShaderCRUDGeometry !== 'undefined' && !ShaderCRUDGeometry.isCreatingNew
+       && glo.numGeometryShaderSelect >= 0 && glo.numGeometryShaderSelect < geometryShaders.length) {
+      geometryShaders[glo.numGeometryShaderSelect] = posCode;
+   }
+
    // Lire les directives de résolution / domaine depuis l'en-tête.
    const directive = (name, fallback) => {
       const m = fullCode.match(new RegExp('@' + name + '\\s+(-?[0-9]+(?:\\.[0-9]+)?)'));
@@ -317,15 +323,16 @@ getById('compileBtnGeometry')?.addEventListener('click', async () => {
    updateStatus('Maillage compilé', false, statusEl);
 });
 
-/** Reverts the mesh editor to equation-based geometry and refreshes its content. */
-getById('resetBtnGeometry')?.addEventListener('click', async () => {
-   const statusEl = getById('editorStatusGeometry');
-   glo.geometryShaderCode = null;
-   await remakeRibbon();
-   if (glo.editorGeometry) {
-      glo.editorGeometry.setValue(buildGeometryEditorValue());
+/** Reverts the mesh editor to equation-based geometry (and syncs the CRUD dropdown). */
+getById('resetBtnGeometry')?.addEventListener('click', () => {
+   if (typeof ShaderCRUDGeometry !== 'undefined') {
+      ShaderCRUDGeometry.applyEquations();
+   } else {
+      glo.geometryShaderCode = null;
+      remakeRibbon().then(() => {
+         if (glo.editorGeometry) { glo.editorGeometry.setValue(buildGeometryEditorValue()); }
+      });
    }
-   updateStatus('Réinitialisé (équations)', false, statusEl);
 });
 
 /** Closes the mesh (geometry) shader editor panel. */
@@ -474,6 +481,12 @@ getById('univers_div').addEventListener("keydown", function (e) {
    if (_origCompileBtnNormal) {
       _origCompileBtnNormal.addEventListener('click', () => {
          setTimeout(() => { if (!History.suspended) { History.commit('Compile normal shader'); } }, 0);
+      });
+   }
+   const _origCompileBtnGeometry = getById('compileBtnGeometry');
+   if (_origCompileBtnGeometry) {
+      _origCompileBtnGeometry.addEventListener('click', () => {
+         setTimeout(() => { if (!History.suspended) { History.commit('Compile mesh'); } }, 0);
       });
    }
 

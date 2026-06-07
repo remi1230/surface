@@ -832,8 +832,14 @@ const ShaderCRUDNormal = {
 const ShaderCRUDGeometry = {
     isCreatingNew: false,
 
-    /** Initializes the mesh CRUD: loads saved meshes, populates the select, binds events. */
+    // Maillages par défaut codés en dur (capturés depuis geometryShaders avant le chargement localStorage).
+    defaultGeometryShaders: null,
+
+    /** Initializes the mesh CRUD: captures defaults, loads saved meshes, populates the select, binds events. */
     init: function() {
+        if (this.defaultGeometryShaders === null) {
+            this.defaultGeometryShaders = geometryShaders.map(s => s);
+        }
         this.loadFromStorage();
         this.populateSelect();
         this.bindEvents();
@@ -854,12 +860,32 @@ const ShaderCRUDGeometry = {
         if (!indicator) return;
         if (this.hasLocalChanges()) {
             indicator.textContent = '💾 Local';
-            indicator.title = 'Maillages sauvegardés localement.';
+            indicator.title = 'Maillages sauvegardés localement. Cliquez pour recharger les maillages par défaut.';
         } else {
-            indicator.textContent = '⚙ Équations';
-            indicator.title = 'Aucun maillage custom sauvegardé.';
+            indicator.textContent = '📦 Défaut';
+            indicator.title = 'Maillages par défaut.';
         }
         indicator.style.display = 'inline-block';
+    },
+
+    /** Restores the built-in default meshes, clearing any local changes. */
+    reloadDefaults: function() {
+        if (this.hasLocalChanges()) {
+            if (!confirm('Recharger les maillages par défaut effacera vos maillages locaux.\n\nContinuer ?')) return;
+        }
+        localStorage.removeItem('geometryShaders');
+        geometryShaders.length = 0;
+        (this.defaultGeometryShaders || []).forEach(s => geometryShaders.push(s));
+
+        glo.geometryShaderCode = null;
+        glo.numGeometryShaderSelect = -1;
+        this.populateSelect();
+        this.updateSelectValue();
+        this.updateStorageIndicator();
+        remakeRibbon().then(() => {
+            if (glo.editorGeometry) glo.editorGeometry.setValue(composeGeometryDoc(null));
+        });
+        updateStatus('Maillages par défaut rechargés', false, getById('editorStatusGeometry'));
     },
 
     /**
@@ -932,7 +958,7 @@ const ShaderCRUDGeometry = {
         if (importFile) importFile.addEventListener('change', (e) => this.importFromFile(e));
 
         const storageIndicator = getById('storageIndicatorGeometry');
-        if (storageIndicator) storageIndicator.addEventListener('click', (e) => { e.preventDefault(); this.updateStorageIndicator(); });
+        if (storageIndicator) storageIndicator.addEventListener('click', (e) => { e.preventDefault(); this.reloadDefaults(); });
     },
 
     /**

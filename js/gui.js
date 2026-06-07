@@ -2205,7 +2205,7 @@ function addEleventhPanelSliders(){
   addPanel(panelButton6, 'panelButtonEleventh6', 45, false);
   addPanel(panelRotateNormal, 'panelRotateNormal', 76, true, 18.5, 10);
   addPanel(panelRotateCamera, 'panelRotateCamera', 71.5, true, 20, 5, 'sixth');
-  addPanel(panelRotateCameraB, 'panelRotateCameraB', 76, false, 13.44, 5, 'sixth');
+  addPanel(panelRotateCameraB, 'panelRotateCameraB', 76, false, 15.5, 5, 'sixth');
 
   panelRotateNormal.paddingRight = '0.5%';
 
@@ -2276,17 +2276,26 @@ function addEleventhPanelSliders(){
     glo.rotateSpeed = value;
   }, "sixth", "sixth");
 
-  panelRotateCamera.addControl(createSpacer("15px"));
 
-  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp", "Alpha", 70, buttonSizes.height, 0, 0, function(value){
-    glo.camera.alpha += PI/4;
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp1", "Alph 1", 50, buttonSizes.height, 0, 0, function(value){
+    glo.camera.alpha += PI/8;
   }, function(value){
-    glo.camera.alpha -= PI/4;
+    glo.camera.alpha -= PI/8;
   });
-  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft", "Beta", 80, buttonSizes.height, 10, 0, function(value){
-    glo.camera.beta += PI/4;
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft1", "Bet 1", 60, buttonSizes.height, 10, 0, function(value){
+    glo.camera.beta += PI/8;
   }, function(value){
-    glo.camera.beta -= PI/4;
+    glo.camera.beta -= PI/8;
+  });
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonUp2", "Alph 2", 60, buttonSizes.height, 10, 0, function(value){
+    glo.camera.alpha += PI/6;
+  }, function(value){
+    glo.camera.alpha -= PI/6;
+  });
+  addButton("'sixth'", panelRotateCameraB, "rotateViewButtonLeft2", "Bet 2", 60, buttonSizes.height, 10, 0, function(value){
+    glo.camera.beta += PI/6;
+  }, function(value){
+    glo.camera.beta -= PI/6;
   });
 }
 

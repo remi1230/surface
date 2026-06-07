@@ -2557,7 +2557,64 @@ normalShaders = [
 		pos*=1.+result;
 		result += m(pos);
 	}
-        
+
+`,
+];
+
+/**
+ * Array of built-in custom mesh (geometry) GLSL body snippets.
+ *
+ * Each entry is a template literal containing GLSL code that writes the vertex
+ * position into `outPos` (a pre-declared `vec3`). The code is inserted between
+ * the mesh editor markers to form the body of `computePosition()`. A first-line
+ * `// Name` comment is used as the display name in the mesh editor dropdown.
+ *
+ * These are the defaults loaded when no saved meshes exist in localStorage; the
+ * mesh editor's storage indicator (💾) reloads them. Add your own here to ship
+ * meshes hard-coded with the app — same pattern as {@link normalShaders} above.
+ *
+ * Available variables: u, v (parameters), i, j (grid indices), d, k, p, w, n
+ * (auxiliaries), t (time), A..U (coeffs/macros), uStepsU, uStepsV, uFirstPoint.
+ * Functions: rotateAxis(axis, angle), sin, cos, pow, length...
+ *
+ * @type {string[]}
+ */
+geometryShaders = [
+`
+	// Sphère
+	float lat = v * 0.5;
+	outPos = 2.0 * vec3(cos(u) * cos(lat), sin(u) * cos(lat), sin(lat));
+`,
+`
+	// Tore
+	float R = 2.0, r = 0.8;
+	outPos = vec3((R + r * cos(v)) * cos(u), (R + r * cos(v)) * sin(u), r * sin(v));
+`,
+`
+	// Vague animée
+	outPos = vec3(u, v, 0.6 * sin(u + t) * cos(v + t));
+`,
+`
+	// Fleur
+	float rr = 1.4 + 0.35 * sin(6.0 * u);
+	float lat = v * 0.5;
+	outPos = rr * vec3(cos(u) * cos(lat), sin(u) * cos(lat), sin(lat));
+`,
+`
+	// Real Saddle
+	float px = v;
+    float py = u;
+    float pz = 0.;
+
+    float px2 = u;
+    float py2 = v;
+    float pz2 = 3.14159;
+
+    vec3 p1 = vec3(px, py, pz);
+    vec3 p2 = vec3(px2, py2, pz2);
+    vec3 p3 = cross(p1, p2);
+
+    outPos = p3*.25;
 `,
 ];
 

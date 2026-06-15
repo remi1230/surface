@@ -583,6 +583,10 @@ float cp(float n, float p){
 	return cos(gxN * n + p) * cos(gyN * n + p) * cos(gzN * n + p);
 }
 
+float tube(float nb){
+    vec3 po = fract(vec3(gx, gy, gz) * nb) - 0.5;
+    return min(abs(po.x), min(abs(po.y), abs(po.z)));
+}
 float tube(vec3 col, float nb){
     vec3 po = fract(col * nb) - 0.5;
     return min(abs(po.x), min(abs(po.y), abs(po.z)));
@@ -597,6 +601,12 @@ float edge(vec3 col, float coeffCol){
 float edge(vec3 col, float coeffCol, float powEdge){
     return pow(length(fract(col * coeffCol) - 0.5) * 2.0, powEdge);
 }
+
+vec3 spec(vec3 col, float coeff){
+	float PI = 3.14159265358979;
+    return sin(col * PI * 6.0) * 0.1 + vec3(sin(col.r * 10.0), sin(col.g * 10.0 + 2.0), sin(col.b * 10.0 + 4.0)) * coeff;
+}
+
 
 `;
 	}

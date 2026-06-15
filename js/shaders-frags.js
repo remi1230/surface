@@ -89,7 +89,8 @@ fragmentShaders = [
 
     col += .125-tube(col*p, PI/4.);
     col += .125*rainbop(length(p/PI), p*col*2.);
-    
+    col /= 1.+ .0625*edge(col, PI/10.);
+
 `,
 `   
     //RotP
@@ -435,26 +436,27 @@ fragmentShaders = [
     //Art
     vec3 p = npos();
     float pl = length(p);
-    for (float i = 70.; i < 120.; i+=10.) {
-        p = p*1.025;
-        col *= .333-o(c(p*.58333)*p*i*.25);
+    for (float i = 70.; i < 120.; i+=25.) {
+        p = fract(p*1.067)-.5;
+        col *= .333-oe(.29*c(p*.58333)*p*i*.25);
         col += .1875*spec(cos(p), 1.);
-        col += W*tube(col, 1.);
+        col += W*tube(col, W);
     }
+
+    col = hueRotateYIQ(col, radians(72.));
     
 `,
 `   
     //Art II
-    vec3 p = npos();
+    vec3 p = npos()*8.;
     float pl = length(p);
-    for (float i = 70.; i < 120.; i+=5.) {
-        p = p*1.05;
-        col *= .333-o(.58333*c(p*.58333)*p*p*i*.25);
-        col += .1875*spec(cos(p), 1.);
-        //col += 2.*tube(col, 1.);
-    }
+    
+    float val = length(tube(p+o(p), 1.));
 
-    col += 2.*tube(col, 1.);
+    col *= 1.+E*eqPos(
+        1., 
+        W*log(.5/val)
+    );
     
 `,
 `   
@@ -1984,6 +1986,24 @@ float mac(vec3 p, float coeff, float phase){
 float mac(vec3 p, float coeff, vec3 phase){
     return acos(coeff*p.x + phase.x) * acos(coeff*p.y + phase.y) * acos(coeff*p.z + phase.z);
 }
+
+float mah(vec3 p){
+    p = 1. + abs(p);
+    return acosh(p.x) * acosh(p.y) * acosh(p.z);
+}
+float mah(vec3 p, float coeff){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x) * acosh(coeff*p.y) * acosh(coeff*p.z);
+}
+float mah(vec3 p, float coeff, float phase){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x + phase) * acosh(coeff*p.y + phase) * acosh(coeff*p.z + phase);
+}
+float mah(vec3 p, float coeff, vec3 phase){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x + phase.x) * acosh(coeff*p.y + phase.y) * acosh(coeff*p.z + phase.z);
+}
+
 float oac(vec3 p){
     return acos(p.x) + acos(p.y) + acos(p.z);
 }
@@ -1995,6 +2015,22 @@ float oac(vec3 p, float coeff, float phase){
 }
 float oac(vec3 p, float coeff, vec3 phase){
     return acos(coeff*p.x + phase.x) + acos(coeff*p.y + phase.y) + acos(coeff*p.z + phase.z);
+}
+float oah(vec3 p){
+    p = 1. + abs(p);
+    return acosh(p.x) + acosh(p.y) + acosh(p.z);
+}
+float oah(vec3 p, float coeff){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x) + acosh(coeff*p.y) + acosh(coeff*p.z);
+}
+float oah(vec3 p, float coeff, float phase){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x + phase) + acosh(coeff*p.y + phase) + acosh(coeff*p.z + phase);
+}
+float oah(vec3 p, float coeff, vec3 phase){
+    p = 1. + abs(p);
+    return acosh(coeff*p.x + phase.x) + acosh(coeff*p.y + phase.y) + acosh(coeff*p.z + phase.z);
 }
 float hcac(vec3 p){
     return length(vec3(acos(p.x), acos(p.y), acos(p.z)));

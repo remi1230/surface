@@ -255,17 +255,15 @@ function rotateCamera() {
     glo.camera.inertialAlphaOffset = 0;
     glo.camera.inertialBetaOffset  = 0;
 
-    // Frame-locked (recording): fixed step per frame so the rotation is deterministic
-    // and loops exactly. glo.rotateSpeed equals the wall-clock step at dt = 1/60 s
-    // (rotateSpeed * (1/60) * 60), so the perceived speed is unchanged at 60 fps.
-    // Otherwise: wall-clock step, normalised to ~60 fps.
-    let speed;
-    if (glo.clock.frameLocked) {
-        speed = glo.rotateSpeed;
-    } else {
-        const dt = glo.engine.getDeltaTime() / 1000; // en secondes
-        speed = glo.rotateSpeed * dt * 60; // normalise pour ~60fps
-    }
+    // Rotation toujours basée sur le temps réel (wall-clock), y compris pendant
+    // l'enregistrement. Le flux vidéo (captureStream) horodate chaque frame en
+    // temps réel : un pas fixe par frame ralentirait la rotation dès que le rendu
+    // descend sous 60 fps, ce qui arrive pendant la capture car la résolution est
+    // doublée. En normalisant par dt, la vitesse perçue reste identique qu'on
+    // enregistre ou non, quel que soit le fps réel. La boucle parfaite reste
+    // assurée par l'accumulation d'angle ci-dessous (loopRotAccum).
+    const dt = glo.engine.getDeltaTime() / 1000; // en secondes
+    let speed = glo.rotateSpeed * dt * 60;        // normalise pour ~60fps
 
     const axis = glo.rotateType.current;
     const rotates = axis === 'alpha' || axis === 'beta' || axis === 'teta';

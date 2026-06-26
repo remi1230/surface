@@ -628,7 +628,10 @@ vec3 spec(vec3 col, float coeff){
 	 * `glo.params.textInputNormalAlpha` (Z rotation) and
 	 * `glo.params.textInputNormalBeta` (Y rotation). Emits no code when both
 	 * inputs are empty, so unused rotations cost nothing per vertex. The
-	 * equations may reference u, v, x, y, z, xN, yN, zN and time `t`.
+	 * equations may reference u, v, x, y, z, xN, yN, zN and time `t`, plus the
+	 * deformation helper functions (m(), o(), b(), a(), ce/se(), cp(), tube(), ...),
+	 * which read the per-vertex globals (gx/gy/gz, gu/gv, gxN/gyN/gzN) initialised
+	 * at the top of the emitted block.
 	 * @returns {string} GLSL block, possibly empty.
 	 */
 	buildNormalRotationGLSL() {
@@ -663,6 +666,14 @@ vec3 spec(vec3 col, float coeff){
 	{
 		float x = pos.x, y = pos.y, z = pos.z;
 		float xN = deformNormal.x, yN = deformNormal.y, zN = deformNormal.z;
+		// Expose au code utilisateur la position du sommet (pos), ses coordonnées
+		// paramétriques (u, v) et la normale de déformation, via les globales lues par
+		// les fonctions m(), o(), b(), a(), ce/se(), cp(), tube()... Sans cela, gx/gy/gz,
+		// gu/gv, gxN/gyN/gzN valent 0 ici (renseignées seulement plus tard dans
+		// computeDeformation) et un appel comme m() dans Alpha/Beta renverrait une constante.
+		gx = x; gy = y; gz = z;
+		gu = u; gv = v;
+		gxN = xN; gyN = yN; gzN = zN;
 		float normBeta  = ${glslBeta};
 		float normAlpha = ${glslAlpha};${betaBlock}${alphaBlock}
 	}`;
@@ -1102,6 +1113,8 @@ precision highp float;
 #define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
 #define fmax(f1, f2, p, rangeMin, rangeMax) max(f1(p*rangeMin), f2(p*rangeMax))
 #define fmin(f1, f2, p, rangeMin, rangeMax) min(f1(p*rangeMin), f2(p*rangeMax))
+#define pp(f1, f2, p, t1, t2) f1(cpow(p, 1.+abs(o(p)))) * f2(cpow(p*(1.+ t1*c(t*t2)), 1.+abs(o(p))))
+#define pm(val) 1. + abs(val)
 
 in vec3 vPosition;
 in vec3 vWorldPosition;

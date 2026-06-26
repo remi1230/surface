@@ -109,6 +109,74 @@ fragmentShaders = [
     
 `,
 `   
+    //Vertexs
+    float nb = 12.;
+    vec3 p = npos() * (opt1 == 0. ? nb : nb*.29) + t*.0;
+
+    float v1 = length((p*.125));
+    float v2 = length(s(vec3(p.x+t*.33, p.y-t*.25, p.z+.16*t)))*s(v*2.)*c(u*2.);
+    float tmix = Ts(.25);
+
+    col *= 1.+.125*o(p*v1*p*(.1875+abs(v2*.1875)));
+
+    col *= 1. + .25*mix(v1, v2, tmix);
+    col -= .25*mix(v1, v2, 1.-tmix);
+
+    col *= 1.+tube(col, 8.);
+    col = spec(col, 1.);
+    
+`,
+`   
+    //Fluide
+    float nb = E;
+    vec3 p = npos() * (opt1 == 0. ? nb : nb*.5);
+
+    col *= o(cpow(p*p*.5, 3.)-t);
+    col /= 8.-m(cpow(p, 3.)+t);
+
+    //col += tube(col, 1.);
+    col -= tube(col, 2.);
+    col -= spec(col, .125);
+
+    col *= 1.+.666*palette(length(col*c(p*1.)*2.));
+    col *= 1.+.666*rainbow(length(col*c(p*1.)*2.));
+    
+`,
+`   
+    //Fluide II
+    float nb = 8.;
+    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.35);
+
+    col *= o(cpow(p, 1.+abs(hc(p))));
+    col *= o(cpow(p*(1.+.1*c(t*.25)), 1.+abs(hc(p))));
+
+    col *= 1.+palette(length(col));
+    col += .25*rainbow(length(col));
+    
+`,
+`   
+    //Fluide III
+    float nb = .5;
+    vec3 p = npos() * (opt1 == 0. ? nb : nb*.35);
+
+    p = pm(p);
+    for(float i = 0.; i < 3.; i +=1.){
+        col *= pp(
+            o(p)-o,
+            o(p)*o, 
+            p,
+            .125,
+            .25
+        );
+        p *= W;
+        col += .25*eqPos(col.x, col.y);
+        col = .5-pm(col);
+    }
+
+    col += tube(col, 4.);
+    
+`,
+`   
     //UVP
     col *= vec3(.8, .9, .87);
     vec3 p = npos(-1.) * 8.;
@@ -496,6 +564,29 @@ fragmentShaders = [
     for (float i = 1.; i < 18.; i+=1.) {
         col += m(p*i);
     }
+    
+`,
+`   
+    //Go func
+    col = vec3(1.6667);
+    float nb = 1.;
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
+
+    p = pm(p);
+    p = go(p, .5, .125);
+
+    col *= .1+.75*tube(p, oi(p*tube(p, 1.), 2., 2.));
+
+    col += .1875*tube(col, 8.);
+
+    col *= .5 + .41667*eqPos(
+        c(3.*col.y + 4.*col.x + col.z*8.),
+        c(-2.*col.x - col.y*2. + col.z*8.)
+    );
+
+    col *= W;
+
+    col = hueRotateYIQ(col, radians(180.));
     
 `,
 `   
@@ -1521,6 +1612,10 @@ return `
 vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
 vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition; }
 
+vec2 nuv(float u, float v, float uMinU, float uMaxU, float uMinV, float uMaxV){ 
+    return vec2(u / ((uMaxU - uMinU) / 2.), v / ((uMaxV - uMinV) / 2.));
+}
+
 vec3 nspos(){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z)) : vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z); }
 vec3 nspos(float n){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z)) : vec3(vSpherePos.x, vSpherePos.y, vSpherePos.z); }
 
@@ -1974,6 +2069,16 @@ float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
+float mi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += m(p);
+        p *= np;
+    }
+    return res;
+}
+
+
 float mac(vec3 p){
     return acos(p.x) * acos(p.y) * acos(p.z);
 }
@@ -2131,6 +2236,10 @@ float o(float x, float y, float z){
 }
 float o(float x, float y, float z, float coeff){
     return cos(coeff*x) + cos(coeff*y) + cos(coeff*z);
+}
+
+vec3 go(vec3 p, float delta, float ct){
+    return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
 
 float oe(vec3 p){
@@ -2310,6 +2419,78 @@ vec2  la(vec2  v, float phase){return log(phase + abs(v));}
 vec3  la(vec3  v, float phase){return log(phase + abs(v));}
 vec4  la(vec4  v, float phase){return log(phase + abs(v));}
 
+float oi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += o(p);
+        p *= np;
+    }
+    return res;
+}
+
+float oei(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += oe(p);
+        p *= np;
+    }
+    return res;
+}
+
+float oli(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += ol(p);
+        p *= np;
+    }
+    return res;
+}
+
+float hci(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += hc(p);
+        p *= np;
+    }
+    return res;
+}
+
+float hcei(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += hce(p);
+        p *= np;
+    }
+    return res;
+}
+
+float hcli(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += hcl(p);
+        p *= np;
+    }
+    return res;
+}
+
+float mei(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += me(p);
+        p *= np;
+    }
+    return res;
+}
+
+float mli(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += ml(p);
+        p *= np;
+    }
+    return res;
+}
+
 
 float pulse(vec3 col){
     return pow(length(sin(col * PI * 3.0)) / sqrt(3.0), 8.0);
@@ -2449,6 +2630,9 @@ precision highp float;
 #define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
 #define fmax(f1, f2, p, rangeMin, rangeMax) max(f1(p*rangeMin), f2(p*rangeMax))
 #define fmin(f1, f2, p, rangeMin, rangeMax) min(f1(p*rangeMin), f2(p*rangeMax))
+#define pp(f1, f2, p, t1, t2) f1(cpow(p, 1.+abs(o(p)))) * f2(cpow(p*(1.+ t1*c(t*t2)), 1.+abs(o(p))))
+#define pm(val) 1. + abs(val) 
+
 
 // Varyings received from the vertex shader
 in vec3 vPosition;

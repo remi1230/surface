@@ -723,8 +723,14 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
                     [/[0-9]+\.[0-9]*/, 'number.float'],
                     [/[0-9]+/, 'number'],
                     [/".*?"/, 'string'],
-                    [/\/\/.*$/, 'comment']
-                ]
+                    [/\/\/.*$/, 'comment'],
+                    [/\/\*/, 'comment', '@comment'],   // entre dans l'état @comment
+                ],
+                comment: [
+                    [/[^/*]+/, 'comment'],   // tout sauf / et *
+                    [/\*\//, 'comment', '@pop'],   // fin du bloc → retour à root
+                    [/[/*]/, 'comment']      // / ou * isolés
+                ],
             }
         });
 

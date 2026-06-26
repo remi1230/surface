@@ -211,10 +211,6 @@ Game = function(canvasId) {
     });
   });
   _this.scene.registerBeforeRender(() => {
-    // Frame-locked clock: advance one fixed step per rendered frame, before the
-    // mesh material reads `t`. No-op in wall-clock mode (see AnimationClock).
-    glo.clock.tickFrame();
-
     if (glo.cameraMode === 'travelling') {
       updateTravellingCamera();
       return;

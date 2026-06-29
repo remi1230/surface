@@ -1410,25 +1410,66 @@ fragmentShaders = [
     
     
     
-    `,
+`,
 `
     //Voronoi
-    vec2 st = vUV;
-    vec3 color = vec3(.0);
+    float scale = max(P*(opt1 == 0. ? .125 : .25), 2.0);
+    float speed = 0.6;                 // ← vitesse (ou branche un slider : T, opt2…)
 
-    // Scale
-    vec2 scale = vec2(P, P*0.5);
-    st *= scale;
+    vec3 p = npos(-1.);
+    vec3 x = p * scale;
+    vec3 n = floor(x);
+    vec3 f = fract(x);
 
-    vec2 i_st = floor(st);
-    vec2 f_st = fract(st);
+    float md = 8.0;
+    for (int k = -1; k <= 1; k++)
+    for (int j = -1; j <= 1; j++)
+    for (int i = -1; i <= 1; i++) {
+        vec3 g    = vec3(float(i), float(j), float(k));
+        vec3 cell = n + g;
 
-    float m_dist = 1.0 - voronoi(i_st, f_st, scale);
+        vec3 rnd  = vec3(hash31(cell), hash31(cell + 19.1), hash31(cell + 37.7));
+        vec3 warp = 0.15 * eqPos(cell.x, cell.y + cell.z).xyz;
+        // chaque graine oscille dans sa cellule, phase propre -> désynchronisé
+        vec3 seed = 0.5 + 0.5 * sin(t * speed + 6.2831 * (rnd + warp));
 
-    float minBrightness = 0.333;
-    m_dist = minBrightness + (1.0 - minBrightness) * m_dist;
+        vec3 r = g + seed - f;
+        md = min(md, dot(r, r));
+    }
+    float d = sqrt(md);
+    col *= d;
 
-    col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
+
+`,
+`
+    //Voronoi II
+    float scale = max(P*(opt1 == 0. ? .125 : .25), 2.0);
+    float speed = 0.6;                 // ← vitesse (ou branche un slider : T, opt2…)
+
+    vec3 p = npos(-1.);
+    vec3 x = p * scale;
+    vec3 n = floor(x);
+    vec3 f = fract(x);
+
+    float md = 8.0;
+    for (int k = -1; k <= 1; k++)
+    for (int j = -1; j <= 1; j++)
+    for (int i = -1; i <= 1; i++) {
+        vec3 g    = vec3(float(i), float(j), float(k));
+        vec3 cell = n + g;
+
+        vec3 rnd  = vec3(hash31(cell), hash31(cell + 19.1), hash31(cell + 37.7));
+        vec3 warp = 0.15 * eqPos(cell.x, cell.y + cell.z).xyz;
+        // chaque graine oscille dans sa cellule, phase propre -> désynchronisé
+        vec3 seed = 0.5 + 0.5 * sin(t * speed + 6.2831 * (rnd + warp));
+
+        vec3 r = g + seed - f;
+        md = min(md, dot(r, r));
+    }
+    float d = sqrt(md);
+
+    p = pm(p);
+    col *= d+o(p*8.+t);
 
 
 `,

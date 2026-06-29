@@ -590,6 +590,15 @@ fragmentShaders = [
     
 `,
 `   
+    //1 code line
+    col = vec3(1.6667);
+    float nb = 4.;
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
+
+    col *= tube(p, length(c(pm(p)+t*.125)));
+    
+`,
+`   
     //8 Poles II
     vec3 p = npos() * (opt1 == 0. ? 8. : 4.);
     
@@ -600,11 +609,17 @@ fragmentShaders = [
 `,
 `   
     //Blackboard
-    vec3 p = npos(-1.) * (opt1 == 0. ? 4. : 8.);
+    float nb = 2.;
+    vec3 p = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
     
-    for (float i = 1.; i < 24.; i+=.58333) {
-        col /= 1.1125+m(p*i);
-    }
+    p = pm(p*ol(p*.125, 1., 0.01875));
+    
+    col *= 1.0125 - pm(tube(p*p*.5, mi(p+t*.125, 2., 1.667)));
+
+    col *= 1. + 2.*tube(col*m(col*8.), 1.);
+
+    col *= 1.+.5*palette(length(col));
+    col /= 1. + .125*eqPos(mi(col*.5, 3., 2.), oi(col*.5, 3., 5.));
     
 `,
 `   
@@ -1009,13 +1024,32 @@ fragmentShaders = [
 
 `,
 `
-    //Butterfly
-    vec3 pos    = (opt1 == 0.0 ? vPosition*5./12. : npos()) * P / 24.0;
-    float c     = P/4.0;
-    float val   = hc(pos, o(pos, c, -time), 0.25*time);
-    vec3 valCol = rainbop(val*(0.5*Ts(-0.0625)), rainbop(.5+Ts(0.0625), 0.25*pos)*val+time*0.0625);
+    //Stained glass
+    col = vec3(1.6667);
+    float nb = 4.;
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
 
-    col = 1.0 - vec3(val > 0.0 ? valCol : 1.0-valCol);
+    col *= tube(p, 1.667*length(c(pm(p*1.667)+t*.125)));
+
+    col *= rainbop(length(col), c(p*8.)*p*.5);
+
+    col *= pm(3.*col);
+
+`,
+`
+    //Stained glass II
+    col = vec3(1.6667);
+    float nb = 6.666667;
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
+
+    p = pm(p);
+    col *= tube(p, m(p*.25+g(p*.33)+t*.125));
+
+    col /= pm(rainbop(length(col), c(p*8.)*p*.5));
+
+    col *= 1.25-pm(eqPos(o(col*p*.25), m(col*p*.125)));
+
+    col *= pm(3.*col);
 
 `,
 `
@@ -1102,7 +1136,7 @@ fragmentShaders = [
      
 `,
 `
-    //Stained glass
+    //Butterfly
     vec3 pos = npos() * P / (opt1 == 0. ? 32. : 96.);
     col -= m(ea(pos*vNormal), 4., time);
     col *= o(la(pos), 4., time);
@@ -2069,10 +2103,33 @@ float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
+float ms(vec3 p){
+    return (cos(p.x) + sin(p.x)) * (cos(p.y) + sin(p.y)) * (cos(p.z) + sin(p.z));
+}
+float os(vec3 p){
+    return (cos(p.x) * sin(p.x)) + (cos(p.y) * sin(p.y)) + (cos(p.z) * sin(p.z));
+}
+
 float mi(vec3 p, float it, float np){
     float res = 0.;
     for(float i = 0.; i < it; i += 1.){
         res += m(p);
+        p *= np;
+    }
+    return res;
+}
+float msi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += ms(p);
+        p *= np;
+    }
+    return res;
+}
+float osi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += os(p);
         p *= np;
     }
     return res;
@@ -2170,6 +2227,13 @@ float me(float x, float y, float z, float coeff){
     return cos(coeff*exp(abs(x))) * cos(coeff*exp(abs(y))) * cos(coeff*exp(abs(z)));
 }
 
+float mse(vec3 p){
+    return (cos(exp(abs(p.x))) + sin(exp(abs(p.x)))) * (cos(exp(abs(p.y))) + sin(exp(abs(p.y)))) * (cos(exp(abs(p.z))) + sin(exp(abs(p.z))));
+}
+float msl(vec3 p){
+    return (cos(log(abs(p.x))) + sin(log(abs(p.x)))) * (cos(log(abs(p.y))) + sin(log(abs(p.y)))) * (cos(log(abs(p.z))) + sin(log(abs(p.z))));
+}
+
 float ml(vec3 p){
     return cos(log(abs(p.x))) * cos(log(abs(p.y))) * cos(log(abs(p.z)));
 }
@@ -2252,6 +2316,13 @@ float oe(vec3 p, float coeff, float phase){
     return cos(coeff * exp(abs(p.x)) + phase) + cos(coeff * exp(abs(p.y)) + phase) + cos(coeff * exp(abs(p.z)) + phase);
 }
 
+float ose(vec3 p){
+    return (cos(exp(abs(p.x)))*sin(exp(abs(p.x)))) + (cos(exp(abs(p.y)))*sin(exp(abs(p.y)))) + (cos(exp(abs(p.z)))*sin(exp(abs(p.z))));
+}
+float osl(vec3 p){
+    return (cos(log(abs(p.x)))*sin(log(abs(p.x)))) + (cos(log(abs(p.y)))*sin(log(abs(p.y)))) + (cos(log(abs(p.z)))*sin(log(abs(p.z))));
+}
+
 float ol(vec3 p){
     return cos(log(abs(p.x))) + cos(log(abs(p.y))) + cos(log(abs(p.z)));
 }
@@ -2285,7 +2356,7 @@ float oh(float x, float y, float z, float coeff){
 }
 
 float hc(vec3 p){
-    return length(vec3(cos(p.x), cos(p.y), cos(p.z)));
+    return length(cos(p));
 }
 float hc(vec3 p, float coeff){
     return length(vec3(cos(coeff*p.x), cos(coeff*p.y), cos(coeff*p.z)));
@@ -2303,17 +2374,26 @@ float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
-float hce(vec3 p){
-    return length(vec3(cos(exp(abs(p.x))), cos(exp(abs(p.y))), cos(exp(abs(p.z)))));
+float hcs(vec3 p){
+    return length(cos(p)+sin(p));
 }
+float hce(vec3 p){
+    return length(cos(abs(exp(p))));
+}
+float hces(vec3 p){
+    return length(cos(abs(exp(p))) + sin(abs(exp(p))));
+}
+
+float hcl(vec3 p){
+    return length(cos(log(pm(p))));
+}
+float hcls(vec3 p){
+    return length(cos(log(pm(p))) + sin(log(pm(p))));
+}
+
+
 float hce(vec3 p, float coeff, float ph){
     return length(vec3(cos(exp(abs(p.x)) * coeff + ph), cos(exp(abs(p.y)) * coeff + ph), cos(exp(abs(p.z)) * coeff + ph)));
-}
-float hcl(vec3 p){
-    return length(vec3(cos(log(abs(p.x))), cos(log(abs(p.y))), cos(log(abs(p.z)))));
-}
-float hcl(vec3 p, float coeff, float ph){
-    return length(vec3(cos(log(abs(p.x)) * coeff + ph), cos(log(abs(p.y)) * coeff + ph), cos(log(abs(p.z)) * coeff + ph)));
 }
 
 float hch(vec3 p){
@@ -2393,6 +2473,22 @@ float gp(vec3 p){
 }
 float gp(vec3 p, float phase){
     return cos((p.x + p.y + p.z) + phase);
+}
+float gs(vec3 p){
+    return sin(p.x * p.y * p.z);
+}
+float gs(vec3 p, float coeff){
+    return sin(p.x * p.y * p.z * coeff);
+}
+float gs(vec3 p, float coeff, float phase){
+    return sin(p.x * p.y * p.z * coeff + phase);
+}
+
+float gps(vec3 p){
+    return sin(p.x + p.y + p.z);
+}
+float gps(vec3 p, float phase){
+    return sin((p.x + p.y + p.z) + phase);
 }
 
 float h(float x, float y){

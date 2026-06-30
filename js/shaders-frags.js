@@ -1413,63 +1413,19 @@ fragmentShaders = [
 `,
 `
     //Voronoi
-    float scale = max(P*(opt1 == 0. ? .125 : .25), 2.0);
-    float speed = 0.6;                 // ← vitesse (ou branche un slider : T, opt2…)
+    float nb = 8.;
+    vec3 p   = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
 
-    vec3 p = npos(-1.);
-    vec3 x = p * scale;
-    vec3 n = floor(x);
-    vec3 f = fract(x);
-
-    float md = 8.0;
-    for (int k = -1; k <= 1; k++)
-    for (int j = -1; j <= 1; j++)
-    for (int i = -1; i <= 1; i++) {
-        vec3 g    = vec3(float(i), float(j), float(k));
-        vec3 cell = n + g;
-
-        vec3 rnd  = vec3(hash31(cell), hash31(cell + 19.1), hash31(cell + 37.7));
-        vec3 warp = 0.15 * eqPos(cell.x, cell.y + cell.z).xyz;
-        // chaque graine oscille dans sa cellule, phase propre -> désynchronisé
-        vec3 seed = 0.5 + 0.5 * sin(t * speed + 6.2831 * (rnd + warp));
-
-        vec3 r = g + seed - f;
-        md = min(md, dot(r, r));
-    }
-    float d = sqrt(md);
-    col *= d;
-
+    col *= voronoiPos(p , 0.6);
 
 `,
 `
     //Voronoi II
-    float scale = max(P*(opt1 == 0. ? .125 : .25), 2.0);
-    float speed = 0.6;                 // ← vitesse (ou branche un slider : T, opt2…)
-
-    vec3 p = npos(-1.);
-    vec3 x = p * scale;
-    vec3 n = floor(x);
-    vec3 f = fract(x);
-
-    float md = 8.0;
-    for (int k = -1; k <= 1; k++)
-    for (int j = -1; j <= 1; j++)
-    for (int i = -1; i <= 1; i++) {
-        vec3 g    = vec3(float(i), float(j), float(k));
-        vec3 cell = n + g;
-
-        vec3 rnd  = vec3(hash31(cell), hash31(cell + 19.1), hash31(cell + 37.7));
-        vec3 warp = 0.15 * eqPos(cell.x, cell.y + cell.z).xyz;
-        // chaque graine oscille dans sa cellule, phase propre -> désynchronisé
-        vec3 seed = 0.5 + 0.5 * sin(t * speed + 6.2831 * (rnd + warp));
-
-        vec3 r = g + seed - f;
-        md = min(md, dot(r, r));
-    }
-    float d = sqrt(md);
+    float nb = 8.;
+    vec3 p   = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
 
     p = pm(p);
-    col *= d+o(p*8.+t);
+    col *= voronoiPos(p , 0.6) + o(p+t);
 
 
 `,
@@ -2103,6 +2059,22 @@ float voronoi(vec2 i_st, vec2 f_st, vec2 scale){
         }
     }
     return m_dist;
+}
+
+float voronoiPos(vec3 x, float speed){
+    vec3 n = floor(x), f = fract(x);
+    float md = 8.0;
+    for (int k=-1;k<=1;k++)
+    for (int j=-1;j<=1;j++)
+    for (int i=-1;i<=1;i++){
+        vec3 g    = vec3(float(i),float(j),float(k));
+        vec3 cell = n + g;
+        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
+        vec3 seed = 0.5 + 0.5*sin(speed*time + 6.2831*rnd);
+        vec3 r    = g + seed - f;
+        md = min(md, dot(r,r));
+    }
+    return sqrt(md);
 }
 
 float truchet(vec2 uv, float index, float rad, float thickness){

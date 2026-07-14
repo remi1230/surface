@@ -1599,27 +1599,28 @@ fragmentShaders = [
    col = renderScene(ro, rd, col);
 `,
 `
-   // SDF Decor — billes 3D "impostor" plaquees sur la surface (tore, cube...).
-   // On plaque une demi-sphere par cellule et on l'eclaire : la normale est
-   // bombee en dome, ce qui donne du volume (et pas un simple disque plat).
-   // opt2 = espacement, opt3 = rayon. Lampe 💡 de preference eteinte.
-   vec3  q    = vWorldPosition;                    // monde (coherent avec vNormal)
-   float cell = 0.45 + 0.30 * opt2;                // pas du reseau
-   float rad  = 0.16 + 0.08 * opt3;                // rayon apparent des billes
-   vec3  nrm  = normalize(vNormal);                // normale surface (monde)
-   vec3  rp   = opRep(q, vec3(cell));              // offset au centre de cellule
-   vec3  rt   = rp - dot(rp, nrm) * nrm;           // part tangente (plan surface)
-   float rho  = length(rt);                        // distance au centre de la bille
-   if (rho < rad) {
-       float hh  = sqrt(max(rad*rad - rho*rho, 0.0));
-       vec3  bn  = normalize(rt + nrm * hh);       // normale de demi-sphere (dome)
-       vec3  V   = normalize(cameraPosition - vWorldPosition);
-       float dif = clamp(dot(bn, V), 0.0, 1.0);    // eclairage frontal (headlight)
-       float spe = pow(dif, 28.0);
-       vec3  cid = floor(q / cell + 0.5);          // identifiant de la bille
-       vec3  base= 0.5 + 0.5 * cos(6.2831 * (cid * 0.13) + vec3(0.0, 2.1, 4.2));
-       vec3  ball= base * (0.25 + 0.75 * dif) + 0.5 * spe;
-       float aa  = smoothstep(rad, rad - 0.02, rho); // bord antialiase
+   // SDF Decor — billes 3D reparties selon la parametrisation (u,v) de la surface.
+   // Une bille par cellule (u,v) => aucun artefact de "reseau 3D" / decoupe sur
+   // les surfaces courbes (rayon = fraction de cellule, jamais de chevauchement).
+   // opt2 = densite, opt3 = rayon. Lampe 💡 de preference eteinte.
+   vec2  dens = vec2(floor(20.0 + 40.0*opt2), floor(10.0 + 20.0*opt2)); // billes u / v
+   vec2  g    = fract(vUV * dens) - 0.5;           // position dans la cellule
+   float rr   = 0.30 + 0.15 * opt3;                // rayon (fraction de cellule < 0.5)
+   float rho  = length(g);
+   if (rho < rr) {
+       vec3 nrm  = normalize(vNormal);
+       vec3 ref  = abs(nrm.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+       vec3 tang = normalize(cross(ref, nrm));      // repere tangent continu
+       vec3 btan = cross(nrm, tang);
+       float hh  = sqrt(max(rr*rr - rho*rho, 0.0));
+       vec3  bn  = normalize(tang*g.x + btan*g.y + nrm*hh); // normale demi-sphere
+       vec3  view= normalize(cameraPosition - vWorldPosition);
+       float dif = clamp(dot(bn, view), 0.0, 1.0);  // eclairage frontal (headlight)
+       float spe = pow(dif, 30.0);
+       vec2  cid = floor(vUV * dens);               // identifiant de bille -> couleur
+       vec3  base= 0.5 + 0.5*cos(6.2831*(cid.x*0.11 + cid.y*0.17) + vec3(0.0, 2.1, 4.2));
+       vec3  ball= base*(0.25 + 0.75*dif) + 0.5*spe;
+       float aa  = smoothstep(rr, rr - 0.03, rho);
        col = mix(col, ball, aa);
    }
 `,

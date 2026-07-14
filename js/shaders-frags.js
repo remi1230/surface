@@ -1590,6 +1590,25 @@ fragmentShaders = [
     col = pow(col, vec3(1.0 / 2.2));
 
 `,
+`
+   // SDF Raymarch (plan) — mets X=u, Y=v (Z=0) et eteins la lampe. opt1 = sol.
+   // Le maillage sert d'ecran : on tire un rayon camera -> fragment et on
+   // raymarche la scene 3D (sdfScene, editable dans getFragmentUtilsGLSL).
+   vec3 ro = cameraPosition;
+   vec3 rd = normalize(vWorldPosition - cameraPosition);
+   col = renderScene(ro, rd, col);
+`,
+`
+   // SDF Decor — reseau de spheres plaque sur la surface (tore, sphere...).
+   // opt2 = pas du reseau, opt3 = taille. Relief : voir shader Normal Deformation.
+   vec3  q    = vPosition;                        // espace objet (aligne au relief)
+   float cell = 0.55 + 0.25 * opt2;
+   vec3  rp   = opRep(q, vec3(cell));
+   float d    = length(rp) - (0.14 + 0.06 * opt3);
+   float mask = smoothstep(0.02, -0.02, d);       // 1 dans une sphere du reseau
+   vec3  deco = 0.5 + 0.5 * cos(6.2831 * (q * 0.6) + vec3(0.0, 2.1, 4.2));
+   col = mix(col, deco, mask);
+`,
 
 ];
 
@@ -2597,6 +2616,103 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 
     return ambient + diffuse + specular;
 }
+
+// ============================================================
+// KIT SDF / RAYMARCHING 3D
+// Primitives (distance signee) + operateurs + normale + raymarcher.
+// La scene par defaut sdfScene() est animee par 't' et pilotable par
+// opt1 (sol on/off). L'ordre de declaration compte en GLSL :
+// primitives -> operateurs -> scene -> normale -> raymarch -> rendu.
+// ============================================================
+
+float sdSphere(vec3 p, float r){ return length(p) - r; }
+
+float sdBox(vec3 p, vec3 b){
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+float sdRoundBox(vec3 p, vec3 b, float r){
+    vec3 q = abs(p) - b + r;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r;
+}
+
+// tr = (grand rayon, petit rayon)
+float sdTorus(vec3 p, vec2 tr){
+    vec2 q = vec2(length(p.xz) - tr.x, p.y);
+    return length(q) - tr.y;
+}
+
+// union en gardant un identifiant de materiau : x = distance, y = id
+vec2 opU(vec2 a, vec2 b){ return (a.x < b.x) ? a : b; }
+
+float opSmoothUnion(float d1, float d2, float k){
+    float h = clamp(0.5 + 0.5*(d2 - d1)/k, 0.0, 1.0);
+    return mix(d2, d1, h) - k*h*(1.0 - h);
+}
+
+// repetition infinie sur une grille de pas 'cell' (reseau de formes)
+vec3 opRep(vec3 p, vec3 cell){ return mod(p + 0.5*cell, cell) - 0.5*cell; }
+
+// Scene par defaut (editable ici) : renvoie vec2(distance, id materiau)
+vec2 sdfScene(vec3 p){
+    vec2 res = vec2(1e9, -1.0);
+    if(opt1 > 0.5){ res = opU(res, vec2(p.y + 0.6, 1.0)); } // sol optionnel (opt1)
+
+    float sph = sdSphere(p - vec3(0.0, 0.35 + 0.15*sin(t), 0.0), 0.55);
+    res = opU(res, vec2(sph, 2.0));
+
+    float ang = t * 0.6;
+    float bx1 = sdBox(p - vec3(1.15*cos(ang), 0.0, 1.15*sin(ang)), vec3(0.32));
+    float bx2 = sdRoundBox(p - vec3(1.15*cos(ang + PI), 0.0, 1.15*sin(ang + PI)), vec3(0.30), 0.08);
+    res = opU(res, vec2(bx1, 3.0));
+    res = opU(res, vec2(bx2, 4.0));
+    return res;
+}
+
+// normale par differences finies sur sdfScene
+vec3 calcNormal(vec3 p){
+    vec2 e = vec2(0.0008, 0.0);
+    return normalize(vec3(
+        sdfScene(p + e.xyy).x - sdfScene(p - e.xyy).x,
+        sdfScene(p + e.yxy).x - sdfScene(p - e.yxy).x,
+        sdfScene(p + e.yyx).x - sdfScene(p - e.yyx).x));
+}
+
+// raymarcher : renvoie vec2(distance parcourue, id) ; id < 0 = pas de hit
+vec2 raymarch(vec3 ro, vec3 rd){
+    float tAcc = 0.0;
+    float id = -1.0;
+    for(int i = 0; i < 96; i++){
+        vec2 h = sdfScene(ro + rd * tAcc);
+        if(h.x < 0.001){ id = h.y; break; }
+        tAcc += h.x;
+        if(tAcc > 40.0) break;
+    }
+    return vec2(tAcc, id);
+}
+
+// couleur par identifiant de materiau
+vec3 matColor(float id){
+    if(id < 1.5) return vec3(0.55);              // sol
+    if(id < 2.5) return vec3(0.90, 0.30, 0.25);  // sphere
+    if(id < 3.5) return vec3(0.25, 0.55, 0.95);  // cube
+    if(id < 4.5) return vec3(0.95, 0.80, 0.25);  // round box
+    return vec3(0.8);
+}
+
+// rendu complet : raymarch + eclairage simple. bg = couleur si pas de hit.
+vec3 renderScene(vec3 ro, vec3 rd, vec3 bg){
+    vec2 h = raymarch(ro, rd);
+    if(h.y < 0.0) return bg;                      // rien touche -> fond
+    vec3 p = ro + rd * h.x;
+    vec3 n = calcNormal(p);
+    vec3 lig = normalize(vec3(0.6, 0.75, 0.5));
+    float dif = clamp(dot(n, lig), 0.0, 1.0);
+    float amb = 0.3 + 0.2*n.y;
+    float spe = pow(clamp(dot(reflect(rd, n), lig), 0.0, 1.0), 32.0);
+    return matColor(h.y) * (amb + dif) + spe*0.4;
+}
 `;
 }
 
@@ -2778,6 +2894,15 @@ normalShaders = [
 		result += m(pos);
 	}
 
+`,
+`
+	// Relief SDF — bosses en reseau (option pour le shader couleur "SDF Decor").
+	// Garder le meme 'cell' que le shader couleur pour aligner couleur et relief.
+	vec3  qd   = pos;
+	float cell = 0.55;
+	vec3  rp   = mod(qd + 0.5 * cell, cell) - 0.5 * cell;
+	float dist = length(rp) - 0.14;
+	result = 0.28 * smoothstep(0.04, -0.14, dist);
 `,
 ];
 

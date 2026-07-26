@@ -1,0 +1,402 @@
+# Vue à la première personne — parcourir le maillage
+
+Note de conception. État : exploration, aucune ligne de production écrite.
+Objectif : évaluer ce qu'il est possible de faire, ce que ça apporte, et comment
+l'insérer dans la boucle existante sans casser le mode 100 % GPU.
+
+---
+
+## 1. Le verrou technique, et où est réellement la clé
+
+L'intuition de départ — « on n'a pas les points, donc utilisons `eqPos` pour
+calculer le point suivant » — est la bonne stratégie (réutiliser le GLSL déjà
+écrit plutôt que de dupliquer les équations en JS), mais appliquée au mauvais
+étage du pipeline.
+
+`eqPos(u, v)` (`GPUShaderMesh.js:1045`) ne renvoie que la position paramétrique
+**pure**. Son propre commentaire le dit : « sans blender, symétrie ni
+déformation ». Concrètement, la chaîne réelle d'un sommet est
+(`createVertexShader`, `GPUShaderMesh.js:895-957`) :
+
+```
+(i, j) → (u, v)
+  ├─ 1. _effectivePositionGLSL()   ← équations OU code brut de l'éditeur de maillage
+  ├─ 2. blender (rotations en u et en O)          } computePosition()
+  ├─ 3. applySymmetry()             ← copies symétrisées, uSymOrder, uSymCenter
+  ├─ 4. normale par différences finies (3 appels à computePosition)
+  ├─ 5. rotation utilisateur de la normale (Alpha / Beta)
+  ├─ 6. applyNormDeformation()      ← ondes des sliders Norm/n
+  ├─ 7. computeDeformation() × scaleNorm  ← déformation le long de la normale
+  └─ 8. × world  (mesh.scaling / rotation / position de meshTransformations)
+```
+
+`eqPos` s'arrête **avant l'étape 2**. Marcher sur `eqPos`, c'est marcher sur un
+fantôme de la surface : décollé du maillage visible dès qu'un blender, une
+symétrie ou une déformation est active — exactement ce qu'on veut éviter, puisque
+l'objectif énoncé est de parcourir « le mesh sous sa forme finale ».
+
+**La clé est déjà dans le dépôt.** `extractPositionsForExport()`
+(`GPUShaderMesh.js:1975-2100`) recompile le vertex shader complet dans un
+contexte WebGL2 secondaire (`GPUShaderMeshComputer.gl`, ligne 28) et récupère
+`vPosition` + `vNormal` par **transform feedback**. C'est exactement l'oracle
+dont a besoin le personnage : la vérité géométrique, étapes 1 à 7 comprises, avec
+une seule source de vérité (le shader lui-même). Aujourd'hui c'est un one-shot
+sur tout le maillage pour l'export STL/OBJ.
+
+**La proposition centrale : en faire une sonde par frame sur ~16 sommets au lieu
+de 17 000.**
+
+---
+
+## 2. Architecture : la sonde GPU
+
+```
+probePoints(list) → Float32Array positions + normales
+```
+
+Un seul ajout à `ShaderMeshBase`, qui réutilise `_setTFUniforms()`
+(`GPUShaderMesh.js:2136`) tel quel :
+
+1. Programme de transform feedback **mis en cache, clé = la source du vertex
+   shader**. Invalidation automatique et gratuite : `create()`,
+   `updateDeformationExpression()`, `updateNormDeformGLSL()`, la compilation de
+   l'éditeur de géométrie produisent une source différente, donc une nouvelle
+   entrée. Aucun hook à maintenir.
+2. Par frame : upload des uniformes qui bougent (`t`, `A`–`M`, blender, norm…),
+   `drawArrays(POINTS, 0, n)` avec `n ≈ 16`, `getBufferSubData`.
+3. Le contexte est **séparé de celui de Babylon** : la lecture synchrone ne bloque
+   pas le pipeline de rendu principal. C'est le gros avantage de la structure
+   existante.
+
+Coût attendu : ~16 sommets × 3 évaluations de `computePosition` = négligeable en
+calcul ; le seul vrai coût est l'aller-retour driver du `getBufferSubData`
+(estimation 0,1–0,5 ms). **À mesurer avant tout le reste.** Si ça dépasse ~1 ms,
+la parade standard est `fenceSync` + `clientWaitSync(0)` et lecture de la frame
+N-1 : 16 ms de retard caméra, imperceptible pour un personnage qui marche.
+
+### Ce qu'on sonde exactement
+
+Les sommets sont indexés par `aIndex = (i, j)` et l'attribut `position` porte
+l'identifiant de copie symétrisée `(sx, sy, sz)`. Le shader fait
+`u = uMinU + i·uStepU`, donc on peut passer un `i` **fractionnaire** pour
+échantillonner entre les sommets.
+
+Attention cependant : `computePosition` dérive `d`, `k`, `p`, `w`, `n` de
+`mod(i, 2.0)`. Avec un `i` fractionnaire, `mod(i,2.0) == 0.0` n'est
+quasiment jamais vrai — la branche « impaire » est prise en permanence, et pour
+les équations qui exploitent ces variables de parité, le point sondé ne
+correspondra pas à la géométrie affichée. (Peu fréquent : 3 occurrences dans
+`forms.js`, mais l'éditeur de géométrie permet tout.)
+
+**Donc on ne sonde jamais en fractionnaire.** On sonde les **4 coins entiers de
+la cellule** où se trouve le personnage, et on interpole. Le point obtenu est
+alors sur le quad réellement rendu — vrai pour *toutes* les équations, y compris
+le code GLSL brut de l'éditeur de maillage. En pratique on sonde une plaque 4×4
+autour du joueur : ça donne les coins, les tangentes, une normale lissée, et de
+quoi anticiper le pas suivant.
+
+---
+
+## 3. Se déplacer : trois niveaux, du plus sûr au plus riche
+
+L'état du personnage vit en **espace paramétrique `(u, v)`**, pas en indices
+`(i, j)` — sinon un changement de résolution (`u`/`j` au clavier) téléporte le
+joueur. On dérive `(fi, fj) = ((u−uMinU)/uStepU, (v−uMinV)/uStepV)` à chaque
+frame.
+
+### Niveau 1 — verrouillé sur la grille (« le point suivant »)
+Exactement l'idée initiale. Les flèches déplacent `(i, j)` d'un cran, on
+interpole le déplacement dans le temps pour que ce soit fluide. Robuste
+absolument partout, y compris sur les équations à parité. C'est le mode de
+repli sûr.
+
+### Niveau 2 — libre, par interpolation bilinéaire
+`(u, v)` continu, position = interpolation bilinéaire des 4 coins sondés (ou
+barycentrique sur le bon des deux triangles, pour coller au pixel près à la
+géométrie rendue). C'est le mode par défaut visé.
+
+**Le point crucial : la vitesse doit être métrique, pas paramétrique.** Ces
+surfaces ont des paramétrisations violemment non uniformes (pôles d'une sphère,
+zones étirées d'une bouteille de Klein). Un pas constant en `u` donne une vitesse
+qui varie d'un facteur 100 selon l'endroit. On calcule donc les tangentes
+`∂P/∂u`, `∂P/∂v` depuis les coins sondés, puis :
+
+```
+pas en u = (vitesse voulue en unités monde) / |∂P/∂u|
+```
+
+C'est-à-dire qu'on marche à vitesse constante *sur la surface*. Sans ça, le
+déplacement est inutilisable. Il faut aussi borner le dénominateur : aux pôles
+`|∂P/∂v| → 0` et la métrique dégénère.
+
+### Niveau 3 — géodésique
+Les flèches ne suivent plus les lignes de paramètre : « tout droit » veut dire
+transport parallèle de la direction sur la surface. Deux fois rien à implémenter
+en plus une fois qu'on a la métrique (on a déjà les tangentes ; il faut les
+symboles de Christoffel, obtenables par différences finies sur la plaque 4×4).
+
+C'est là que la fonctionnalité arrête d'être un gadget — voir §7.
+
+---
+
+## 4. Le saut et la gravité
+
+Question moins anodine qu'elle en a l'air : sur une bouteille de Klein, « le
+bas », c'est quoi ?
+
+**Gravité alignée sur la normale (défaut recommandé).** Le personnage est
+aimanté à la surface, style *Super Mario Galaxy*. Le saut n'agit que sur une
+variable scalaire `hauteurAuDessusDeLaSurface` ; le mouvement tangentiel continue
+par inertie. On retombe toujours, ça marche à l'envers, dans les surplombs, dans
+les zones auto-intersectantes. Coût : zéro sonde en plus. Ce n'est pas un arc
+balistique exact, mais visuellement ça lit comme un saut.
+
+**Gravité monde (`−Y`), en option.** Pertinente quand la forme se comporte comme
+un terrain. Le saut devient un vrai arc balistique, et l'atterrissage demande une
+intersection rayon/triangles — faisable sur la plaque 4×4 déjà sondée tant qu'on
+retombe près du point de décollage. Un long saut qui atterrit ailleurs
+nécessiterait d'élargir la sonde. À garder pour une phase ultérieure.
+
+---
+
+## 5. La caméra, et pourquoi la VR devient presque gratuite
+
+**Ne pas déplacer la caméra. Déplacer un rig.**
+
+```
+TransformNode "walkRig"        ← position = point sondé + h·normale, orientation = repère tangent
+   └─ UniversalCamera "walkCam"  ← pose locale (souris, ou casque en VR)
+```
+
+Une caméra bougée directement est un cul-de-sac pour la VR : en WebXR, la pose de
+la caméra **appartient au casque**, on n'y écrit pas. Le seul point d'insertion,
+c'est le nœud parent. Si le rig existe dès le premier jour, passer en VR revient
+à brancher `scene.createDefaultXRExperienceAsync()` sur ce même nœud. Si on
+bricole la caméra directement, il faudra tout refaire.
+
+L'infrastructure de bascule existe déjà et est propre : `glo.cameraMode`,
+`glo.orbitCamera` / `glo.travCamera`, `startTravelling()` / `stopTravelling()`
+(`bab.js:98-138`). On ajoute `'walk'` au même endroit, avec le même
+`detachControl` / `activeCamera`.
+
+Détails caméra qui comptent :
+- `minZ` doit descendre à ~0,01·échelle (le travelling le fait déjà,
+  `bab.js:72`) — sinon la surface est clippée dès qu'on s'en approche.
+- **Lissage temporel du repère obligatoire.** La surface se déforme dans le temps
+  sous les pieds du joueur : si l'orientation est recalculée brutalement à chaque
+  frame, la caméra vibre. Position suivie exactement, orientation filtrée
+  passe-bas avec un réglage « stabilisation ». Aux pôles, on lisse le vecteur
+  *up* dans le temps plutôt que de le recalculer.
+- La normale de la caméra vaut mieux être celle de la **cellule** (produit
+  vectoriel des diagonales des 4 coins) que celle du shader
+  (`eps = 0.001`, `_setTFUniforms`) : plus stable, et elle correspond à la facette
+  qu'on voit.
+
+### Confort VR — à concevoir maintenant, pas après
+Marcher sur une surface qui se déforme, avec une orientation qui peut basculer à
+l'envers, c'est une machine à nausée. Les garde-fous ne sont pas optionnels :
+figer ou ralentir le temps pendant la marche, vignettage au déplacement,
+locomotion par téléportation en alternative au déplacement continu, rotation par
+crans, horizon accroché au plan tangent lissé. Aucun de ces points ne se rajoute
+proprement après coup.
+
+---
+
+## 6. Intégration dans la boucle existante
+
+Rien de tout ça ne touche le chemin de rendu. Points d'accroche :
+
+| Où | Quoi |
+|---|---|
+| `bab.js:213` `registerBeforeRender` | `if (glo.cameraMode === 'walk') { updateWalk(); return; }` — même forme que le branchement travelling existant |
+| `bab.js` `Player.prototype` | `_initWalkRig()` à côté de `_initTravellingCamera()` |
+| `glo.js` | `glo.walk = { u, v, dir, height, vSpeed, copy, keys, … }` |
+| `events.js:374` registre | une entrée pour basculer en mode marche |
+| `js/walk.js` (nouveau) | logique de déplacement + sonde ; un `<script>` de plus dans `index.html` |
+| `GPUShaderMesh.js` | `probePoints()` + cache de programme, à côté de `extractPositionsForExport()` |
+
+Deux points d'attention sur l'existant :
+
+**Le clavier est en `keydown` seul** (`events.js:422`), et le handler `return` dès
+qu'il matche. Pour un déplacement il faut un état de touches maintenues : un
+`keyup` + un `Set` alimenté uniquement en mode marche. Les flèches sont
+aujourd'hui consommées par `ArcRotateCameraKeyboardMoveInput` — pas de conflit
+puisqu'on fait `detachControl` sur la caméra orbite, comme le travelling.
+
+**`glo.ribbon` est détruit et recréé à chaque rebuild** (`ribbonDispose()`,
+`ribbon.js:50`). Donc : pas de rig parenté au mesh, et l'état de marche vit dans
+`glo` — c'est exactement le précédent déjà établi pour `_positionEditorCode`
+(commentaire `GPUShaderMesh.js:271`, « lu depuis le global pour survivre aux
+reconstructions »). Après chaque rebuild : re-sonder, re-déposer le joueur.
+
+---
+
+## 7. Détails pratiques
+
+**Forme finale, transformations comprises.** La sonde renvoie `vPosition` en
+espace objet (`_setTFUniforms` force `world` et `worldViewProjection` à
+l'identité). `meshTransformations` (scaling / rotation / position) vit au niveau du
+nœud Babylon (`transformMesh`, `ribbon.js:550`). Il faut donc appliquer
+`glo.ribbon.getWorldMatrix()` au point sondé. Pour la normale : plutôt que de
+sortir la transposée de l'inverse, on transforme les **deux tangentes** et on
+refait le produit vectoriel — juste sous n'importe quelle transformation affine,
+scaling non uniforme compris.
+
+**Coloration.** Elle vient gratuitement : le fragment shader est intact, et
+l'observer de `create()` (`GPUShaderMesh.js:1262-1267`) pousse déjà
+`cameraPosition` depuis `scene.activeCamera` à chaque frame. Le shader couleur et
+l'éclairage réagissent donc à la caméra de marche sans une ligne de code.
+`backFaceCulling = false` + `DoubleSide` (lignes 1273-1274) fait qu'on voit la
+surface même par-dessous : c'est ce qu'on veut en vue subjective.
+
+**Échelle du personnage.** Question pratique déterminante : les formes vont de
+±π à ±60 unités. La même hauteur d'œil donne « explorer un paysage » ou « ramper
+sur une bille ». Défaut proposé : diagonale de la bounding box / 100, exposée
+comme un slider logarithmique. À recalculer quand le scaling du mesh change.
+
+**Lampe frontale.** `lampPosition` est un uniforme déjà en place, poussé par
+`updateLighting()`. Une option « lampe = caméra » est une ligne et change tout
+pour la lisibilité en vue subjective, surtout à l'intérieur d'une forme fermée.
+
+**Bords du domaine.** `u ∈ [min_u, max_u]`. Trois politiques : mur invisible,
+bouclage, ou chute. Le bouclage est **détectable automatiquement** : sonder
+`P(min_u, v)` et `P(max_u, v)` sur quelques `v` au moment du rebuild et comparer.
+4 sondes, une fois — et un tore devient un monde infini au lieu d'un enclos.
+Ça vaut largement son coût.
+
+**Copies symétrisées.** Le maillage contient `symCount` copies, chacune avec son
+attribut `position`. Le joueur marche sur une copie donnée (index dans l'état), et
+la sonde doit passer le même attribut. Plus tard : autoriser le franchissement
+d'une copie à l'autre à la couture — traverser la couture d'une forme
+symétrisée serait une sensation qu'aucune vue orbitale ne donne.
+
+**Auto-intersections.** Ces surfaces se traversent constamment. En marche
+intrinsèque, on passe *à travers* les autres nappes. Ce n'est pas un bug à
+corriger : voir la surface passer à travers soi est précisément ce qui fait
+comprendre une bouteille de Klein.
+
+**Pôles et dégénérescences.** `normalize(cross(tU, tV))` peut être NaN ; le shader
+gère déjà le cas (ligne 923), la sonde côté CPU doit le gérer aussi.
+
+---
+
+## 8. Pertinence : exploration, compréhension, appropriation
+
+C'est la partie qui décide si ça mérite d'être construit. Je pense que oui, et
+pour une raison précise.
+
+**Géométrie intrinsèque contre géométrie extrinsèque.** La vue orbitale montre la
+surface comme un *objet* : une silhouette, vue du dehors. La marche la donne
+comme un *monde*, et rend accessible ce qui est invisible de l'extérieur :
+
+- la **distorsion de la paramétrisation** — une zone qui paraît minuscule vue de
+  loin prend un temps fou à traverser, et on le *sent* ;
+- la **courbure** — on marche tout droit et on revient à son point de départ, ou
+  pas ;
+- la **connexité réelle** — deux régions visuellement voisines peuvent être à des
+  kilomètres l'une de l'autre sur la surface.
+
+C'est la différence entre regarder une carte et marcher le terrain. Pour un
+explorateur de surfaces paramétriques, c'est de l'**information nouvelle**, pas
+seulement une caméra de plus.
+
+**L'échelle révèle de la structure.** Une amplitude de déformation qui ressemble à
+du bruit vue de loin devient un relief de collines à l'échelle du marcheur. On
+découvre des choses qu'on ne peut littéralement pas voir en orbite.
+
+**Le temps devient un phénomène.** La déformation animée, ressentie depuis la
+surface, est qualitativement autre : des vagues qui passent sous les pieds.
+
+**Appropriation.** Le mot est bien choisi : la présence crée la propriété. En VR
+l'effet est massif.
+
+**Et un usage sous-estimé : c'est un outil de diagnostic.** Marcher révèle les
+pathologies de paramétrisation — là où les triangles s'étirent, là où le maillage
+dégénère, là où les normales s'inversent. D'où l'idée qui, à mon avis, fait
+basculer la fonctionnalité du spectaculaire vers l'utile :
+
+### Le HUD de géométrie intrinsèque
+Depuis la plaque 4×4 déjà sondée, on obtient les deux formes fondamentales,
+donc : courbure de Gauss et courbure moyenne sous les pieds, distorsion locale
+d'aire, orientation de la normale. Affichés en surimpression, avec un mode marche
+géodésique face à un mode marche paramétrique. **L'écart entre les deux est la
+charge pédagogique de toute la géométrie différentielle**, et suivre une
+géodésique sur une forme pour voir où elle atterrit est quelque chose qu'aucune
+caméra orbitale n'enseignera jamais.
+
+### La trace
+Un fil d'Ariane : la ligne de là où on est passé, stockée en `(u, v)` et
+re-évaluée sur GPU chaque frame — donc collée à la surface même en déformation.
+Peu coûteux, et énorme pour l'appropriation : on *voit* sa géodésique
+s'enrouler autour de la forme.
+
+### La mini-carte, ou : régler le problème de la désorientation
+Le défaut structurel de la vue subjective sur une variété tordue, c'est qu'on ne
+sait plus du tout où on est. Le remède : une incrustation, dans un coin, de la
+**vue orbitale avec un marqueur du personnage**. Babylon le fait nativement
+(`camera.viewport` + `scene.activeCameras`). Le coût est réel — le vertex shader
+tourne deux fois — mais à 132² c'est absorbable, et le gain en compréhension est
+sans commune mesure.
+
+### L'avatar est un shader
+Pour marquer le personnage dans la vue orbitale (et projeter une ombre / un cerne
+au sol en vue subjective), on rend une petite géométrie avec le **même vertex
+shader**, décalée le long de la normale. L'avatar est alors épinglé à la surface
+100 % sur GPU, parfaitement synchrone avec la déformation animée, sans que le CPU
+ait à savoir où il est. Beau découplage : **avatar exact et gratuit sur GPU,
+caméra éventuellement en retard d'une frame, imperceptible.**
+
+---
+
+## 9. Trois pistes différentes, à très bon rapport valeur / effort
+
+Elles ne remplacent pas la marche, elles la complètent — et deux d'entre elles ne
+demandent **aucune sonde**.
+
+**A. Le travelling de surface (à faire en premier).** Étendre la caméra de
+travelling existante pour qu'elle suive un chemin `(u(t), v(t))` *sur* la surface,
+à `surface + h·normale`, regardant vers la tangente. Aucune gestion d'entrées,
+aucune physique, aucune collision : ça valide toute la machinerie de sonde à
+elle seule. Et comme l'application enregistre déjà en WebM, c'est immédiatement
+une fonctionnalité vidéo. Livrable de phase 0 idéal.
+
+**B. Le mode intérieur / spéléologie.** Beaucoup de ces formes sont fermées et
+creuses. Une caméra libre à l'intérieur, avec lampe frontale et `minZ` bas, c'est
+une expérience entièrement différente pour un coût dérisoire : `UniversalCamera`
++ deux uniformes. Zéro sonde. Probablement le meilleur rapport
+valeur/effort du lot.
+
+**C. Le mode maquette.** Se tenir *à côté* de la forme à taille humaine, sur un
+sol virtuel, et en faire le tour à pied. Rien à sonder non plus. Ça répond à une
+autre question que la marche sur la surface — la silhouette d'ensemble, la
+*taille* — et en VR c'est saisissant.
+
+---
+
+## 10. Feuille de route proposée
+
+| Phase | Contenu | Risque |
+|---|---|---|
+| **0** | Mesurer `probePoints()` : un point, chronométrer le `getBufferSubData`. **Tout le reste en dépend.** | — |
+| **1** | Travelling de surface (piste A). Valide la sonde sans entrées ni physique. | faible |
+| **2** | Rig + caméra de marche + mode `'walk'` + touches maintenues. Niveau 1 (verrouillé sur la grille), saut intrinsèque. | faible |
+| **3** | Déplacement libre bilinéaire, vitesse métrique, lissage du repère, détection de bouclage du domaine, échelle du personnage. | moyen |
+| **4** | Avatar-shader, trace, mini-carte orbitale, lampe frontale. | faible |
+| **5** | Marche géodésique + HUD de courbure. | moyen |
+| **6** | WebXR sur le rig, garde-fous de confort, plafond de résolution en VR. | moyen |
+| **bonus** | Modes intérieur et maquette (pistes B et C) — insérables n'importe quand, indépendants. | faible |
+
+## 11. Limites à assumer
+
+- Les équations qui exploitent les variables de parité (`d`, `k`, `p`, `w`, `n`)
+  n'ont pas de surface bien définie *entre* les sommets. On reste donc sur les
+  coins entiers + interpolation : c'est correct partout, mais ça veut dire que le
+  « lisse » vient du quad, pas de l'équation.
+- Un changement d'équation ou de domaine `u`/`v` relocalise réellement le joueur.
+  Un changement de résolution seul, non (état stocké en `(u, v)`).
+- Le coût VR est à surveiller : stéréo × 72–120 Hz × un vertex shader qui appelle
+  `computePosition` trois fois par sommet, avec déformation par-dessus. Il faudra
+  probablement un plafond de résolution dédié.
+- La stabilité de la caméra sur une surface à déformation haute fréquence est le
+  vrai risque d'expérience utilisateur, pas la performance. Le filtre de repère
+  n'est pas une finition, c'est un prérequis.

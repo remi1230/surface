@@ -7,8 +7,10 @@ l'insérer dans la boucle existante sans casser le mode 100 % GPU.
 > **État au 26/07/2026** — les phases 0 à 3 de la feuille de route (§10) sont
 > implémentées et vérifiées dans un navigateur : sonde GPU, marche libre à
 > vitesse métrique, saut, autopilote, bouclage/rebond aux bords, rig prêt pour la
-> VR. Mesures et écarts au plan : §12. Restent ouvertes les phases 4 à 6
-> (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les pistes B/C.
+> VR. Mesures et écarts au plan : §12. Deux défauts remontés à l'usage et leurs
+> corrections (saccades, retournement de la vue) : §13. Restent ouvertes les
+> phases 4 à 6 (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les
+> pistes B/C.
 
 ---
 
@@ -94,12 +96,13 @@ les équations qui exploitent ces variables de parité, le point sondé ne
 correspondra pas à la géométrie affichée. (Peu fréquent : 3 occurrences dans
 `forms.js`, mais l'éditeur de géométrie permet tout.)
 
-**Donc on ne sonde jamais en fractionnaire.** On sonde les **4 coins entiers de
-la cellule** où se trouve le personnage, et on interpole. Le point obtenu est
-alors sur le quad réellement rendu — vrai pour *toutes* les équations, y compris
-le code GLSL brut de l'éditeur de maillage. En pratique on sonde une plaque 4×4
-autour du joueur : ça donne les coins, les tangentes, une normale lissée, et de
-quoi anticiper le pas suivant.
+**Donc on ne sonde jamais en fractionnaire.** On sonde des **sommets entiers** et
+on interpole entre eux — vrai pour *toutes* les équations, y compris le code GLSL
+brut de l'éditeur de maillage. En pratique une plaque **4×4** autour du joueur,
+interpolée par un patch **bicubique Catmull-Rom** : il passe exactement par les
+sommets réels et sa dérivée est continue d'une cellule à l'autre. Un patch
+bilinéaire suffirait pour la position, mais pas pour le repère — c'est la cause
+des saccades, voir §13.
 
 ---
 
@@ -455,7 +458,76 @@ Non régressé (vérifié) : travelling `c`, espace qui met en pause hors marche
 export STL/OBJ cohabitant avec la sonde persistante, invalidation du cache de
 programme à la recompilation.
 
-## 13. Limites à assumer
+## 13. Deux défauts remontés à l'usage, et ce qu'ils ont révélé
+
+### Saccades sur toute forme sauf le plan
+
+Reproduit et quantifié : sur une sphère, l'accélération maximale par frame vaut
+0,0192 / 0,0050 / 0,0028 pour 32 / 128 / 256 pas — soit exactement le
+∝ 1/résolution décrit. Deux causes qui s'additionnaient :
+
+1. **Le patch bilinéaire n'est que C0.** Sa dérivée saute à chaque frontière de
+   cellule, donc le repère tangent — et la caméra avec lui — se décale d'un cran
+   à chaque cellule franchie, d'une amplitude proportionnelle à la taille de la
+   cellule. Le plan y échappait parce qu'un patch bilinéaire y est exact.
+2. **Le lissage de la normale était calculé puis jeté.** `walkUpdate` remplissait
+   `smoothNormal`, mais la pose du rig repartait de la normale brute recalculée
+   depuis les tangentes monde ; le filtre ne servait que de repli. Le garde-fou
+   annoncé comme « prérequis » au §5 n'était donc jamais en service.
+
+Corrigé en passant à un **patch bicubique Catmull-Rom sur 4×4 sommets**, C1 par
+construction et passant toujours exactement par les sommets réels, et en
+utilisant réellement la normale lissée pour la pose. C'est ici que la mesure du
+§12 a payé : 16 sondes coûtent le même prix que 4. Résultat :
+
+| pas | avant | après |
+|---|---|---|
+| 32 | 0,01919 | 0,00021 |
+| 128 | 0,00499 | 0,00021 |
+| 256 | 0,00284 | 0,00022 |
+
+Et surtout, **la dépendance à la résolution a disparu**. Le résidu est la réponse
+du filtre, pas du facettage. Entre deux sommets le personnage suit désormais une
+courbe lisse plutôt que la facette plate ; l'écart est plus petit que celui de la
+facette à la vraie surface, et invisible à hauteur d'œil.
+
+### Retournement vertical de la vue en visée plongeante
+
+Trois mécanismes pouvaient le produire, tous supprimés :
+
+1. **`upVector` fixe sur la caméra.** La matrice de vue était construite par
+   `LookAtLH(position, cible, up)` avec `up` figé sur le +Y local du rig. En
+   piquant vers la surface, la direction de visée s'aligne sur cet axe et la base
+   bascule. Corrigé par `updateUpVectorFromRotation = true`, qui dérive le haut
+   de la rotation de la caméra. Vérifié sur toute la plage : `|up · forward| = 0`
+   exactement, zéro inversion sur 347 frames.
+2. **Angles d'Euler pour le rig.** La décomposition d'Euler de Babylon perd le
+   roulis quand l'axe avant s'aligne sur le Y monde — ce qu'un marcheur sur une
+   surface horizontale atteint simplement en se tournant. Le rig est passé au
+   quaternion, construit directement depuis la base.
+3. **Signe de la normale non continu.** `cross(Tu, Tv)` s'inverse là où la
+   paramétrisation s'inverse : à une couture, sur une cellule dégénérée, et une
+   fois par tour sur un ruban de Möbius. Sans amortissement, la vue se retourne
+   d'un coup. La normale suit maintenant le côté de la frame précédente, ce qui
+   fait rouler le personnage progressivement — et reste la réponse honnête sur une
+   surface non orientable : après un tour complet, on est bel et bien dessous.
+
+**Honnêteté sur ce point** : je n'ai pas réussi à reproduire le retournement
+exact — ni par balayage de pitch, ni par rotation complète, ni sur plan, caténoïde,
+sphère ou Möbius. J'ai corrigé les trois mécanismes capables de le produire et
+vérifié la stabilité sur toute la plage, mais l'observation reste à confirmer côté
+utilisateur.
+
+Effet de bord corrigé au passage : le choix du côté à l'entrée comparait la
+normale au vecteur vers le centroïde — dégénéré sur toute forme plate, puisque le
+centroïde d'un plan est *dans* le plan, donc le côté était tiré à pile ou face.
+On atterrit maintenant du côté qu'on regardait depuis la caméra orbitale.
+
+Autre conséquence du passage en espace monde : la vitesse de marche est désormais
+métrique dans les unités affichées, donc un scaling non uniforme du mesh est pris
+en compte exactement, ce qui n'était pas le cas avant.
+
+## 14. Limites à assumer
 
 - Les équations qui exploitent les variables de parité (`d`, `k`, `p`, `w`, `n`)
   n'ont pas de surface bien définie *entre* les sommets. On reste donc sur les

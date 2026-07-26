@@ -30,8 +30,8 @@ const WALK = {
 	GRAVITY_EYES: 6.0,
 	/** Time constant (s) of the low-pass filter on the surface frame. */
 	SMOOTH_TAU: 0.09,
-	/** Max pitch away from the tangent plane (rad). */
-	PITCH_LIMIT: 1.48,
+	/** Max pitch away from the tangent plane (rad). Kept clear of the LookAt singularity. */
+	PITCH_LIMIT: 1.45,
 	/** Resolution of the one-shot survey used to measure scale, centroid and closure. */
 	SURVEY: 12,
 	/** Relative distance below which two domain edges are considered to be the same seam. */
@@ -41,12 +41,11 @@ const WALK = {
 };
 
 // Scratch buffers — allocated once, the walk loop must not churn the GC.
-const _walkCellIdx = new Float32Array(4 * 2);
+const _walkPatchIdx = new Float32Array(16 * 2);
 const _walkSurveyIdx = new Float32Array(WALK.SURVEY * WALK.SURVEY * 2);
-const _walkCorners = [
-	new BABYLON.Vector3(), new BABYLON.Vector3(),
-	new BABYLON.Vector3(), new BABYLON.Vector3()
-];
+const _walkPatch = Array.from({ length: 16 }, () => new BABYLON.Vector3());
+const _walkRow   = Array.from({ length: 4 },  () => new BABYLON.Vector3());
+const _walkRowD  = Array.from({ length: 4 },  () => new BABYLON.Vector3());
 const _walkFrame = {
 	position: new BABYLON.Vector3(),
 	tangentU: new BABYLON.Vector3(),
@@ -57,6 +56,55 @@ const _walkFrame = {
 const _wTmpA = new BABYLON.Vector3();
 const _wTmpB = new BABYLON.Vector3();
 const _wTmpC = new BABYLON.Vector3();
+const _wWorldPos = new BABYLON.Vector3();
+const _wWorldTu  = new BABYLON.Vector3();
+const _wWorldTv  = new BABYLON.Vector3();
+const _wUp       = new BABYLON.Vector3();
+const _wFwd      = new BABYLON.Vector3();
+const _wRight    = new BABYLON.Vector3();
+const _wBasis    = new BABYLON.Matrix();
+
+/**
+ * Uniform Catmull-Rom spline through `p1` and `p2`, with `p0`/`p3` as the surrounding
+ * control points. Writes the point at `t` into `out` and, when `outD` is provided, the
+ * derivative with respect to `t`.
+ *
+ * Catmull-Rom is what buys C1 continuity across cell boundaries: it passes exactly
+ * through every control point (so the character touches the real vertices) while its
+ * derivative is continuous from one cell to the next (so the tangent frame — and hence
+ * the camera — never jerks when a boundary is crossed).
+ *
+ * @param {BABYLON.Vector3} p0 - Control point before the segment.
+ * @param {BABYLON.Vector3} p1 - Start of the segment.
+ * @param {BABYLON.Vector3} p2 - End of the segment.
+ * @param {BABYLON.Vector3} p3 - Control point after the segment.
+ * @param {number} t - Parameter in [0, 1] between `p1` and `p2`.
+ * @param {BABYLON.Vector3} out - Receives the interpolated point.
+ * @param {BABYLON.Vector3|null} [outD=null] - Receives the derivative, when given.
+ */
+function walkCatmullRom(p0, p1, p2, p3, t, out, outD) {
+	const t2 = t * t, t3 = t2 * t;
+	const cx1 = p2.x - p0.x, cy1 = p2.y - p0.y, cz1 = p2.z - p0.z;
+	const cx2 = 2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x;
+	const cy2 = 2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y;
+	const cz2 = 2 * p0.z - 5 * p1.z + 4 * p2.z - p3.z;
+	const cx3 = -p0.x + 3 * p1.x - 3 * p2.x + p3.x;
+	const cy3 = -p0.y + 3 * p1.y - 3 * p2.y + p3.y;
+	const cz3 = -p0.z + 3 * p1.z - 3 * p2.z + p3.z;
+
+	out.set(
+		0.5 * (2 * p1.x + cx1 * t + cx2 * t2 + cx3 * t3),
+		0.5 * (2 * p1.y + cy1 * t + cy2 * t2 + cy3 * t3),
+		0.5 * (2 * p1.z + cz1 * t + cz2 * t2 + cz3 * t3)
+	);
+	if (outD) {
+		outD.set(
+			0.5 * (cx1 + 2 * cx2 * t + 3 * cx3 * t2),
+			0.5 * (cy1 + 2 * cy2 * t + 3 * cy3 * t2),
+			0.5 * (cz1 + 2 * cz2 * t + 3 * cz3 * t2)
+		);
+	}
+}
 
 /**
  * Returns the active GPU shader mesh instance and its actual grid size, or `null`
@@ -93,17 +141,23 @@ function walkWrapIndex(x, n, closed) {
 /**
  * Evaluates the surface at a continuous parametric position, in **object space**.
  *
- * Probes the four integer corners of the containing grid cell and interpolates
- * bilinearly. Only integer indices are ever probed: `computePosition` derives
- * `d`/`k`/`p`/`w` from `mod(i, 2.0)`, which has no meaning between vertices, so a
- * fractional probe would drift off the rendered geometry for any equation using those
- * variables. Interpolating between real vertices instead keeps the character on the
- * quad that is actually drawn, whatever the equation does — geometry-editor GLSL
- * included.
+ * Probes the 4×4 block of integer grid vertices around the character and interpolates
+ * it with a bicubic Catmull-Rom patch. Only integer indices are ever probed:
+ * `computePosition` derives `d`/`k`/`p`/`w` from `mod(i, 2.0)`, which has no meaning
+ * between vertices, so a fractional probe would drift off the rendered geometry for any
+ * equation using those variables. Interpolating between real vertices instead works for
+ * every equation, geometry-editor GLSL included.
  *
- * The tangents are the exact analytic derivatives of that bilinear patch, so the frame
- * matches the facet under the character rather than the shader's `eps`-scale finite
- * difference (which is noisier on high-frequency deformation).
+ * Bicubic rather than bilinear because a bilinear patch is only C0: its derivative jumps
+ * at every cell boundary, which the camera shows as a jolt on each cell crossed — of a
+ * size proportional to the cell, i.e. inversely proportional to the resolution. The
+ * Catmull-Rom patch still passes exactly through the grid vertices, but its derivative
+ * is continuous, so the tangent frame is smooth all the way across the surface. Between
+ * vertices the character rides a smooth curve rather than the flat facet; the difference
+ * is smaller than the facet's own deviation from the true surface, and invisible at eye
+ * height.
+ *
+ * Sixteen probes cost the same as four — the probe's cost is per call, not per point.
  *
  * @param {object} info - Result of {@link walkMeshInfo}.
  * @param {number} u - Parametric u.
@@ -126,44 +180,38 @@ function walkEvalSurface(info, u, v) {
 	const fu = fi - i0;
 	const fv = fj - j0;
 
-	const corners = [[0, 0], [1, 0], [0, 1], [1, 1]];
-	for (let c = 0; c < 4; c++) {
-		_walkCellIdx[c * 2]     = walkWrapIndex(i0 + corners[c][0], gridU, w.closedU);
-		_walkCellIdx[c * 2 + 1] = walkWrapIndex(j0 + corners[c][1], gridV, w.closedV);
+	// 4×4 block centred on the character's cell. Out-of-range rows are clamped, which
+	// is the standard Catmull-Rom end condition (duplicated control point).
+	let k = 0;
+	for (let a = 0; a < 4; a++) {
+		const ii = walkWrapIndex(i0 - 1 + a, gridU, w.closedU);
+		for (let b = 0; b < 4; b++) {
+			_walkPatchIdx[k++] = ii;
+			_walkPatchIdx[k++] = walkWrapIndex(j0 - 1 + b, gridV, w.closedV);
+		}
 	}
 
-	const probe = inst.probePoints(_walkCellIdx, 4);
+	const probe = inst.probePoints(_walkPatchIdx, 16);
 	if (!probe) return _walkFrame;
 
-	for (let c = 0; c < 4; c++) {
-		_walkCorners[c].set(
-			probe.positions[c * 3],
-			probe.positions[c * 3 + 1],
-			probe.positions[c * 3 + 2]
-		);
+	for (let p = 0; p < 16; p++) {
+		_walkPatch[p].set(probe.positions[p * 3], probe.positions[p * 3 + 1], probe.positions[p * 3 + 2]);
 	}
-	const [p00, p10, p01, p11] = _walkCorners;
 
-	// Bilinear position.
-	_walkFrame.position.set(
-		(1 - fu) * (1 - fv) * p00.x + fu * (1 - fv) * p10.x + (1 - fu) * fv * p01.x + fu * fv * p11.x,
-		(1 - fu) * (1 - fv) * p00.y + fu * (1 - fv) * p10.y + (1 - fu) * fv * p01.y + fu * fv * p11.y,
-		(1 - fu) * (1 - fv) * p00.z + fu * (1 - fv) * p10.z + (1 - fu) * fv * p01.z + fu * fv * p11.z
-	);
+	// Interpolate each row along j, keeping the derivative, then interpolate the four
+	// row results along i. Position, ∂/∂i and ∂/∂j all fall out of the same tensor pass.
+	for (let a = 0; a < 4; a++) {
+		walkCatmullRom(_walkPatch[a * 4], _walkPatch[a * 4 + 1], _walkPatch[a * 4 + 2],
+			_walkPatch[a * 4 + 3], fv, _walkRow[a], _walkRowD[a]);
+	}
+	walkCatmullRom(_walkRow[0], _walkRow[1], _walkRow[2], _walkRow[3], fu,
+		_walkFrame.position, _walkFrame.tangentU);
+	walkCatmullRom(_walkRowD[0], _walkRowD[1], _walkRowD[2], _walkRowD[3], fu,
+		_walkFrame.tangentV, null);
 
-	// Exact derivatives of the bilinear patch, converted from index steps to u/v steps.
-	const du = inst.step_u || 1;
-	const dv = inst.step_v || 1;
-	_walkFrame.tangentU.set(
-		((1 - fv) * (p10.x - p00.x) + fv * (p11.x - p01.x)) / du,
-		((1 - fv) * (p10.y - p00.y) + fv * (p11.y - p01.y)) / du,
-		((1 - fv) * (p10.z - p00.z) + fv * (p11.z - p01.z)) / du
-	);
-	_walkFrame.tangentV.set(
-		((1 - fu) * (p01.x - p00.x) + fu * (p11.x - p10.x)) / dv,
-		((1 - fu) * (p01.y - p00.y) + fu * (p11.y - p10.y)) / dv,
-		((1 - fu) * (p01.z - p00.z) + fu * (p11.z - p10.z)) / dv
-	);
+	// From per-index steps to per-parameter derivatives.
+	_walkFrame.tangentU.scaleInPlace(1 / (inst.step_u || 1));
+	_walkFrame.tangentV.scaleInPlace(1 / (inst.step_v || 1));
 
 	// Same handedness as the shader: normal = cross(tangentU, tangentV).
 	BABYLON.Vector3.CrossToRef(_walkFrame.tangentU, _walkFrame.tangentV, _walkFrame.normal);
@@ -258,13 +306,21 @@ function walkSurveySurface() {
  */
 function initWalkRig(scene) {
 	const rig = new BABYLON.TransformNode("walkRig", scene);
-	rig.rotationQuaternion = null; // Euler angles, fed by Vector3.RotationFromAxis
+	// Quaternion, not Euler: the surface frame is fed in as a basis and must survive
+	// orientations that have no Euler representation.
+	rig.rotationQuaternion = new BABYLON.Quaternion();
 
 	const cam = new BABYLON.UniversalCamera("WalkCamera", BABYLON.Vector3.Zero(), scene);
 	cam.inputs.clear();          // locomotion is ours, not Babylon's
 	cam.parent = rig;
 	cam.minZ = 0.01;
 	cam.fov = 1.2;
+	// Derive the up vector from the camera's own rotation instead of the fixed local
+	// +Y. With a fixed up, the view matrix is built by looking along a direction that
+	// becomes parallel to it as the head pitches towards the surface, and the basis
+	// tips over — the view snaps upside down. Deriving it keeps up perpendicular to
+	// the gaze at every pitch.
+	cam.updateUpVectorFromRotation = true;
 
 	glo.walkRig = rig;
 	glo.walkCamera = cam;
@@ -308,16 +364,26 @@ function startWalk(autopilot = false) {
 	const frame = walkEvalSurface(info, w.u, w.v);
 	if (!frame.valid) return false;
 
-	// Pick the side of the surface that faces away from the centroid, so the character
-	// starts on the outside of the form rather than buried inside it. Reversible with X.
-	_wTmpA.copyFrom(frame.position).subtractInPlace(w.center);
-	w.flip = BABYLON.Vector3.Dot(frame.normal, _wTmpA) < 0 ? -1 : 1;
+	// Everything from here on is world space.
+	const world = glo.ribbon.getWorldMatrix();
+	BABYLON.Vector3.TransformCoordinatesToRef(frame.position, world, _wWorldPos);
+	BABYLON.Vector3.TransformNormalToRef(frame.tangentU, world, _wWorldTu);
+	BABYLON.Vector3.TransformNormalToRef(frame.tangentV, world, _wWorldTv);
+	BABYLON.Vector3.CrossToRef(_wWorldTu, _wWorldTv, _wTmpA);
+	if (_wTmpA.lengthSquared() < 1e-24) return false;
+	_wTmpA.normalize();
+
+	// Land on the side the user was already looking at. Comparing against the surface
+	// centroid instead would be a coin toss on anything flat, since the centroid of a
+	// plane lies *on* the plane. Reversible with X.
+	const eye = glo.orbitCamera ? glo.orbitCamera.position : _wWorldPos;
+	_wTmpB.copyFrom(eye).subtractInPlace(_wWorldPos);
+	w.flip = BABYLON.Vector3.Dot(_wTmpA, _wTmpB) < 0 ? -1 : 1;
+	w.smoothNormal.copyFrom(_wTmpA).scaleInPlace(w.flip);
 
 	// Initial heading: along the u parameter line, projected into the tangent plane.
-	w.heading.copyFrom(frame.tangentU);
-	walkTangentialize(w.heading, frame.normal, frame.tangentV);
-
-	w.smoothNormal.copyFrom(frame.normal).scaleInPlace(w.flip);
+	w.heading.copyFrom(_wWorldTu);
+	walkTangentialize(w.heading, w.smoothNormal, _wWorldTv);
 
 	const cam = glo.walkCamera;
 	cam.minZ = Math.max(w.eyeHeight * 0.01, 1e-4);
@@ -393,17 +459,23 @@ function walkTangentialize(vec, normal, fallback) {
  * Per-frame update of the character and the rig. Called from the render loop in
  * `bab.js` while {@link glo.cameraMode} is `'walk'`.
  *
+ * Everything below the probe works in **world space**: the character's heading and up
+ * axis are world vectors. Doing the metric and the frame there rather than in object
+ * space means `meshTransformations` (including non-uniform scaling) is accounted for
+ * exactly — walking speed is constant in the units the user actually sees.
+ *
  * Order of business:
- *  1. sample the surface under the character (one probe, four vertices);
- *  2. keep the heading tangent to the surface — because the heading is stored in world
- *     space and re-projected each frame, walking forward follows a geodesic rather than
- *     a parameter line: re-projecting a direction onto a moving tangent plane *is*
+ *  1. sample the surface under the character (one probe, sixteen vertices);
+ *  2. build the world tangent frame and keep its orientation continuous;
+ *  3. keep the heading tangent to the surface — because the heading is stored as a
+ *     direction and re-projected each frame, walking forward follows a geodesic rather
+ *     than a parameter line: re-projecting a direction onto a moving tangent plane *is*
  *     discrete parallel transport, so it comes for free;
- *  3. turn the requested world displacement into a (du, dv) step through the first
+ *  4. turn the requested world displacement into a (du, dv) step through the first
  *     fundamental form, so the speed is constant on the surface and not in parameter
  *     space — without this, speed varies by orders of magnitude across a form;
- *  4. integrate the jump along the (smoothed) normal;
- *  5. write the rig pose.
+ *  5. integrate the jump along the smoothed normal;
+ *  6. write the rig pose.
  *
  * @param {boolean} [snap=false] - Skip the temporal smoothing (used on entry).
  */
@@ -417,19 +489,39 @@ function walkUpdate(snap = false) {
 	const frame = walkEvalSurface(info, w.u, w.v);
 	if (!frame.valid) return;
 
-	// --- Normal, oriented to the chosen side and low-pass filtered ---------------
-	_wTmpA.copyFrom(frame.normal).scaleInPlace(w.flip);
+	// --- World frame -------------------------------------------------------------
+	// Tangents are direction vectors, so the upper 3×3 transforms them exactly; crossing
+	// the transformed tangents then yields the correct world normal under any affine
+	// transform, with no inverse transpose needed.
+	const world = glo.ribbon.getWorldMatrix();
+	BABYLON.Vector3.TransformCoordinatesToRef(frame.position, world, _wWorldPos);
+	BABYLON.Vector3.TransformNormalToRef(frame.tangentU, world, _wWorldTu);
+	BABYLON.Vector3.TransformNormalToRef(frame.tangentV, world, _wWorldTv);
+
+	BABYLON.Vector3.CrossToRef(_wWorldTu, _wWorldTv, _wTmpA);
+	const nLen = _wTmpA.length();
+	if (isFinite(nLen) && nLen > 1e-12) _wTmpA.scaleInPlace(1 / nLen);
+	else _wTmpA.copyFrom(w.smoothNormal);
+
+	// Keep the side of the surface continuous. cross(Tu, Tv) reverses wherever the
+	// parameterization does — at a seam, at a degenerate cell, and once per lap on a
+	// Möbius strip — which would snap the view upside down mid-stride. Following the
+	// previous frame's side instead rolls the character over smoothly, which is also the
+	// honest answer on a one-sided surface: after a full lap you really are underneath.
+	if (w.frameReady && !snap && BABYLON.Vector3.Dot(_wTmpA, w.smoothNormal) < 0) {
+		_wTmpA.scaleInPlace(-1);
+	}
+
 	if (snap || !w.frameReady) {
 		w.smoothNormal.copyFrom(_wTmpA);
 		w.frameReady = true;
 	} else {
-		// The surface deforms under the character: recomputing the frame from scratch
-		// every frame makes the camera vibrate. Position stays exact, orientation lags.
+		// The surface deforms under the character, and the patch frame still shifts as
+		// cells are crossed: position stays exact, orientation lags a little.
 		const k = 1 - Math.exp(-dt / WALK.SMOOTH_TAU);
 		w.smoothNormal.addInPlace(_wTmpA.subtractInPlace(w.smoothNormal).scaleInPlace(k));
 		const l = w.smoothNormal.length();
 		if (l > 1e-9) w.smoothNormal.scaleInPlace(1 / l);
-		else w.smoothNormal.copyFrom(frame.normal).scaleInPlace(w.flip);
 	}
 	const up = w.smoothNormal;
 
@@ -452,14 +544,14 @@ function walkUpdate(snap = false) {
 		const q = BABYLON.Quaternion.RotationAxis(up, turn * WALK.TURN_SPEED * dt);
 		w.heading.rotateByQuaternionToRef(q, w.heading);
 	}
-	walkTangentialize(w.heading, up, frame.tangentU);
+	walkTangentialize(w.heading, up, _wWorldTu);
 
 	// --- Metric step: world displacement -> (du, dv) -----------------------------
 	if (forward !== 0) {
 		const speed = w.eyeHeight * WALK.SPEED_EYES * w.speedScale;
-		let dist = forward * speed * dt;
+		const dist = forward * speed * dt;
 
-		const Pu = frame.tangentU, Pv = frame.tangentV;
+		const Pu = _wWorldTu, Pv = _wWorldTv;
 		const E = BABYLON.Vector3.Dot(Pu, Pu);
 		const F = BABYLON.Vector3.Dot(Pu, Pv);
 		const G = BABYLON.Vector3.Dot(Pv, Pv);
@@ -472,8 +564,8 @@ function walkUpdate(snap = false) {
 			let du = (bu * G - bv * F) / det;
 			let dv = (bv * E - bu * F) / det;
 
-			// Bilinear interpolation is only valid inside one cell: never cross more
-			// than half a cell per frame. At sane speeds this never triggers.
+			// The patch is only sampled around one cell: never cross more than half a
+			// cell per frame. At sane speeds this never triggers.
 			const maxDu = WALK.MAX_CELLS_PER_FRAME * (info.inst.step_u || 1);
 			const maxDv = WALK.MAX_CELLS_PER_FRAME * (info.inst.step_v || 1);
 			const over = Math.max(Math.abs(du) / maxDu, Math.abs(dv) / maxDv, 1);
@@ -509,13 +601,13 @@ function walkUpdate(snap = false) {
 
 	if (bounceU || bounceV) {
 		// Mirror the heading about the blocked parameter direction, billiard-style.
-		const axis = _wTmpB.copyFrom(bounceU ? frame.tangentU : frame.tangentV);
+		const axis = _wTmpB.copyFrom(bounceU ? _wWorldTu : _wWorldTv);
 		const aLen = axis.length();
 		if (aLen > 1e-9) {
 			axis.scaleInPlace(1 / aLen);
 			const proj = BABYLON.Vector3.Dot(w.heading, axis);
 			w.heading.subtractInPlace(_wTmpC.copyFrom(axis).scaleInPlace(2 * proj));
-			walkTangentialize(w.heading, up, frame.tangentV);
+			walkTangentialize(w.heading, up, _wWorldTv);
 		}
 	}
 
@@ -534,32 +626,37 @@ function walkUpdate(snap = false) {
 	}
 
 	// --- Rig pose ----------------------------------------------------------------
-	// The probe returns object space; meshTransformations (scaling / rotation /
-	// position) live on the Babylon node, so the world matrix has to be applied. The
-	// normal is obtained by transforming the two tangents and re-crossing them, which
-	// stays correct under non-uniform scaling without needing an inverse transpose.
-	const world = glo.ribbon.getWorldMatrix();
-	BABYLON.Vector3.TransformCoordinatesToRef(frame.position, world, _wTmpA);
-	BABYLON.Vector3.TransformNormalToRef(frame.tangentU, world, _wTmpB);
-	BABYLON.Vector3.TransformNormalToRef(frame.tangentV, world, _wTmpC);
+	// The smoothed normal is what the character actually stands on: using the raw
+	// per-frame normal here would throw away the filtering and reintroduce the jolt at
+	// every cell boundary.
+	_wUp.copyFrom(up);
+	_wFwd.copyFrom(w.heading);
+	walkTangentialize(_wFwd, _wUp, _wWorldTu);
 
-	const upW = BABYLON.Vector3.Cross(_wTmpB, _wTmpC);
-	const upLen = upW.length();
-	if (upLen > 1e-12) upW.scaleInPlace(w.flip / upLen); else upW.copyFrom(up);
+	BABYLON.Vector3.CrossToRef(_wUp, _wFwd, _wRight);
+	if (_wRight.lengthSquared() > 1e-16) {
+		_wRight.normalize();
+		// Re-derive up from right × forward so the basis is exactly orthonormal even
+		// after filtering — an ever-so-slightly skewed basis shears the whole view.
+		BABYLON.Vector3.CrossToRef(_wFwd, _wRight, _wUp);
+		_wUp.normalize();
 
-	const fwdW = BABYLON.Vector3.TransformNormal(w.heading, world);
-	walkTangentialize(fwdW, upW, _wTmpB);
-
-	const rig = glo.walkRig;
-	rig.position.copyFrom(_wTmpA).addInPlace(
-		_wTmpB.copyFrom(upW).scaleInPlace(w.eyeHeight + w.height)
-	);
-
-	const right = BABYLON.Vector3.Cross(upW, fwdW);
-	if (right.lengthSquared() > 1e-16) {
-		right.normalize();
-		rig.rotation = BABYLON.Vector3.RotationFromAxis(right, upW, fwdW);
+		// A quaternion built straight from the basis, never Euler angles: Babylon's
+		// Euler decomposition collapses (and silently drops the roll) whenever the
+		// forward axis lines up with world Y, which a walker on a horizontal surface
+		// hits simply by turning around.
+		BABYLON.Matrix.FromValuesToRef(
+			_wRight.x, _wRight.y, _wRight.z, 0,
+			_wUp.x,    _wUp.y,    _wUp.z,    0,
+			_wFwd.x,   _wFwd.y,   _wFwd.z,   0,
+			0, 0, 0, 1, _wBasis);
+		if (!glo.walkRig.rotationQuaternion) glo.walkRig.rotationQuaternion = new BABYLON.Quaternion();
+		BABYLON.Quaternion.FromRotationMatrixToRef(_wBasis, glo.walkRig.rotationQuaternion);
 	}
+
+	glo.walkRig.position.copyFrom(_wWorldPos).addInPlace(
+		_wTmpB.copyFrom(_wUp).scaleInPlace(w.eyeHeight + w.height)
+	);
 
 	glo.walkCamera.rotation.x = w.pitch;
 	glo.walkCamera.rotation.y = 0;
@@ -587,9 +684,11 @@ function walkHandleKeyDown(e) {
 			stopWalk();
 			return true;
 		case 'x': case 'X':
-			// Swap sides of the surface — useful when the normal points inward.
+			// Swap sides of the surface — useful when the normal points inward. The
+			// smoothed normal carries the side, so flip it directly; the continuity
+			// rule in walkUpdate then locks onto the new side instead of undoing this.
 			w.flip = -w.flip;
-			w.frameReady = false;
+			w.smoothNormal.scaleInPlace(-1);
 			return true;
 		case 'PageUp':
 			w.speedScale = Math.min(w.speedScale * 1.4, 40);

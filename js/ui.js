@@ -923,8 +923,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
      * Initializes and starts the MediaRecorder, sets up the capture canvas,
      * and registers an after-render observer to copy frames from the source canvas.
      * On stop, downloads the recorded video as a file.
+     * @param {Function} [onCaptureStart] - Called once at the true start of capture
+     *   (after the resolution-doubling warmup), just before the recorder begins.
+     *   Used to zero the loop sync references so the recorded span starts here.
      */
-    function startRecording() {
+    function startRecording(onCaptureStart) {
 		bounds = computeBounds();
 		captureCanvas.width = bounds.width;
 		captureCanvas.height = bounds.height;
@@ -975,14 +978,20 @@ function createMeshRecorder(mesh, scene, fps = 60) {
 			);
 		});
 
+		// Zero the loop sync references at the true capture start (after the
+		// warmup), so the very first recorded frame is the loop reference.
+		if (typeof onCaptureStart === 'function') onCaptureStart();
+
 		mediaRecorder.start(1000);
 	}
 
     return {
         /**
          * Starts mesh recording by doubling hardware resolution and beginning capture after 2 frames.
+         * @param {Function} [onCaptureStart] - Forwarded to {@link startRecording}; called
+         *   once when capture actually begins (after the warmup frames).
          */
-        start() {
+        start(onCaptureStart) {
             // Anchor the GUI space to the displayed CSS size before doubling
             // the hardware resolution, to prevent control misalignment.
             glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
@@ -992,7 +1001,7 @@ function createMeshRecorder(mesh, scene, fps = 60) {
             // Wait 2 frames for the resize to stabilize
             scene.onAfterRenderObservable.addOnce(() => {
                 scene.onAfterRenderObservable.addOnce(() => {
-                    startRecording();
+                    startRecording(onCaptureStart);
                 });
             });
         },
@@ -1086,7 +1095,17 @@ function switchRecordingVideo(){
 	if (!glo.video.recording) {
 		glo.video.recording = true;
 		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
-		glo.video.recorder.start();
+		glo.video.recorder.start(() => {
+			// Vrai début de capture (après le warmup qui double la résolution) :
+			// on remet à zéro toutes les références de synchro pour que la boucle
+			// soit mesurée à partir de la première frame réellement enregistrée.
+			// Sinon la rotation et le temps t accumulés pendant le warmup
+			// décalent la boucle de quelques frames.
+			if (glo.video.loopActive) {
+				glo.video.loopRotAccum = 0;
+				glo.clock.reset();
+			}
+		});
 
 		if (glo.loopRecordMode) {
 			glo.video.loopActive = true;

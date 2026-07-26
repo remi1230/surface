@@ -93,227 +93,6 @@ fragmentShaders = [
 
 `,
 `   
-    //Pencil
-    col = .5*vec3(.1875, .25, .333);
-    float n = 16.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-
-
-    float vor = voronoiPos(p*12., .5);
-    float vor2 = voronoiPos(p*4., .5);
-    col += o(p+ti)+vor+vor2;
-
-    col -= pm(.5*tube(col, 2.125));
-    col /= pm(spec(col, 8.*vor));
-
-`,
-`   
-    //Pencil II
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(.125*o(p*8.));
-
-    vec3 paint = baseColor(p);
-    
-    for(float i = 1.; i < 4.; i+=1.){
-        paint = brushLayerAnim(paint, p, 4.*i, 0.60, geoTint, 0.2*i*8., 0.);
-    }
-    
-
-    col *= E*paint;
-
-    col /= absp(tube(paint, E), 2./3.);
-    col /= pm(1./96.*edge(paint, 16.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Pencil Base
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    //p *= absp(.125*o(p*8.));
-
-    vec3 paint = baseColor(p);
-    
-    for(float i = 1.; i < 4.; i+=1.){
-        paint = brushLayerAnim(paint, p, 4.*i, 0.60, geoTint, 0.2*i*8., 0.);
-    }
-    
-
-    col *= E*paint;
-
-    col /= absp(tube(paint, E), 2./3.);
-    col /= pm(1./96.*edge(paint, 16.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Pencil Base II
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(.125*o(p*8.+0.*t/3.));
-
-    vec3 paint = baseColor(p);
-    
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint, p, i*(1.+.025*i), W, geoTint, 0.2*i*12., 0.);
-        col /= absp(tube(paint, 1.+i*.05), i/PI);
-    }
-    
-
-    col *= E*paint;
-
-    
-    col /= pm(1./96.*edge(paint, 16.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Pencil Base III
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(.125*o(p*8.+1.*t/3.));
-
-    vec3 paint = baseColor(p);
-    
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint, p, i*(1.+.025*i), W, geoTint, 0.2*i*12., 1.);
-        col /= absp(.75*tube(paint, 1.+i*.125), i/PI);
-    }
-    
-
-    col *= E*paint;
-
-    col /= pm(1./96.*edge(paint, 16.));
-
-    col = hueRotateYIQ(col, radians(212.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Pencil Base IV
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(.125*o(p*8.+1.*t/3.));
-
-    vec3 paint = baseColor(p*10.);
-    
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint, p, i*(1.+.025*i), W, geoTint, 0.2*i*12., 1.);
-        col /= absp(.75*tube(paint, 1.+i*.125), i/PI);
-    }
-    
-
-    col *= E*paint;
-
-    col /= pm(1./96.*edge(paint, 16.));
-
-    col = hueRotateYIQ(col, radians(212.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Pencil III
-    vec3 p  = vWorldPosition;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-
-    vec3 pt = p * tanh(4.*p);
-
-    mat3 rot = rotAxis(vec3(0., 0., 1.), t*.125);
-
-    // vitesses = 2π·m/T pour boucle parfaite ; ici T = 2π → m = 1, 2, 3
-    vec3 paint = vec3(.5);
-    paint = brushLayerAnim(paint, p, 16.0, 0.60, geoTint, 0.2, 3.0);
-
-    col *= E*paint;
-
-    col /= absp(tube(paint, E), 2./3.);
-    col /= pm(.025*edge(paint, 16.));
-
-`,
-`   
-    //Clean
-    float n = 1.;
-    float nb = opt1 == 0. ? n*.5 : n*1.;
-    vec3 p0 = ((npos(-1.)) * nb);
-    vec3 p  = abs(p0);
-
-    col *= log(absp(m(p*8.)*8., .5));
-
-`,
-`   
-    //Gems
-    float nb = 20.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = p*(tanh(4.*p));
-
-    float speed = 1.;
-
-    float vorS = voronoiPos(p*4., speed);
-    vec4 vorC  = voronoiCellAnim(p, speed);
-
-    float vor = vorC.w;
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., c(vor), vec3(6.), 0., speed);
-
-    col = brush;
-
-    col += 1./16.*o(8.*pv+t*.5);
-
-    col /= 1.25+tube(col*vorS*2., 1./vorS);
-
-    col = 1. - col;
-
-`,
-`   
     //RotP
     col = vec3(.125, .5, .5);
     float nb = PI;
@@ -502,7 +281,7 @@ fragmentShaders = [
     vec3 p  = abs(npos()) * nb;
     col = vec3(k, k, k);
 
-    col += se(p-W*m(p));
+    col += se(p-m(p));
     col *= 1.+tube(col, 1.);
     col *= 1.+.5*spec(col, 1.);
 
@@ -518,7 +297,7 @@ fragmentShaders = [
     col = vec3(k, k, k);
 
     //col += c(64.*exp(p.x)*exp(p.y)*exp(p.z));
-    col += se(ce(p)*p,44., t*8.);
+    col += ce(ce(p)*p,44., t*8.);
     col += spec(p*col, .25);
     
 `,
@@ -750,16 +529,17 @@ fragmentShaders = [
 `,
 `   
     //Art III
-    vec3 p  = npos() / (opt1 == 1. ? 2. : 1.);
+    col = vec3(.125, .5, .5);
+    vec3 p  = npos() / (opt1 == 1. ? .5 : 1.);
     vec3 n  = vNormal / (opt1 == 1. ? .25 : .125);
 
-    col = 1.+1./3.*(c(p*8.));
-    for(float i = 1.; i < 3.; i+=.75){
-		p *= rotAxis(wrap(p, 2.-i), -t/(i+4.));
-		col += m(2.*p*p);
+    for(float i = 0.; i < PI; i+=PI/4.){
+		p = p*rotAxis(p*p, i);
+		col += m(8.*p, PI/4.);
 	}
 
-    col = 1. - col;
+
+    col += tube(col, 1.);
     
 `,
 `   
@@ -775,109 +555,6 @@ fragmentShaders = [
 
     col /= 1.+12.*tube(col, 1.);
     
-    
-`,
-`   
-    //Art V
-    col = E*vec3(2./3., 1./6., 1./4.);
-    float n = 8.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = ((npos()) * nb);
-
-    p = abs(p);
-
-    float ti = t * .125;
-
-    p  = go(p, pm(m(p+t*.125)), .125);
-
-    col *= .25*o(.5*p*pm(o(p*2.)));
-
-    float vor = voronoiPos(.2*col+p*4., 2.);
-    col *= pm(1.*spec(pm(col), pm(vor)));
-    col -= .5*(tube((col), (vor*.25)));
-    
-    
-`,
-`   
-    //Art VI
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(1./10.*o(p*6.+t/E));
-
-    vec3 paint = baseColor(p);
-    float vor = voronoiPos(p*1., .0);
-
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint/(1.+.0125*i), p, 6.6666*i*absp(.1, vor*i/5.), 1.90, geoTint, .2, 0.);
-    }
-    
-    col = paint*E;
-    col /= absp(oe(p*5./3.), 3./5.);
-
-    col = 1. - col;
-    
-    
-`,
-`   
-    //Art VII
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = .5-abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(1./10.*o(p*6.+t/E));
-
-    vec3 paint = baseColor(p);
-    float vor = voronoiPos(p*1., .125);
-
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint/(1.+.0125*i), p/absp(.5*i, .5), i*absp(8.*vor, .125*vor*i/5.), 1.90, geoTint, .2, 0.);
-    }
-    
-    col = paint*5./3.;
-
-    col = 1. - col;
-    
-    
-`,
-`   
-    //Wrot base
-    vec3 p  = npos() / (opt1 == 1. ? 2. : 1.);
-    p = abs(p);
-    
-    for(float i = 0.; i < TWO_PI; i+=TWO_PI/2.){
-        p = wrot(p, -t/64., 2., PI);
-		col += m(p*2.);
-	}
-    
-`,
-`   
-    //Wrot II
-    vec3 p  = npos() / (opt1 == 1. ? 2. : 1.);
-
-    p = abs(p);
-
-    col = vec3(E/PI);
-    for(float i = 1.; i < TWO_PI; i+=TWO_PI/2.166667){
-        p = wrot(p, t/64., i*i/3., PI);
-		col += 1.125/3.+abs(m(p*5.));
-        col /= absp(.075*i*spec(col, 2.), 5./3.);
-	}
-
-    col *= absp(tube(col, .0));
-
-    col = 1. - col;
     
 `,
 `   
@@ -913,15 +590,6 @@ fragmentShaders = [
     
 `,
 `   
-    //1 code line
-    col = vec3(1.6667);
-    float nb = 4.;
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
-
-    col *= tube(p, length(c(pm(p)+t*.125)));
-    
-`,
-`   
     //8 Poles II
     vec3 p = npos() * (opt1 == 0. ? 8. : 4.);
     
@@ -932,17 +600,11 @@ fragmentShaders = [
 `,
 `   
     //Blackboard
-    float nb = 2.;
-    vec3 p = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
+    vec3 p = npos(-1.) * (opt1 == 0. ? 4. : 8.);
     
-    p = pm(p*ol(p*.125, 1., 0.01875));
-    
-    col *= 1.0125 - pm(tube(p*p*.5, mi(p+t*.125, 2., 1.667)));
-
-    col *= 1. + 2.*tube(col*m(col*8.), 1.);
-
-    col *= 1.+.5*palette(length(col));
-    col /= 1. + .125*eqPos(mi(col*.5, 3., 2.), oi(col*.5, 3., 5.));
+    for (float i = 1.; i < 24.; i+=.58333) {
+        col /= 1.1125+m(p*i);
+    }
     
 `,
 `   
@@ -1039,16 +701,51 @@ fragmentShaders = [
     
 `,
 `   
-    //GoodView
-    col = .5*vec3(.1875, .25, .333);
-    float n = 6.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
+    //GoodWithO
+    float nb = 6.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
+
+    vec3 val = eqPos(length(c(p)), length(c(p)));
+
+    col *= 1. + val;
+
+    col *= 1. + 6.* tube(col, 6.);
+
+    col = 1. - col;
+
     
-    col += m(p);
+`,
+`   
+    //GoodWithO II
+    float nb = 8.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
 
-    col = est(col, PI, W*E, E);
+    vec3 val = eqPos(o(p), length(c(p)));
 
+    col /= 1. + val;
+
+    col *= 1. + 6.* tube(col, 6.);
+
+    col = hueRotateYIQ(col, radians(144.));
+    
+    
+`,
+`   
+    //GoodWithO III
+    float nb = 12.;
+    vec3 p = npos() * nb;
+    u *= nb, v *= nb;
+
+    vec3 val = eqPos(o(p), length(s(p)));
+
+    col /= 1. + val;
+
+    col *= 1. + 6.* tube(col, 6.);
+
+    col = hueRotateYIQ(col, radians(144.));
+    
     
 `,
 `   
@@ -1312,56 +1009,13 @@ fragmentShaders = [
 
 `,
 `
-    //Stained glass
-    col = vec3(1.6667);
-    float nb = 4.;
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
+    //Butterfly
+    vec3 pos    = (opt1 == 0.0 ? vPosition*5./12. : npos()) * P / 24.0;
+    float c     = P/4.0;
+    float val   = hc(pos, o(pos, c, -time), 0.25*time);
+    vec3 valCol = rainbop(val*(0.5*Ts(-0.0625)), rainbop(.5+Ts(0.0625), 0.25*pos)*val+time*0.0625);
 
-    col *= .05 + tube(p, 1.667*length(c(pm(p*1.667)+t*.125)));
-
-    col *= rainbop(length(col), c(p*8.)*p*.5);
-
-    col *= pm(3.*col);
-
-`,
-`
-    //Stained glass II
-    col = vec3(1.6667);
-    float nb = 6.666667;
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5) * nb;
-
-    p = pm(p);
-    col *= tube(p, m(p*.25+g(p*.33)+t*.125));
-
-    col /= pm(rainbop(length(col), c(p*8.)*p*.5));
-
-    col *= 1.25-pm(eqPos(o(col*p*.25), m(col*p*.125)));
-
-    col *= pm(3.*col);
-
-`,
-`
-    //Stained glass III
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(1./10.*o(p*14.+t*.25));
-
-    vec3 paint = baseColor(p+0.*o(abs(p)*8.));
-    float vor = voronoiPos(p*1., .0);
-
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint/(1.+.0125*i), p, 2.*i*absp(.1, vor*i/5.), 1.90, geoTint, .2, 0.);
-    }
-    
-    col = paint;
-    col *= absp(m(p*8.), .03125);
+    col = 1.0 - vec3(val > 0.0 ? valCol : 1.0-valCol);
 
 `,
 `
@@ -1384,98 +1038,6 @@ fragmentShaders = [
     vec3 ps = nspos(-1.);
 
     col += .5-o(ps*16.);
-
-`,
-`
-    //FBM
-    float nb = 1. * (opt1 == 0. ? 1. : .5);
-    vec3 p = abs(npos()) * nb;
-
-    float ti = t/3.;
-
-    float fb = fbm(vec2(o(p*8.)));
-
-    col = vec3(0.5);
-    col -= o(8.*p*wrap(fb, 7./12.*fb));
-
-    col -= smoothstep(.5, .5, col);
-
-`,
-`
-    //FBM guess
-    float nb = 1. * (opt1 == 0. ? 1. : .5);
-    vec3 p = abs(npos()) * nb;
-
-    float ti = t/3.;
-
-    float fb = fbm(vec2(o(p*8.), t+c(t)));
-
-    col = vec3(0.5);
-    col -= o(8.*p*wrap(fb, 7./12.*fb));
-
-    col -= smoothstep(.5, .5, col);
-    col -= max(smoothstep(.2, .6, col), smoothstep(.8, 1.125, col));
-    col *= 1.+max(smoothstep(.2, .6, col), smoothstep(.8, 1.125, col));
-
-`,
-`
-    //FBM target
-    float nb = 1. * (opt1 == 0. ? 1. : .5);
-    vec3 p = abs(npos()) * nb;
-
-    float ti = t/3.;
-
-    float val = length(c(p*8.));
-    vec3 valv = vec3(val);
-
-    float fb = fbm(vec2(val, tube(valv, W)));
-
-    col = vec3(0.5);
-    col -= os(8.*p*fb);
-
-    col -= smoothstep(.5, .5, col);
-    col -= max(smoothstep(.2, .6, col), smoothstep(.8, 1.125, col));
-
-`,
-`
-    //FBM wrot
-    float nb = 1. * (opt1 == 0. ? 1. : .5);
-    vec3 p = abs(npos()) * nb;
-
-    float ti = t/3.;
-
-    float val = length(c(p*8.));
-    vec3 valv = vec3(val);
-
-    float fb = fbm(vec2(val, tube(valv, W)));
-
-    vec3 pw = wrot(p, 0., 1., PI/2.);
-
-    col = vec3(0.5);
-    col -= os(8.*pw*fb);
-
-    col -= smoothstep(.5, .5, col);
-    col -= max(smoothstep(.2, .6, col), smoothstep(.8, 1.125, col));
-
-`,
-`
-    //FBM wrot II
-    float nb = 1. * (opt1 == 0. ? 1. : .5);
-    vec3 p = abs(npos()) * nb;
-
-    float ti = t/3.;
-
-    vec3 pw  = wrot(p, 0., 1., -t/3.);
-    float fb = fbm(vec2(tube(pw, 4.), tube(pw, 4.)));
-
-    float vcol1 = m(16.*pw*fb-t/3.);
-    float vcol2 = o(16.*pw*fb-t/3.);
-
-    col = vec3(.45, .52, .55);
-    col -= min(vcol1, vcol2);
-
-    col -= smoothstep(.5, .5, col);
-    col -= max(smoothstep(.2, .6, col), smoothstep(.8, 1.125, col));
 
 `,
 `
@@ -1540,7 +1102,7 @@ fragmentShaders = [
      
 `,
 `
-    //Butterfly
+    //Stained glass
     vec3 pos = npos() * P / (opt1 == 0. ? 32. : 96.);
     col -= m(ea(pos*vNormal), 4., time);
     col *= o(la(pos), 4., time);
@@ -1703,110 +1265,6 @@ fragmentShaders = [
 
 `,
 `   
-    //Ara II
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    col = vec3(.5);
-
-    float ti = .5*PI + t * PI / 50.;
-
-    col *= mc(p, ms(p+ti)*2., oe(p*.5)*8., .0);
-
-    col /= absp(est(col, E, 1.), .075);
-    col -= .5*cpalette(m(col), p);
-
-`,
-`   
-    //MSC
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    col = vec3(.5);
-
-    col *= 2./3. + msc(p, o(p*absp(c(p*2.)), 2./3.)*2., ms(p*c(p*.5))*8., .125);
-
-    col /= absp(est(exp(col*.03125), 2.76667, PI), .075);
-    col *= absp(cpalette(m(col*4.), p), 2./3.);
-
-    col = hueRotateYIQ(col, radians(333.));
-
-    col = (col - 0.5) * 1.25 + 0.5;
-
-`,
-`   
-    //Ccol
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.-abs(p0);
-
-    col = vec3(.5);
-
-    float val = oe(p*10./3., 1., 0.);
-
-    col *= val;
-
-    col = log(absp(ccol(
-        col,
-        c(col*4.),
-        ms(val*c(p*8.))*col
-    ), 2./3.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Ccol II
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.-abs(p0);
-
-    col = vec3(.5);
-
-    vec3 val = (1.*mp(p * 8. * o(p*8.)));
-
-    col = val;
-
-    col = log(absp(ccol(
-        col,
-        col,
-        col*.125
-    ), 2./3.));
-
-    col = 1. - col;
-
-`,
-`   
-    //Ccol III
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.-abs(p0);
-
-    col *= o(p*4.)*soi(p*4., 2., 2.);
-
-    col /= 1./6.+ccol(
-        col*2./3.,
-        48.*mp(col*tube(col, 8.)),
-        col*col
-    );
-
-`,
-`   
     //Glowy
     vec3 pos = .42 * npos() * (1.5*P+2.) / (opt1 == 0.0 ? 2.0 : 6.0);
 
@@ -1850,209 +1308,18 @@ fragmentShaders = [
     
 `,
 `   
-    //Glowy IV
-    float n = 2.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = abs(p0);
-
-    float ti = t * .5;
-
-    p *= absp(.125*o(p*8.+t*.25));
-
-    vec3 paint = baseColor(p+0.*o(abs(p)*8.));
-    float vor = voronoiPos(p*16., .0);
-
-    for(float i = 1.; i < 6.; i+=1.){
-        paint = brushLayerAnim(paint/(1.+.0125*i), p, 2.*i*absp(.1, 0.), 1.90, geoTint, 0.2, 0.);
-    }
-    
-    col = paint;
-    
-    col *= .125+pm(1./48.*edge(paint, 16.));
-    
-`,
-`   
-    //Brush pattern
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-
-    float val = o(p*12.+t/3.);
-
-    col += val;
-
-    vec3 brush = 1./3.*brushLayerAnim(col-2.*tube(col, 1.), p0*val, 6., E, 3.*col, .2, 3.);
-    brush /= brushLayerAnim(col-1.*tube(col, 12.), p*val, 2., E, 3.*col, .2, 3.);
-
-    col = ccol(
-        brush*2.,
-        1./6.*c(brush*6.),
-        brush
-    );
-    
-`,
-`   
-    //Brush pattern II
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-                         // position monde
-    vec3 tint = mix(vec3(1.0), col, 0.8);        // ex. dérivé de K ou de N
-
-    p0 *= o(p*8.+t/3.);
-
-    col = baseColor(p0);                                      // imprimatura
-    col = brushLayerAnim(col, p0,  2.0, 0.95, tint, 0.40, 0.50);  // masses
-    col = brushLayerAnim(col, p0,  5.0, 0.80, tint, 0.16, 0.75);  // modelé
-    col = brushLayerAnim(col, p0, 12.0, 0.55, tint, 0.07, 1.10);  // touches fines
-
-
-    col *= .125+edge(col, .5);
-    col -= 1.+tube(col, 4.);
-    
-`,
-`   
-    //Brush pattern III
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-                         
-    vec3 tint = mix(vec3(1.0), col, 0.8);
-
-    p0 *= o(p*8.+1.*t/3.);
-
-    col = .05*baseColor(p0);
-    
-    float cf = 3./6.*absp(la(ol(col*2.)));
-    
-    col = brushLayerAnim(col, p0, 24., .125, tint-cf, E, .0);
-    col = brushLayerAnim(col, p0,  6., .5, tint-cf, .0, 0.5);
-    col = brushLayerAnim(col, p0,  2., .5, tint-cf, .0, 0.5);
-    col *= brushLayerAnim(col, p0, 4., .5, tint-cf, .0, .0);
-    
-    col *= .125+edge(col, .5);
-    col = ccol(col);
-    
-`,
-`   
-    //Fract pattern
-    float n = 1.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-                         
-    vec3 tint = mix(vec3(1.0), col, 0.8);
-
-    float val1 = wrap(o(p), W);
-    float val2 = 3.6667*ms(p*3.);
-
-    float val = mix(val1, val2, o(p*8.+t/3.));
-
-    p0 *= val;
-
-    col += m(p0*8.);
-
-
-    if(fract(val/12.) > fract(length(col))){ col.x = 12.; }
-    
-`,
-`   
-    //Fract pattern II
-    float n = 5./3.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-
-    p = wrap(p, .75*maxv(p));
-
-    float val = oe(p*5., 1., t);
-                         
-    col *= val;
-
-    col -= .5*absp(palette(length(col)), 2./3.);
-    
-`,
-`   
-    //Fract pattern III
-    float n = 5./3.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p0 = ((npos()) * nb);
-    vec3 p  = 1.+abs(p0);
-
-    p = wrap(p, absp(.75*maxv(p), -.75));
-                         
-    col /= 2./3./m(p*8.+t);
-
-    col *= .5 + cpalette(0., p);
-
-    col += la(col)/E;
-    
-`,
-`   
     //Harlequin
-    float nb = 16.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
+    vec3 p = npos(-1.);
 
-    vec3 pv = abs(p);
+    p -= .5*cpow(o(p*.5), hc(p*2.));
+    
+    col *= tube(p*.25, E);
 
-    vec4 vorC = voronoiCellAnim(p, 2.);
-
-    float vor = vorC.w;
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., vor, vec3(E), 1., 2.);
-
-    col = vec3(1.);
-    col *= brush;
+    col = rainbop(m(col*2.), 22.5*col);
 
 `,
 `   
     //Harlequin II
-    float nb = 16.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = abs(p);
-
-    float vorS = voronoiPos(p, 1.);
-
-    vec4 vorC = voronoiCellAnim(p, 2.);
-
-    float vor = vorC.w-vorS;
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., vor, vec3(6.), 0., 2.);
-
-    col = vec3(1.);
-    col *= brush;
-
-`,
-`   
-    //Harlequin III
-    float nb = 16.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = abs(p);
-
-    float vorS = voronoiPos(p, 1.);
-    vec4 vorC  = voronoiCellAnim(p, 2.);
-
-    float vor = vorC.w-.5*c(vorS);
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., vor, vec3(6.), 0., 2.);
-
-    col = vec3(1.);
-    col *= brush;
-
-`,
-`   
-    //Harlequin IV
     vec3 p = npos()*PI;
 
     col += .333*exp(PI*c(p));
@@ -2109,296 +1376,25 @@ fragmentShaders = [
     
     
     
-`,
+    `,
 `
     //Voronoi
-    float nb = 8.;
-    vec3 p   = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
+    vec2 st = vUV;
+    vec3 color = vec3(.0);
 
-    col *= voronoiPos(p , 0.6);
+    // Scale
+    vec2 scale = vec2(P, P*0.5);
+    st *= scale;
 
-`,
-`
-    //Voronoi Orange
-    float n = 1.;
-    float nb = opt1 == 0. ? n*.5 : n*1.;
-    vec3 nrm = normalize(vNormal);
-    vec3 geoTint = vec3(0.6) + 0.4 * nrm;
-    vec3 p0 = ((npos(-1.)) * nb);
-    vec3 p  = abs(p0);
+    vec2 i_st = floor(st);
+    vec2 f_st = fract(st);
 
-    vec3 pw = wrap(p-t*.0125, 6.);
+    float m_dist = 1.0 - voronoi(i_st, f_st, scale);
 
-    float vor = 1.;
-    for(float i = 1.; i <= 4.; i++){
-        vor *= (2./(3.+i*.5))*log(4.*i*voronoiPos(p0*i*5., 1.));
-    }
+    float minBrightness = 0.333;
+    m_dist = minBrightness + (1.0 - minBrightness) * m_dist;
 
-    col += 1./2.25*spec(col, 3.*cos(2./3.*vor+PI*log(col*12.+vor*E)), 5./3.);
-
-`,
-`
-    //Voronoi Harlequin
-    float nb = 32.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = p*(tanh(4.*p));
-
-    //float vorS = voronoiPos(p, 1.);
-    vec4 vorC  = voronoiCellAnim(p, 2.);
-
-    float vor = vorC.w;
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., c(vor), vec3(6.), 0., 2.);
-
-    col = brush;
-
-    col += o(pv*.5+t*.5);
-
-    col = 1. - col;
-
-`,
-`
-    //Voronoi Harl Wavy
-    float nb = 12.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = p*(tanh(4.*p));
-
-    float speed = 1.;
-
-    float vorS = voronoiPos(p*4., speed);
-    vec4 vorC  = voronoiCellAnim(p, speed);
-
-    float vor = vorC.w;
-    vec3 vorv = vorC.xyz;
-
-    vec3 brush = brushLayerAnim(vec3(0.), vorv, 1., c(vor), vec3(6.), 0., speed);
-
-    col = brush;
-
-    col += .1*o(8.*pv+t*.5);
-
-    col /= 1.25+tube(col*vorS*2., 1./vorS);
-
-    col = 1. - col;
-
-`,
-`
-    //VorInVor
-    float nb = 6.;
-    vec3 p = npos(-1.) * (opt1 == 1. ? nb : nb*.5);
-
-    vec3 pv = p*(tanh(4.*p));
-
-    float speed = .75;
-
-    float vorS = voronoiPos(p*8., speed);
-    vec4 vorC  = voronoiCellAnim(p, speed);
-
-    float vor = vorC.w;
-    vec3 vorv = vorC.xyz;
-    float lv  = length(vorv);
-
-    vec3 brush = brushLayerAnim(vec3(vorS, vorS, vorS), vorv, 1., vor*lv*.333, vec3(5., 5., 5.), 0., speed);
-
-    col = brush;
-
-    col /= 1.+tube(col, lv);
-    col *= 1.+1./300.*edge(col, lv);
-
-    col = 1. - col;
-
-`,
-`
-    //Voronoi II
-    float nb = 8.;
-    vec3 p   = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
-
-    p = pm(p);
-    col *= voronoiPos(p , 0.6) + o(p+t);
-
-
-`,
-`
-    //Voronoi III
-    col = .5*vec3(.1875, .25, .333);
-    float n = 24.;
-    float nb = opt1 == 0. ? n*.5 : n*1.;
-    vec3 p0 = ((npos(-1.)) * nb);
-    vec3 p  = abs(p0);
-
-    float vor =  voronoiPos(p0, 1.);
-
-    col += (cpalette(vor, col*col*3.));
-
-
-`,
-`
-    //Voronoi IV
-    col = .5*vec3(.1875, .25, .333);
-    float n = 3.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    for(float i =1.; i < 5.; i+=1.){
-        float vor = voronoiPos(p*(pm(msi(p+t/(4.*i), 2., 2.))), .5);
-        col *= c(.5*vor/i);
-        col *= .888+tube(col, i*.111);
-        col *= rainbop(vor, col*c(col*4.));
-        float lcol = length(col);
-        col *= 1.+.888*eqPos(c(lcol*i*.5), i*.33);
-    }
-
-
-`,
-`
-    //Voronoi V
-    col = .5*vec3(.1875, .25, .333);
-    float n = 12.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float vorE = exp(voronoiPos(p, .5));
-    float vorL = log(voronoiPos(p, .5)); 
-
-    col /= (o(p*pm(mix(vorE*.5, vorL*.5, Ts(.5)))));
-
-
-`,
-`
-    //Voronoi VI
-    col = .5*vec3(.1875, .25, .333);
-    float n = 24.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float vor = voronoiPos(p+o(p), .5);
-
-    col *= -8.*c(vor*3.6667);
-
-
-`,
-`
-    //Voronoi Sun
-    col = vec3(.5, .0888, .41667);
-    float nb = 1.;
-    vec3 p   = npos(-1.) * (opt1 == 0. ? nb : nb*2.);
-    vec3 ps  = nspos(-1.) * (opt1 == 0. ? nb : nb*2.);
-
-    vec3 pa = pm(p);
-
-    for(float i = 1.; i < 5.; i+=1.){
-        col /= .5 + voronoiPos(p, .5);
-        
-        p*=PI;
-    }
-
-    col *= pm(cpow(col, PI*1.));
-    col = hueRotateYIQ(col, radians(312.));
-    col = (col - 0.5) * 1.12 + 0.5;
-
-
-`,
-`
-    //P, pa , po
-    col = .5*vec3(.1875, .25, .333);
-    float n = 8.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float ti = t * .125;
-
-    vec3 pa = abs(p);
-    vec3 po = pm(p);
-
-    col += m(p);
-    col += m(pa);
-    col += m(po);
-
-
-`,
-`
-    //P, pa , po II
-    col = .5*vec3(.1875, .25, .333);
-    float n = 12.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float ti = t * .125;
-
-    vec3 pa = abs(p);
-    vec3 po = pm(p);
-
-    col += m(go(p, .1667, .333)+ti);
-    col *= o(go(pa, .5, .25)+ti);
-    col -= m(go(po, .333, .666)+ti);
-
-    col += .01*edge(col, .5);
-
-
-`,
-`
-    //P, pa , po III
-    col = E*vec3(1./2., 1./4., 1./3.);
-    float n = 12.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float ti = t * .125;
-
-    vec3 pa = abs(p);
-    vec3 po = pm(p);
-
-    col += m(p+t*.5);
-    col += m(2.*p+t*.75);
-    col += m(p+t*.25);
-
-    col -= tube(col, .5);
-    col += .01*edge(col, .5);
-    col += tube(col, 1.5);
-
-
-`,
-`
-    //Pinkclass
-    col = E*vec3(1./2., 1./4., 1./3.);
-    float n = 8.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float ti = t * .125;
-
-    vec3 pa = abs(p);
-    vec3 po = pm(p);
-
-    float vor = voronoiPos(p, .5);
-
-    col += m(p);
-
-    col -= tube(col, 1.);
-    col += .01*edge(col, 1.5);
-    col += tube(col, 1.5);
-
-
-`,
-`
-    //Pinkclass-GoM
-    col = E*vec3(2./3., 1./6., 1./4.);
-    float n = 8.;
-    float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
-
-    float ti = t * .125;
-
-    p = go(p, m(p+t*.125), .125);
-
-    col *= o(p);
-
-    float vor = voronoiPos(p*5., 2.);
-    col *= pm(1.*tube(col, 6.*vor));
-    col *= pm(1.*spec(col, E*vor));
+    col = vec3(m_dist, m_dist*0.35, m_dist*0.07);
 
 
 `,
@@ -2594,6 +1590,40 @@ fragmentShaders = [
     col = pow(col, vec3(1.0 / 2.2));
 
 `,
+`
+   // SDF Raymarch (plan) — mets X=u, Y=v (Z=0) et eteins la lampe. opt1 = sol.
+   // Le maillage sert d'ecran : on tire un rayon camera -> fragment et on
+   // raymarche la scene 3D (sdfScene, editable dans getFragmentUtilsGLSL).
+   vec3 ro = cameraPosition;
+   vec3 rd = normalize(vWorldPosition - cameraPosition);
+   col = renderScene(ro, rd, col);
+`,
+`
+   // SDF Decor — billes 3D reparties selon la parametrisation (u,v) de la surface.
+   // Une bille par cellule (u,v) => aucun artefact de "reseau 3D" / decoupe sur
+   // les surfaces courbes (rayon = fraction de cellule, jamais de chevauchement).
+   // opt2 = densite, opt3 = rayon. Lampe 💡 de preference eteinte.
+   vec2  dens = vec2(floor(20.0 + 40.0*opt2), floor(10.0 + 20.0*opt2)); // billes u / v
+   vec2  g    = fract(vUV * dens) - 0.5;           // position dans la cellule
+   float rr   = 0.30 + 0.15 * opt3;                // rayon (fraction de cellule < 0.5)
+   float rho  = length(g);
+   if (rho < rr) {
+       vec3 nrm  = normalize(vNormal);
+       vec3 ref  = abs(nrm.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+       vec3 tang = normalize(cross(ref, nrm));      // repere tangent continu
+       vec3 btan = cross(nrm, tang);
+       float hh  = sqrt(max(rr*rr - rho*rho, 0.0));
+       vec3  bn  = normalize(tang*g.x + btan*g.y + nrm*hh); // normale demi-sphere
+       vec3  view= normalize(cameraPosition - vWorldPosition);
+       float dif = clamp(dot(bn, view), 0.0, 1.0);  // eclairage frontal (headlight)
+       float spe = pow(dif, 30.0);
+       vec2  cid = floor(vUV * dens);               // identifiant de bille -> couleur
+       vec3  base= 0.5 + 0.5*cos(6.2831*(cid.x*0.11 + cid.y*0.17) + vec3(0.0, 2.1, 4.2));
+       vec3  ball= base*(0.25 + 0.75*dif) + 0.5*spe;
+       float aa  = smoothstep(rr, rr - 0.03, rho);
+       col = mix(col, ball, aa);
+   }
+`,
 
 ];
 
@@ -2626,19 +1656,6 @@ vec3 nspos(float n){ return opt1 == 1.0 ? normalize(vec3(vSpherePos.x, vSpherePo
 float Ts(float c){ return 0.49999*sin(c*time)+0.5; }
 float Tc(float c){ return 0.49999*cos(c*time)+0.5; }
 
-vec3 absp(vec3 vect){
-    return 1.0 + abs(vect);
-}
-vec3 absp(vec3 vect, float val){
-    return val + abs(vect);
-}
-float absp(float val){
-    return 1.0 + abs(val);
-}
-float absp(float val1, float val2){
-    return val2 + abs(val1);
-}
-
 // k = raideur du palier : 1. = linéaire (aucun palier), grand = paliers longs
 float plateau(float s, float k){
     float i = floor(s);
@@ -2662,160 +1679,13 @@ float nbTrajectory(float tm, float spd, float hld){
     return mix(keys[i], keys[j], t);
 }
 
-float hash31(vec3 p) {
-    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
-}
-
-// Hash 3D → 3D, déterministe par cellule
-vec3 hash33(vec3 pt) {
-    pt = vec3(dot(pt, vec3(127.1, 311.7,  74.7)),
-              dot(pt, vec3(269.5, 183.3, 246.1)),
-              dot(pt, vec3(113.5, 271.9, 124.6)));
-    return fract(sin(pt) * 43758.5453123);
-}
-
-// Voronoï 3D : renvoie .xyz = centre (seed) de la cellule gagnante
-// dans le MÊME espace que pt, .w = distance F1.
-// jit ∈ [0,1] : 0 = grille régulière, 1 = jitter maximal.
-vec4 voronoiCell(vec3 pt, float jit) {
-    vec3 base = floor(pt);
-    vec3 frc  = fract(pt);
-
-    float dMin = 8.0;
-    vec3 seedWin = vec3(0.0);
-
-    for (int k = -1; k <= 1; k++)
-    for (int j = -1; j <= 1; j++)
-    for (int i = -1; i <= 1; i++) {
-        vec3 nb   = vec3(float(i), float(j), float(k));      // cellule voisine
-        vec3 offs = nb + jit * hash33(base + nb);            // seed en espace cellule
-        vec3 diff = offs - frc;
-        float d2  = dot(diff, diff);                          // dist² (évite 27 sqrt)
-        if (d2 < dMin) {
-            dMin = d2;
-            seedWin = base + offs;                            // seed en espace domaine
-        }
-    }
-    return vec4(seedWin, sqrt(dMin));
-}
-
-// Palette cosinus (iq) : t ∈ ℝ → couleur, continue, cyclique
-vec3 paletteIQ(float tt, vec3 aa, vec3 bb, vec3 cc, vec3 dd) {
-    return aa + bb * cos(6.28318530718 * (cc * tt + dd));
-}
-
-// baseColor : "l'image vraie" — fonction PURE de la position monde.
-// Doit être évaluable n'importe où (centres de cellules inclus).
-vec3 baseColor(vec3 pt) {
-    // champ scalaire directeur : ici une ondulation douce multi-axes
-    float fld = 0.5 * sin(pt.x * 1.7)
-              + 0.3 * sin(pt.y * 2.3 + 1.0)
-              + 0.2 * sin(pt.z * 3.1 + 2.0);
-
-    // rampe entre tes deux couleurs d'interface, cohérent avec ton pipeline
-    vec3 ramp = mix(meshBg, meshFg, fld * 0.5 + 0.5);
-
-    // enrichissement chromatique optionnel : palette cyclique superposée
-    vec3 tint = paletteIQ(fld,
-        vec3(0.5), vec3(0.35),
-        vec3(1.0, 1.0, 0.8), vec3(0.0, 0.15, 0.25));
-
-    return mix(ramp, tint, 0.35);
-}
-
-// ---- Une couche de touches
-vec3 brushLayer(vec3 paint, vec3 pt, float scale, float coverage, vec3 geoTint) {
-    vec4 cell = voronoiCell(pt * scale, 0.9);
-    vec3 strokeColor = baseColor(cell.xyz / scale);
-
-    // grain : chaque touche dévie légèrement
-    strokeColor += (hash33(floor(cell.xyz)) - 0.5) * 0.12;
-
-    // modelé géométrique léger sous la peinture
-    strokeColor = mix(strokeColor, strokeColor * geoTint, 0.5);
-
-    float mask = smoothstep(0.45, 0.25, cell.w) * coverage;
-    return mix(paint, strokeColor, mask);
-}
-
-// Voronoï 3D ANIMÉ : .xyz = seed gagnant (même espace que x), .w = F1
-vec4 voronoiCellAnim(vec3 x, float speed) {
-    vec3 n = floor(x), f = fract(x);
-    float md = 8.0;
-    vec3 seedWin = vec3(0.0);
-
-    for (int kk=-1; kk<=1; kk++)
-    for (int jj=-1; jj<=1; jj++)
-    for (int ii=-1; ii<=1; ii++) {
-        vec3 g    = vec3(float(ii), float(jj), float(kk));
-        vec3 cell = n + g;
-        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
-        vec3 seed = 0.5 + 0.35*sin(speed*time + 6.2831853*rnd + vec3(0.0, 2.094, 4.189));
-        vec3 r    = g + seed - f;
-        float dSqr = dot(r, r);
-        if (dSqr < md) {
-            md = dSqr;
-            seedWin = cell + seed;    // position absolue du seed animé
-        }
-    }
-    return vec4(seedWin, sqrt(md));
-}
-
-vec3 brushLayerWarped(vec3 paint, vec3 pt, float scale, float coverage,
-                      vec3 geoTint, float warpAmp) {
-    // warp centré : la couleur du fond déplace le domaine, sans biais
-    vec3 warp = (baseColor(pt) - 0.5) * warpAmp;
-    vec4 cell = voronoiCellAnim((pt + warp) * scale, 0.9);
-
-    vec3 strokeColor = baseColor(cell.xyz / scale - warp);  // désindexer le warp
-    strokeColor += (hash33(floor(cell.xyz)) - 0.5) * 0.12;
-    strokeColor = mix(strokeColor, strokeColor * geoTint, 0.5);
-
-    float mask = smoothstep(0.45, 0.25, cell.w) * coverage;
-    return mix(paint, strokeColor, mask);
-}
-
 float tube(vec3 col, float nb){
     vec3 po = fract(col * nb) - 0.5;
     return min(abs(po.x), min(abs(po.y), abs(po.z)));
 }
 
-vec3 brushLayerAnim(vec3 paint, vec3 pt, float scale, float coverage,
-                    vec3 geoTint, float warpAmp, float speed) {
-    vec3 warp = (baseColor(pt) - 0.5) * warpAmp;
-    vec4 cell = voronoiCellAnim((pt + warp) * scale, speed);
-
-    vec3 strokeColor = baseColor(cell.xyz / scale - warp);
-    strokeColor += (hash33(floor(cell.xyz)) - 0.5) * 0.12;
-    strokeColor = mix(strokeColor, strokeColor * geoTint, 0.5);
-
-    float mask = smoothstep(0.45, 0.25, cell.w) * coverage;
-    return mix(paint, strokeColor, mask);
-}
-
-float tubeRel(vec3 pt, float nb, float cWidthPx){
-    vec3 q = pt * nb;
-    vec3 w = max(vec3(fwidth(q.x), fwidth(q.y), fwidth(q.z)), vec3(1e-6));
-    vec3 d = abs(fract(q) - 0.5) / w;                     // distance en pixels, par axe
-    float wmax = max(w.x, max(w.y, w.z));
-    float fade = 1.0 - smoothstep(0.30, 0.55, cWidthPx * wmax);
-    return min(d.x, min(d.y, d.z)) / max(fade, 1e-3);
-}
-
-float tubeR(vec3 pt, float nb){
-    vec3 q = pt * nb;
-    vec3 w = max(vec3(fwidth(q.x), fwidth(q.y), fwidth(q.z)), vec3(1e-6));
-    vec3 d = abs(fract(q) - 0.5) / w;                     // distance en pixels, par axe
-    float wmax = max(w.x, max(w.y, w.z));
-    float fade = 1.0 - smoothstep(0.30, 0.55, 0.);
-    return min(d.x, min(d.y, d.z)) / max(fade, 1e-3);
-}
-
 vec3 spec(vec3 col, float coeff){
     return sin(col * PI * 6.0) * 0.1 + vec3(sin(col.r * 10.0), sin(col.g * 10.0 + 2.0), sin(col.b * 10.0 + 4.0)) * coeff;
-}
-vec3 spec(vec3 col, vec3 scoeff, float coeff){
-    return sin(col * PI * 6.0) * 0.1 + vec3(sin(col.r * scoeff.x), sin(col.g * scoeff.y + 2.0), sin(col.b * scoeff.z + 4.0)) * coeff;
 }
 
 vec3 post(vec3 col, float levels, float coeff){
@@ -3063,6 +1933,10 @@ float hash21(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
+float hash31(vec3 p) {
+    return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
+}
+
 float Star(vec2 uv, float flare){
     float d = length(uv);
   	float m = sin(0.025*1.2)/d;  
@@ -3190,38 +2064,6 @@ float voronoi(vec2 i_st, vec2 f_st, vec2 scale){
     return m_dist;
 }
 
-float voronoiPos(vec3 x, float speed){
-    vec3 n = floor(x), f = fract(x);
-    float md = 8.0;
-    for (int k=-1;k<=1;k++)
-    for (int j=-1;j<=1;j++)
-    for (int i=-1;i<=1;i++){
-        vec3 g    = vec3(float(i),float(j),float(k));
-        vec3 cell = n + g;
-        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
-        vec3 seed = 0.5 + 0.5*sin(speed*time + 6.2831*rnd);
-        vec3 r    = g + seed - f;
-        md = min(md, dot(r,r));
-    }
-    return sqrt(md);
-}
-float voronoiPos(vec3 x){
-    float speed = 0.;
-    vec3 n = floor(x), f = fract(x);
-    float md = 8.0;
-    for (int k=-1;k<=1;k++)
-    for (int j=-1;j<=1;j++)
-    for (int i=-1;i<=1;i++){
-        vec3 g    = vec3(float(i),float(j),float(k));
-        vec3 cell = n + g;
-        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
-        vec3 seed = 0.5 + 0.5*sin(speed*time + 6.2831*rnd);
-        vec3 r    = g + seed - f;
-        md = min(md, dot(r,r));
-    }
-    return sqrt(md);
-}
-
 float truchet(vec2 uv, float index, float rad, float thickness){
     vec2 center1, center2;
     if (index < 0.5) {
@@ -3242,102 +2084,11 @@ float truchet(vec2 uv, float index, float rad, float thickness){
     return pattern;
 }
 
-float maxv(vec3 p){
-    return max(p.x, max(p.y, p.z));
-}
-float minv(vec3 p){
-    return min(p.x, max(p.y, p.z));
-}
-
-vec3 est(vec3 col){
-    col /= pm(edge(col, PI));
-    col *= pm(spec(col, W*E));
-    return col *= pm(tube(col, E));
-}
-vec3 est(vec3 col, float e){
-    col /= pm(edge(col, e));
-    col *= pm(spec(col, W*E));
-    return col *= pm(tube(col, E));
-}
-vec3 est(vec3 col, float e, float s){
-    col /= pm(edge(col, e));
-    col *= pm(spec(col, s));
-    return col *= pm(tube(col, E));
-}
-vec3 est(vec3 col, float e, float s, float t){
-    col /= pm(edge(col, e));
-    col *= pm(spec(col, s));
-    return col *= pm(tube(col, t));
-}
-
-float m(){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p);
-    return cos(p.x) * cos(p.y) * cos(p.z);
-}
-float m(float coeff){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff;
-    return cos(p.x) * cos(p.y) * cos(p.z);
-}
-float m(float coeff, float phase){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff + phase;
-    return cos(p.x) * cos(p.y) * cos(p.z);
-}
-float o(){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p);
-    return cos(p.x) + cos(p.y) + cos(p.z);
-}
-float o(float coeff){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff;
-    return cos(p.x) + cos(p.y) + cos(p.z);
-}
-float o(float coeff, float phase){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff + phase;
-    return cos(p.x) + cos(p.y) + cos(p.z);
-}
-
-float ms(){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p);
-    return (cos(p.x) + sin(p.x)) * (cos(p.y) + sin(p.y)) * (cos(p.z) + sin(p.z));
-}
-float os(){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p);
-    return (cos(p.x) * sin(p.x)) + (cos(p.y) * sin(p.y)) + (cos(p.z) * sin(p.z));
-}
-float ms(float coeff){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff;
-    return (cos(p.x) + sin(p.x)) * (cos(p.y) + sin(p.y)) * (cos(p.z) + sin(p.z));
-}
-float os(float coeff){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff;
-    return (cos(p.x) * sin(p.x)) + (cos(p.y) * sin(p.y)) + (cos(p.z) * sin(p.z));
-}
-float ms(float coeff, float phase){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff + phase;
-    return (cos(p.x) + sin(p.x)) * (cos(p.y) + sin(p.y)) * (cos(p.z) + sin(p.z));
-}
-float os(float coeff, float phase){
-    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
-    p = abs(p) * coeff + phase;
-    return (cos(p.x) * sin(p.x)) + (cos(p.y) * sin(p.y)) + (cos(p.z) * sin(p.z));
-}
-
 float m(vec3 p){
     return cos(p.x) * cos(p.y) * cos(p.z);
 }
 float m(vec3 p, float coeff){
-    p*=coeff;
-    return cos(p.x) * cos(p.y) * cos(p.z);
+    return cos(coeff*p.x) * cos(coeff*p.y) * cos(coeff*p.z);
 }
 float m(vec3 p, float coeff, float phase){
     return cos(coeff*p.x + phase) * cos(coeff*p.y + phase) * cos(coeff*p.z + phase);
@@ -3352,33 +2103,10 @@ float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
 }
 
-float ms(vec3 p){
-    return (cos(p.x) + sin(p.x)) * (cos(p.y) + sin(p.y)) * (cos(p.z) + sin(p.z));
-}
-float os(vec3 p){
-    return (cos(p.x) * sin(p.x)) + (cos(p.y) * sin(p.y)) + (cos(p.z) * sin(p.z));
-}
-
 float mi(vec3 p, float it, float np){
     float res = 0.;
     for(float i = 0.; i < it; i += 1.){
         res += m(p);
-        p *= np;
-    }
-    return res;
-}
-float msi(vec3 p, float it, float np){
-    float res = 0.;
-    for(float i = 0.; i < it; i += 1.){
-        res += ms(p);
-        p *= np;
-    }
-    return res;
-}
-float osi(vec3 p, float it, float np){
-    float res = 0.;
-    for(float i = 0.; i < it; i += 1.){
-        res += os(p);
         p *= np;
     }
     return res;
@@ -3476,13 +2204,6 @@ float me(float x, float y, float z, float coeff){
     return cos(coeff*exp(abs(x))) * cos(coeff*exp(abs(y))) * cos(coeff*exp(abs(z)));
 }
 
-float mse(vec3 p){
-    return (cos(exp(abs(p.x))) + sin(exp(abs(p.x)))) * (cos(exp(abs(p.y))) + sin(exp(abs(p.y)))) * (cos(exp(abs(p.z))) + sin(exp(abs(p.z))));
-}
-float msl(vec3 p){
-    return (cos(log(abs(p.x))) + sin(log(abs(p.x)))) * (cos(log(abs(p.y))) + sin(log(abs(p.y)))) * (cos(log(abs(p.z))) + sin(log(abs(p.z))));
-}
-
 float ml(vec3 p){
     return cos(log(abs(p.x))) * cos(log(abs(p.y))) * cos(log(abs(p.z)));
 }
@@ -3551,26 +2272,6 @@ float o(float x, float y, float z, float coeff){
     return cos(coeff*x) + cos(coeff*y) + cos(coeff*z);
 }
 
-vec3 wrap(vec3 p){
-    return fract(p)-.5;
-}
-vec3 wrap(vec3 p, float f){
-    return fract(p*f)-.5;
-}
-vec3 wrap(vec3 p, vec3 f){
-    return fract(p*f)-.5;
-}
-float wrap(float p){
-    return fract(p)-.5;
-}
-float wrap(float p, float f){
-    return fract(p*f)-.5;
-}
-
-vec3 wrap2(vec3 p, float f){
-    return .5 * sin(6.2831853 * f * p);
-}
-
 vec3 go(vec3 p, float delta, float ct){
     return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
@@ -3583,13 +2284,6 @@ float oe(vec3 p, float coeff){
 }
 float oe(vec3 p, float coeff, float phase){
     return cos(coeff * exp(abs(p.x)) + phase) + cos(coeff * exp(abs(p.y)) + phase) + cos(coeff * exp(abs(p.z)) + phase);
-}
-
-float ose(vec3 p){
-    return (cos(exp(abs(p.x)))*sin(exp(abs(p.x)))) + (cos(exp(abs(p.y)))*sin(exp(abs(p.y)))) + (cos(exp(abs(p.z)))*sin(exp(abs(p.z))));
-}
-float osl(vec3 p){
-    return (cos(log(abs(p.x)))*sin(log(abs(p.x)))) + (cos(log(abs(p.y)))*sin(log(abs(p.y)))) + (cos(log(abs(p.z)))*sin(log(abs(p.z))));
 }
 
 float ol(vec3 p){
@@ -3625,7 +2319,7 @@ float oh(float x, float y, float z, float coeff){
 }
 
 float hc(vec3 p){
-    return length(cos(p));
+    return length(vec3(cos(p.x), cos(p.y), cos(p.z)));
 }
 float hc(vec3 p, float coeff){
     return length(vec3(cos(coeff*p.x), cos(coeff*p.y), cos(coeff*p.z)));
@@ -3643,26 +2337,17 @@ float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
-float hcs(vec3 p){
-    return length(cos(p)+sin(p));
-}
 float hce(vec3 p){
-    return length(cos(abs(exp(p))));
+    return length(vec3(cos(exp(abs(p.x))), cos(exp(abs(p.y))), cos(exp(abs(p.z)))));
 }
-float hces(vec3 p){
-    return length(cos(abs(exp(p))) + sin(abs(exp(p))));
-}
-
-float hcl(vec3 p){
-    return length(cos(log(pm(p))));
-}
-float hcls(vec3 p){
-    return length(cos(log(pm(p))) + sin(log(pm(p))));
-}
-
-
 float hce(vec3 p, float coeff, float ph){
     return length(vec3(cos(exp(abs(p.x)) * coeff + ph), cos(exp(abs(p.y)) * coeff + ph), cos(exp(abs(p.z)) * coeff + ph)));
+}
+float hcl(vec3 p){
+    return length(vec3(cos(log(abs(p.x))), cos(log(abs(p.y))), cos(log(abs(p.z)))));
+}
+float hcl(vec3 p, float coeff, float ph){
+    return length(vec3(cos(log(abs(p.x)) * coeff + ph), cos(log(abs(p.y)) * coeff + ph), cos(log(abs(p.z)) * coeff + ph)));
 }
 
 float hch(vec3 p){
@@ -3742,22 +2427,6 @@ float gp(vec3 p){
 }
 float gp(vec3 p, float phase){
     return cos((p.x + p.y + p.z) + phase);
-}
-float gs(vec3 p){
-    return sin(p.x * p.y * p.z);
-}
-float gs(vec3 p, float coeff){
-    return sin(p.x * p.y * p.z * coeff);
-}
-float gs(vec3 p, float coeff, float phase){
-    return sin(p.x * p.y * p.z * coeff + phase);
-}
-
-float gps(vec3 p){
-    return sin(p.x + p.y + p.z);
-}
-float gps(vec3 p, float phase){
-    return sin((p.x + p.y + p.z) + phase);
 }
 
 float h(float x, float y){
@@ -3856,145 +2525,6 @@ float mli(vec3 p, float it, float np){
     return res;
 }
 
-float mc(vec3 p, float coeffP, float coeffC){
-   return m(cos(p*coeffP) * coeffC);
-}
-float mc(vec3 p, float coeffP, float coeffC, float coeffT){
-   return m(cos(p*coeffP + t * coeffT) * coeffC);
-}
-float oc(vec3 p, float coeffP, float coeffC){
-   return o(cos(p*coeffP) * coeffC);
-}
-float oc(vec3 p, float coeffP, float coeffC, float coeffT){
-   return o(cos(p*coeffP + t * coeffT) * coeffC);
-}
-float msc(vec3 p, float coeffP, float coeffC){
-   return ms(cos(p*coeffP) * coeffC);
-}
-float msc(vec3 p, float coeffP, float coeffC, float coeffT){
-   return ms(cos(p*coeffP + t * coeffT) * coeffC);
-}
-float osc(vec3 p, float coeffP, float coeffC){
-   return os(cos(p*coeffP) * coeffC);
-}
-float osc(vec3 p, float coeffP, float coeffC, float coeffT){
-   return os(cos(p*coeffP + t * coeffT) * coeffC);
-}
-
-float lac(vec3 p){
-    return absp(la(cos(p.x))) * absp(la(cos(p.y))) * absp(la(cos(p.z)));
-}
-float lac(vec3 p, float k){
-    return absp(la(cos(p.x)), k) * absp(la(cos(p.y)), k) * absp(la(cos(p.z)), k);
-}
-float lac(vec3 p, float k, float coeff){
-    return absp(la(cos(p.x * coeff)), k) * absp(la(cos(p.y * coeff)), k) * absp(la(cos(p.z * coeff)), k);
-}
-float lac(vec3 p, float k, float coeff, float phase){
-    return absp(la(cos(p.x * coeff + phase)), k) * absp(la(cos(p.y * coeff + phase)), k) * absp(la(cos(p.z * coeff + phase)), k);
-}
-
-float lacp(vec3 p){
-    return absp(la(cos(p.x))) + absp(la(cos(p.y))) + absp(la(cos(p.z)));
-}
-float lacp(vec3 p, float k){
-    return absp(la(cos(p.x)), k) + absp(la(cos(p.y)), k) + absp(la(cos(p.z)), k);
-}
-float lacp(vec3 p, float k, float coeff){
-    return absp(la(cos(p.x * coeff)), k) + absp(la(cos(p.y * coeff)), k) + absp(la(cos(p.z * coeff)), k);
-}
-float lacp(vec3 p, float k, float coeff, float phase){
-    return absp(la(cos(p.x * coeff + phase)), k) + absp(la(cos(p.y * coeff + phase)), k) + absp(la(cos(p.z * coeff + phase)), k);
-}
-
-float cla(vec3 p){
-    return cos(la(p.x)*la(p.y)*la(p.z));
-}
-float cla(vec3 p, float coeff){
-    return cos(la(p.x)*la(p.y)*la(p.z) * coeff);
-}
-float cla(vec3 p, float coeff, float phase){
-    return cos(la(p.x)*la(p.y)*la(p.z) * coeff + phase);
-}
-
-float cea(vec3 p){
-    p = 1. - abs(p);
-    return cos(ea(p.x)*ea(p.y)*ea(p.z));
-}
-float cea(vec3 p, float coeff){
-    p = 1. - abs(p);
-    return cos(ea(p.x)*ea(p.y)*ea(p.z) * coeff);
-}
-float cea(vec3 p, float coeff, float phase){
-    p = 1. - abs(p);
-    return cos(ea(p.x)*ea(p.y)*ea(p.z) * coeff + phase);
-}
-
-vec3 mp(vec3 p){
-    return cpow(p, m(p));
-}
-vec3 op(vec3 p){
-    return cpow(p, o(p));
-}
-vec3 mp(vec3 p, float coeff){
-    return cpow(p, m(p, coeff));
-}
-vec3 op(vec3 p, float coeff){
-    return cpow(p, o(p, coeff));
-}
-vec3 mp(vec3 p, float coeff, float phase){
-    return cpow(p, m(p, coeff, phase));
-}
-vec3 op(vec3 p, float coeff, float phase){
-    return cpow(p, o(p, coeff, phase));
-}
-
-vec3 mpi(vec3 p, float nbIt, float coeffIt){
-    return cpow(p, mi(p, nbIt, coeffIt));
-}
-vec3 opi(vec3 p, float nbIt, float coeffIt){
-    return cpow(p, oi(p, nbIt, coeffIt));
-}
-
-vec3 ccol(vec3 col, vec3 c1, vec3 c2){
-    col.xy *= absp(c1.x*m(col*c2.x));
-    col.xz += (c1.y*m(la(col*c2.y)));
-    col.yz *= absp(c1.z*m(col*c2.z));
-
-    return col;
-}
-
-vec3 ccol(vec3 col){
-    col.xy *= absp(col.x*m(col*col.x));
-    col.xz += (col.y*m(la(col*col.y)));
-    col.yz *= absp(col.z*m(col*col.z));
-
-    return col;
-}
-
-float sm(vec3 p){
-    return sin(p.x) * sin(p.y) * sin(p.z);
-}
-float so(vec3 p){
-    return sin(p.x) + sin(p.y) + sin(p.z);
-}
-
-float smi(vec3 p, float it, float np){
-    float res = 0.;
-    for(float i = 0.; i < it; i += 1.){
-        res += sm(p);
-        p *= np;
-    }
-    return res;
-}
-float soi(vec3 p, float it, float np){
-    float res = 0.;
-    for(float i = 0.; i < it; i += 1.){
-        res += so(p);
-        p *= np;
-    }
-    return res;
-}
 
 float pulse(vec3 col){
     return pow(length(sin(col * PI * 3.0)) / sqrt(3.0), 8.0);
@@ -4049,10 +2579,6 @@ mat3 rotAxis(vec3 axis, float a) {
     );
 }
 
-vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
-  return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle);
-}
-
 mat3 rotX(float a) {
     float c = cos(a), s = sin(a);
     return mat3(
@@ -4080,55 +2606,36 @@ mat3 rotZ(float a) {
     );
 }
 
-float relief(float dLin, float cWidthPx){        // dLin : distance écran en PIXELS (sortie de tube ou de lin)
-    const float cAspect = 0.55;
-    const float cRelief = 1.0;
-
-    float qNorm = abs(dLin) / cWidthPx;      // seule conversion restante : px → [0,1]
-    float dome  = max(1.0 - qNorm*qNorm, 0.0);
-    float hgt   = dome * dome;
-
-    float wWorld = cWidthPx * length(dFdx(vWorldPosition));
-    float ampH   = cRelief * cAspect * wWorld;
-
-    vec3 nrm  = normalize(vNormal);
-    vec3 vdir = normalize(cameraPosition - vWorldPosition);
-    if (dot(nrm, vdir) < 0.0) nrm = -nrm;
-
-    vec3  dpx = dFdx(vWorldPosition), dpy = dFdy(vWorldPosition);
-    float dhx = dFdx(hgt),            dhy = dFdy(hgt);
-    vec3  r1  = cross(dpy, nrm),      r2  = cross(nrm, dpx);
-    float dnm = dot(dpx, r1);
-    vec3  grd = (abs(dnm) > 1e-12) ? (r1*dhx + r2*dhy) / dnm : vec3(0.0);
-    vec3  nBump = normalize(nrm - ampH * grd);
-
-    vec3  ldir = normalize(vec3(0.5, 0.9, 0.35));
-    float dif  = 0.35 + 0.65 * max(dot(nBump, ldir), 0.0);
-    float spc  = pow(max(dot(nBump, normalize(ldir + vdir)), 0.0), 64.0);
-
-    float onBead = smoothstep(0.0, 0.15, hgt);
-    float aoRing = 1.0 - 0.30 * ((1.0 - smoothstep(1.0, 1.7, qNorm)) - onBead);
-
-    return mix(aoRing, dif, onBead) + spc * onBead * 0.9;   // avec l'ombre de contact
-    //return mix(1.0, dif, onBead) + spc * onBead * 0.9;   // ta version, sans
+float voronoiPos(vec3 x, float speed){
+    vec3 n = floor(x), f = fract(x);
+    float md = 8.0;
+    for (int k=-1;k<=1;k++)
+    for (int j=-1;j<=1;j++)
+    for (int i=-1;i<=1;i++){
+        vec3 g    = vec3(float(i),float(j),float(k));
+        vec3 cell = n + g;
+        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
+        vec3 seed = 0.5 + 0.5*sin(speed*time + 6.2831*rnd);
+        vec3 r    = g + seed - f;
+        md = min(md, dot(r,r));
+    }
+    return sqrt(md);
 }
-
-float lin(float fld){         // adaptateur pour les champs LISSES — pas pour tube
-    return fld / max(fwidth(fld), 1e-6);
-}
-
-float rel(vec3 col, float w){
-    return relief(tubeRel(col, w, w), w);
-}
-
-vec2 iSphere(vec3 ro, vec3 rd, vec3 center, float radius) {
-    vec3 oc = ro - center;
-    float b = dot(oc, rd);
-    float c = dot(oc, oc) - radius * radius;
-    float h = b * b - c;
-    if (h < 0.0) return vec2(-1.0);
-    h = sqrt(h);
-    return vec2(-b - h, -b + h);
+float voronoiPos(vec3 x){
+    float speed = 0.;
+    vec3 n = floor(x), f = fract(x);
+    float md = 8.0;
+    for (int k=-1;k<=1;k++)
+    for (int j=-1;j<=1;j++)
+    for (int i=-1;i<=1;i++){
+        vec3 g    = vec3(float(i),float(j),float(k));
+        vec3 cell = n + g;
+        vec3 rnd  = vec3(hash31(cell), hash31(cell+19.1), hash31(cell+37.7));
+        vec3 seed = 0.5 + 0.5*sin(speed*time + 6.2831*rnd);
+        vec3 r    = g + seed - f;
+        md = min(md, dot(r,r));
+    }
+    return sqrt(md);
 }
 
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
@@ -4155,6 +2662,103 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 specular = spec * vec3(0.3) * att;
 
     return ambient + diffuse + specular;
+}
+
+// ============================================================
+// KIT SDF / RAYMARCHING 3D
+// Primitives (distance signee) + operateurs + normale + raymarcher.
+// La scene par defaut sdfScene() est animee par 't' et pilotable par
+// opt1 (sol on/off). L'ordre de declaration compte en GLSL :
+// primitives -> operateurs -> scene -> normale -> raymarch -> rendu.
+// ============================================================
+
+float sdSphere(vec3 p, float r){ return length(p) - r; }
+
+float sdBox(vec3 p, vec3 b){
+    vec3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+float sdRoundBox(vec3 p, vec3 b, float r){
+    vec3 q = abs(p) - b + r;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r;
+}
+
+// tr = (grand rayon, petit rayon)
+float sdTorus(vec3 p, vec2 tr){
+    vec2 q = vec2(length(p.xz) - tr.x, p.y);
+    return length(q) - tr.y;
+}
+
+// union en gardant un identifiant de materiau : x = distance, y = id
+vec2 opU(vec2 a, vec2 b){ return (a.x < b.x) ? a : b; }
+
+float opSmoothUnion(float d1, float d2, float k){
+    float h = clamp(0.5 + 0.5*(d2 - d1)/k, 0.0, 1.0);
+    return mix(d2, d1, h) - k*h*(1.0 - h);
+}
+
+// repetition infinie sur une grille de pas 'cell' (reseau de formes)
+vec3 opRep(vec3 p, vec3 cell){ return mod(p + 0.5*cell, cell) - 0.5*cell; }
+
+// Scene par defaut (editable ici) : renvoie vec2(distance, id materiau)
+vec2 sdfScene(vec3 p){
+    vec2 res = vec2(1e9, -1.0);
+    if(opt1 > 0.5){ res = opU(res, vec2(p.y + 0.6, 1.0)); } // sol optionnel (opt1)
+
+    float sph = sdSphere(p - vec3(0.0, 0.35 + 0.15*sin(t), 0.0), 0.55);
+    res = opU(res, vec2(sph, 2.0));
+
+    float ang = t * 0.6;
+    float bx1 = sdBox(p - vec3(1.15*cos(ang), 0.0, 1.15*sin(ang)), vec3(0.32));
+    float bx2 = sdRoundBox(p - vec3(1.15*cos(ang + PI), 0.0, 1.15*sin(ang + PI)), vec3(0.30), 0.08);
+    res = opU(res, vec2(bx1, 3.0));
+    res = opU(res, vec2(bx2, 4.0));
+    return res;
+}
+
+// normale par differences finies sur sdfScene
+vec3 calcNormal(vec3 p){
+    vec2 e = vec2(0.0008, 0.0);
+    return normalize(vec3(
+        sdfScene(p + e.xyy).x - sdfScene(p - e.xyy).x,
+        sdfScene(p + e.yxy).x - sdfScene(p - e.yxy).x,
+        sdfScene(p + e.yyx).x - sdfScene(p - e.yyx).x));
+}
+
+// raymarcher : renvoie vec2(distance parcourue, id) ; id < 0 = pas de hit
+vec2 raymarch(vec3 ro, vec3 rd){
+    float tAcc = 0.0;
+    float id = -1.0;
+    for(int i = 0; i < 96; i++){
+        vec2 h = sdfScene(ro + rd * tAcc);
+        if(h.x < 0.001){ id = h.y; break; }
+        tAcc += h.x;
+        if(tAcc > 40.0) break;
+    }
+    return vec2(tAcc, id);
+}
+
+// couleur par identifiant de materiau
+vec3 matColor(float id){
+    if(id < 1.5) return vec3(0.55);              // sol
+    if(id < 2.5) return vec3(0.90, 0.30, 0.25);  // sphere
+    if(id < 3.5) return vec3(0.25, 0.55, 0.95);  // cube
+    if(id < 4.5) return vec3(0.95, 0.80, 0.25);  // round box
+    return vec3(0.8);
+}
+
+// rendu complet : raymarch + eclairage simple. bg = couleur si pas de hit.
+vec3 renderScene(vec3 ro, vec3 rd, vec3 bg){
+    vec2 h = raymarch(ro, rd);
+    if(h.y < 0.0) return bg;                      // rien touche -> fond
+    vec3 p = ro + rd * h.x;
+    vec3 n = calcNormal(p);
+    vec3 lig = normalize(vec3(0.6, 0.75, 0.5));
+    float dif = clamp(dot(n, lig), 0.0, 1.0);
+    float amb = 0.3 + 0.2*n.y;
+    float spe = pow(clamp(dot(reflect(rd, n), lig), 0.0, 1.0), 32.0);
+    return matColor(h.y) * (amb + dif) + spe*0.4;
 }
 `;
 }
@@ -4187,13 +2791,15 @@ precision highp float;
 #define pit(x, c, p) (cpow (x,x*c+p))
 #define ins(func, x, y) (func (x) * (1.+func(x*y)))
 #define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
+#define fmax(f1, f2, p, rangeMin, rangeMax) (max(f1(p*rangeMin), f2(p*rangeMax)))
+#define fmin(f1, f2, p, rangeMin, rangeMax) (min(f1(p*rangeMin), f2(p*rangeMax)))
 #define pp(f1, f2, p, t1, t2) (f1(cpow(p, 1.+abs(o(p)))) * f2(cpow(p*(1.+ t1*c(t*t2)), 1.+abs(o(p)))))
 #define pm(val) (1. + abs(val))
 #define pmRel(x) (1. + sqrt(x*x + 0.02))
 #define minf(f1, f2, p, nb) (min(f1(p*nb), f2(p*nb)))
 #define maxf(f1, f2, p, nb) (max(f1(p*nb), f2(p*nb)))
-#define ptmt(p, f, c1, c2) (f(p*c1 + t*c2)*f(p*c1 - t*c2))
-
+#define minft(f1, f2, p, nb, t) (min(f1(p*nb+t), f2(p*nb+t)))
+#define maxft(f1, f2, p, nb, t) (max(f1(p*nb+t), f2(p*nb+t)))
 
 // Varyings received from the vertex shader
 in vec3 vPosition;
@@ -4339,6 +2945,15 @@ normalShaders = [
 		result += m(pos);
 	}
 
+`,
+`
+	// Relief SDF — bosses en reseau (option pour le shader couleur "SDF Decor").
+	// Garder le meme 'cell' que le shader couleur pour aligner couleur et relief.
+	vec3  qd   = pos;
+	float cell = 0.55;
+	vec3  rp   = mod(qd + 0.5 * cell, cell) - 0.5 * cell;
+	float dist = length(rp) - 0.14;
+	result = 0.28 * smoothstep(0.04, -0.14, dist);
 `,
 ];
 

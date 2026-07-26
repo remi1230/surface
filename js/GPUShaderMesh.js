@@ -1111,10 +1111,14 @@ precision highp float;
 #define pit(x, c, p) (cpow (x,x*c+p))
 #define ins(func, x, y) (func (x) * (1.+func(x*y)))
 #define rec(func1, func2, x, y) (func1 (x * func2(x*y)))
-#define fmax(f1, f2, p, rangeMin, rangeMax) max(f1(p*rangeMin), f2(p*rangeMax))
-#define fmin(f1, f2, p, rangeMin, rangeMax) min(f1(p*rangeMin), f2(p*rangeMax))
-#define pp(f1, f2, p, t1, t2) f1(cpow(p, 1.+abs(o(p)))) * f2(cpow(p*(1.+ t1*c(t*t2)), 1.+abs(o(p))))
-#define pm(val) 1. + abs(val)
+#define pp(f1, f2, p, t1, t2) (f1(cpow(p, 1.+abs(o(p)))) * f2(cpow(p*(1.+ t1*c(t*t2)), 1.+abs(o(p)))))
+#define pm(val) (1. + abs(val))
+#define pmRel(x) (1. + sqrt(x*x + 0.02))
+#define minf(f1, f2, p, nb) (min(f1(p*nb), f2(p*nb)))
+#define maxf(f1, f2, p, nb) (max(f1(p*nb), f2(p*nb)))
+#define minft(f1, f2, p, nb, t) (min(f1(p*nb+t), f2(p*nb+t)))
+#define maxft(f1, f2, p, nb, t) (max(f1(p*nb+t), f2(p*nb+t)))
+#define ptmt(p, f, c1, c2) (f(p*c1 + t*c2)*f(p*c1 - t*c2))
 
 in vec3 vPosition;
 in vec3 vWorldPosition;

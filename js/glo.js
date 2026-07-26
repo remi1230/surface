@@ -1060,8 +1060,59 @@ var glo = {
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotateSpeed: 0.004,
 	rotateType: 'none',
-	/** @type {'orbit'|'travelling'} Active camera mode — toggled with the `c` key. */
+	/** @type {'orbit'|'travelling'|'walk'} Active camera mode — `c` travels, `w` walks. */
 	cameraMode: 'orbit',
+	/**
+	 * State of the first-person character walking on the surface. Lives here rather than
+	 * on the mesh so it survives `ribbonDispose()` — every rebuild throws `glo.ribbon`
+	 * away, the same reason `geometryShaderCode` is kept globally.
+	 *
+	 * The position is stored in parametric space, not in grid indices: changing the
+	 * resolution then leaves the character exactly where it stood.
+	 */
+	walk: {
+		/** @type {number} Parametric position of the character. */
+		u: 0,
+		/** @type {number} Parametric position of the character. */
+		v: 0,
+		/**
+		 * @type {BABYLON.Vector3} Heading in the mesh's object space, kept tangent to the
+		 * surface. Storing a direction and re-projecting it onto the tangent plane every
+		 * frame is discrete parallel transport, so walking forward follows a geodesic
+		 * rather than a parameter line — for free, with no Christoffel symbols.
+		 */
+		heading: new BABYLON.Vector3(1, 0, 0),
+		/** @type {BABYLON.Vector3} Low-pass filtered surface normal, used as the up axis. */
+		smoothNormal: new BABYLON.Vector3(0, 1, 0),
+		/** @type {number} `+1` walks on the outside of the surface, `-1` on the inside. */
+		flip: 1,
+		/** @type {number} Head pitch (rad), relative to the tangent plane. */
+		pitch: 0,
+		/** @type {number} Height above the surface — non-zero only while jumping. */
+		height: 0,
+		/** @type {number} Vertical speed along the normal. */
+		vSpeed: 0,
+		/** @type {number} Eye height in world units, derived from the mesh size. */
+		eyeHeight: 1,
+		/** @type {number} User speed multiplier (PageUp / PageDown). */
+		speedScale: 1,
+		/** @type {number} Bounding-box diagonal of the surface, measured on entry. */
+		scale: 1,
+		/** @type {BABYLON.Vector3} Centroid of the surface, measured on entry. */
+		center: new BABYLON.Vector3(0, 0, 0),
+		/** @type {boolean} Whether the surface closes on itself along u (seamless looping). */
+		closedU: false,
+		/** @type {boolean} Whether the surface closes on itself along v. */
+		closedV: false,
+		/** @type {boolean} Walk on its own, turning slowly — a travelling shot on the surface. */
+		autopilot: false,
+		/** @type {number} Autopilot clock, drives the wandering heading. */
+		turnPhase: 0,
+		/** @type {boolean} False until the first valid surface frame has been sampled. */
+		frameReady: false,
+		/** @type {Set<string>} Currently held movement keys. */
+		keys: new Set(),
+	},
 	/**
 	 * State for the cinematic spiral travelling camera (TargetCamera).
 	 * Populated when entering travelling mode; consumed each frame to animate the path.

@@ -1,8 +1,14 @@
 # Vue à la première personne — parcourir le maillage
 
-Note de conception. État : exploration, aucune ligne de production écrite.
+Note de conception, puis compte rendu de ce qui a été construit.
 Objectif : évaluer ce qu'il est possible de faire, ce que ça apporte, et comment
 l'insérer dans la boucle existante sans casser le mode 100 % GPU.
+
+> **État au 26/07/2026** — les phases 0 à 3 de la feuille de route (§10) sont
+> implémentées et vérifiées dans un navigateur : sonde GPU, marche libre à
+> vitesse métrique, saut, autopilote, bouclage/rebond aux bords, rig prêt pour la
+> VR. Mesures et écarts au plan : §12. Restent ouvertes les phases 4 à 6
+> (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les pistes B/C.
 
 ---
 
@@ -386,7 +392,70 @@ autre question que la marche sur la surface — la silhouette d'ensemble, la
 | **6** | WebXR sur le rig, garde-fous de confort, plafond de résolution en VR. | moyen |
 | **bonus** | Modes intérieur et maquette (pistes B et C) — insérables n'importe quand, indépendants. | faible |
 
-## 11. Limites à assumer
+Phases 0 à 3 faites (la 1 est arrivée sous forme d'autopilote de la phase 2
+plutôt qu'en préalable : une fois le marcheur écrit, le travelling n'est qu'un
+marcheur dont les entrées sont scriptées, donc quelques lignes au lieu d'un
+module). Phases 4 à 6 ouvertes.
+
+## 11. Ce qui a été construit
+
+| Fichier | Rôle |
+|---|---|
+| `js/GPUShaderMesh.js` | `probePoints()` + cache de programme et de buffers, à côté de `extractPositionsForExport()` ; `cameraPosition` passe en position monde |
+| `js/walk.js` (nouveau) | échantillonnage de surface, relevé initial, marche, saut, autopilote, entrées, HUD |
+| `js/glo.js` | `glo.walk`, l'état qui survit aux `ribbonDispose()` |
+| `js/bab.js` | `initWalkRig()`, `cameraWorldPosition()`, branchement `'walk'` dans la boucle |
+| `js/events.js` | `w` / `Shift+W`, et priorité clavier à la marche |
+
+Commandes : `w` marche, `Shift+W` autopilote, flèches, espace pour sauter, souris
+pour regarder, `X` change de face, `PgUp`/`PgDn` la vitesse, `Échap` sort.
+
+## 12. Mesures, et les trois écarts au plan
+
+Vérifié dans Chromium (rendu logiciel SwiftShader, donc pire cas).
+
+**La sonde est exacte.** 564 sommets répartis sur toute la grille, comparés à la
+sortie de `extractPositionsForExport()` : écart maximal **0**, au bit près, horloge
+en marche comme figée. La sonde voit bien la déformation (le point bouge de 0,030
+quand on la coupe) et la symétrie (5,42 d'écart entre deux copies).
+
+**Le coût est par appel, pas par point.** 4 points : 0,68 ms. 144 points :
+0,73 ms. Tout le coût est l'aller-retour de `getBufferSubData` ; les sommets sont
+gratuits. Conséquence directe pour la suite : **il ne faut pas être avare**. Le HUD
+de courbure, le look-ahead, la plaque élargie pour lisser la normale — tout cela
+tient dans le même appel sans rien coûter. En revanche, il ne faut jamais faire
+deux appels dans une frame. 0,68 ms sur un rasteriseur logiciel, c'est 4 % du
+budget d'une frame à 60 fps ; ce sera moins sur GPU réel, mais la piste
+`fenceSync` reste ouverte si ça se voit.
+
+**Le personnage colle à la surface à 0,8 % près.** Écart entre la position du rig
+et la surface évaluée dans le même tick, en marche, sur une surface animée
+(`.35cos(3u+2t)cos(3v)`) : 0,8 % de la hauteur d'œil. Le résidu est le retard du
+filtre de normale — voulu. Attention au piège de mesure : comparer le rig d'une
+frame à la surface évaluée 100 ms plus tard donne 81 % d'écart, qui ne sont que
+le déplacement de la surface dans l'intervalle, pas une erreur.
+
+Trois choses ne se sont pas passées comme prévu :
+
+1. **La détection de bouclage est plus fine que je ne l'avais décrite.** Elle teste
+   la géométrie finale, pas l'équation : un tore est bien détecté fermé en u et v,
+   mais dès qu'on active un blender en u, il cesse de l'être — les deux bords ne
+   coïncident plus une fois tournés. C'est le bon comportement, et ça n'aurait pas
+   marché en raisonnant sur l'équation.
+2. **Un bord non fermé laissait le personnage coincé face au vide.** Le plan disait
+   « mur invisible » ; en pratique c'est inutilisable, on reste bloqué à pousser
+   contre la limite. Remplacé par un rebond : la direction est réfléchie par
+   rapport à la ligne de paramètre bloquée, et on repart vers l'intérieur.
+3. **`cameraPosition` était faux pour toute caméra parentée.** `camera.position`
+   est local ; le rig étant un parent, l'uniforme lu par les shaders couleur serait
+   resté à (0,0,0), cassant l'éclairage et le spéculaire en vue subjective. Corrigé
+   pour tous les modes via `cameraWorldPosition()`.
+
+Non régressé (vérifié) : travelling `c`, espace qui met en pause hors marche,
+export STL/OBJ cohabitant avec la sonde persistante, invalidation du cache de
+programme à la recompilation.
+
+## 13. Limites à assumer
 
 - Les équations qui exploitent les variables de parité (`d`, `k`, `p`, `w`, `n`)
   n'ont pas de surface bien définie *entre* les sommets. On reste donc sur les
@@ -400,3 +469,12 @@ autre question que la marche sur la surface — la silhouette d'ensemble, la
 - La stabilité de la caméra sur une surface à déformation haute fréquence est le
   vrai risque d'expérience utilisateur, pas la performance. Le filtre de repère
   n'est pas une finition, c'est un prérequis.
+- Le saut utilise une intégration d'Euler semi-implicite : à bas framerate,
+  l'apogée est sous-estimée (mesuré 0,43 hauteur d'œil au lieu de 0,55 à ~10 fps).
+  Stable, atterrit toujours, mais pas exact.
+- Le personnage ne marche que sur la copie symétrisée nº 0. Passer d'une copie à
+  l'autre à la couture reste à faire (`probePoints` accepte déjà l'identifiant de
+  copie, c'est la logique de franchissement qui manque).
+- Changer d'équation ou de domaine pendant qu'on marche relocalise réellement le
+  personnage ; il est simplement redéposé au même (u, v). Un changement de
+  résolution seul, non.

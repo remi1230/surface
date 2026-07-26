@@ -14,7 +14,21 @@ Player = function(game, canvas) {
   this.canvas = canvas;
   this._initCamera(this.scene, canvas);
   this._initTravellingCamera(this.scene);
+  initWalkRig(this.scene);
 };
+
+/**
+ * Returns the active camera's position in world space.
+ *
+ * `camera.position` is expressed in the parent's frame, so it reads (0,0,0) for the
+ * walk camera, which hangs under the walk rig. Colour shaders use `cameraPosition` for
+ * lighting and view-dependent effects, so they need the world value.
+ * @returns {BABYLON.Vector3} World-space position of the active camera.
+ */
+function cameraWorldPosition() {
+  const cam = glo.scene.activeCamera;
+  return cam.parent ? cam.globalPosition : cam.position;
+}
 
 Player.prototype = {
   /**
@@ -193,6 +207,7 @@ Game = function(canvasId) {
   engine.resize();
   engine.enableOfflineSupport = false;
   glo.engine = engine;
+  glo.canvas = canvas;
   var _this = this;
 
   this.scene = this._initScene(engine);
@@ -211,6 +226,10 @@ Game = function(canvasId) {
     });
   });
   _this.scene.registerBeforeRender(() => {
+    if (glo.cameraMode === 'walk') {
+      walkUpdate();
+      return;
+    }
     if (glo.cameraMode === 'travelling') {
       updateTravellingCamera();
       return;

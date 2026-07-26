@@ -120,6 +120,30 @@ See the in-app **HELP** button for the complete reference.
 | `Shift+H` | Center camera |
 | `Shift+B` | Toggle wireframe |
 | `Shift+V` | Align camera to axis |
+| `c` | Cinematic travelling camera |
+| `w` | Walk on the surface (first person) |
+| `Shift+W` | Walk on autopilot (surface travelling) |
+
+### Walking on the surface
+
+Press `w` to drop a character onto the mesh and explore it from the inside.
+
+| Key | Action |
+|-----|--------|
+| Arrows | Move forward / back, turn |
+| `Space` | Jump |
+| Mouse | Look around (click the canvas first) |
+| `X` | Switch to the other side of the surface |
+| `PageUp` / `PageDown` | Walking speed |
+| `Esc` | Back to the orbit camera |
+
+The ground is the surface as it is actually drawn &mdash; symmetries, blender, deformations,
+mesh transformations and time animation included &mdash; because each frame samples the very
+vertex shader used for rendering. Walking straight follows a **geodesic**, not a parameter
+line, and speed is constant in world units rather than in `u`/`v`, so distorted regions of
+the parameterization really do take longer to cross. On a surface that closes on itself
+(a torus, a sphere) the domain edges loop seamlessly; on an open patch the border turns
+you around.
 
 See the in-app HELP for the full list.
 

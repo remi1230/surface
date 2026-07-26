@@ -405,6 +405,10 @@ const keyboardShortcuts = [
    { key: 'u',  action: () => changeResolution('increase') },
    { key: 'j',  action: () => changeResolution('decrease') },
    { key: 'c',  action: () => toggleTravelling() },
+   { key: 'w',  action: () => toggleWalk(false) },
+
+   // --- Shift + key ---
+   { key: 'w',  shift: true, action: () => toggleWalk(true) },
 
    // --- Alt ---
    { key: "+",  alt: true, action: () => glo.rotateSpeed *= 1.2 },
@@ -424,7 +428,12 @@ getById('univers_div').addEventListener("keydown", function (e) {
    // which means bare `c` and `v` also bubble to here. Skip global shortcuts while
    // any GUI input has focus to keep typing from triggering them.
    if (glo.advancedTexture && glo.advancedTexture.focusedControl) return;
-   
+
+   // Walk mode claims the arrows and the space bar first — they mean "move" and "jump"
+   // there, not "animate the sliders" and "pause". Anything it does not consume falls
+   // through to the registry below, so the rest of the shortcuts keep working on foot.
+   if (walkHandleKeyDown(e)) return;
+
    const pressedKey  = e.key.toLowerCase();
    const pressedCtrl  = !!e.ctrlKey;
    const pressedShift = !!e.shiftKey;

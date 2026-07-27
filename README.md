@@ -134,11 +134,19 @@ Press `w` to drop a character onto the mesh and explore it from the inside.
 | `Shift` + `↑` / `↓` | Raise / lower the viewpoint |
 | `Space` | Jump |
 | Mouse | Look around (click the canvas first) |
+| `M` | Mini-map: where you are on the form, seen from outside |
 | `R` | Ride a rail: glide along the parameter line that closes on itself |
 | `X` | Switch to the other side of the surface |
 | `PageUp` / `PageDown` | Walking speed |
 | `Shift+F` | Fullscreen video take (see below) |
 | `Esc` | Back to the orbit camera |
+
+The **mini-map** answers the one question first person cannot: where am I? A panel in the
+corner shows the whole form from outside, with a cone marking the character's position and
+heading. It is drawn inside the canvas, so it appears in recordings too. Off by default and
+on a key, because it costs a second pass over the mesh — refreshed every fourth frame at a
+fixed resolution rather than every frame at the screen's, which brings that from +98% frame
+time down to about +20%.
 
 Viewpoint height is a multiplier, so it survives a change of form or resolution, and it
 changes nothing else: walking speed, gravity and jump height stay tied to the character's

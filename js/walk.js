@@ -50,6 +50,39 @@ const WALK = {
 	/** Bounds on the viewpoint height multiplier. */
 	HEIGHT_MIN_SCALE: 0.02,
 	HEIGHT_MAX_SCALE: 150,
+	/** Mini-map side, as a fraction of the view height. */
+	MAP_SIZE: 0.26,
+	/** Gap between the mini-map and the edge of the view, same units. */
+	MAP_MARGIN: 0.02,
+	/** Border thickness of the mini-map, same units. */
+	MAP_BORDER: 0.005,
+	/** Mini-map render target resolution, in pixels. Fixed: it need not follow the screen. */
+	MAP_TEXTURE: 384,
+	/** Refresh the mini-map every N frames. A map does not need 60 Hz. */
+	MAP_REFRESH: 4,
+	/** How far the mini-map camera sits from the form, in bounding-box diagonals. */
+	MAP_DISTANCE: 1.05,
+	/** Avatar size, as a fraction of the bounding-box diagonal. */
+	MAP_AVATAR_RATIO: 0.075,
+};
+
+/**
+ * Layer masks splitting what each camera sees.
+ *
+ * Babylon tests `camera.layerMask & mesh.layerMask`, so a camera cannot subtract
+ * anything: the split has to be arranged so the right bits already line up. Giving the
+ * mini-map camera a bit of its own, and the mesh both bits, means the map sees the
+ * surface and the avatar while the first-person camera sees the surface and the GUI —
+ * and neither sees the other's. Without this the fullscreen GUI, which is a layer like
+ * any other, would be squeezed into the mini-map viewport.
+ */
+const WALK_LAYER = {
+	/** Default for everything already in the scene: GUI, grid, axes. */
+	MAIN: 0x0FFFFFFF,
+	/** The mini-map camera and the avatar, invisible to the walking camera. */
+	MAP: 0x10000000,
+	/** The mesh, so both cameras draw it. */
+	BOTH: 0x1FFFFFFF,
 };
 
 // Scratch buffers — allocated once, the walk loop must not churn the GC.
@@ -336,6 +369,8 @@ function initWalkRig(scene) {
 
 	glo.walkRig = rig;
 	glo.walkCamera = cam;
+
+	initWalkMap(scene);
 }
 
 /**
@@ -439,6 +474,9 @@ function stopWalk() {
 	// A take in progress must be closed down first, or the overlays it hid would stay
 	// hidden and the recording would never be written out.
 	if (glo.walkCinema.active) stopWalkCinema();
+	// The map holds the scene's camera list and the mesh's layer mask; leaving it up
+	// would keep the orbit view rendering into a corner it no longer owns.
+	if (glo.walkMapOn) walkDisableMap();
 
 	walkReleasePointer();
 	glo.scene.activeCamera = glo.orbitCamera;
@@ -751,6 +789,8 @@ function walkUpdate(snap = false) {
 	glo.walkCamera.rotation.y = w.viewYaw;   // zero unless a rail is holding the body
 	glo.walkCamera.rotation.z = 0;
 
+	walkUpdateMap();
+
 	// The lap closed on this frame: the pose above is the one that matches the take's
 	// first frame, so end the recording now, not on the next tick.
 	if (w.railDone) { w.railDone = false; finishWalkCinemaLoop(); }
@@ -816,6 +856,9 @@ function walkHandleKeyDown(e) {
 			// During a take, Escape ends the take and keeps you on the surface.
 			if (glo.walkCinema.active) stopWalkCinema(); else stopWalk();
 			return true;
+		case 'm': case 'M':
+			walkToggleMap();
+			return true;
 		case 'r': case 'R':
 			walkToggleRail();
 			return true;
@@ -878,6 +921,207 @@ function walkRequestPointer() {
 /** Releases pointer lock, if held. */
 function walkReleasePointer() {
 	if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+}
+
+// ==================== MINI-MAP ====================
+
+/**
+ * Builds the mini-map: an off-screen render target fed by its own camera, shown on a
+ * small quad in front of the walking camera, plus the avatar that marks the character.
+ *
+ * A second camera in `scene.activeCameras` was the obvious route and turned out to cost
+ * a full extra pass over the mesh — measured at +98% frame time, because the vertex
+ * shader is the expensive part here and it ran twice for all 33k vertices. A render
+ * target refreshed every few frames pays that only a fraction as often, and at a fixed
+ * modest resolution rather than the screen's. A map does not need 60 Hz.
+ *
+ * Drawing it on a quad inside the scene, rather than as a DOM overlay, is what puts it
+ * in recordings too.
+ *
+ * @param {BABYLON.Scene} scene - The BabylonJS scene.
+ */
+function initWalkMap(scene) {
+	const cam = new BABYLON.ArcRotateCamera('WalkMapCamera', Math.PI / 4, Math.PI / 3, 10,
+		BABYLON.Vector3.Zero(), scene);
+	// Sees the surface (default mask) and the avatar (map-only bit).
+	cam.layerMask = WALK_LAYER.BOTH;
+	cam.minZ = 0.01;
+	glo.walkMapCamera = cam;
+
+	const rtt = new BABYLON.RenderTargetTexture('walkMapRTT', WALK.MAP_TEXTURE, scene, false);
+	rtt.activeCamera = cam;
+	rtt.refreshRate = WALK.MAP_REFRESH;
+	rtt.renderList = [];
+	glo.walkMapRTT = rtt;
+
+	// A cone: it shows where the character is *and* which way it faces, which a dot
+	// cannot. Babylon builds cylinders along +Y, so it is tipped over to point along the
+	// rig's forward axis. Parenting it to the rig means it inherits the exact surface
+	// pose and can never drift from where the character really is.
+	const avatar = BABYLON.MeshBuilder.CreateCylinder('walkAvatar',
+		{ diameterTop: 0, diameterBottom: 0.55, height: 1, tessellation: 12 }, scene);
+	avatar.rotation.x = Math.PI / 2;
+	avatar.parent = glo.walkRig;
+	avatar.layerMask = WALK_LAYER.MAP;   // never drawn by the first-person camera
+	avatar.isPickable = false;
+	const avatarMat = new BABYLON.StandardMaterial('walkAvatarMat', scene);
+	avatarMat.emissiveColor = new BABYLON.Color3(1, 0.42, 0.2);
+	avatarMat.disableLighting = true;
+	avatar.material = avatarMat;
+	avatar.setEnabled(false);
+	glo.walkAvatar = avatar;
+
+	// The panel: a frame quad and, just in front of it, the map itself. Both hang off the
+	// walking camera and live in their own rendering groups, whose depth buffer Babylon
+	// clears between groups, so they always sit on top of the scene.
+	const frame = BABYLON.MeshBuilder.CreatePlane('walkMapFrame', { size: 1 }, scene);
+	const frameMat = new BABYLON.StandardMaterial('walkMapFrameMat', scene);
+	frameMat.emissiveColor = new BABYLON.Color3(0.55, 0.62, 0.72);
+	frameMat.disableLighting = true;
+	frame.material = frameMat;
+	frame.renderingGroupId = 1;
+	frame.isPickable = false;
+	frame.parent = glo.walkCamera;
+	frame.setEnabled(false);
+	glo.walkMapFrame = frame;
+
+	const panel = BABYLON.MeshBuilder.CreatePlane('walkMapPanel', { size: 1 }, scene);
+	// A two-line shader rather than a StandardMaterial: all the panel has to do is show a
+	// texture, and StandardMaterial's emissive path multiplies by emissiveColor, drops the
+	// sampler when the texture is not deemed ready, and generally has opinions. This has
+	// none, and matches how the rest of the project draws things anyway.
+	const panelMat = new BABYLON.ShaderMaterial('walkMapPanelMat', scene, {
+		vertexSource: `
+precision highp float;
+attribute vec3 position;
+attribute vec2 uv;
+uniform mat4 worldViewProjection;
+varying vec2 vUV;
+void main() { vUV = uv; gl_Position = worldViewProjection * vec4(position, 1.0); }`,
+		fragmentSource: `
+precision highp float;
+varying vec2 vUV;
+uniform sampler2D mapTex;
+void main() { gl_FragColor = vec4(texture2D(mapTex, vUV).rgb, 1.0); }`
+	}, {
+		attributes: ['position', 'uv'],
+		uniforms: ['worldViewProjection'],
+		samplers: ['mapTex']
+	});
+	panelMat.setTexture('mapTex', rtt);
+	panel.material = panelMat;
+	panel.renderingGroupId = 2;
+	panel.isPickable = false;
+	panel.parent = glo.walkCamera;
+	panel.setEnabled(false);
+	glo.walkMapPanel = panel;
+}
+
+/**
+ * Turns the mini-map on or off. Off by default and off on exit: even refreshed sparingly
+ * it is not free, and the point of a switch is not to pay for it while nobody looks.
+ */
+function walkToggleMap() {
+	if (glo.cameraMode !== 'walk' || !glo.walkMapCamera) return;
+	if (glo.walkMapOn) walkDisableMap(); else walkEnableMap();
+	walkShowHud();
+}
+
+/** Brings up the mini-map: frames the form, shows the avatar, starts the render target. */
+function walkEnableMap() {
+	const cam = glo.walkMapCamera;
+	const w = glo.walk;
+
+	// Copying the orbit camera's angles opens the map from the vantage the user was last
+	// looking from, rather than some arbitrary direction.
+	if (glo.orbitCamera) { cam.alpha = glo.orbitCamera.alpha; cam.beta = glo.orbitCamera.beta; }
+	cam.radius = Math.max(w.scale * WALK.MAP_DISTANCE, 1e-3);
+	cam.minZ = Math.max(w.scale * 1e-3, 1e-5);
+	cam.maxZ = w.scale * 20;
+	walkAimMapCamera();
+
+	const size = w.scale * WALK.MAP_AVATAR_RATIO;
+	glo.walkAvatar.scaling.set(size, size, size);
+	glo.walkAvatar.setEnabled(true);
+
+	const bg = glo.backgroundColor;
+	glo.walkMapRTT.clearColor = new BABYLON.Color4(bg.r, bg.g, bg.b, 1);
+	walkRefreshMapRenderList();
+	if (glo.scene.customRenderTargets.indexOf(glo.walkMapRTT) < 0) {
+		glo.scene.customRenderTargets.push(glo.walkMapRTT);
+	}
+
+	glo.walkMapFrame.setEnabled(true);
+	glo.walkMapPanel.setEnabled(true);
+	glo.walkMapOn = true;
+	walkLayoutMapPanel();
+}
+
+/** Puts the mini-map away and stops paying for it. */
+function walkDisableMap() {
+	if (glo.walkAvatar) glo.walkAvatar.setEnabled(false);
+	if (glo.walkMapFrame) glo.walkMapFrame.setEnabled(false);
+	if (glo.walkMapPanel) glo.walkMapPanel.setEnabled(false);
+	const i = glo.scene.customRenderTargets.indexOf(glo.walkMapRTT);
+	if (i >= 0) glo.scene.customRenderTargets.splice(i, 1);
+	glo.walkMapOn = false;
+}
+
+/**
+ * Points the render target at the current mesh and the avatar. The mesh is thrown away
+ * and rebuilt on every parameter change, so the list cannot simply be filled once.
+ */
+function walkRefreshMapRenderList() {
+	const list = glo.walkMapRTT.renderList;
+	list.length = 0;
+	if (glo.ribbon) list.push(glo.ribbon);
+	list.push(glo.walkAvatar);
+}
+
+/** Points the mini-map camera at the centre of the form, in world space. */
+function walkAimMapCamera() {
+	if (!glo.ribbon) return;
+	BABYLON.Vector3.TransformCoordinatesToRef(glo.walk.center, glo.ribbon.getWorldMatrix(), _wTmpA);
+	glo.walkMapCamera.setTarget(_wTmpA);
+}
+
+/**
+ * Places the map panel in the top-right corner of the view.
+ *
+ * Recomputed rather than set once: it has to survive a window resize, a change of field
+ * of view, and a change of scale, since the quad hangs in front of the camera in world
+ * units and its distance has to stay between the near and far planes.
+ */
+function walkLayoutMapPanel() {
+	const cam = glo.walkCamera;
+	const engine = glo.engine;
+	const aspect = engine.getRenderWidth() / Math.max(engine.getRenderHeight(), 1);
+
+	// Far enough not to be clipped by the near plane, close enough to clear the far one.
+	const d = Math.min(Math.max(glo.walk.scale * 0.1, cam.minZ * 5), cam.maxZ * 0.5);
+	const halfH = d * Math.tan(cam.fov / 2);
+	const halfW = halfH * aspect;
+
+	const side = 2 * halfH * WALK.MAP_SIZE;
+	const margin = 2 * halfH * WALK.MAP_MARGIN;
+	const border = 2 * halfH * WALK.MAP_BORDER;
+	const cx = halfW - margin - side / 2;
+	const cy = halfH - margin - side / 2;
+
+	glo.walkMapPanel.scaling.set(side, side, 1);
+	glo.walkMapPanel.position.set(cx, cy, d);
+	glo.walkMapFrame.scaling.set(side + 2 * border, side + 2 * border, 1);
+	glo.walkMapFrame.position.set(cx, cy, d);
+}
+
+/** Per-frame upkeep for the mini-map, called from {@link walkUpdate}. */
+function walkUpdateMap() {
+	if (!glo.walkMapOn) return;
+	if (glo.walkMapRTT.renderList[0] !== glo.ribbon) walkRefreshMapRenderList();
+	// Sit the avatar back on the surface, one eye height below the rig.
+	glo.walkAvatar.position.y = -glo.walk.eyeHeight;
+	walkAimMapCamera();
+	walkLayoutMapPanel();
 }
 
 // ==================== FULLSCREEN VIDEO ====================
@@ -1200,7 +1444,7 @@ function walkShowRecIndicator(rail, animated = false) {
 		el = document.createElement('div');
 		el.id = 'walkRec';
 		el.style.cssText = [
-			'position:fixed', 'top:14px', 'right:16px', 'z-index:9500',
+			'position:fixed', 'top:14px', 'left:16px', 'z-index:9500',
 			'pointer-events:none', 'padding:5px 11px', 'border-radius:14px',
 			'font:11px/1.4 monospace', 'color:#ffdada',
 			'background:rgba(30,8,8,.72)', 'border:1px solid rgba(255,90,90,.45)'
@@ -1246,7 +1490,8 @@ function walkShowHud() {
 	const loop = [w.closedU ? 'u' : null, w.closedV ? 'v' : null].filter(Boolean).join('+');
 	hud.innerHTML =
 		`<b>${mode}</b> &nbsp; arrows move &middot; shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
-		`space jump &middot; R rail &middot; click for mouse look &middot; X flip side &middot; ` +
+		`space jump &middot; M map${glo.walkMapOn ? ' (on)' : ''} &middot; R rail &middot; ` +
+		`click for mouse look &middot; X flip side &middot; ` +
 		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
 		(loop ? ` &nbsp;|&nbsp; looping on ${loop}` : '');
 	hud.style.display = 'block';

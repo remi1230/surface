@@ -44,7 +44,7 @@ function makeOnlyCurves() {
  * Disposes of the current ribbon mesh and optionally all other scene meshes.
  * Preserves axis lines, grid planes, the line system, and text planes.
  * @param {boolean} [all=true] - When true, disposes all scene meshes except
- *   protected ones (axes, grids, lineSystem, plane, TextPlane).
+ *   protected ones (axes, grids, lineSystem, plane, TextPlane, walk overlays).
  *   When false, only disposes the ribbon and tube meshes.
  */
 function ribbonDispose(all = true){
@@ -52,7 +52,10 @@ function ribbonDispose(all = true){
 	if(typeof(glo.meshTubes) != "undefined" && glo.meshTubes != null){ glo.meshTubes.dispose(); glo.meshTubes = null; }
 
 	if(all){
-		const notToDispose = ['axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane'];
+		// walkAvatar / walkMapPanel / walkMapFrame belong to the first-person overlay and
+		// outlive any single mesh, exactly like the axes and the grid.
+		const notToDispose = ['axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane',
+		                      'walkAvatar', 'walkMapPanel', 'walkMapFrame'];
 		glo.scene.meshes.forEach(mesh => {
 			if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
 		});

@@ -1157,6 +1157,11 @@ var glo = {
 		keys: new Set(),
 	},
 	/**
+	 * @type {boolean} Whether the mini-map is up. Off by default: it costs a second pass
+	 * over the mesh, so it is a switch (`M`) rather than something always running.
+	 */
+	walkMapOn: false,
+	/**
 	 * Fullscreen video mode for the first-person view: hides every overlay, fills the
 	 * screen, and records the whole frame rather than the centred square crop used for
 	 * orbit takes.

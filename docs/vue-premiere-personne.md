@@ -9,8 +9,8 @@ l'insérer dans la boucle existante sans casser le mode 100 % GPU.
 > vitesse métrique, saut, autopilote, bouclage/rebond aux bords, rig prêt pour la
 > VR. Mesures et écarts au plan : §12. Deux défauts remontés à l'usage et leurs
 > corrections (saccades, retournement de la vue) : §13. Le mode vidéo plein écran
-> avec boucle parfaite sur rail : §14. Restent ouvertes les phases 4 à 6
-> (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les pistes B/C.
+> avec boucle parfaite sur rail, la mini-carte et l'avatar : §14. Restent ouverts
+> la trace, la lampe frontale, le HUD de courbure, WebXR, et les pistes B/C.
 
 ---
 
@@ -568,6 +568,52 @@ Mesuré sur un tore : dérive entre la première et la dernière image enregistr
 c'est exactement ce qu'exige une boucle sans couture. Durée visée ~24 s
 (`WALK.CINEMA_LAP_SECONDS`), la vitesse étant déduite de la longueur du chemin
 réellement mesurée par la sonde.
+
+### La mini-carte et l'avatar
+
+Le défaut structurel de la vue subjective sur une variété tordue : on ne sait
+plus où on est. Un panneau en coin montre la forme entière vue de l'extérieur,
+avec un cône marquant position **et** cap — un point seul ne dirait pas dans
+quelle direction on regarde. Dessiné dans le canvas, donc présent dans les
+enregistrements.
+
+**Le coût a dicté l'architecture.** La voie évidente — une seconde caméra dans
+`scene.activeCameras` — a été implémentée, mesurée, puis jetée : **+98 % de temps
+frame**. Le vertex shader est ici la dépense dominante, et il repassait sur les
+33 000 sommets une seconde fois. Remplacé par une render target à résolution fixe
+(384²) rafraîchie une frame sur quatre, affichée sur un quad devant la caméra :
+**+20 %**. Une carte n'a pas besoin de 60 Hz.
+
+Bénéfice secondaire de la render target : sa `renderList` remplace les masques de
+calque pour le maillage, qui n'a donc plus besoin d'être touché.
+
+L'avatar est parenté au rig plutôt que positionné chaque frame — le rig porte
+déjà la pose exacte, le marqueur en hérite gratuitement et ne peut pas dériver.
+
+> Note : j'avais proposé un « avatar-shader » rendu avec le vertex shader du
+> maillage pour l'épingler côté GPU. À l'écriture, ça n'achetait rien : le CPU
+> connaît déjà la position exacte à chaque frame par la sonde. La solution simple
+> est ici la bonne.
+
+**Deux bugs trouvés en chemin, dont un préexistant.**
+
+`ribbonDispose()` supprime tous les meshes de la scène sauf une liste blanche —
+il détruisait donc l'avatar et les panneaux à chaque reconstruction. Pire, son
+`glo.scene.meshes.forEach(mesh => mesh.dispose())` mute le tableau pendant
+l'itération et en saute un sur deux : le cadre survivait, le panneau non, ce qui
+rendait le symptôme incohérent. Les trois meshes sont ajoutés à la liste blanche.
+Le bug d'itération est laissé tel quel : le corriger disposerait des meshes que
+l'application garde peut-être vivants aujourd'hui par accident.
+
+`StandardMaterial` multiplie `emissiveTexture` par `emissiveColor`, noir par
+défaut : panneau noir. Mis en blanc, il passait blanc — la texture n'était pas
+échantillonnée du tout. Remplacé par un ShaderMaterial de deux lignes qui se
+contente de lire la texture : aucune sémantique à combattre, et cohérent avec le
+reste du projet.
+
+Vérifié que la carte n'est pas retournée verticalement, ce qui serait activement
+trompeur : personnage à Y monde +3,93 → marqueur en haut de la texture (0,947) ;
+à −3,93 → en bas (0,051).
 
 ### La prise démarre à l'arrêt
 

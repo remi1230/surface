@@ -161,6 +161,14 @@ the parameterization really do take longer to cross. On a surface that closes on
 (a torus, a sphere) the domain edges loop seamlessly; on an open patch the border turns
 you around.
 
+**Non-orientable surfaces work too.** The seam of a Möbius strip or a figure-8 Klein bottle
+does close &mdash; the two edges are the same curve &mdash; but only after reversing the other
+parameter, so a plain edge-to-edge test mistakes it for a border. Crossing it now wraps and
+mirrors, and you walk straight through. Ride the rail on a Möbius and the take runs **two**
+laps, because one brings you back upside down on the other side of the strip; the second
+returns you home. Measured: after one lap the up vector is exactly reversed, after two the
+distance back to the start is 0.
+
 ### Fullscreen video from the surface
 
 `Shift+F` while walking records a take. The view goes fullscreen, every overlay steps

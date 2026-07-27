@@ -171,19 +171,6 @@ function walkMeshInfo() {
 }
 
 /**
- * Maps a grid index onto the mesh: wrapped when the surface closes in that direction
- * (index `n` coincides with index 0, so the period is `n`), clamped otherwise.
- * @param {number} x - Raw index, possibly out of range.
- * @param {number} n - Number of steps along that axis.
- * @param {boolean} closed - Whether the surface closes along that axis.
- * @returns {number} A valid index in `[0, n]`.
- */
-function walkWrapIndex(x, n, closed) {
-	if (closed) return ((x % n) + n) % n;
-	return Math.min(Math.max(x, 0), n);
-}
-
-/**
  * Evaluates the surface at a continuous parametric position, in **object space**.
  *
  * Probes the 4×4 block of integer grid vertices around the character and interpolates
@@ -226,13 +213,36 @@ function walkEvalSurface(info, u, v) {
 	const fv = fj - j0;
 
 	// 4×4 block centred on the character's cell. Out-of-range rows are clamped, which
-	// is the standard Catmull-Rom end condition (duplicated control point).
+	// is the standard Catmull-Rom end condition (duplicated control point) — except
+	// where the surface closes, and there a sample that wraps past a *twisted* seam has
+	// to come back mirrored across the other parameter, or the patch straddling the seam
+	// would be built from the wrong points and tear exactly where it must be smoothest.
 	let k = 0;
 	for (let a = 0; a < 4; a++) {
-		const ii = walkWrapIndex(i0 - 1 + a, gridU, w.closedU);
 		for (let b = 0; b < 4; b++) {
+			let ii, jj, mirrorJ = false, mirrorI = false;
+
+			if (w.closedU || w.twistedU) {
+				const laps = Math.floor((i0 - 1 + a) / gridU);
+				ii = (i0 - 1 + a) - laps * gridU;
+				if (w.twistedU && (((laps % 2) + 2) % 2) === 1) mirrorJ = true;
+			} else {
+				ii = Math.min(Math.max(i0 - 1 + a, 0), gridU);
+			}
+
+			if (w.closedV || w.twistedV) {
+				const laps = Math.floor((j0 - 1 + b) / gridV);
+				jj = (j0 - 1 + b) - laps * gridV;
+				if (w.twistedV && (((laps % 2) + 2) % 2) === 1) mirrorI = true;
+			} else {
+				jj = Math.min(Math.max(j0 - 1 + b, 0), gridV);
+			}
+
+			if (mirrorJ) jj = gridV - jj;
+			if (mirrorI) ii = gridU - ii;
+
 			_walkPatchIdx[k++] = ii;
-			_walkPatchIdx[k++] = walkWrapIndex(j0 - 1 + b, gridV, w.closedV);
+			_walkPatchIdx[k++] = jj;
 		}
 	}
 
@@ -319,27 +329,43 @@ function walkSurveySurface() {
 	const scale = Math.max(max.subtract(min).length(), 1e-4);
 	const center = sum.scaleInPlace(1 / valid);
 
-	// Closure: compare the two extreme rows (and columns) of the survey grid.
+	// Closure: compare the two extreme rows (and columns) of the survey grid, both
+	// straight across and with the other parameter mirrored.
+	//
+	// The mirrored test is what a Möbius strip needs. Its seam does close — the two
+	// u-edges are the same curve — but only after reversing v, so a straight comparison
+	// finds a gap and calls it a border. The character then bounces off the one place
+	// that makes the surface interesting. A figure-8 Klein bottle carries the same
+	// identification. Measured, the mirrored gap on both is exactly 0.
 	const at = (a, b) => _wTmpA.set(
 		probe.positions[(a * n + b) * 3],
 		probe.positions[(a * n + b) * 3 + 1],
 		probe.positions[(a * n + b) * 3 + 2]
 	);
-	let maxU = 0, maxV = 0;
+	let maxU = 0, maxV = 0, maxUTwist = 0, maxVTwist = 0;
 	for (let b = 0; b < n; b++) {
 		_wTmpB.copyFrom(at(0, b));
-		maxU = Math.max(maxU, BABYLON.Vector3.Distance(_wTmpB, at(n - 1, b)));
+		maxU      = Math.max(maxU,      BABYLON.Vector3.Distance(_wTmpB, at(n - 1, b)));
+		maxUTwist = Math.max(maxUTwist, BABYLON.Vector3.Distance(_wTmpB, at(n - 1, n - 1 - b)));
 	}
 	for (let a = 0; a < n; a++) {
 		_wTmpB.copyFrom(at(a, 0));
-		maxV = Math.max(maxV, BABYLON.Vector3.Distance(_wTmpB, at(a, n - 1)));
+		maxV      = Math.max(maxV,      BABYLON.Vector3.Distance(_wTmpB, at(a, n - 1)));
+		maxVTwist = Math.max(maxVTwist, BABYLON.Vector3.Distance(_wTmpB, at(n - 1 - a, n - 1)));
 	}
 
+	const tol = WALK.CLOSURE_EPS * scale;
+	const closedU = maxU < tol;
+	const closedV = maxV < tol;
 	return {
 		scale,
 		center,
-		closedU: maxU < WALK.CLOSURE_EPS * scale,
-		closedV: maxV < WALK.CLOSURE_EPS * scale
+		closedU,
+		closedV,
+		// Plain closure wins: on a form that matches both ways, wrapping straight is the
+		// simpler truth and mirroring would twist a perfectly orientable surface.
+		twistedU: !closedU && maxUTwist < tol,
+		twistedV: !closedV && maxVTwist < tol
 	};
 }
 
@@ -408,6 +434,8 @@ function startWalk(autopilot = false) {
 	w.center.copyFrom(survey.center);
 	w.closedU = survey.closedU;
 	w.closedV = survey.closedV;
+	w.twistedU = survey.twistedU;
+	w.twistedV = survey.twistedV;
 	walkApplyEyeHeight();
 
 	// Drop the character in the middle of the domain, at rest.
@@ -711,15 +739,24 @@ function walkUpdate(snap = false) {
 	const rangeV = inst.max_v - inst.min_v;
 	let bounceU = false, bounceV = false;
 
-	if (w.closedU && rangeU > 0) {
-		w.u = inst.min_u + (((w.u - inst.min_u) % rangeU) + rangeU) % rangeU;
+	// Crossing a twisted seam wraps the parameter *and* mirrors the other one. Nothing
+	// has to be done to the heading: it is a world-space direction and the seam is the
+	// same set of points seen from the other side, so the physical direction of travel
+	// is unchanged. The normal does reverse there, and the continuity rule at the top of
+	// this function already rolls the character over smoothly rather than snapping it.
+	if ((w.closedU || w.twistedU) && rangeU > 0) {
+		const laps = Math.floor((w.u - inst.min_u) / rangeU);
+		w.u -= laps * rangeU;
+		if (w.twistedU && (((laps % 2) + 2) % 2) === 1) w.v = inst.min_v + inst.max_v - w.v;
 	} else {
 		const cu = Math.min(Math.max(w.u, inst.min_u), inst.max_u);
 		bounceU = cu !== w.u;
 		w.u = cu;
 	}
-	if (w.closedV && rangeV > 0) {
-		w.v = inst.min_v + (((w.v - inst.min_v) % rangeV) + rangeV) % rangeV;
+	if ((w.closedV || w.twistedV) && rangeV > 0) {
+		const laps = Math.floor((w.v - inst.min_v) / rangeV);
+		w.v -= laps * rangeV;
+		if (w.twistedV && (((laps % 2) + 2) % 2) === 1) w.u = inst.min_u + inst.max_u - w.u;
 	} else {
 		const cv = Math.min(Math.max(w.v, inst.min_v), inst.max_v);
 		bounceV = cv !== w.v;
@@ -1339,7 +1376,7 @@ function walkEngageRail() {
 	const info = walkMeshInfo();
 	if (!info) return false;
 
-	const rail = w.closedU ? 'u' : (w.closedV ? 'v' : null);
+	const rail = (w.closedU || w.twistedU) ? 'u' : ((w.closedV || w.twistedV) ? 'v' : null);
 	if (!rail) {
 		console.warn('[Walk] No direction closes on itself here — nothing to loop along.');
 		return false;
@@ -1350,9 +1387,16 @@ function walkEngageRail() {
 	w.autopilot = false;
 	w.railTravelled = 0;
 	w.railDone = false;
-	w.railTarget = rail === 'u' ? (inst.max_u - inst.min_u) : (inst.max_v - inst.min_v);
+	// A twisted seam sends the character back at the mirrored position, so one lap does
+	// not close the loop — it takes two to come home. Which is also the whole point of a
+	// Möbius strip, and worth seeing in one continuous shot.
+	const laps = (rail === 'u' ? w.twistedU : w.twistedV) ? 2 : 1;
+	w.railTarget = laps * (rail === 'u' ? (inst.max_u - inst.min_u) : (inst.max_v - inst.min_v));
+	// One period's worth of path, walked at a steady pace: a twisted surface simply
+	// takes twice as long, rather than being rushed to fit the same clock.
 	const length = walkMeasureRailLength(info, rail);
 	w.railSpeed = length > 0 ? length / WALK.CINEMA_LAP_SECONDS : 0;
+	w.railSeconds = laps * WALK.CINEMA_LAP_SECONDS;
 
 	if (glo.walkCinema.active) {
 		glo.walkCinema.loop = true;
@@ -1452,7 +1496,8 @@ function walkShowRecIndicator(rail, animated = false) {
 		walkOverlayHost().appendChild(el);
 	}
 	el.textContent = (rail
-		? `● REC — loop on ${rail}, ~${WALK.CINEMA_LAP_SECONDS}s · arrows to take over`
+		? `● REC — loop on ${rail}, ~${Math.round(glo.walk.railSeconds || WALK.CINEMA_LAP_SECONDS)}s`
+		  + `${glo.walk.twistedU || glo.walk.twistedV ? ' (two laps: twisted seam)' : ''} · arrows to take over`
 		: '● REC — you drive · arrows to move, R for an automatic looping lap')
 		+ (rail && animated ? ' · surface animated: path loops, shape will not' : '')
 		+ ' · Shift+F to stop';

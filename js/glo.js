@@ -1132,6 +1132,15 @@ var glo = {
 		closedU: false,
 		/** @type {boolean} Whether the surface closes on itself along v. */
 		closedV: false,
+		/**
+		 * @type {boolean} The u edges are the same curve but joined with v reversed — the
+		 * seam of a Möbius strip or a figure-8 Klein bottle. Crossing it wraps u *and*
+		 * mirrors v, which is what lets the character walk right through instead of
+		 * bouncing off the one feature that makes the surface worth walking.
+		 */
+		twistedU: false,
+		/** @type {boolean} Same for the v edges, joined with u reversed. */
+		twistedV: false,
 		/** @type {boolean} Walk on its own, turning slowly — a travelling shot on the surface. */
 		autopilot: false,
 		/**
@@ -1147,6 +1156,8 @@ var glo = {
 		railTarget: 0,
 		/** @type {number} World units per second along the rail; 0 uses the walking speed. */
 		railSpeed: 0,
+		/** @type {number} Expected duration of the rail take, in seconds. */
+		railSeconds: 0,
 		/** @type {boolean} Set once the rail has covered a whole period. */
 		railDone: false,
 		/** @type {number} Autopilot clock, drives the wandering heading. */

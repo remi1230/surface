@@ -40,6 +40,16 @@ const WALK = {
 	MAX_CELLS_PER_FRAME: 0.5,
 	/** Target duration of one rail lap in fullscreen video mode, in seconds. */
 	CINEMA_LAP_SECONDS: 24,
+	/**
+	 * Viewpoint height change rate, in e-foldings per second. Multiplicative rather than
+	 * additive because the useful range spans four orders of magnitude — from nose to the
+	 * surface up to a wide overview — and a fixed increment would be useless at one end
+	 * and unusable at the other.
+	 */
+	HEIGHT_RATE: 1.2,
+	/** Bounds on the viewpoint height multiplier. */
+	HEIGHT_MIN_SCALE: 0.02,
+	HEIGHT_MAX_SCALE: 150,
 };
 
 // Scratch buffers — allocated once, the walk loop must not churn the GC.
@@ -329,6 +339,21 @@ function initWalkRig(scene) {
 }
 
 /**
+ * Recomputes the body and eye heights from the measured mesh size.
+ *
+ * `baseEye` is the character's own size and drives speed, gravity and jump; `eyeHeight`
+ * is where the camera sits and is the only one the viewpoint setting touches. Keeping
+ * them apart means raising the viewpoint reframes the shot without quietly making the
+ * character walk faster and jump higher.
+ */
+function walkApplyEyeHeight() {
+	const w = glo.walk;
+	w.baseEye = w.scale * WALK.EYE_RATIO;
+	w.heightScale = Math.min(Math.max(w.heightScale || 1, WALK.HEIGHT_MIN_SCALE), WALK.HEIGHT_MAX_SCALE);
+	w.eyeHeight = w.baseEye * w.heightScale;
+}
+
+/**
  * Enters first-person mode: surveys the surface, drops the character at the centre of
  * the parametric domain, swaps the active camera and detaches orbit input.
  * @param {boolean} [autopilot=false] - When true the character walks on its own,
@@ -348,7 +373,7 @@ function startWalk(autopilot = false) {
 	w.center.copyFrom(survey.center);
 	w.closedU = survey.closedU;
 	w.closedV = survey.closedV;
-	w.eyeHeight = survey.scale * WALK.EYE_RATIO;
+	walkApplyEyeHeight();
 
 	// Drop the character in the middle of the domain, at rest.
 	const inst = info.inst;
@@ -532,6 +557,23 @@ function walkUpdate(snap = false) {
 	}
 	const up = w.smoothNormal;
 
+	// --- Viewpoint height: Shift + up/down -----------------------------------------
+	// Read from a live Shift flag rather than baked into the key at press time: holding
+	// an arrow and tapping Shift has to switch meaning straight away, and a key stored
+	// under a modified name would never be cleared by its own keyup.
+	let heightHeld = false;
+	if (w.shiftHeld && !w.autopilot) {
+		let dir = 0;
+		if (w.keys.has('ArrowUp')) dir += 1;
+		if (w.keys.has('ArrowDown')) dir -= 1;
+		if (dir !== 0) {
+			heightHeld = true;
+			w.heightScale *= Math.exp(dir * WALK.HEIGHT_RATE * dt);
+			walkApplyEyeHeight();
+			walkShowHud();
+		}
+	}
+
 	// --- Input -------------------------------------------------------------------
 	let forward = 0, turn = 0, jump = false;
 	if (w.autopilot) {
@@ -539,8 +581,11 @@ function walkUpdate(snap = false) {
 		forward = 1;
 		turn = 0.35 * Math.sin(w.turnPhase * 0.31) + 0.12 * Math.sin(w.turnPhase * 0.13);
 	} else {
-		if (w.keys.has('ArrowUp')) forward += 1;
-		if (w.keys.has('ArrowDown')) forward -= 1;
+		// While the height is being adjusted the same arrows must not also walk.
+		if (!heightHeld) {
+			if (w.keys.has('ArrowUp')) forward += 1;
+			if (w.keys.has('ArrowDown')) forward -= 1;
+		}
 		if (w.keys.has('ArrowLeft')) turn -= 1;
 		if (w.keys.has('ArrowRight')) turn += 1;
 		jump = w.keys.has(' ');
@@ -559,7 +604,7 @@ function walkUpdate(snap = false) {
 			w.heading.copyFrom(along).scaleInPlace(1 / len);
 			walkTangentialize(w.heading, up, along);
 
-			const speed = w.railSpeed > 0 ? w.railSpeed : w.eyeHeight * WALK.SPEED_EYES * w.speedScale;
+			const speed = w.railSpeed > 0 ? w.railSpeed : w.baseEye * WALK.SPEED_EYES * w.speedScale;
 			let step = (speed * dt) / len;   // world distance -> parameter distance
 
 			// Land exactly on the target rather than overshooting: the loop must close
@@ -592,7 +637,7 @@ function walkUpdate(snap = false) {
 
 	// --- Metric step: world displacement -> (du, dv) -----------------------------
 	if (forward !== 0 && !w.rail) {
-		const speed = w.eyeHeight * WALK.SPEED_EYES * w.speedScale;
+		const speed = w.baseEye * WALK.SPEED_EYES * w.speedScale;
 		const dist = forward * speed * dt;
 
 		const Pu = _wWorldTu, Pv = _wWorldTv;
@@ -659,9 +704,9 @@ function walkUpdate(snap = false) {
 	// Gravity points into the surface rather than down the world Y axis. On a closed or
 	// self-intersecting form "down" has no global meaning, and this way the character
 	// keeps its footing upside down, on overhangs, and inside the shape.
-	const gravity = w.eyeHeight * WALK.GRAVITY_EYES;
+	const gravity = w.baseEye * WALK.GRAVITY_EYES;
 	if (jump && w.height <= 0 && w.vSpeed <= 0) {
-		w.vSpeed = Math.sqrt(2 * gravity * w.eyeHeight * WALK.JUMP_EYES);
+		w.vSpeed = Math.sqrt(2 * gravity * w.baseEye * WALK.JUMP_EYES);
 	}
 	if (w.height > 0 || w.vSpeed > 0) {
 		w.vSpeed -= gravity * dt;
@@ -754,17 +799,25 @@ function walkDisengageAutoDrive() {
 function walkHandleKeyDown(e) {
 	if (glo.cameraMode !== 'walk') return false;
 	const w = glo.walk;
+	w.shiftHeld = e.shiftKey;
 
 	switch (e.key) {
 		case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight': case ' ':
-			// Steering during a take takes the wheel from the rail.
-			walkDisengageAutoDrive();
+			// Steering takes the wheel from the rail, but raising the viewpoint does not:
+			// height is a framing control, like the pitch, and reframing a shot is no
+			// reason to cancel the take's loop.
+			if (!(e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown'))) {
+				walkDisengageAutoDrive();
+			}
 			w.keys.add(e.key);
 			e.preventDefault();
 			return true;
 		case 'Escape':
 			// During a take, Escape ends the take and keeps you on the surface.
 			if (glo.walkCinema.active) stopWalkCinema(); else stopWalk();
+			return true;
+		case 'r': case 'R':
+			walkToggleRail();
 			return true;
 		case 'x': case 'X':
 			// Swap sides of the surface — useful when the normal points inward. The
@@ -791,6 +844,7 @@ function walkHandleKeyDown(e) {
  * @param {KeyboardEvent} e - The keyup event.
  */
 function walkHandleKeyUp(e) {
+	glo.walk.shiftHeld = e.shiftKey;
 	glo.walk.keys.delete(e.key);
 }
 
@@ -956,7 +1010,6 @@ function startWalkCinema() {
 	// the normal teardown rather than leaving the UI half dismantled.
 	cinema.active = true;
 
-	let rail = null;
 	try {
 		// Everything drawn into the canvas ends up in the video, so the BabylonJS GUI
 		// and the grid have to go. The HUD and the history bar are DOM, invisible to the
@@ -970,22 +1023,16 @@ function startWalkCinema() {
 		const history = getById('historyPanel');
 		if (history) history.style.display = 'none';
 
-		// Choose the rail: prefer whichever direction closes on itself.
-		rail = w.closedU ? 'u' : (w.closedV ? 'v' : null);
-		w.rail = rail;
+		// The take opens on a still frame, under manual control. Starting mid-glide
+		// leaves no room for an establishing beat and fights whoever wants to drive;
+		// `R` engages the automatic looping lap whenever they are ready for it.
+		w.rail = null;
 		w.railTravelled = 0;
+		w.railTarget = 0;
+		w.railSpeed = 0;
 		w.railDone = false;
-		w.autopilot = !rail;
-
-		if (rail) {
-			const inst = info.inst;
-			w.railTarget = rail === 'u' ? (inst.max_u - inst.min_u) : (inst.max_v - inst.min_v);
-			const length = walkMeasureRailLength(info, rail);
-			w.railSpeed = length > 0 ? length / WALK.CINEMA_LAP_SECONDS : 0;
-		} else {
-			w.railTarget = 0;
-			w.railSpeed = 0;
-		}
+		w.autopilot = false;
+		w.keys.clear();
 	} catch (err) {
 		console.error('[Walk] Could not set up the take:', err);
 		stopWalkCinema();
@@ -999,8 +1046,9 @@ function startWalkCinema() {
 	cinema.saved.clockPaused = glo.clock.paused;
 	if (cinema.freezeTime && animated && !glo.clock.paused) glo.clock.pause();
 
-	cinema.loop = !!rail;
-	walkShowRecIndicator(rail, animated && !glo.clock.paused);
+	cinema.animated = animated && !glo.clock.paused;
+	cinema.loop = false;
+	walkShowRecIndicator(null, cinema.animated);
 
 	// Wait for the fullscreen resize to settle before measuring the capture area,
 	// otherwise the take is framed to the pre-fullscreen canvas.
@@ -1029,6 +1077,52 @@ function startWalkCinema() {
 	});
 
 	return true;
+}
+
+/**
+ * Engages the automatic rail from wherever the character stands: it glides along the
+ * parameter line that closes on itself, and during a take it arms the auto-stop so the
+ * clip ends after exactly one period and loops seamlessly.
+ *
+ * Deliberately a separate gesture rather than something a take does on its own. A
+ * recording that opens mid-glide gives no establishing beat and takes the controls away
+ * from whoever wanted to drive.
+ *
+ * @returns {boolean} `true` if a rail was engaged.
+ */
+function walkEngageRail() {
+	const w = glo.walk;
+	const info = walkMeshInfo();
+	if (!info) return false;
+
+	const rail = w.closedU ? 'u' : (w.closedV ? 'v' : null);
+	if (!rail) {
+		console.warn('[Walk] No direction closes on itself here — nothing to loop along.');
+		return false;
+	}
+
+	const inst = info.inst;
+	w.rail = rail;
+	w.autopilot = false;
+	w.railTravelled = 0;
+	w.railDone = false;
+	w.railTarget = rail === 'u' ? (inst.max_u - inst.min_u) : (inst.max_v - inst.min_v);
+	const length = walkMeasureRailLength(info, rail);
+	w.railSpeed = length > 0 ? length / WALK.CINEMA_LAP_SECONDS : 0;
+
+	if (glo.walkCinema.active) {
+		glo.walkCinema.loop = true;
+		walkShowRecIndicator(rail, glo.walkCinema.animated);
+	} else {
+		walkShowHud();
+	}
+	return true;
+}
+
+/** Engages the rail, or drops it if it is already running. */
+function walkToggleRail() {
+	if (glo.cameraMode !== 'walk') return;
+	if (glo.walk.rail) walkDisengageAutoDrive(); else walkEngageRail();
 }
 
 /**
@@ -1115,8 +1209,8 @@ function walkShowRecIndicator(rail, animated = false) {
 	}
 	el.textContent = (rail
 		? `● REC — loop on ${rail}, ~${WALK.CINEMA_LAP_SECONDS}s · arrows to take over`
-		: '● REC — driving, no loop')
-		+ (animated ? ' · surface animated: path loops, shape will not' : '')
+		: '● REC — you drive · arrows to move, R for an automatic looping lap')
+		+ (rail && animated ? ' · surface animated: path loops, shape will not' : '')
 		+ ' · Shift+F to stop';
 	el.style.display = 'block';
 }
@@ -1148,11 +1242,12 @@ function walkShowHud() {
 	}
 
 	const w = glo.walk;
-	const mode = w.autopilot ? 'AUTOPILOT' : 'WALK';
+	const mode = w.rail ? 'RAIL' : (w.autopilot ? 'AUTOPILOT' : 'WALK');
 	const loop = [w.closedU ? 'u' : null, w.closedV ? 'v' : null].filter(Boolean).join('+');
 	hud.innerHTML =
-		`<b>${mode}</b> &nbsp; arrows move &middot; space jump &middot; click for mouse look &middot; ` +
-		`X flip side &middot; PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
+		`<b>${mode}</b> &nbsp; arrows move &middot; shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
+		`space jump &middot; R rail &middot; click for mouse look &middot; X flip side &middot; ` +
+		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
 		(loop ? ` &nbsp;|&nbsp; looping on ${loop}` : '');
 	hud.style.display = 'block';
 }
@@ -1167,6 +1262,9 @@ function walkHideHud() {
 
 document.addEventListener('keyup', walkHandleKeyUp);
 document.addEventListener('mousemove', walkHandleMouseMove);
+// Losing focus mid-stride would otherwise leave a key latched and the character walking
+// on its own, since the keyup lands on whatever took the focus.
+window.addEventListener('blur', () => { glo.walk.keys.clear(); glo.walk.shiftHeld = false; });
 // Leaving fullscreen by any route (Escape, the browser's own chrome) ends the take,
 // so the overlays always come back and the file is always written.
 document.addEventListener('fullscreenchange', () => {

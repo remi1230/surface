@@ -569,6 +569,49 @@ c'est exactement ce qu'exige une boucle sans couture. Durée visée ~24 s
 (`WALK.CINEMA_LAP_SECONDS`), la vitesse étant déduite de la longueur du chemin
 réellement mesurée par la sonde.
 
+### La prise démarre à l'arrêt
+
+Le rail s'engageait automatiquement au lancement : la vidéo commençait en plein
+mouvement, sans plan d'accroche, et prenait les commandes à celui qui voulait
+conduire. La prise ouvre désormais sur une image fixe, en pilotage manuel, et
+`R` engage le tour automatique quand on est prêt.
+
+Conséquence : la boucle parfaite passe de comportement par défaut à geste
+explicite. C'est le bon arbitrage — le rail reste disponible à tout instant, y
+compris hors enregistrement, et il arme l'arrêt automatique dès qu'on
+l'engage pendant une prise. Vérifié : 4 secondes d'enregistrement au démarrage,
+déplacement paramétrique exactement **0**.
+
+### Hauteur du point de vue
+
+`Shift` + `↑`/`↓`. Trois décisions :
+
+- **Multiplicatif, pas additif** (`exp(±1,2·dt)`). La plage utile couvre quatre
+  ordres de grandeur, du nez sur la surface à la vue d'ensemble ; un incrément
+  fixe serait inutilisable à un bout et inopérant à l'autre.
+- **Stocké en multiplicateur** (`heightScale`), comme `speedScale` : le réglage
+  survit à un changement de forme ou de résolution, là où une hauteur absolue
+  serait écrasée au prochain relevé d'échelle.
+- **Découplé de la locomotion.** `baseEye` (taille du personnage) pilote vitesse,
+  gravité et saut ; `eyeHeight` (= `baseEye × heightScale`) ne pilote que le
+  décalage caméra. Sans cette séparation, monter le point de vue accélérait
+  secrètement la marche. Vérifié à pas de temps fixe : vitesse identique à
+  0,333269 unité/s sur une plage de 1500× de hauteur, dispersion exactement 0.
+
+Deux détails d'implémentation qui comptent :
+
+- L'état de `Shift` est suivi **en direct** (`shiftHeld`), pas figé au moment de
+  l'appui. Tenir une flèche puis taper Shift doit changer de sens immédiatement,
+  et une touche mémorisée sous un nom modifié ne serait jamais libérée par son
+  propre `keyup` — flèche bloquée garantie.
+- `Shift`+flèches ne débraye pas le rail : la hauteur est un réglage de cadrage,
+  au même titre que le pitch, et recadrer un plan n'est pas une raison d'annuler
+  sa boucle.
+
+Ajouté au passage : un handler `blur` qui vide les touches. Perdre le focus en
+pleine marche laissait sinon une touche verrouillée — le `keyup` partant vers ce
+qui a pris le focus — et le personnage marchait tout seul.
+
 ### Garder la main pendant la prise
 
 Le rail verrouillait tout : il réécrivait `w.heading` depuis la tangente à chaque

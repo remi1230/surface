@@ -131,12 +131,19 @@ Press `w` to drop a character onto the mesh and explore it from the inside.
 | Key | Action |
 |-----|--------|
 | Arrows | Move forward / back, turn |
+| `Shift` + `↑` / `↓` | Raise / lower the viewpoint |
 | `Space` | Jump |
 | Mouse | Look around (click the canvas first) |
+| `R` | Ride a rail: glide along the parameter line that closes on itself |
 | `X` | Switch to the other side of the surface |
 | `PageUp` / `PageDown` | Walking speed |
 | `Shift+F` | Fullscreen video take (see below) |
 | `Esc` | Back to the orbit camera |
+
+Viewpoint height is a multiplier, so it survives a change of form or resolution, and it
+changes nothing else: walking speed, gravity and jump height stay tied to the character's
+own size, not to where the camera sits. Rise far enough and you get an overview of the
+form while still travelling across its surface.
 
 The ground is the surface as it is actually drawn &mdash; symmetries, blender, deformations,
 mesh transformations and time animation included &mdash; because each frame samples the very
@@ -152,23 +159,28 @@ you around.
 aside, and the **whole frame** is captured &mdash; unlike the orbit take, which crops the
 centred square set by the video box range. The clip downloads as WebM when the take ends.
 
-When the surface closes on itself, the character is put on a **rail** along that
-direction and the take stops by itself after exactly one period, so the last frame joins
-the first and the clip loops seamlessly. A lap aims for about 24 seconds
-(`WALK.CINEMA_LAP_SECONDS`), the speed being derived from the measured length of the
-path. On an open patch there is no such period, so it free-roams and records until you
-press `Shift+F` again.
+**The take opens on a still frame, under your control** — no drifting off the moment
+recording starts, so there is room for an establishing beat. Drive it with the arrows,
+look around with the mouse, adjust the viewpoint height, jump: everything works while
+recording.
 
-You keep the controls throughout:
+Press `R` when you want the **automatic looping lap**. The character glides along the
+parameter direction that closes on itself and the take stops by itself after exactly one
+period, so the last frame joins the first and the clip loops seamlessly. A lap aims for
+about 24 seconds (`WALK.CINEMA_LAP_SECONDS`), the speed derived from the measured length
+of the path.
 
-- **The mouse looks around while the rail drives.** Horizontal motion turns the head, not
-  the body, so the take carries on along its line — a dolly with a free head. A steady
-  offset still leaves the loop closed, since the first and last frames share it.
-- **The arrows take the wheel.** Touching them disengages the rail (or the autopilot)
-  like cruise control: the direction you were looking at becomes the heading, so nothing
-  snaps, and you drive the rest of the take yourself. Recording continues; the badge
-  switches to `driving, no loop`, because a hand-driven path has no reason to close.
-- **Jumping works during a take** too.
+While a rail is running:
+
+- **The mouse still looks around.** Horizontal motion turns the head, not the body, so
+  the rail carries on along its line — a dolly with a free head. A steady offset leaves
+  the loop closed, since the first and last frames share it.
+- **The arrows take the wheel**, cruise-control style: the direction you were looking at
+  becomes the heading, so nothing snaps, and you drive the rest of the take yourself.
+  Recording continues; the badge switches to `you drive`, because a hand-driven path has
+  no reason to close.
+- **`Shift` + `↑`/`↓` reframes without cancelling anything** — height is a framing
+  control, like the pitch, so it leaves the loop armed.
 
 One caveat, and the badge says so during the take: the rail closes the *path*, not the
 *shape*. If the surface deforms over time, it has moved on by the end of the lap and the

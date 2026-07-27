@@ -1102,10 +1102,28 @@ var glo = {
 		height: 0,
 		/** @type {number} Vertical speed along the normal. */
 		vSpeed: 0,
-		/** @type {number} Eye height in world units, derived from the mesh size. */
+		/**
+		 * @type {number} Eye height above the surface in world units. Derived from the
+		 * mesh size and {@link glo.walk.heightScale}; only the camera offset uses it.
+		 */
 		eyeHeight: 1,
+		/**
+		 * @type {number} Body height in world units, straight from the mesh size and
+		 * untouched by the viewpoint setting. Walking speed, gravity and jump height are
+		 * scaled by this rather than by `eyeHeight`, so raising the viewpoint reframes the
+		 * shot without secretly changing how fast the character moves.
+		 */
+		baseEye: 1,
+		/**
+		 * @type {number} Viewpoint height multiplier (Shift + up/down arrows). Kept as a
+		 * multiplier rather than an absolute height so the setting survives a mesh rebuild
+		 * or a change of form, exactly like `speedScale`.
+		 */
+		heightScale: 1,
 		/** @type {number} User speed multiplier (PageUp / PageDown). */
 		speedScale: 1,
+		/** @type {boolean} Whether Shift is currently held, tracked live from the events. */
+		shiftHeld: false,
 		/** @type {number} Bounding-box diagonal of the surface, measured on entry. */
 		scale: 1,
 		/** @type {BABYLON.Vector3} Centroid of the surface, measured on entry. */
@@ -1148,8 +1166,13 @@ var glo = {
 		active: false,
 		/** @type {object|null} The recorder returned by `createMeshRecorder`. */
 		recorder: null,
-		/** @type {boolean} Stop automatically once the rail closes its loop. */
-		loop: true,
+		/**
+		 * @type {boolean} Stop automatically once the rail closes its loop. False until a
+		 * rail is engaged with `R`, since a take now opens still and hand-driven.
+		 */
+		loop: false,
+		/** @type {boolean} The surface deforms over time, so a loop cannot close on shape. */
+		animated: false,
 		/**
 		 * @type {boolean} Pause the animation clock during a take when the surface
 		 * depends on `t`. The rail always closes the path, but a shape that keeps

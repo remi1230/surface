@@ -356,6 +356,7 @@ function startWalk(autopilot = false) {
 	w.v = (inst.min_v + inst.max_v) / 2;
 	w.height = 0;
 	w.vSpeed = 0;
+	w.viewYaw = 0;
 	// Babylon pitches down for a positive rotation.x — the autopilot tilts slightly
 	// downwards so the surface, not the void above it, fills the frame.
 	w.pitch = autopilot ? 0.22 : 0;
@@ -574,11 +575,20 @@ function walkUpdate(snap = false) {
 	}
 
 	// --- Heading: turn around the normal, then re-project into the tangent plane --
-	if (turn !== 0 && !w.rail) {
-		const q = BABYLON.Quaternion.RotationAxis(up, turn * WALK.TURN_SPEED * dt);
-		w.heading.rotateByQuaternionToRef(q, w.heading);
+	if (!w.rail) {
+		// Off the rail the head and the body are one: absorb the mouse yaw into the
+		// heading so the character walks where it looks.
+		if (w.viewYaw !== 0) {
+			const q = BABYLON.Quaternion.RotationAxis(up, w.viewYaw);
+			w.heading.rotateByQuaternionToRef(q, w.heading);
+			w.viewYaw = 0;
+		}
+		if (turn !== 0) {
+			const q = BABYLON.Quaternion.RotationAxis(up, turn * WALK.TURN_SPEED * dt);
+			w.heading.rotateByQuaternionToRef(q, w.heading);
+		}
+		walkTangentialize(w.heading, up, _wWorldTu);
 	}
-	if (!w.rail) walkTangentialize(w.heading, up, _wWorldTu);
 
 	// --- Metric step: world displacement -> (du, dv) -----------------------------
 	if (forward !== 0 && !w.rail) {
@@ -693,7 +703,7 @@ function walkUpdate(snap = false) {
 	);
 
 	glo.walkCamera.rotation.x = w.pitch;
-	glo.walkCamera.rotation.y = 0;
+	glo.walkCamera.rotation.y = w.viewYaw;   // zero unless a rail is holding the body
 	glo.walkCamera.rotation.z = 0;
 
 	// The lap closed on this frame: the pose above is the one that matches the take's
@@ -702,6 +712,38 @@ function walkUpdate(snap = false) {
 }
 
 // ==================== INPUT ====================
+
+/**
+ * Hands control back to the player, dropping whatever was driving — the rail of a video
+ * take or the wandering autopilot. Works like cruise control: touching the controls
+ * disengages it.
+ *
+ * The direction the camera is actually facing becomes the body's heading, so taking over
+ * never snaps the view. A take carries on recording, but it can no longer promise a
+ * seamless loop, and the badge says so.
+ */
+function walkDisengageAutoDrive() {
+	const w = glo.walk;
+	if (!w.rail && !w.autopilot) return;
+
+	if (w.viewYaw !== 0) {
+		const q = BABYLON.Quaternion.RotationAxis(w.smoothNormal, w.viewYaw);
+		w.heading.rotateByQuaternionToRef(q, w.heading);
+		w.viewYaw = 0;
+	}
+
+	w.rail = null;
+	w.railSpeed = 0;
+	w.railTarget = 0;
+	w.railTravelled = 0;
+	w.railDone = false;
+	w.autopilot = false;
+
+	if (glo.walkCinema.active) {
+		glo.walkCinema.loop = false;
+		walkShowRecIndicator(null, false);
+	}
+}
 
 /**
  * Keyboard handler for walk mode, consulted before the global shortcut registry so the
@@ -715,6 +757,8 @@ function walkHandleKeyDown(e) {
 
 	switch (e.key) {
 		case 'ArrowUp': case 'ArrowDown': case 'ArrowLeft': case 'ArrowRight': case ' ':
+			// Steering during a take takes the wheel from the rail.
+			walkDisengageAutoDrive();
 			w.keys.add(e.key);
 			e.preventDefault();
 			return true;
@@ -759,10 +803,12 @@ function walkHandleMouseMove(e) {
 	if (glo.cameraMode !== 'walk' || document.pointerLockElement !== glo.canvas) return;
 	const w = glo.walk;
 
-	if (e.movementX) {
-		const q = BABYLON.Quaternion.RotationAxis(w.smoothNormal, e.movementX * WALK.MOUSE_SENS);
-		w.heading.rotateByQuaternionToRef(q, w.heading);
-	}
+	// Horizontal motion feeds the head's yaw rather than turning the body directly.
+	// Walking freely, walkUpdate folds it straight into the heading, so this stays the
+	// familiar "go where you look". On a rail it remains an offset, which is how you can
+	// look around while the take keeps rolling.
+	if (e.movementX) w.viewYaw += e.movementX * WALK.MOUSE_SENS;
+
 	if (e.movementY) {
 		w.pitch = Math.min(Math.max(w.pitch + e.movementY * WALK.MOUSE_SENS, -WALK.PITCH_LIMIT), WALK.PITCH_LIMIT);
 	}
@@ -1068,8 +1114,8 @@ function walkShowRecIndicator(rail, animated = false) {
 		walkOverlayHost().appendChild(el);
 	}
 	el.textContent = (rail
-		? `● REC — loop on ${rail}, ~${WALK.CINEMA_LAP_SECONDS}s`
-		: '● REC — free roam, no loop')
+		? `● REC — loop on ${rail}, ~${WALK.CINEMA_LAP_SECONDS}s · arrows to take over`
+		: '● REC — driving, no loop')
 		+ (animated ? ' · surface animated: path loops, shape will not' : '')
 		+ ' · Shift+F to stop';
 	el.style.display = 'block';

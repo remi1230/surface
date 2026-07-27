@@ -569,6 +569,32 @@ c'est exactement ce qu'exige une boucle sans couture. Durée visée ~24 s
 (`WALK.CINEMA_LAP_SECONDS`), la vitesse étant déduite de la longueur du chemin
 réellement mesurée par la sonde.
 
+### Garder la main pendant la prise
+
+Le rail verrouillait tout : il réécrivait `w.heading` depuis la tangente à chaque
+frame, ce qui court-circuitait à la fois les flèches et le regard horizontal.
+Mesuré : souris X faisait tourner la vue de 51,6° en marche libre, mais de 3,55°
+pendant la prise — et ces 3,55° étaient l'avance du rail, pas la souris.
+
+Corrigé en séparant **la tête du corps** :
+
+- `w.viewYaw` porte le lacet de la tête. La souris l'alimente toujours. Hors rail,
+  `walkUpdate` l'absorbe dans le cap à chaque frame — on marche où on regarde,
+  comportement inchangé. Sur rail il persiste comme décalage : c'est ce qui permet
+  de regarder autour de soi pendant que le travelling continue. Un décalage
+  constant laisse d'ailleurs la boucle fermée, première et dernière image le
+  partageant.
+- Les flèches **débrayent**, façon régulateur de vitesse. La direction regardée
+  devient le cap du corps, donc rien ne saute, et on pilote la fin de la prise à
+  la main. L'enregistrement continue ; le badge passe à `driving, no loop`,
+  puisqu'un trajet piloté n'a aucune raison de se refermer.
+
+Vérifié : sur rail, viewYaw accumule 0,625 rad sans que le corps quitte la ligne
+ni que la boucle s'annule ; à la première flèche, `rail` passe à `null`, la boucle
+se désarme, le lacet est replié dans le cap, et le déplacement repart dans la
+direction regardée. Saut opérationnel pendant la prise. La boucle automatique,
+elle, ferme toujours à une inter-image près quand on ne touche à rien.
+
 ### Ce que la boucle ne promet pas
 
 Le rail ferme le *chemin*, pas la *forme*. Si la surface se déforme dans le

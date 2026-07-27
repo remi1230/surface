@@ -159,6 +159,17 @@ the first and the clip loops seamlessly. A lap aims for about 24 seconds
 path. On an open patch there is no such period, so it free-roams and records until you
 press `Shift+F` again.
 
+You keep the controls throughout:
+
+- **The mouse looks around while the rail drives.** Horizontal motion turns the head, not
+  the body, so the take carries on along its line — a dolly with a free head. A steady
+  offset still leaves the loop closed, since the first and last frames share it.
+- **The arrows take the wheel.** Touching them disengages the rail (or the autopilot)
+  like cruise control: the direction you were looking at becomes the heading, so nothing
+  snaps, and you drive the rest of the take yourself. Recording continues; the badge
+  switches to `driving, no loop`, because a hand-driven path has no reason to close.
+- **Jumping works during a take** too.
+
 One caveat, and the badge says so during the take: the rail closes the *path*, not the
 *shape*. If the surface deforms over time, it has moved on by the end of the lap and the
 clip will still jump on repeat. Set `glo.walkCinema.freezeTime = true` to pause the

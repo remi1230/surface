@@ -1088,6 +1088,16 @@ var glo = {
 		flip: 1,
 		/** @type {number} Head pitch (rad), relative to the tangent plane. */
 		pitch: 0,
+		/**
+		 * @type {number} Yaw of the head relative to the body (rad).
+		 *
+		 * Walking freely, this is folded into the heading every frame so you go where you
+		 * look, the usual first-person behaviour. On a rail it stays as a standing offset,
+		 * which is what lets you look around while the rail keeps driving — a dolly with a
+		 * free head. A constant offset also leaves the loop closed, since the first and
+		 * last frames still share it.
+		 */
+		viewYaw: 0,
 		/** @type {number} Height above the surface — non-zero only while jumping. */
 		height: 0,
 		/** @type {number} Vertical speed along the normal. */

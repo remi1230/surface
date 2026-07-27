@@ -409,6 +409,7 @@ const keyboardShortcuts = [
 
    // --- Shift + key ---
    { key: 'w',  shift: true, action: () => toggleWalk(true) },
+   { key: 'f',  shift: true, action: () => toggleWalkCinema() },
 
    // --- Alt ---
    { key: "+",  alt: true, action: () => glo.rotateSpeed *= 1.2 },

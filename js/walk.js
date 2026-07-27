@@ -36,8 +36,10 @@ const WALK = {
 	SURVEY: 12,
 	/** Relative distance below which two domain edges are considered to be the same seam. */
 	CLOSURE_EPS: 0.002,
-	/** Per-frame displacement ceiling, in grid cells (bilinear interpolation stays valid). */
+	/** Per-frame displacement ceiling, in grid cells (the probe patch stays valid). */
 	MAX_CELLS_PER_FRAME: 0.5,
+	/** Target duration of one rail lap in fullscreen video mode, in seconds. */
+	CINEMA_LAP_SECONDS: 24,
 };
 
 // Scratch buffers — allocated once, the walk loop must not churn the GC.
@@ -408,6 +410,10 @@ function startWalk(autopilot = false) {
 function stopWalk() {
 	if (glo.cameraMode !== 'walk') return;
 
+	// A take in progress must be closed down first, or the overlays it hid would stay
+	// hidden and the recording would never be written out.
+	if (glo.walkCinema.active) stopWalkCinema();
+
 	walkReleasePointer();
 	glo.scene.activeCamera = glo.orbitCamera;
 	glo.orbitCamera.attachControl(glo.canvas, true);
@@ -539,15 +545,43 @@ function walkUpdate(snap = false) {
 		jump = w.keys.has(' ');
 	}
 
+	// --- Rail: follow one parameter line exactly ---------------------------------
+	// Used by the cinema mode. Walking a geodesic is the right default, but a geodesic
+	// almost never returns to its starting point, so it cannot produce a seamless loop.
+	// A rail advances along u (or v) at a constant *world* speed and stops after exactly
+	// one period, which on a closed direction lands back on the start — same position,
+	// same heading, so the last frame joins the first.
+	if (w.rail) {
+		const along = w.rail === 'u' ? _wWorldTu : _wWorldTv;
+		const len = along.length();
+		if (len > 1e-9) {
+			w.heading.copyFrom(along).scaleInPlace(1 / len);
+			walkTangentialize(w.heading, up, along);
+
+			const speed = w.railSpeed > 0 ? w.railSpeed : w.eyeHeight * WALK.SPEED_EYES * w.speedScale;
+			let step = (speed * dt) / len;   // world distance -> parameter distance
+
+			// Land exactly on the target rather than overshooting: the loop must close
+			// on the parameter, not on the frame count, so a dropped frame cannot
+			// lengthen the lap. Same trick the rotation loop uses in rotateCamera.
+			if (w.railTarget > 0 && w.railTravelled + step >= w.railTarget) {
+				step = w.railTarget - w.railTravelled;
+				w.railDone = true;
+			}
+			w.railTravelled += step;
+			if (w.rail === 'u') w.u += step; else w.v += step;
+		}
+	}
+
 	// --- Heading: turn around the normal, then re-project into the tangent plane --
-	if (turn !== 0) {
+	if (turn !== 0 && !w.rail) {
 		const q = BABYLON.Quaternion.RotationAxis(up, turn * WALK.TURN_SPEED * dt);
 		w.heading.rotateByQuaternionToRef(q, w.heading);
 	}
-	walkTangentialize(w.heading, up, _wWorldTu);
+	if (!w.rail) walkTangentialize(w.heading, up, _wWorldTu);
 
 	// --- Metric step: world displacement -> (du, dv) -----------------------------
-	if (forward !== 0) {
+	if (forward !== 0 && !w.rail) {
 		const speed = w.eyeHeight * WALK.SPEED_EYES * w.speedScale;
 		const dist = forward * speed * dt;
 
@@ -661,6 +695,10 @@ function walkUpdate(snap = false) {
 	glo.walkCamera.rotation.x = w.pitch;
 	glo.walkCamera.rotation.y = 0;
 	glo.walkCamera.rotation.z = 0;
+
+	// The lap closed on this frame: the pose above is the one that matches the take's
+	// first frame, so end the recording now, not on the next tick.
+	if (w.railDone) { w.railDone = false; finishWalkCinemaLoop(); }
 }
 
 // ==================== INPUT ====================
@@ -681,7 +719,8 @@ function walkHandleKeyDown(e) {
 			e.preventDefault();
 			return true;
 		case 'Escape':
-			stopWalk();
+			// During a take, Escape ends the take and keeps you on the surface.
+			if (glo.walkCinema.active) stopWalkCinema(); else stopWalk();
 			return true;
 		case 'x': case 'X':
 			// Swap sides of the surface — useful when the normal points inward. The
@@ -741,10 +780,312 @@ function walkReleasePointer() {
 	if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
 }
 
+// ==================== FULLSCREEN VIDEO ====================
+
+/**
+ * Measures the world length of one full period along a parameter line through the
+ * character's current position. Used to turn a wanted take duration into a walking
+ * speed, so a lap lasts about as long as asked whatever the size of the form.
+ *
+ * @param {object} info - Result of {@link walkMeshInfo}.
+ * @param {'u'|'v'} rail - Which parameter line to measure.
+ * @returns {number} Length in world units, or 0 if it could not be measured.
+ */
+function walkMeasureRailLength(info, rail) {
+	const { inst, gridU, gridV } = info;
+	const w = glo.walk;
+	const N = 64;
+
+	const fi = Math.round(inst.step_u !== 0 ? (w.u - inst.min_u) / inst.step_u : 0);
+	const fj = Math.round(inst.step_v !== 0 ? (w.v - inst.min_v) / inst.step_v : 0);
+	for (let k = 0; k <= N; k++) {
+		// Integer indices only — a fractional probe would not sit on the mesh.
+		_walkSurveyIdx[k * 2]     = rail === 'u' ? Math.round(k * gridU / N) : fi;
+		_walkSurveyIdx[k * 2 + 1] = rail === 'u' ? fj : Math.round(k * gridV / N);
+	}
+
+	const probe = inst.probePoints(_walkSurveyIdx, N + 1);
+	if (!probe) return 0;
+
+	const world = glo.ribbon.getWorldMatrix();
+	let total = 0;
+	for (let k = 0; k <= N; k++) {
+		_wTmpA.set(probe.positions[k * 3], probe.positions[k * 3 + 1], probe.positions[k * 3 + 2]);
+		BABYLON.Vector3.TransformCoordinatesToRef(_wTmpA, world, _wTmpB);
+		if (k > 0) total += BABYLON.Vector3.Distance(_wTmpC, _wTmpB);
+		_wTmpC.copyFrom(_wTmpB);
+	}
+	return isFinite(total) ? total : 0;
+}
+
+/**
+ * Reports whether the surface actually changes over time.
+ *
+ * It decides what a "perfect loop" can promise: the rail closes the *path* exactly, but
+ * if the shape itself has moved on by the end of the lap, the last frame no longer
+ * matches the first. Saying so beats quietly producing a clip that jumps on repeat.
+ *
+ * Measured, not parsed. Scanning the equations for a `t` cannot work here: implicit
+ * multiplication means `2t` is a time reference with no separator in front of it, `cut`
+ * expands to `cos(u)*t`, and `atan`/`step`/`sqrt` are full of innocent t's — while the
+ * geometry editor can bring in arbitrary GLSL. So instead the clock is nudged and the
+ * surface re-probed: if the points move, it depends on time. Two probe calls, once per
+ * take, and no notation can fool it.
+ *
+ * @returns {boolean} `true` if the geometry depends on time.
+ */
+function walkSurfaceUsesTime() {
+	const info = walkMeshInfo();
+	if (!info) return false;
+	const { inst, gridU, gridV } = info;
+
+	// A handful of scattered vertices — enough for any time term to show up somewhere.
+	const N = 9;
+	for (let k = 0; k < N; k++) {
+		_walkSurveyIdx[k * 2]     = Math.round((k % 3) * gridU / 2);
+		_walkSurveyIdx[k * 2 + 1] = Math.round(Math.floor(k / 3) * gridV / 2);
+	}
+
+	const before = inst.probePoints(_walkSurveyIdx, N);
+	if (!before) return false;
+	const snapshot = Float32Array.from(before.positions.subarray(0, N * 3));
+
+	const t0 = glo.clock.time;
+	glo.clock.setTime(t0 + 1.0);
+	const after = inst.probePoints(_walkSurveyIdx, N);
+	glo.clock.setTime(t0);
+	if (!after) return false;
+
+	// Scale-relative threshold: absolute distances mean nothing across forms.
+	const tol = Math.max(glo.walk.scale, 1e-6) * 1e-5;
+	for (let k = 0; k < N * 3; k++) {
+		if (Math.abs(after.positions[k] - snapshot[k]) > tol) return true;
+	}
+	return false;
+}
+
+/**
+ * Enters fullscreen video mode: the first-person view fills the screen with every
+ * overlay out of the way, and the whole frame is recorded rather than the centred
+ * square crop the orbit takes use.
+ *
+ * When the surface closes on itself, the character is put on a rail along that
+ * direction and the take stops on its own after exactly one period — the last frame
+ * matches the first, so the clip loops seamlessly. On an open patch there is no such
+ * period, so it falls back to the wandering autopilot and records until stopped.
+ *
+ * Must be called straight from a user gesture: `requestFullscreen` is issued before any
+ * await, or the browser rejects it.
+ *
+ * @returns {boolean} `true` if the take started.
+ */
+function startWalkCinema() {
+	const cinema = glo.walkCinema;
+	if (cinema.active) return false;
+
+	if (glo.cameraMode !== 'walk' && !startWalk(false)) {
+		console.warn('[Walk] Nothing walkable to film.');
+		return false;
+	}
+
+	// First thing, while the user gesture is still live.
+	const host = getById('univers_div');
+	const fsRequest = (!document.fullscreenElement && host && host.requestFullscreen)
+		? host.requestFullscreen().catch(() => {})
+		: Promise.resolve();
+
+	const info = walkMeshInfo();
+	const w = glo.walk;
+
+	cinema.saved = {
+		gui: glo.advancedTexture ? glo.advancedTexture.rootContainer.isVisible : true,
+		grid: glo.gridVisible,
+		autopilot: w.autopilot,
+		rail: w.rail,
+		railSpeed: w.railSpeed,
+		u: w.u, v: w.v,
+	};
+
+	// Mark the take live before touching anything, so a failure below can be undone by
+	// the normal teardown rather than leaving the UI half dismantled.
+	cinema.active = true;
+
+	let rail = null;
+	try {
+		// Everything drawn into the canvas ends up in the video, so the BabylonJS GUI
+		// and the grid have to go. The HUD and the history bar are DOM, invisible to the
+		// recorder, but they would still sit on top of a fullscreen view.
+		if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = false;
+		if (typeof hideVideoCropBox === 'function') hideVideoCropBox();
+		// Only when it is actually up: switchGrid reaches straight into glo.axisX and
+		// friends, which do not exist until the grid has been built once.
+		if (glo.gridVisible && typeof switchGrid === 'function') switchGrid(false);
+		walkHideHud();
+		const history = getById('historyPanel');
+		if (history) history.style.display = 'none';
+
+		// Choose the rail: prefer whichever direction closes on itself.
+		rail = w.closedU ? 'u' : (w.closedV ? 'v' : null);
+		w.rail = rail;
+		w.railTravelled = 0;
+		w.railDone = false;
+		w.autopilot = !rail;
+
+		if (rail) {
+			const inst = info.inst;
+			w.railTarget = rail === 'u' ? (inst.max_u - inst.min_u) : (inst.max_v - inst.min_v);
+			const length = walkMeasureRailLength(info, rail);
+			w.railSpeed = length > 0 ? length / WALK.CINEMA_LAP_SECONDS : 0;
+		} else {
+			w.railTarget = 0;
+			w.railSpeed = 0;
+		}
+	} catch (err) {
+		console.error('[Walk] Could not set up the take:', err);
+		stopWalkCinema();
+		return false;
+	}
+
+	// The rail closes the path exactly, but a surface that keeps deforming has moved on
+	// by the end of the lap, so the clip would jump on repeat. Freezing the clock trades
+	// the animation for a truly seamless loop; off by default, as in the orbit take.
+	const animated = walkSurfaceUsesTime();
+	cinema.saved.clockPaused = glo.clock.paused;
+	if (cinema.freezeTime && animated && !glo.clock.paused) glo.clock.pause();
+
+	cinema.loop = !!rail;
+	walkShowRecIndicator(rail, animated && !glo.clock.paused);
+
+	// Wait for the fullscreen resize to settle before measuring the capture area,
+	// otherwise the take is framed to the pre-fullscreen canvas.
+	fsRequest.then(() => new Promise(r => setTimeout(r, 250))).then(() => {
+		if (!cinema.active) return;
+		glo.engine.resize();
+		return new Promise(r => setTimeout(r, 120));
+	}).then(() => {
+		if (!cinema.active) return;
+		const canvas = glo.engine.getRenderingCanvas();
+		cinema.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60, {
+			// The whole frame: "fullscreen" is the point of this mode.
+			bounds: () => ({ x: 0, y: 0, width: canvas.width, height: canvas.height }),
+			// Already rendering at the full screen resolution — doubling it again would
+			// quadruple the fragment cost for pixels nobody will see.
+			hardwareScaling: 1,
+			filePrefix: 'surface-walk',
+		});
+		cinema.recorder.start(() => {
+			// Reset the lap and the clock at the true first recorded frame, so the loop
+			// is measured from what the viewer actually sees.
+			glo.walk.railTravelled = 0;
+			glo.walk.railDone = false;
+			glo.clock.reset();
+		});
+	});
+
+	return true;
+}
+
+/**
+ * Ends a cinema take: stops and downloads the recording, restores the overlays, the
+ * grid, the previous locomotion, and leaves fullscreen.
+ */
+function stopWalkCinema() {
+	const cinema = glo.walkCinema;
+	if (!cinema.active) return;
+	cinema.active = false;
+
+	if (cinema.recorder) { cinema.recorder.stop(); cinema.recorder = null; }
+
+	const w = glo.walk;
+	const saved = cinema.saved || {};
+	w.rail = saved.rail ?? null;
+	w.railSpeed = saved.railSpeed ?? 0;
+	w.railTravelled = 0;
+	w.railTarget = 0;
+	w.railDone = false;
+	w.autopilot = saved.autopilot ?? false;
+
+	if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = saved.gui !== false;
+	if (saved.grid && glo.gridVisible && typeof switchGrid === 'function') switchGrid(true);
+	if (saved.clockPaused === false && glo.clock.paused) glo.clock.resume();
+	const history = getById('historyPanel');
+	if (history) history.style.display = '';
+	walkHideRecIndicator();
+
+	if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+	setTimeout(() => glo.engine.resize(), 250);
+
+	if (glo.cameraMode === 'walk') walkShowHud();
+}
+
+/** Toggles fullscreen video mode. */
+function toggleWalkCinema() {
+	if (glo.walkCinema.active) stopWalkCinema(); else startWalkCinema();
+}
+
+/**
+ * Called when the rail completes a full period. Ends the take so the clip closes on
+ * itself; the pose that would come next is the take's first frame, and recording it
+ * again would show as a stutter on replay.
+ */
+function finishWalkCinemaLoop() {
+	if (!glo.walkCinema.active || !glo.walkCinema.loop) return;
+	stopWalkCinema();
+}
+
+/**
+ * Returns the element the walk overlays must hang from.
+ *
+ * They have to live inside the element that goes fullscreen: a fullscreen page renders
+ * only that element and its descendants, so anything parented to `document.body` simply
+ * disappears for the whole take. Being a sibling of the canvas rather than part of it,
+ * an overlay is still invisible to the recorder, which copies pixels out of the canvas.
+ *
+ * @returns {HTMLElement} The overlay host.
+ */
+function walkOverlayHost() {
+	return getById('univers_div') || document.body;
+}
+
+/**
+ * Shows the recording badge. It is a DOM element, so it is on screen but never inside
+ * the canvas the recorder copies from — it cannot end up in the video.
+ * @param {'u'|'v'|null} rail - Rail in use, or `null` when free-roaming.
+ * @param {boolean} [animated=false] - The surface deforms over time, so the clip will
+ *   not close perfectly even though the path does. Worth saying out loud.
+ */
+function walkShowRecIndicator(rail, animated = false) {
+	let el = getById('walkRec');
+	if (!el) {
+		el = document.createElement('div');
+		el.id = 'walkRec';
+		el.style.cssText = [
+			'position:fixed', 'top:14px', 'right:16px', 'z-index:9500',
+			'pointer-events:none', 'padding:5px 11px', 'border-radius:14px',
+			'font:11px/1.4 monospace', 'color:#ffdada',
+			'background:rgba(30,8,8,.72)', 'border:1px solid rgba(255,90,90,.45)'
+		].join(';');
+		walkOverlayHost().appendChild(el);
+	}
+	el.textContent = (rail
+		? `● REC — loop on ${rail}, ~${WALK.CINEMA_LAP_SECONDS}s`
+		: '● REC — free roam, no loop')
+		+ (animated ? ' · surface animated: path loops, shape will not' : '')
+		+ ' · Shift+F to stop';
+	el.style.display = 'block';
+}
+
+/** Hides the recording badge. */
+function walkHideRecIndicator() {
+	const el = getById('walkRec');
+	if (el) el.style.display = 'none';
+}
+
 // ==================== HUD ====================
 
 /** Creates (once) and refreshes the small overlay listing the walk controls. */
 function walkShowHud() {
+	if (glo.walkCinema.active) return;   // nothing on screen during a take
 	let hud = getById('walkHud');
 	if (!hud) {
 		hud = document.createElement('div');
@@ -757,7 +1098,7 @@ function walkShowHud() {
 			'background:rgba(12,16,26,.66)', 'border:1px solid rgba(230,235,246,.18)',
 			'border-radius:7px', 'white-space:nowrap'
 		].join(';');
-		document.body.appendChild(hud);
+		walkOverlayHost().appendChild(hud);
 	}
 
 	const w = glo.walk;
@@ -780,6 +1121,11 @@ function walkHideHud() {
 
 document.addEventListener('keyup', walkHandleKeyUp);
 document.addEventListener('mousemove', walkHandleMouseMove);
+// Leaving fullscreen by any route (Escape, the browser's own chrome) ends the take,
+// so the overlays always come back and the file is always written.
+document.addEventListener('fullscreenchange', () => {
+	if (!document.fullscreenElement && glo.walkCinema.active) stopWalkCinema();
+});
 document.addEventListener('DOMContentLoaded', () => {
 	const canvas = getById('renderCanvas');
 	if (canvas) canvas.addEventListener('click', walkRequestPointer);

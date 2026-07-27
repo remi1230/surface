@@ -8,9 +8,9 @@ l'insérer dans la boucle existante sans casser le mode 100 % GPU.
 > implémentées et vérifiées dans un navigateur : sonde GPU, marche libre à
 > vitesse métrique, saut, autopilote, bouclage/rebond aux bords, rig prêt pour la
 > VR. Mesures et écarts au plan : §12. Deux défauts remontés à l'usage et leurs
-> corrections (saccades, retournement de la vue) : §13. Restent ouvertes les
-> phases 4 à 6 (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les
-> pistes B/C.
+> corrections (saccades, retournement de la vue) : §13. Le mode vidéo plein écran
+> avec boucle parfaite sur rail : §14. Restent ouvertes les phases 4 à 6
+> (avatar-shader, trace, mini-carte, HUD de courbure, WebXR) et les pistes B/C.
 
 ---
 
@@ -527,7 +527,83 @@ Autre conséquence du passage en espace monde : la vitesse de marche est désorm
 métrique dans les unités affichées, donc un scaling non uniforme du mesh est pris
 en compte exactement, ce qui n'était pas le cas avant.
 
-## 14. Limites à assumer
+## 14. Mode vidéo plein écran
+
+`Shift+F` en marche lance une prise. La vue passe en plein écran, tous les
+calques s'effacent, et **l'image entière** est capturée — contrairement à la
+prise orbitale qui recadre le carré centré de `videoBoxRange`. Le WebM se
+télécharge à la fin.
+
+Le pipeline vidéo existant n'a pas été dupliqué : `createMeshRecorder` accepte
+désormais `{ bounds, hardwareScaling, filePrefix }`, ses valeurs par défaut
+reproduisant exactement le comportement antérieur (vérifié : la prise orbitale
+double toujours la résolution, ancre toujours la GUI, et produit toujours un
+`mesh-*.webm`).
+
+**Une différence assumée** : la prise plein écran garde `hardwareScaling` à 1 là
+où la prise orbitale le met à 1/2. Doubler la résolution se justifie quand on
+jette l'essentiel de l'image au recadrage ; en plein écran chaque pixel est déjà
+conservé, et doubler quadruplerait le coût fragment pour rien.
+
+### La boucle parfaite, version marche
+
+L'équivalent du mode boucle par rotation. Une géodésique ne revient presque
+jamais à son point de départ, donc elle ne peut pas boucler. La prise met donc le
+personnage sur un **rail** : une ligne de paramètre parcourue à vitesse monde
+constante, arrêtée après exactement une période. Sur une direction fermée on
+retombe au point de départ, même position et même cap — la dernière image
+raccorde la première.
+
+Deux détails qui font que ça marche vraiment :
+
+- le dernier pas est tronqué pour atterrir *exactement* sur la cible, comme le
+  fait `rotateCamera` pour la rotation : la boucle ferme sur le paramètre, pas sur
+  le nombre d'images, donc une image perdue ne rallonge pas le tour ;
+- la prise s'arrête *avant* de rendre la pose finale, qui est identique à la
+  première : l'enregistrer produirait une image en double, visible comme un
+  hoquet à la relecture.
+
+Mesuré sur un tore : dérive entre la première et la dernière image enregistrée =
+0,4206, pour un pas inter-image de 0,4108. La dérive vaut donc une inter-image —
+c'est exactement ce qu'exige une boucle sans couture. Durée visée ~24 s
+(`WALK.CINEMA_LAP_SECONDS`), la vitesse étant déduite de la longueur du chemin
+réellement mesurée par la sonde.
+
+### Ce que la boucle ne promet pas
+
+Le rail ferme le *chemin*, pas la *forme*. Si la surface se déforme dans le
+temps, elle a avancé à la fin du tour et le clip saute quand même à la reprise —
+même limite que le mode boucle orbital existant. Le badge le dit pendant la
+prise ; `glo.walkCinema.freezeTime = true` gèle l'horloge pour obtenir une boucle
+réellement sans couture, au prix de l'animation.
+
+**La détection de dépendance au temps est mesurée, pas analysée.** Chercher un
+`t` dans les équations ne peut pas marcher ici : la multiplication implicite fait
+que `2t` n'a pas de séparateur devant, `cut` s'expanse en `cos(u)*t`, et
+l'éditeur de géométrie autorise du GLSL arbitraire. Pire, `sqrt(v)` s'expanse en
+`sin(qrt)*(v)` — qui contient réellement `t`, donc une équation d'apparence
+statique peut dépendre du temps pour de bon. On décale donc l'horloge d'une
+seconde et on re-sonde : si les points bougent, la surface dépend du temps. Deux
+appels de sonde, une fois par prise, et aucune notation ne peut tromper le test.
+7 cas sur 7 corrects, dont trois que la version par regex ratait.
+
+### Deux défauts trouvés par la capture, pas par les tests
+
+1. `switchGrid(false)` accède directement à `glo.axisX`, qui n'existe pas tant que
+   la grille n'a jamais été construite. L'exception laissait l'interface à moitié
+   démontée, GUI cachée sans possibilité de la récupérer. L'appel est désormais
+   conditionné à `glo.gridVisible`, et toute l'entrée est atomique : le moindre
+   throw déclenche le démontage normal.
+2. Le badge REC était attaché à `document.body` — invisible en plein écran, où
+   seul l'élément fullscreen et ses descendants sont rendus. Les calques sont
+   maintenant enfants de `#univers_div`.
+
+Vérifié que le badge ne finit pas dans la vidéo : en reproduisant le `drawImage`
+du recorder au bon moment (dans `onAfterRenderObservable`, pendant que le buffer
+de dessin est encore valide), le pixel sous le badge vaut exactement la couleur
+de fond.
+
+## 15. Limites à assumer
 
 - Les équations qui exploitent les variables de parité (`d`, `k`, `p`, `w`, `n`)
   n'ont pas de surface bien définie *entre* les sommets. On reste donc sur les

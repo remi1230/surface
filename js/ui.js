@@ -886,12 +886,23 @@ function getFixedExportBounds(margin = 20, correction = 1) {
  * @param {BABYLON.Mesh} mesh - The mesh being recorded (used for context).
  * @param {BABYLON.Scene} scene - The BabylonJS scene to observe for after-render callbacks.
  * @param {number} [fps=60] - The target frames per second for the recording.
+ * @param {object} [options] - Overrides for takes that are not the centred square crop.
+ * @param {Function} [options.bounds] - Returns the crop rectangle to capture. Defaults to
+ *   the centred square driven by {@link glo.videoBoxRange}.
+ * @param {number} [options.hardwareScaling=0.5] - Hardware scaling level applied while
+ *   recording. The default halves it, i.e. doubles the resolution, which is worth it when
+ *   most of the frame is cropped away. A full-frame take already keeps every pixel, so it
+ *   passes 1 and avoids rendering four times the fragments for nothing.
+ * @param {string} [options.filePrefix='mesh'] - Leading part of the downloaded file name.
  * @returns {{start: Function, stop: Function, isRecording: boolean}} The recorder control object.
  */
-function createMeshRecorder(mesh, scene, fps = 60) {
+function createMeshRecorder(mesh, scene, fps = 60, options = {}) {
     const sourceCanvas = glo.engine.getRenderingCanvas();
     const captureCanvas = document.createElement('canvas');
     const ctx = captureCanvas.getContext('2d');
+
+    const scaling    = options.hardwareScaling !== undefined ? options.hardwareScaling : 1 / 2;
+    const filePrefix = options.filePrefix || 'mesh';
 
     let mediaRecorder = null;
     let chunks = [];
@@ -928,7 +939,7 @@ function createMeshRecorder(mesh, scene, fps = 60) {
      *   Used to zero the loop sync references so the recorded span starts here.
      */
     function startRecording(onCaptureStart) {
-		bounds = computeBounds();
+		bounds = (options.bounds || computeBounds)();
 		captureCanvas.width = bounds.width;
 		captureCanvas.height = bounds.height;
 
@@ -963,7 +974,7 @@ function createMeshRecorder(mesh, scene, fps = 60) {
 			const url = URL.createObjectURL(blob);
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `mesh-${Date.now()}.${extension}`;
+			a.download = `${filePrefix}-${Date.now()}.${extension}`;
 			a.click();
 			URL.revokeObjectURL(url);
 		};
@@ -992,11 +1003,13 @@ function createMeshRecorder(mesh, scene, fps = 60) {
          *   once when capture actually begins (after the warmup frames).
          */
         start(onCaptureStart) {
-            // Anchor the GUI space to the displayed CSS size before doubling
-            // the hardware resolution, to prevent control misalignment.
-            glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
-            glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
-            glo.engine.setHardwareScalingLevel(1 / 2);
+            if (scaling !== 1) {
+                // Anchor the GUI space to the displayed CSS size before doubling
+                // the hardware resolution, to prevent control misalignment.
+                glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
+                glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
+                glo.engine.setHardwareScalingLevel(scaling);
+            }
 
             // Wait 2 frames for the resize to stabilize
             scene.onAfterRenderObservable.addOnce(() => {
@@ -1016,9 +1029,11 @@ function createMeshRecorder(mesh, scene, fps = 60) {
                     scene.onAfterRenderObservable.remove(observer);
                     observer = null;
                 }
-                glo.engine.setHardwareScalingLevel(1);
-                glo.advancedTexture.idealWidth  = 0;
-                glo.advancedTexture.idealHeight = 0;
+                if (scaling !== 1) {
+                    glo.engine.setHardwareScalingLevel(1);
+                    glo.advancedTexture.idealWidth  = 0;
+                    glo.advancedTexture.idealHeight = 0;
+                }
             }
         },
 

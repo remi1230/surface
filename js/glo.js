@@ -1106,12 +1106,50 @@ var glo = {
 		closedV: false,
 		/** @type {boolean} Walk on its own, turning slowly — a travelling shot on the surface. */
 		autopilot: false,
+		/**
+		 * @type {'u'|'v'|null} Locks the character onto a parameter line instead of a
+		 * geodesic. A geodesic almost never comes back to where it started, so a rail is
+		 * what makes a seamless video loop possible: one period of a closed direction
+		 * returns to the exact starting point, position and heading alike.
+		 */
+		rail: null,
+		/** @type {number} Parameter distance covered along the rail since the take began. */
+		railTravelled: 0,
+		/** @type {number} Parameter distance that completes the loop (one full period). */
+		railTarget: 0,
+		/** @type {number} World units per second along the rail; 0 uses the walking speed. */
+		railSpeed: 0,
+		/** @type {boolean} Set once the rail has covered a whole period. */
+		railDone: false,
 		/** @type {number} Autopilot clock, drives the wandering heading. */
 		turnPhase: 0,
 		/** @type {boolean} False until the first valid surface frame has been sampled. */
 		frameReady: false,
 		/** @type {Set<string>} Currently held movement keys. */
 		keys: new Set(),
+	},
+	/**
+	 * Fullscreen video mode for the first-person view: hides every overlay, fills the
+	 * screen, and records the whole frame rather than the centred square crop used for
+	 * orbit takes.
+	 */
+	walkCinema: {
+		/** @type {boolean} Whether a cinema take is in progress. */
+		active: false,
+		/** @type {object|null} The recorder returned by `createMeshRecorder`. */
+		recorder: null,
+		/** @type {boolean} Stop automatically once the rail closes its loop. */
+		loop: true,
+		/**
+		 * @type {boolean} Pause the animation clock during a take when the surface
+		 * depends on `t`. The rail always closes the path, but a shape that keeps
+		 * deforming has moved on by the end of the lap, so the clip jumps on repeat;
+		 * turning this on trades the animation for a genuinely seamless loop. Off by
+		 * default, matching the orbit take.
+		 */
+		freezeTime: false,
+		/** @type {object} What to put back when the take ends. */
+		saved: {},
 	},
 	/**
 	 * State for the cinematic spiral travelling camera (TargetCamera).

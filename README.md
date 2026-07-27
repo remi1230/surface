@@ -135,6 +135,7 @@ Press `w` to drop a character onto the mesh and explore it from the inside.
 | Mouse | Look around (click the canvas first) |
 | `X` | Switch to the other side of the surface |
 | `PageUp` / `PageDown` | Walking speed |
+| `Shift+F` | Fullscreen video take (see below) |
 | `Esc` | Back to the orbit camera |
 
 The ground is the surface as it is actually drawn &mdash; symmetries, blender, deformations,
@@ -144,6 +145,24 @@ line, and speed is constant in world units rather than in `u`/`v`, so distorted 
 the parameterization really do take longer to cross. On a surface that closes on itself
 (a torus, a sphere) the domain edges loop seamlessly; on an open patch the border turns
 you around.
+
+### Fullscreen video from the surface
+
+`Shift+F` while walking records a take. The view goes fullscreen, every overlay steps
+aside, and the **whole frame** is captured &mdash; unlike the orbit take, which crops the
+centred square set by the video box range. The clip downloads as WebM when the take ends.
+
+When the surface closes on itself, the character is put on a **rail** along that
+direction and the take stops by itself after exactly one period, so the last frame joins
+the first and the clip loops seamlessly. A lap aims for about 24 seconds
+(`WALK.CINEMA_LAP_SECONDS`), the speed being derived from the measured length of the
+path. On an open patch there is no such period, so it free-roams and records until you
+press `Shift+F` again.
+
+One caveat, and the badge says so during the take: the rail closes the *path*, not the
+*shape*. If the surface deforms over time, it has moved on by the end of the lap and the
+clip will still jump on repeat. Set `glo.walkCinema.freezeTime = true` to pause the
+animation for the take and get a genuinely seamless loop, at the cost of the movement.
 
 See the in-app HELP for the full list.
 

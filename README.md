@@ -120,6 +120,8 @@ See the in-app **HELP** button for the complete reference.
 | `Shift+H` | Center camera |
 | `Shift+B` | Toggle wireframe |
 | `Shift+V` | Align camera to axis |
+| `Shift+F` | Fullscreen video take (16:9, whole frame) |
+| `Shift+L` | Perfect-loop mode for recordings |
 | `c` | Cinematic travelling camera |
 | `w` | Walk on the surface (first person) |
 | `Shift+W` | Walk on autopilot (surface travelling) |
@@ -168,6 +170,22 @@ mirrors, and you walk straight through. Ride the rail on a Möbius and the take 
 laps, because one brings you back upside down on the other side of the strip; the second
 returns you home. Measured: after one lap the up vector is exactly reversed, after two the
 distance back to the start is 0.
+
+## Fullscreen video
+
+`Shift+F` records a fullscreen take, filling a 16:9 screen instead of the centred square
+crop the record button uses. The view goes fullscreen, every overlay steps aside, and the
+**whole frame** is captured. The clip downloads as WebM when the take ends.
+
+The key follows the camera in use, so it means the same thing everywhere: from the orbit
+view it films the classic shot, while walking it films from the surface (see below).
+
+From the orbit view it rides the existing recording machinery, so **perfect-loop mode**
+(`Shift+L`) behaves exactly as it always has: it starts the rotation and defers the stop
+until a whole number of turns has gone by, then ends the take on its own.
+
+> The frame is wider than the square crop, so a composition set up for the crop will sit
+> smaller in it. Zoom with `+` before starting.
 
 ### Fullscreen video from the surface
 

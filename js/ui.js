@@ -1096,6 +1096,198 @@ function hideVideoCropBox() {
   }
 }
 
+// =====================================================================================
+// FULLSCREEN TAKES
+//
+// Shared presentation for the two fullscreen recordings: the orbit one here and the
+// first-person one in walk.js. Both fill the screen, clear every overlay out of the
+// frame and capture the whole canvas instead of the centred square crop, so the
+// difference between them is only which camera is filming.
+// =====================================================================================
+
+/**
+ * Requests fullscreen on the canvas host.
+ *
+ * Must be called straight from a user gesture, before any await, or the browser refuses
+ * it.
+ * @returns {Promise} Resolves once the request settles, whether or not it succeeded.
+ */
+function cinemaRequestFullscreen() {
+  const host = getById('univers_div');
+  return (!document.fullscreenElement && host && host.requestFullscreen)
+    ? host.requestFullscreen().catch(() => {})
+    : Promise.resolve();
+}
+
+/**
+ * Clears the screen for a take and records what to put back.
+ *
+ * The BabylonJS GUI and the grid are drawn into the canvas, so they would end up in the
+ * video. The walk HUD and the history bar are DOM and invisible to the recorder, but
+ * they would still sit on top of a fullscreen view.
+ *
+ * @returns {object} State to hand back to {@link cinemaRestoreOverlays}.
+ */
+function cinemaHideOverlays() {
+  const saved = {
+    gui: glo.advancedTexture ? glo.advancedTexture.rootContainer.isVisible : true,
+    grid: glo.gridVisible,
+  };
+  if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = false;
+  hideVideoCropBox();
+  // Only when it is actually up: switchGrid reaches straight into glo.axisX and
+  // friends, which do not exist until the grid has been built once.
+  if (glo.gridVisible && typeof switchGrid === 'function') switchGrid(false);
+  if (typeof walkHideHud === 'function') walkHideHud();
+  const history = getById('historyPanel');
+  if (history) history.style.display = 'none';
+  return saved;
+}
+
+/**
+ * Puts back everything {@link cinemaHideOverlays} took away and leaves fullscreen.
+ * @param {object} [saved={}] - The state it returned.
+ */
+function cinemaRestoreOverlays(saved = {}) {
+  if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = saved.gui !== false;
+  if (saved.grid && glo.gridVisible && typeof switchGrid === 'function') switchGrid(true);
+  const history = getById('historyPanel');
+  if (history) history.style.display = '';
+  cinemaHideBadge();
+
+  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  setTimeout(() => glo.engine.resize(), 250);
+}
+
+/**
+ * Recorder options for a fullscreen take: the whole canvas, at the resolution already
+ * being rendered.
+ * @param {string} prefix - Leading part of the downloaded file name.
+ * @returns {object} Options for {@link createMeshRecorder}.
+ */
+function cinemaFullFrameOptions(prefix) {
+  const canvas = glo.engine.getRenderingCanvas();
+  return {
+    bounds: () => ({ x: 0, y: 0, width: canvas.width, height: canvas.height }),
+    // Doubling the resolution earns its cost when most of the frame is cropped away;
+    // a full-frame take already keeps every pixel.
+    hardwareScaling: 1,
+    filePrefix: prefix,
+  };
+}
+
+/**
+ * Runs `then` once the fullscreen resize has settled. Measuring the capture area any
+ * earlier frames the take to the pre-fullscreen canvas.
+ * @param {Promise} fsRequest - The promise from {@link cinemaRequestFullscreen}.
+ * @param {Function} then - Called when the canvas has its final size.
+ */
+function cinemaWhenResized(fsRequest, then) {
+  fsRequest
+    .then(() => new Promise(r => setTimeout(r, 250)))
+    .then(() => { glo.engine.resize(); return new Promise(r => setTimeout(r, 120)); })
+    .then(then);
+}
+
+/**
+ * Shows the recording badge. It hangs inside the fullscreen element, since a fullscreen
+ * page renders only that element and its descendants — but it is a sibling of the
+ * canvas, not part of it, so the recorder never picks it up.
+ * @param {string} text - What to display.
+ */
+function cinemaShowBadge(text) {
+  let el = getById('walkRec');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'walkRec';
+    el.style.cssText = [
+      'position:fixed', 'top:14px', 'left:16px', 'z-index:9500',
+      'pointer-events:none', 'padding:5px 11px', 'border-radius:14px',
+      'font:11px/1.4 monospace', 'color:#ffdada',
+      'background:rgba(30,8,8,.72)', 'border:1px solid rgba(255,90,90,.45)'
+    ].join(';');
+    (getById('univers_div') || document.body).appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = 'block';
+}
+
+/** Hides the recording badge. */
+function cinemaHideBadge() {
+  const el = getById('walkRec');
+  if (el) el.style.display = 'none';
+}
+
+/**
+ * Starts a fullscreen take from the orbit camera — the classic shot, filling a 16:9
+ * screen instead of the centred square crop.
+ *
+ * Rides the existing recording machinery rather than a parallel one, so "perfect loop"
+ * mode (`Shift+L`) behaves exactly as it always has: it starts the rotation and defers
+ * the stop until a whole number of turns has gone by.
+ * @returns {boolean} `true` if the take started.
+ */
+function startOrbitCinema() {
+  if (glo.orbitCinema.active) return false;
+  if (glo.video.recording || glo.video.loopPendingStop) {
+    console.warn('[Video] A recording is already running.');
+    return false;
+  }
+
+  const fsRequest = cinemaRequestFullscreen();   // while the gesture is still live
+
+  glo.orbitCinema.active = true;
+  glo.orbitCinema.saved = cinemaHideOverlays();
+  glo.video.fullFrame = true;
+
+  cinemaShowBadge('● REC — fullscreen'
+    + (glo.loopRecordMode ? ' · perfect loop on rotation' : ' · Shift+L for a perfect loop')
+    + ' · Shift+F to stop');
+
+  cinemaWhenResized(fsRequest, () => {
+    if (!glo.orbitCinema.active) return;
+    switchRecordingVideo();
+  });
+  return true;
+}
+
+/**
+ * Ends an orbit take. In loop mode the recorder stops itself once the rotation closes,
+ * and {@link finishLoopRecording} calls back here; otherwise this asks it to stop.
+ */
+function stopOrbitCinema() {
+  if (!glo.orbitCinema.active) return;
+
+  if (glo.video.recording && !glo.video.loopPendingStop) {
+    // In loop mode this only arms the stop; the teardown then comes from
+    // finishLoopRecording once the rotation has completed its turns.
+    switchRecordingVideo();
+    if (glo.video.loopPendingStop) {
+      cinemaShowBadge('● REC — finishing the turn to close the loop…');
+      return;
+    }
+  }
+  orbitCinemaTeardown();
+}
+
+/** Restores everything after an orbit take, however it ended. */
+function orbitCinemaTeardown() {
+  if (!glo.orbitCinema.active) return;
+  glo.orbitCinema.active = false;
+  glo.video.fullFrame = false;
+  cinemaRestoreOverlays(glo.orbitCinema.saved);
+  glo.orbitCinema.saved = {};
+}
+
+/**
+ * Starts or stops a fullscreen take, choosing the shot from the camera in use: the
+ * first-person one while walking, the orbit one otherwise. One key, one meaning.
+ */
+function toggleFullscreenTake() {
+  if (glo.cameraMode === 'walk') { toggleWalkCinema(); return; }
+  if (glo.orbitCinema.active) stopOrbitCinema(); else startOrbitCinema();
+}
+
 /**
  * Toggles video recording on or off. When starting, creates a new mesh recorder
  * and begins capturing. When stopping, finalizes and downloads the recorded video.
@@ -1109,7 +1301,10 @@ function switchRecordingVideo(){
 
 	if (!glo.video.recording) {
 		glo.video.recording = true;
-		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene);
+		// A fullscreen take keeps the whole frame; the default take crops the centred
+		// square driven by the video box range.
+		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60,
+			glo.video.fullFrame ? cinemaFullFrameOptions('surface-orbit') : {});
 		glo.video.recorder.start(() => {
 			// Vrai début de capture (après le warmup qui double la résolution) :
 			// on remet à zéro toutes les références de synchro pour que la boucle
@@ -1145,6 +1340,7 @@ function switchRecordingVideo(){
 		else {
 			glo.video.recording = false;
 			glo.video.recorder.stop();
+			if (glo.orbitCinema.active) orbitCinemaTeardown();
 		}
 	}
 }
@@ -1165,6 +1361,9 @@ function finishLoopRecording(){
 
 	const btn = glo.advancedTexture?.getControlByName('videoButton');
 	if (btn) btn.textBlock.text = videoButtonText();
+
+	// A fullscreen take ends here too when the loop closes on its own.
+	if (glo.orbitCinema.active) orbitCinemaTeardown();
 }
 
 /**

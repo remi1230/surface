@@ -1270,17 +1270,12 @@ function startWalkCinema() {
 	}
 
 	// First thing, while the user gesture is still live.
-	const host = getById('univers_div');
-	const fsRequest = (!document.fullscreenElement && host && host.requestFullscreen)
-		? host.requestFullscreen().catch(() => {})
-		: Promise.resolve();
+	const fsRequest = cinemaRequestFullscreen();
 
 	const info = walkMeshInfo();
 	const w = glo.walk;
 
 	cinema.saved = {
-		gui: glo.advancedTexture ? glo.advancedTexture.rootContainer.isVisible : true,
-		grid: glo.gridVisible,
 		autopilot: w.autopilot,
 		rail: w.rail,
 		railSpeed: w.railSpeed,
@@ -1292,17 +1287,7 @@ function startWalkCinema() {
 	cinema.active = true;
 
 	try {
-		// Everything drawn into the canvas ends up in the video, so the BabylonJS GUI
-		// and the grid have to go. The HUD and the history bar are DOM, invisible to the
-		// recorder, but they would still sit on top of a fullscreen view.
-		if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = false;
-		if (typeof hideVideoCropBox === 'function') hideVideoCropBox();
-		// Only when it is actually up: switchGrid reaches straight into glo.axisX and
-		// friends, which do not exist until the grid has been built once.
-		if (glo.gridVisible && typeof switchGrid === 'function') switchGrid(false);
-		walkHideHud();
-		const history = getById('historyPanel');
-		if (history) history.style.display = 'none';
+		Object.assign(cinema.saved, cinemaHideOverlays());
 
 		// The take opens on a still frame, under manual control. Starting mid-glide
 		// leaves no room for an establishing beat and fights whoever wants to drive;
@@ -1331,23 +1316,10 @@ function startWalkCinema() {
 	cinema.loop = false;
 	walkShowRecIndicator(null, cinema.animated);
 
-	// Wait for the fullscreen resize to settle before measuring the capture area,
-	// otherwise the take is framed to the pre-fullscreen canvas.
-	fsRequest.then(() => new Promise(r => setTimeout(r, 250))).then(() => {
+	cinemaWhenResized(fsRequest, () => {
 		if (!cinema.active) return;
-		glo.engine.resize();
-		return new Promise(r => setTimeout(r, 120));
-	}).then(() => {
-		if (!cinema.active) return;
-		const canvas = glo.engine.getRenderingCanvas();
-		cinema.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60, {
-			// The whole frame: "fullscreen" is the point of this mode.
-			bounds: () => ({ x: 0, y: 0, width: canvas.width, height: canvas.height }),
-			// Already rendering at the full screen resolution — doubling it again would
-			// quadruple the fragment cost for pixels nobody will see.
-			hardwareScaling: 1,
-			filePrefix: 'surface-walk',
-		});
+		cinema.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60,
+			cinemaFullFrameOptions('surface-walk'));
 		cinema.recorder.start(() => {
 			// Reset the lap and the clock at the true first recorded frame, so the loop
 			// is measured from what the viewer actually sees.
@@ -1433,15 +1405,8 @@ function stopWalkCinema() {
 	w.railDone = false;
 	w.autopilot = saved.autopilot ?? false;
 
-	if (glo.advancedTexture) glo.advancedTexture.rootContainer.isVisible = saved.gui !== false;
-	if (saved.grid && glo.gridVisible && typeof switchGrid === 'function') switchGrid(true);
 	if (saved.clockPaused === false && glo.clock.paused) glo.clock.resume();
-	const history = getById('historyPanel');
-	if (history) history.style.display = '';
-	walkHideRecIndicator();
-
-	if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
-	setTimeout(() => glo.engine.resize(), 250);
+	cinemaRestoreOverlays(saved);
 
 	if (glo.cameraMode === 'walk') walkShowHud();
 }
@@ -1476,38 +1441,18 @@ function walkOverlayHost() {
 }
 
 /**
- * Shows the recording badge. It is a DOM element, so it is on screen but never inside
- * the canvas the recorder copies from — it cannot end up in the video.
+ * Writes the walk take's status into the shared recording badge.
  * @param {'u'|'v'|null} rail - Rail in use, or `null` when free-roaming.
  * @param {boolean} [animated=false] - The surface deforms over time, so the clip will
  *   not close perfectly even though the path does. Worth saying out loud.
  */
 function walkShowRecIndicator(rail, animated = false) {
-	let el = getById('walkRec');
-	if (!el) {
-		el = document.createElement('div');
-		el.id = 'walkRec';
-		el.style.cssText = [
-			'position:fixed', 'top:14px', 'left:16px', 'z-index:9500',
-			'pointer-events:none', 'padding:5px 11px', 'border-radius:14px',
-			'font:11px/1.4 monospace', 'color:#ffdada',
-			'background:rgba(30,8,8,.72)', 'border:1px solid rgba(255,90,90,.45)'
-		].join(';');
-		walkOverlayHost().appendChild(el);
-	}
-	el.textContent = (rail
+	cinemaShowBadge((rail
 		? `● REC — loop on ${rail}, ~${Math.round(glo.walk.railSeconds || WALK.CINEMA_LAP_SECONDS)}s`
 		  + `${glo.walk.twistedU || glo.walk.twistedV ? ' (two laps: twisted seam)' : ''} · arrows to take over`
 		: '● REC — you drive · arrows to move, R for an automatic looping lap')
 		+ (rail && animated ? ' · surface animated: path loops, shape will not' : '')
-		+ ' · Shift+F to stop';
-	el.style.display = 'block';
-}
-
-/** Hides the recording badge. */
-function walkHideRecIndicator() {
-	const el = getById('walkRec');
-	if (el) el.style.display = 'none';
+		+ ' · Shift+F to stop');
 }
 
 // ==================== HUD ====================

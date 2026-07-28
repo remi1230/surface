@@ -1031,6 +1031,19 @@ var glo = {
 		loopRotAccum: 0,
 		loopRotTarget: 0,
 		loopPrevRotateType: null,
+		/** @type {boolean} Capture the whole canvas instead of the centred square crop. */
+		fullFrame: false,
+	},
+	/**
+	 * Fullscreen take from the orbit camera: the classic shot, filling a 16:9 screen
+	 * rather than the centred square crop. Rides the existing recording machinery, so
+	 * `loopRecordMode` still closes the loop on a whole number of turns.
+	 */
+	orbitCinema: {
+		/** @type {boolean} Whether a take is in progress. */
+		active: false,
+		/** @type {object} Overlay state to put back when it ends. */
+		saved: {},
 	},
 	/** @type {boolean} Toggle for "perfect loop" recording: rotation starts/stops with the recording and stops on an integer number of turns. */
 	loopRecordMode: false,

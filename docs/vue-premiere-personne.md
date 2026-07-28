@@ -529,6 +529,20 @@ en compte exactement, ce qui n'était pas le cas avant.
 
 ## 14. Mode vidéo plein écran
 
+`Shift+F` lance une prise plein écran, et **suit la caméra en cours** : depuis l'orbite
+elle filme le plan classique, en marche elle filme depuis la surface. Une touche, un
+sens.
+
+La prise orbitale se greffe sur la machinerie d'enregistrement existante plutôt que
+d'en ouvrir une parallèle : le mode boucle parfaite (`Shift+L`) se comporte donc
+exactement comme avant — il lance la rotation et diffère l'arrêt jusqu'à un nombre
+entier de tours. Vérifié : cible d'arrêt à 18,8496 rad, soit exactement 3 × 2π.
+
+La présentation (plein écran, masquage des calques, badge, options plein cadre du
+recorder) est partagée entre les deux prises via des helpers `cinema*` dans `ui.js`,
+là où vit déjà le code vidéo. La prise carrée d'origine est inchangée : résolution
+toujours doublée, GUI toujours ancrée, fichier `mesh-*.webm`.
+
 `Shift+F` en marche lance une prise. La vue passe en plein écran, tous les
 calques s'effacent, et **l'image entière** est capturée — contrairement à la
 prise orbitale qui recadre le carré centré de `videoBoxRange`. Le WebM se

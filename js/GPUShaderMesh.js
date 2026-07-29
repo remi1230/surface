@@ -1263,7 +1263,7 @@ ${eqInit}
 			const t = glo.clock.time;
 			this.shaderMaterial.setFloat("time", t);
 			this.shaderMaterial.setFloat("t", t);
-			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+			this.shaderMaterial.setVector3("cameraPosition", cameraWorldPosition());
 		});
 
 		// Configurer les uniforms
@@ -1392,7 +1392,7 @@ ${eqInit}
 	 */
 	updateCamera() {
 		if (this.shaderMaterial) {
-			this.shaderMaterial.setVector3("cameraPosition", this.computer.scene.activeCamera.position);
+			this.shaderMaterial.setVector3("cameraPosition", cameraWorldPosition());
 		}
 	}
 
@@ -1912,7 +1912,7 @@ void main() {
 			const t = glo.clock.time;
 			this.shaderMaterial.setFloat("time", t);
 			this.shaderMaterial.setFloat("t", t);
-			this.shaderMaterial.setVector3("cameraPosition", glo.scene.activeCamera.position);
+			this.shaderMaterial.setVector3("cameraPosition", cameraWorldPosition());
 		});
 
 		// Configurer les uniforms
@@ -2216,6 +2216,248 @@ void main() { fragColor = vec4(0.0); }`;
 		);
 	}
 
+	// ==================== PROBE: PER-FRAME SAMPLING VIA TRANSFORM FEEDBACK ====================
+
+	/**
+	 * Returns the vertex shader source the probe must run — the exact source the mesh
+	 * is currently rendered with, so probed points cannot drift from the visible surface.
+	 * Resolves the deformation state the same way {@link extractPositionsForExport} does,
+	 * and hands it back so the `deformationEnabled` uniform matches the compiled source.
+	 * @private
+	 * @returns {{source: string, hasDeformation: boolean}}
+	 */
+	_probeVertexSource() {
+		const deformText     = this._lastDeformExpression || (glo.inputSymR ? glo.inputSymR.text : null);
+		const hasDeformation = !!(deformText && deformText.trim() && this._deformationActive);
+		const expr           = hasDeformation ? deformText : null;
+
+		return {
+			source: this._importedMode
+				? this.createImportVertexShader(expr)
+				: this.createVertexShader(expr),
+			hasDeformation
+		};
+	}
+
+	/**
+	 * Samples the final vertex pipeline at arbitrary grid indices via Transform Feedback.
+	 *
+	 * Runs the *same* vertex shader the mesh is rendered with, so every stage the GPU
+	 * applies is included: equations (or the geometry editor's raw GLSL), blender,
+	 * symmetry, normal rotation, wave deformation, and the deformation expression.
+	 * This is what makes walking on the surface land on the surface actually drawn —
+	 * `eqPos()` stops before the blender and knows nothing of symmetry or deformation.
+	 *
+	 * Unlike {@link extractPositionsForExport}, the program and buffers stay alive
+	 * between calls so this can run every frame on a handful of points. The program is
+	 * cached on the vertex shader source: any recompilation (equation change, new
+	 * deformation, geometry editor) produces a different source and invalidates it,
+	 * so there is no bookkeeping to keep in sync.
+	 *
+	 * Positions come back in **object space** (the probe forces `world` to identity),
+	 * so callers must apply the mesh world matrix to account for `meshTransformations`.
+	 *
+	 * @param {Float32Array} aIndexData - Flat (i, j) pairs, at least `count * 2` long.
+	 *   Fractional indices are accepted, but only integers are guaranteed to land on the
+	 *   rendered geometry: `computePosition` derives `d`/`k`/`p`/`w` from `mod(i, 2.0)`,
+	 *   which is meaningless between vertices.
+	 * @param {number} count - Number of samples to process.
+	 * @param {Float32Array|null} [attrPos=null] - Values for the `position` attribute:
+	 *   the symmetry copy id (sx, sy, sz) in parametric mode, the real vertex position in
+	 *   imported mode. Defaults to zeros (first copy).
+	 * @param {Float32Array|null} [attrNormal=null] - Values for the `normal` attribute
+	 *   (imported mode only; ignored otherwise).
+	 * @returns {{positions: Float32Array, normals: Float32Array, count: number}|null}
+	 *   Scratch views owned by the probe — valid only until the next call. `null` if the
+	 *   probe could not run (no WebGL2 context, or the shader failed to compile).
+	 */
+	probePoints(aIndexData, count, attrPos = null, attrNormal = null) {
+		const gl = this.computer && this.computer.gl;
+		if (!gl || count <= 0) return null;
+
+		const p = this._ensureProbe(gl, count);
+		if (!p) return null;
+
+		gl.useProgram(p.program);
+		gl.bindVertexArray(p.vao);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, p.aIndexBuf);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, aIndexData, 0, count * 2);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, p.posBuf);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, attrPos || p.zeros3, 0, count * 3);
+
+		if (p.normalLoc >= 0) {
+			gl.bindBuffer(gl.ARRAY_BUFFER, p.normalBuf);
+			gl.bufferSubData(gl.ARRAY_BUFFER, 0, attrNormal || p.zeros3, 0, count * 3);
+		}
+
+		this._setTFUniforms(gl, p.program, p.hasDeformation);
+
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, p.tf);
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, p.tfPosBuf);
+		gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, p.tfNormBuf);
+
+		gl.enable(gl.RASTERIZER_DISCARD);
+		gl.beginTransformFeedback(gl.POINTS);
+		gl.drawArrays(gl.POINTS, 0, count);
+		gl.endTransformFeedback();
+		gl.disable(gl.RASTERIZER_DISCARD);
+
+		// getBufferSubData syncs, but this context is separate from the one BabylonJS
+		// renders with, so the stall does not reach the main render pipeline.
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, p.tfPosBuf);
+		gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, p.positions, 0, count * 3);
+		gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, p.tfNormBuf);
+		gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, p.normals, 0, count * 3);
+
+		gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+		gl.bindVertexArray(null);
+
+		return { positions: p.positions, normals: p.normals, count };
+	}
+
+	/**
+	 * Returns the probe state, rebuilding the program when the vertex shader source
+	 * changed and growing the buffers when more samples are requested.
+	 * @private
+	 * @param {WebGL2RenderingContext} gl - The probe's WebGL2 context.
+	 * @param {number} count - Number of samples the caller needs room for.
+	 * @returns {object|null} Probe state, or `null` if the program could not be built.
+	 */
+	_ensureProbe(gl, count) {
+		let p = this._probe;
+		if (!p) { p = this._probe = { source: null, capacity: 0 }; }
+
+		const { source, hasDeformation } = this._probeVertexSource();
+		p.hasDeformation = hasDeformation;
+		if (p.source !== source) {
+			if (!this._buildProbeProgram(gl, p, source)) return null;
+			p.source = source;
+			p.capacity = 0; // force VAO rebuild: attribute locations changed
+		}
+
+		if (p.capacity < count) this._allocProbeBuffers(gl, p, Math.max(count, 32));
+
+		return p;
+	}
+
+	/**
+	 * Compiles and links the probe program, capturing `vPosition` and `vNormal`.
+	 * Replaces any previously built program.
+	 * @private
+	 * @param {WebGL2RenderingContext} gl - The probe's WebGL2 context.
+	 * @param {object} p - Probe state to fill in.
+	 * @param {string} source - Vertex shader GLSL source.
+	 * @returns {boolean} `true` on success.
+	 */
+	_buildProbeProgram(gl, p, source) {
+		if (p.program) { gl.deleteProgram(p.program); p.program = null; }
+
+		const vs = gl.createShader(gl.VERTEX_SHADER);
+		gl.shaderSource(vs, source);
+		gl.compileShader(vs);
+		if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
+			console.error('[Probe] Vertex shader compilation error:', gl.getShaderInfoLog(vs));
+			gl.deleteShader(vs);
+			return false;
+		}
+
+		// Required by WebGL2 even under RASTERIZER_DISCARD.
+		const fs = gl.createShader(gl.FRAGMENT_SHADER);
+		gl.shaderSource(fs, `#version 300 es
+precision highp float;
+out vec4 fragColor;
+void main() { fragColor = vec4(0.0); }`);
+		gl.compileShader(fs);
+
+		const program = gl.createProgram();
+		gl.attachShader(program, vs);
+		gl.attachShader(program, fs);
+		gl.transformFeedbackVaryings(program, ['vPosition', 'vNormal'], gl.SEPARATE_ATTRIBS);
+		gl.linkProgram(program);
+		gl.deleteShader(vs);
+		gl.deleteShader(fs);
+
+		if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+			console.error('[Probe] Program link error:', gl.getProgramInfoLog(program));
+			gl.deleteProgram(program);
+			return false;
+		}
+
+		p.program   = program;
+		p.aIndexLoc = gl.getAttribLocation(program, 'aIndex');
+		p.posLoc    = gl.getAttribLocation(program, 'position');
+		p.normalLoc = gl.getAttribLocation(program, 'normal');
+
+		return true;
+	}
+
+	/**
+	 * (Re)allocates the probe's attribute buffers, feedback buffers, readback scratch
+	 * arrays and VAO for a given capacity.
+	 * @private
+	 * @param {WebGL2RenderingContext} gl - The probe's WebGL2 context.
+	 * @param {object} p - Probe state to fill in.
+	 * @param {number} capacity - Maximum number of samples per call.
+	 */
+	_allocProbeBuffers(gl, p, capacity) {
+		const mk = (bytes, target) => {
+			const b = gl.createBuffer();
+			gl.bindBuffer(target, b);
+			gl.bufferData(target, bytes, gl.DYNAMIC_DRAW);
+			return b;
+		};
+
+		[p.aIndexBuf, p.posBuf, p.normalBuf, p.tfPosBuf, p.tfNormBuf]
+			.forEach(b => { if (b) gl.deleteBuffer(b); });
+		if (p.vao) gl.deleteVertexArray(p.vao);
+
+		p.aIndexBuf = mk(capacity * 2 * 4, gl.ARRAY_BUFFER);
+		p.posBuf    = mk(capacity * 3 * 4, gl.ARRAY_BUFFER);
+		p.normalBuf = mk(capacity * 3 * 4, gl.ARRAY_BUFFER);
+		p.tfPosBuf  = mk(capacity * 3 * 4, gl.TRANSFORM_FEEDBACK_BUFFER);
+		p.tfNormBuf = mk(capacity * 3 * 4, gl.TRANSFORM_FEEDBACK_BUFFER);
+
+		p.positions = new Float32Array(capacity * 3);
+		p.normals   = new Float32Array(capacity * 3);
+		p.zeros3    = new Float32Array(capacity * 3);
+		if (!p.tf) p.tf = gl.createTransformFeedback();
+
+		p.vao = gl.createVertexArray();
+		gl.bindVertexArray(p.vao);
+		const bind = (loc, buf, size) => {
+			if (loc < 0) return;
+			gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+			gl.enableVertexAttribArray(loc);
+			gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+		};
+		bind(p.aIndexLoc, p.aIndexBuf, 2);
+		bind(p.posLoc,    p.posBuf,    3);
+		bind(p.normalLoc, p.normalBuf, 3);
+		gl.bindVertexArray(null);
+
+		p.capacity = capacity;
+	}
+
+	/**
+	 * Releases every GPU resource held by the probe.
+	 * @private
+	 */
+	_disposeProbe() {
+		const gl = this.computer && this.computer.gl;
+		const p  = this._probe;
+		if (!gl || !p) return;
+
+		[p.aIndexBuf, p.posBuf, p.normalBuf, p.tfPosBuf, p.tfNormBuf]
+			.forEach(b => { if (b) gl.deleteBuffer(b); });
+		if (p.vao)     gl.deleteVertexArray(p.vao);
+		if (p.tf)      gl.deleteTransformFeedback(p.tf);
+		if (p.program) gl.deleteProgram(p.program);
+
+		this._probe = null;
+	}
+
 	/**
 	 * Creates a temporary BabylonJS mesh with real positions computed by the GPU.
 	 * Used for file export (STL, OBJ, etc.). The mesh should be disposed after use.
@@ -2239,6 +2481,7 @@ void main() { fragColor = vec4(0.0); }`;
 	 * Disposes all GPU resources: render observer, shader material, and mesh.
 	 */
 	dispose() {
+		this._disposeProbe();
 		if (this.cameraObserver) {
 			this.computer.scene.onBeforeRenderObservable.remove(this.cameraObserver);
 			this.cameraObserver = null;

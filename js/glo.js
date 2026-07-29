@@ -1031,6 +1031,19 @@ var glo = {
 		loopRotAccum: 0,
 		loopRotTarget: 0,
 		loopPrevRotateType: null,
+		/** @type {boolean} Capture the whole canvas instead of the centred square crop. */
+		fullFrame: false,
+	},
+	/**
+	 * Fullscreen take from the orbit camera: the classic shot, filling a 16:9 screen
+	 * rather than the centred square crop. Rides the existing recording machinery, so
+	 * `loopRecordMode` still closes the loop on a whole number of turns.
+	 */
+	orbitCinema: {
+		/** @type {boolean} Whether a take is in progress. */
+		active: false,
+		/** @type {object} Overlay state to put back when it ends. */
+		saved: {},
 	},
 	/** @type {boolean} Toggle for "perfect loop" recording: rotation starts/stops with the recording and stops on an integer number of turns. */
 	loopRecordMode: false,
@@ -1060,8 +1073,146 @@ var glo = {
 	centerSymmetry: {x: 0, y: 0, z: 0},
 	rotateSpeed: 0.004,
 	rotateType: 'none',
-	/** @type {'orbit'|'travelling'} Active camera mode — toggled with the `c` key. */
+	/** @type {'orbit'|'travelling'|'walk'} Active camera mode — `c` travels, `w` walks. */
 	cameraMode: 'orbit',
+	/**
+	 * State of the first-person character walking on the surface. Lives here rather than
+	 * on the mesh so it survives `ribbonDispose()` — every rebuild throws `glo.ribbon`
+	 * away, the same reason `geometryShaderCode` is kept globally.
+	 *
+	 * The position is stored in parametric space, not in grid indices: changing the
+	 * resolution then leaves the character exactly where it stood.
+	 */
+	walk: {
+		/** @type {number} Parametric position of the character. */
+		u: 0,
+		/** @type {number} Parametric position of the character. */
+		v: 0,
+		/**
+		 * @type {BABYLON.Vector3} Heading in the mesh's object space, kept tangent to the
+		 * surface. Storing a direction and re-projecting it onto the tangent plane every
+		 * frame is discrete parallel transport, so walking forward follows a geodesic
+		 * rather than a parameter line — for free, with no Christoffel symbols.
+		 */
+		heading: new BABYLON.Vector3(1, 0, 0),
+		/** @type {BABYLON.Vector3} Low-pass filtered surface normal, used as the up axis. */
+		smoothNormal: new BABYLON.Vector3(0, 1, 0),
+		/** @type {number} `+1` walks on the outside of the surface, `-1` on the inside. */
+		flip: 1,
+		/** @type {number} Head pitch (rad), relative to the tangent plane. */
+		pitch: 0,
+		/**
+		 * @type {number} Yaw of the head relative to the body (rad).
+		 *
+		 * Walking freely, this is folded into the heading every frame so you go where you
+		 * look, the usual first-person behaviour. On a rail it stays as a standing offset,
+		 * which is what lets you look around while the rail keeps driving — a dolly with a
+		 * free head. A constant offset also leaves the loop closed, since the first and
+		 * last frames still share it.
+		 */
+		viewYaw: 0,
+		/** @type {number} Height above the surface — non-zero only while jumping. */
+		height: 0,
+		/** @type {number} Vertical speed along the normal. */
+		vSpeed: 0,
+		/**
+		 * @type {number} Eye height above the surface in world units. Derived from the
+		 * mesh size and {@link glo.walk.heightScale}; only the camera offset uses it.
+		 */
+		eyeHeight: 1,
+		/**
+		 * @type {number} Body height in world units, straight from the mesh size and
+		 * untouched by the viewpoint setting. Walking speed, gravity and jump height are
+		 * scaled by this rather than by `eyeHeight`, so raising the viewpoint reframes the
+		 * shot without secretly changing how fast the character moves.
+		 */
+		baseEye: 1,
+		/**
+		 * @type {number} Viewpoint height multiplier (Shift + up/down arrows). Kept as a
+		 * multiplier rather than an absolute height so the setting survives a mesh rebuild
+		 * or a change of form, exactly like `speedScale`.
+		 */
+		heightScale: 1,
+		/** @type {number} User speed multiplier (PageUp / PageDown). */
+		speedScale: 1,
+		/** @type {boolean} Whether Shift is currently held, tracked live from the events. */
+		shiftHeld: false,
+		/** @type {number} Bounding-box diagonal of the surface, measured on entry. */
+		scale: 1,
+		/** @type {BABYLON.Vector3} Centroid of the surface, measured on entry. */
+		center: new BABYLON.Vector3(0, 0, 0),
+		/** @type {boolean} Whether the surface closes on itself along u (seamless looping). */
+		closedU: false,
+		/** @type {boolean} Whether the surface closes on itself along v. */
+		closedV: false,
+		/**
+		 * @type {boolean} The u edges are the same curve but joined with v reversed — the
+		 * seam of a Möbius strip or a figure-8 Klein bottle. Crossing it wraps u *and*
+		 * mirrors v, which is what lets the character walk right through instead of
+		 * bouncing off the one feature that makes the surface worth walking.
+		 */
+		twistedU: false,
+		/** @type {boolean} Same for the v edges, joined with u reversed. */
+		twistedV: false,
+		/** @type {boolean} Walk on its own, turning slowly — a travelling shot on the surface. */
+		autopilot: false,
+		/**
+		 * @type {'u'|'v'|null} Locks the character onto a parameter line instead of a
+		 * geodesic. A geodesic almost never comes back to where it started, so a rail is
+		 * what makes a seamless video loop possible: one period of a closed direction
+		 * returns to the exact starting point, position and heading alike.
+		 */
+		rail: null,
+		/** @type {number} Parameter distance covered along the rail since the take began. */
+		railTravelled: 0,
+		/** @type {number} Parameter distance that completes the loop (one full period). */
+		railTarget: 0,
+		/** @type {number} World units per second along the rail; 0 uses the walking speed. */
+		railSpeed: 0,
+		/** @type {number} Expected duration of the rail take, in seconds. */
+		railSeconds: 0,
+		/** @type {boolean} Set once the rail has covered a whole period. */
+		railDone: false,
+		/** @type {number} Autopilot clock, drives the wandering heading. */
+		turnPhase: 0,
+		/** @type {boolean} False until the first valid surface frame has been sampled. */
+		frameReady: false,
+		/** @type {Set<string>} Currently held movement keys. */
+		keys: new Set(),
+	},
+	/**
+	 * @type {boolean} Whether the mini-map is up. Off by default: it costs a second pass
+	 * over the mesh, so it is a switch (`M`) rather than something always running.
+	 */
+	walkMapOn: false,
+	/**
+	 * Fullscreen video mode for the first-person view: hides every overlay, fills the
+	 * screen, and records the whole frame rather than the centred square crop used for
+	 * orbit takes.
+	 */
+	walkCinema: {
+		/** @type {boolean} Whether a cinema take is in progress. */
+		active: false,
+		/** @type {object|null} The recorder returned by `createMeshRecorder`. */
+		recorder: null,
+		/**
+		 * @type {boolean} Stop automatically once the rail closes its loop. False until a
+		 * rail is engaged with `R`, since a take now opens still and hand-driven.
+		 */
+		loop: false,
+		/** @type {boolean} The surface deforms over time, so a loop cannot close on shape. */
+		animated: false,
+		/**
+		 * @type {boolean} Pause the animation clock during a take when the surface
+		 * depends on `t`. The rail always closes the path, but a shape that keeps
+		 * deforming has moved on by the end of the lap, so the clip jumps on repeat;
+		 * turning this on trades the animation for a genuinely seamless loop. Off by
+		 * default, matching the orbit take.
+		 */
+		freezeTime: false,
+		/** @type {object} What to put back when the take ends. */
+		saved: {},
+	},
 	/**
 	 * State for the cinematic spiral travelling camera (TargetCamera).
 	 * Populated when entering travelling mode; consumed each frame to animate the path.

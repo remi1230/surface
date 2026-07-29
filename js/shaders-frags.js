@@ -3560,6 +3560,15 @@ vec3 wrap(vec3 p, float f){
 vec3 wrap(vec3 p, vec3 f){
     return fract(p*f)-.5;
 }
+vec2 wrap(vec2 p){
+    return fract(p)-.5;
+}
+vec2 wrap(vec2 p, float f){
+    return fract(p*f)-.5;
+}
+vec2 wrap(vec2 p, vec2 f){
+    return fract(p*f)-.5;
+}
 float wrap(float p){
     return fract(p)-.5;
 }

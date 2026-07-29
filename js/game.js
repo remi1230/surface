@@ -28,6 +28,19 @@ const GAME = {
 	BULLET_SPEED: 22,
 	/** Seconds a bullet lives before expiring on its own. */
 	BULLET_TTL: 8,
+	/** Seconds a bullet's drawn path survives, counted from each point being laid down. */
+	BULLET_TRACE_SECONDS: 4,
+	/**
+	 * Outside a match, firing launches a geodesic probe instead of a bullet: no gravity,
+	 * a long life and a line that does not fade.
+	 *
+	 * In a match a bullet is ballistic and lands in about half a second, so its trace is a
+	 * short arc — right for a projectile, and useless for seeing what the surface does to a
+	 * straight line. The same machinery with gravity switched off draws the geodesic
+	 * itself, which on a sphere visibly wraps round and returns. That is the instrument
+	 * this application is, so it is what firing does when nothing is shooting back.
+	 */
+	TRACER_TTL: 40,
 	/**
 	 * Per-frame displacement ceiling for a bullet, in grid cells.
 	 *
@@ -375,7 +388,13 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 	walkTangentialize(b.heading, shooter.up, shooter.worldTu);
 
 	b.input.forward = 1;
-	return agentsRegister(b);
+	agentsRegister(b);
+
+	// The path is the point: a shot fired straight ahead follows a geodesic, and on a
+	// sphere that means it wraps round the form and comes back. Nothing said so until the
+	// line was drawn. It lingers a moment past the impact so the shape stays readable.
+	b.trace = traceAttach(b, { kind: 'bullet', lifetime: GAME.BULLET_TRACE_SECONDS, linger: GAME.BULLET_TRACE_SECONDS });
+	return b;
 }
 
 /**
@@ -391,7 +410,19 @@ function gameFirePlayer() {
 	const w = glo.walk;
 	if (glo.cameraMode !== 'walk' || _game.cooldown > 0) return null;
 	_game.cooldown = GAME.FIRE_INTERVAL;
-	return gameFire(w, w.pitch, w.viewYaw);
+
+	const b = gameFire(w, w.pitch, w.viewYaw);
+	if (b && !_game.active) {
+		// No match running: this is a geodesic probe, not a shot. Gravity off so the path
+		// is the surface's answer to "straight ahead" and nothing else, and a line that
+		// stays put long enough to walk over and look at.
+		b.gravity = 0;
+		b.vSpeed = 0;
+		b.height = 0;
+		b.ttl = GAME.TRACER_TTL;
+		if (b.trace) { b.trace.lifetime = Infinity; b.trace.linger = Infinity; }
+	}
+	return b;
 }
 
 /**
@@ -920,6 +951,9 @@ function gameOnSurfaceRebuilt() {
 	for (let i = all.length - 1; i >= 0; i--) {
 		if (all[i].kind === 'bullet') all[i].alive = false;
 	}
+	// Every trace point is a (u, v), and on new geometry those coordinates no longer
+	// describe the same places. Keeping the lines would draw a path nobody walked.
+	traceClear();
 	// The player's frame is invalidated by the rebuild, so the ring cannot be laid out
 	// until it has stepped again. Defer to the next gameRules.
 	if (_game.active) _game.replaceWave = true;
@@ -971,7 +1005,12 @@ function gameHideHud() {
 function gameClear() {
 	const all = agentsAll();
 	for (let i = all.length - 1; i >= 0; i--) {
-		if (all[i].kind !== 'player') agentsUnregister(all[i]);
+		if (all[i].kind === 'player') continue;
+		// Drop the line with the entity. Unregistering alone would leave a trace following
+		// an agent that is no longer stepped: frozen in place and never expiring, since a
+		// point is only retired by age and a stationary agent lays down no new ones.
+		traceDetach(all[i]);
+		agentsUnregister(all[i]);
 	}
 	_game.cooldown = 0;
 	_game.hits = 0;

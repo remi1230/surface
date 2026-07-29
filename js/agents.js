@@ -46,6 +46,19 @@ const AGENT = {
 /** Live agents, in step order. Agent 0 is the player when walk mode is running. */
 const _agents = [];
 
+/**
+ * Extra samplers riding the same probe call.
+ *
+ * The probe costs the same for four points as for a hundred and forty-four, so anything
+ * that needs to know where a parametric position lands in the world should travel in the
+ * one call the step already makes rather than open its own. A sampler is a pair of hooks:
+ * `gather(ctx, out, offset)` writes integer grid indices and returns how many it wrote,
+ * `resolve(ctx, offset)` reads its own slice back once the probe has run.
+ *
+ * @type {Array<{gather: Function, resolve: Function}>}
+ */
+const _agSamplers = [];
+
 /** Flat (i, j) pairs for the whole population — the single probe call's input. */
 let _agentIdx = new Float32Array(AGENT.INITIAL_CAPACITY * 2);
 
@@ -251,6 +264,79 @@ function agentsClear(keep = null) {
 
 /** @returns {object[]} The live population. Do not mutate; use the register helpers. */
 function agentsAll() { return _agents; }
+
+/**
+ * Registers a sampler to ride the step's probe call.
+ * @param {{gather: Function, resolve: Function}} sampler - See {@link _agSamplers}.
+ * @returns {object} The same sampler.
+ */
+function agentsAddSampler(sampler) {
+	if (_agSamplers.indexOf(sampler) === -1) _agSamplers.push(sampler);
+	return sampler;
+}
+
+/**
+ * Interpolates a parametric position from a 2x2 block of probed corners.
+ *
+ * The block layout matches what {@link agentGatherCell} wrote: (i0,j0), (i0,j0+1),
+ * (i0+1,j0), (i0+1,j0+1). Position only — a sampler that wants a frame should be an agent.
+ *
+ * @param {object} ctx - The step context.
+ * @param {number} offset - Sample index the block starts at.
+ * @param {number} fu - Fractional position across the cell along u.
+ * @param {number} fv - Same along v.
+ * @param {BABYLON.Vector3} out - Receives the object-space position.
+ */
+function agentResolveCell(ctx, offset, fu, fv, out) {
+	const pos = ctx.probe.positions;
+	for (let p = 0; p < 4; p++) {
+		const s = (offset + p) * 3;
+		_agPatch[p].set(pos[s], pos[s + 1], pos[s + 2]);
+	}
+	BABYLON.Vector3.LerpToRef(_agPatch[0], _agPatch[1], fv, _agRow[0]);
+	BABYLON.Vector3.LerpToRef(_agPatch[2], _agPatch[3], fv, _agRow[1]);
+	BABYLON.Vector3.LerpToRef(_agRow[0], _agRow[1], fu, out);
+}
+
+/**
+ * Writes the four integer corners of the cell containing `(u, v)`.
+ *
+ * The companion to {@link agentResolveCell} for anything that needs a position without
+ * being an agent. Seams are identified the same way the patch gather does them, so a
+ * sample either side of a twisted seam still lands on the right vertices.
+ *
+ * @param {object} ctx - The step context.
+ * @param {number} u - Parametric u.
+ * @param {number} v - Parametric v.
+ * @param {Float32Array} out - Shared index buffer.
+ * @param {number} offset - Sample index to start writing at.
+ * @param {{fu: number, fv: number}} frac - Receives the position within the cell.
+ * @returns {number} Samples written, always 4.
+ */
+function agentGatherCell(ctx, u, v, out, offset, frac) {
+	const inst = ctx.info.inst;
+	const d = ctx.domain;
+
+	const fi = inst.step_u !== 0 ? (u - inst.min_u) / inst.step_u : 0;
+	const fj = inst.step_v !== 0 ? (v - inst.min_v) / inst.step_v : 0;
+
+	let i0 = Math.floor(fi);
+	let j0 = Math.floor(fj);
+	if (!d.closedU) i0 = Math.min(Math.max(i0, 0), ctx.info.gridU - 1);
+	if (!d.closedV) j0 = Math.min(Math.max(j0, 0), ctx.info.gridV - 1);
+	frac.fu = fi - i0;
+	frac.fv = fj - j0;
+
+	let k = offset * 2;
+	for (let a = 0; a < 2; a++) {
+		for (let b = 0; b < 2; b++) {
+			agentMapIndex(i0 + a, j0 + b, ctx, _agIdxPair);
+			out[k++] = _agIdxPair[0];
+			out[k++] = _agIdxPair[1];
+		}
+	}
+	return 4;
+}
 
 /**
  * Samples an agent takes per step.
@@ -787,6 +873,9 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 	for (let i = 0; i < _agents.length; i++) {
 		if (_agents[i].alive) total += agentPatchSize(_agents[i]);
 	}
+	for (let i = 0; i < _agSamplers.length; i++) {
+		total += _agSamplers[i].count ? _agSamplers[i].count(_agCtx) : 0;
+	}
 	if (total === 0) return false;
 	if (_agentIdx.length < total * 2) _agentIdx = new Float32Array(total * 2);
 
@@ -796,6 +885,14 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 		if (!a.alive) continue;
 		offset += agentGather(a, _agCtx, _agentIdx, offset);
 	}
+	// Samplers ride along: their indices go in the same buffer, so the population and
+	// everything watching it still cost exactly one probe call between them.
+	const samplerAt = [];
+	for (let i = 0; i < _agSamplers.length; i++) {
+		samplerAt.push(offset);
+		offset += _agSamplers[i].gather(_agCtx, _agentIdx, offset);
+	}
+	total = offset;
 
 	// --- Phase B: one probe for everyone -----------------------------------------
 	const probe = info.inst.probePoints(_agentIdx, total);
@@ -817,6 +914,10 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 		if (!frame.valid) continue;
 		agentIntegrate(a, _agCtx, dt, frame, snap, drive);
 		a._stepped = true;
+	}
+
+	for (let i = 0; i < _agSamplers.length; i++) {
+		_agSamplers[i].resolve(_agCtx, samplerAt[i]);
 	}
 
 	// Reap what died this step, from the back so the indices stay valid.

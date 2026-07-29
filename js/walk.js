@@ -306,6 +306,7 @@ function initWalkRig(scene) {
 
 	initWalkMap(scene);
 	initGameMarkers(scene);
+	initTrace(scene);
 }
 
 /**
@@ -397,6 +398,8 @@ function startWalk(autopilot = false) {
 	glo.camera = cam;
 	glo.cameraMode = 'walk';
 
+	traceSurveySurface();
+
 	walkUpdate(true);
 	walkShowHud();
 	return true;
@@ -418,6 +421,7 @@ function stopWalk() {
 
 	walkReleasePointer();
 	if (_game.active) gameStop(); else gameClear();
+	traceClear();
 	glo.scene.activeCamera = glo.orbitCamera;
 	glo.orbitCamera.attachControl(glo.canvas, true);
 	glo.camera = glo.orbitCamera;
@@ -555,6 +559,7 @@ function walkOnSurfaceRebuilt(info) {
 	w.frameReady = false;
 
 	if (typeof gameOnSurfaceRebuilt === 'function') gameOnSurfaceRebuilt();
+	if (typeof traceSurveySurface === 'function') traceSurveySurface();
 }
 
 /**
@@ -625,6 +630,9 @@ function walkUpdate(snap = false) {
 
 	// Entities decide before the step, which consumes `input`.
 	gameThink(dt);
+	// Points are laid down at the position the agent currently occupies, so this runs
+	// before the step moves it.
+	traceRecord(dt);
 
 	// The population steps in one batched probe call; `glo.walk` carries the domain
 	// closure flags measured on entry.
@@ -670,6 +678,9 @@ function walkUpdate(snap = false) {
 
 	walkUpdateMap();
 	gameUpdate(dt, info, w);
+	// After the step: every trace point has just been re-resolved to where the surface
+	// holds it now, so the ribbon is rebuilt from fresh world positions.
+	traceUpdate();
 
 	// The lap closed on this frame: the pose above is the one that matches the take's
 	// first frame, so end the recording now, not on the next tick.
@@ -741,6 +752,13 @@ function walkHandleKeyDown(e) {
 			return true;
 		case 'g': case 'G':
 			gameToggle();
+			return true;
+		case 't': case 'T':
+			// The walker's own thread: on a folded surface, knowing where you came from
+			// is information no first-person view otherwise gives you.
+			if (traceHas(w)) traceDetach(w);
+			else traceAttach(w, { kind: 'player', lifetime: Infinity });
+			walkShowHud();
 			return true;
 		case 'r': case 'R':
 			walkToggleRail();
@@ -1327,7 +1345,8 @@ function walkShowHud() {
 	hud.innerHTML =
 		`<b>${mode}</b> &nbsp; arrows move &middot; shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
 		`space jump &middot; M map${glo.walkMapOn ? ' (on)' : ''} &middot; R rail &middot; ` +
-		`click for mouse look &middot; click to fire &middot; G game${_game.active ? ' (on)' : ''} &middot; X flip side &middot; ` +
+		`click for mouse look &middot; click to fire &middot; G game${_game.active ? ' (on)' : ''} &middot; ` +
+		`T trail${traceHas(w) ? ' (on)' : ''} &middot; X flip side &middot; ` +
 		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
 		(loop ? ` &nbsp;|&nbsp; looping on ${loop}` : '');
 	hud.style.display = 'block';

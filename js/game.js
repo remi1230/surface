@@ -26,6 +26,20 @@
 const GAME = {
 	/** Muzzle speed, in body heights per second. */
 	BULLET_SPEED: 22,
+	/**
+	 * Muzzle speed for an enemy, in body heights per second.
+	 *
+	 * Slower than the player's, and that is the whole difficulty knob. Dodging a shot means
+	 * leaving the hit radius while it is in the air, so what decides whether you can is
+	 * `player speed x flight time > reach`: at 1.6 body heights per second against a reach
+	 * of 0.67, a sidestep needs 0.42 s of flight. Measured at the old shared speed of 22,
+	 * an enemy at its standoff of 6 gave 0.27 s and landed 8 shots out of 8 whether the
+	 * player moved or not. At 12 that same shot takes 0.48 s and a sidestep clears all 8 —
+	 * while at 3.6, the closest an enemy will push, it still takes all 8, because being
+	 * cornered is supposed to cost something. Standing still is 8 out of 8 at every
+	 * distance either way: this buys a way out, not immunity.
+	 */
+	ENEMY_BULLET_SPEED: 12,
 	/** Seconds a bullet lives before expiring on its own. */
 	BULLET_TTL: 8,
 	/** Seconds a bullet's drawn path survives, counted from each point being laid down. */
@@ -75,9 +89,38 @@ const GAME = {
 	ENEMY_TURN: 1.0,
 	/** Enemy firing range and cadence. */
 	ENEMY_RANGE: 26,
-	ENEMY_FIRE_INTERVAL: 1.4,
+	/**
+	 * Seconds between an enemy's shots.
+	 *
+	 * The largest single lever on how punishing a match feels, and the one that was hiding
+	 * behind the others: three enemies at 1.4 s put about 190 shots into 90 seconds, so
+	 * even a low hit rate emptied 8 points of health many times over. Every other tunable
+	 * here changes the *fraction* that land; this one changes how many are fired at all.
+	 */
+	ENEMY_FIRE_INTERVAL: 2.0,
 	/** Cosine of the half-angle within which an enemy will take the shot. */
 	ENEMY_AIM_COS: 0.985,
+	/**
+	 * Random yaw spread on an enemy's shot, in radians either way.
+	 *
+	 * Enemies used to fire a perfect ray at the player's centre, every time. That made
+	 * dodging a matter of leaving the hit radius before the bullet arrived, and a player
+	 * stepping side to side never does: at walking speed a half-second reversal swings you
+	 * ±0.53 body heights about your mean position against a hit radius of 0.67, so you
+	 * stay inside the volume the whole time. Measured, zigzagging scored 92.7 % hits
+	 * against 95.8 % for standing perfectly still — the natural evasive move was worth
+	 * nothing, and no muzzle speed fixed that.
+	 *
+	 * Dispersion helps because it does not care how you move. At the standoff of 6 body
+	 * heights, missing by more than the hit radius takes an angular error above
+	 * atan(0.67/6) = 0.11 rad, which is why a spread of that size is barely felt — it is
+	 * the *most* it can be wrong, so only the extremes miss. Half the shots have to clear
+	 * the threshold for it to bite, hence roughly twice it. Measured over 90 s matches
+	 * against a zigzagging player: 91.7 % of shots landed at no spread, 70.8 % at 0.11,
+	 * 54.5 % at 0.18, and 51.1 % at 0.25 — past 0.18 the shots still landing are the ones
+	 * that were never going to miss, so that is where this sits.
+	 */
+	ENEMY_AIM_JITTER: 0.18,
 	/** How close an enemy tries to get, in body heights. */
 	ENEMY_STANDOFF: 6,
 	/** Hits an enemy takes before dying. */
@@ -358,7 +401,7 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 	if (!shooter || !shooter.frameReady) return null;
 
 	const body = shooter.baseEye || 1;
-	const speed = body * GAME.BULLET_SPEED;
+	const speed = body * (shooter.bulletSpeed || GAME.BULLET_SPEED);
 
 	const b = createSurfaceAgent({
 		patch: 'bilinear',        // no camera rides it: C1 continuity buys nothing here
@@ -487,6 +530,7 @@ function gameSpawnEnemy(u, v, ref = glo.walk) {
 	// reading a tunable that may not be the one it was spawned with.
 	e.maxHealth = GAME.ENEMY_HEALTH;
 	e.flash = 0;
+	e.bulletSpeed = GAME.ENEMY_BULLET_SPEED;
 	e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL * Math.random();
 	// No frame yet: the first step snaps it onto the surface from scratch, which is what
 	// `flip` is for.
@@ -531,8 +575,31 @@ function gameEnemyThink(e, target, dt) {
 	// sideways while circling.
 	const aimed = Math.cos(angle) >= GAME.ENEMY_AIM_COS;
 	if (aimed && e.fireCooldown === 0 && dist < e.baseEye * GAME.ENEMY_RANGE) {
-		e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL;
-		gameFire(e, 0, 0);
+		// Elevate for the drop, rather than firing level and hoping.
+		//
+		// A level shot only reaches its target while the bullet is fast enough for gravity
+		// not to matter over the distance, which is why it worked at the muzzle speed the
+		// player still uses. At the enemy's slower one the bullet falls its own launch
+		// height inside the distance an enemy keeps, so firing level would spray the
+		// ground and the speed drop would read as a bug rather than as a chance to dodge.
+		//
+		// The low solution of the ballistic arc is asin(g·d / v²) / 2, and it is the
+		// *domain* of that asin that matters as much as its value: no solution means the
+		// bullet cannot physically reach, so the enemy holds fire instead of wasting the
+		// shot. Effective range is then v²/g, a consequence of the muzzle speed rather
+		// than a constant that has to be kept in step with it by hand.
+		//
+		// The target's centre sits below the muzzle, so the flat-ground solution arrives a
+		// little high — well inside the hit radius, and erring high beats erring into the
+		// dirt.
+		const v = e.baseEye * (e.bulletSpeed || GAME.BULLET_SPEED);
+		const sin2 = (e.gravity * dist) / (v * v);
+		if (sin2 <= 1) {
+			e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL;
+			// Negative pitch aims up: gameFire negates it into the vertical speed.
+			gameFire(e, -0.5 * Math.asin(sin2),
+			         (Math.random() * 2 - 1) * GAME.ENEMY_AIM_JITTER);
+		}
 	}
 }
 

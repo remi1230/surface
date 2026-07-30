@@ -421,6 +421,7 @@ function stopWalk() {
 
 	walkReleasePointer();
 	if (_game.active) gameStop(); else gameClear();
+	golfStop();
 	traceClear();
 	glo.scene.activeCamera = glo.orbitCamera;
 	glo.orbitCamera.attachControl(glo.canvas, true);
@@ -559,6 +560,7 @@ function walkOnSurfaceRebuilt(info) {
 	w.frameReady = false;
 
 	if (typeof gameOnSurfaceRebuilt === 'function') gameOnSurfaceRebuilt();
+	if (typeof golfOnSurfaceRebuilt === 'function') golfOnSurfaceRebuilt();
 	if (typeof traceSurveySurface === 'function') traceSurveySurface();
 }
 
@@ -686,6 +688,7 @@ function walkUpdate(snap = false) {
 
 	walkUpdateMap();
 	gameUpdate(dt, info, w);
+	golfUpdate(dt);
 	// After the step: every trace point has just been re-resolved to where the surface
 	// holds it now, so the ribbon is rebuilt from fresh world positions.
 	traceUpdate();
@@ -767,6 +770,11 @@ function walkHandleKeyDown(e) {
 			return true;
 		case 'g': case 'G':
 			gameToggle();
+			return true;
+		case 'p': case 'P':
+			// P for parcours: the geodesic golf round.
+			golfToggle();
+			walkShowHud();
 			return true;
 		case 't': case 'T':
 			// The walker's own thread: on a folded surface, knowing where you came from
@@ -1365,6 +1373,7 @@ function walkShowHud() {
 		`shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
 		`space jump &middot; M map${glo.walkMapOn ? ' (on)' : ''} &middot; R rail &middot; ` +
 		`click for mouse look &middot; click to fire &middot; G game${_game.active ? ' (on)' : ''} &middot; ` +
+		`P golf${_golf.active ? ' (on)' : ''} &middot; ` +
 		`T trail${traceHas(w) ? ' (on)' : ''} &middot; X flip side &middot; ` +
 		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
 		(loop ? ` &nbsp;|&nbsp; looping on ${loop}` : '');

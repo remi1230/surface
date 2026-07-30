@@ -161,6 +161,9 @@ const GAME = {
 	COLORS: {
 		bullet: [1.0, 0.85, 0.25, 1.0],
 		enemy:  [0.95, 0.3, 0.35, 1.0],
+		// A golf target is neither a threat nor a projectile, so it takes the one part of
+		// the spectrum the other two leave alone.
+		target: [0.35, 0.85, 1.0, 1.0],
 	},
 	/**
 	 * Marker colours for the part of an entity that the surface is hiding.
@@ -174,6 +177,11 @@ const GAME = {
 	HIDDEN_COLORS: {
 		bullet: [0.55, 0.8, 0.35, 1.0],
 		enemy:  [0.25, 0.95, 0.45, 1.0],
+		// The target keeps its own hue when the surface hides it, rather than turning green
+		// like a threat does. Being out of sight is the normal condition of a golf target
+		// and not a warning, and seeing it through the form is the only way to aim at all —
+		// the puzzle is which line reaches it, not where it is.
+		target: [0.3, 0.62, 0.8, 1.0],
 	},
 	/**
 	 * Opacity of the see-through pass — the silhouette an entity leaves where the surface
@@ -490,6 +498,7 @@ function gameFirePlayer() {
 		b.prevHitPos.copyFrom(b.hitPos);
 		if (b.trace) { b.trace.lifetime = Infinity; b.trace.linger = Infinity; }
 	}
+	if (typeof golfOnShot === 'function') golfOnShot(b);
 	return b;
 }
 
@@ -756,7 +765,11 @@ function gameMarkerColor(a, base, out) {
  */
 function gameBodyCentre(a, out) {
 	out.copyFrom(a.hitPos);
-	if (a.kind === 'bullet') return out;
+	// A bullet is a point, and a golf target is a hole in the ground with a flag standing
+	// in it: the marker is drawn tall so it can be seen across a form, but what a shot has
+	// to reach is at its foot. Lifting it like a body put the hitbox 1.2 body heights above
+	// a shot that hugs the surface, and every stroke passed underneath.
+	if (a.kind === 'bullet' || a.kind === 'target') return out;
 	const size = a.markerSize || (a.baseEye || 1) * GAME.MARKER_SIZE;
 	return out.addInPlace(_gAim.copyFrom(a.up).scaleInPlace(0.5 * size));
 }
@@ -951,6 +964,10 @@ function gameUpdate(dt, info, domain) {
  */
 function gameStart() {
 	if (glo.cameraMode !== 'walk') return false;
+	// A round and a match cannot share the surface: gameClear below would take the golf
+	// target with it, and golf needs firing to stay a geodesic probe, which it only is
+	// while no match is running.
+	if (typeof golfStop === 'function' && _golf.active) golfStop();
 	gameClear();
 	_game.active = true;
 	_game.score = 0;

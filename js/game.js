@@ -189,6 +189,7 @@ const _gAim   = new BABYLON.Vector3();
 const _gSep   = new BABYLON.Vector3();
 const _gSeg   = new BABYLON.Vector3();
 const _gRel   = new BABYLON.Vector3();
+const _gCtr   = new BABYLON.Vector3();
 const _gStep  = { du: 0, dv: 0 };
 
 /**
@@ -376,6 +377,10 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 
 	// Fired from the eye, not from the feet.
 	b.height = (shooter.eyeHeight || 0) + shooter.height;
+	// `frameReady` above declares the bullet posed, so gameCollide will sweep it this very
+	// frame. Without seeding both ends the segment would run from the world origin.
+	b.hitPos.copyFrom(b.worldPos).addInPlace(_gAim.copyFrom(b.up).scaleInPlace(b.height));
+	b.prevHitPos.copyFrom(b.hitPos);
 	// Babylon pitches down for a positive rotation.x, so aiming down must give a
 	// downward vertical speed.
 	b.vSpeed = -speed * Math.sin(pitch);
@@ -420,6 +425,10 @@ function gameFirePlayer() {
 		b.vSpeed = 0;
 		b.height = 0;
 		b.ttl = GAME.TRACER_TTL;
+		// Dropping it to the ground after gameFire seeded it at eye height would leave a
+		// first swept segment that dives a whole body height.
+		b.hitPos.copyFrom(b.worldPos);
+		b.prevHitPos.copyFrom(b.hitPos);
 		if (b.trace) { b.trace.lifetime = Infinity; b.trace.linger = Infinity; }
 	}
 	return b;
@@ -583,9 +592,12 @@ function gameSurfaceSeparation(a, b, inst, domain) {
  * @returns {number} Squared distance from `point` to the segment.
  */
 function gameSweptDistanceSq(bullet, point) {
-	_gSeg.copyFrom(bullet.worldPos).subtractInPlace(bullet.prevWorldPos);
+	// `hitPos`, not `worldPos`: the segment has to be the one the bullet flew, which is
+	// its ground track lifted by its height. Sweeping the ground track instead made every
+	// shot hit at any altitude — see gameBodyCentre.
+	_gSeg.copyFrom(bullet.hitPos).subtractInPlace(bullet.prevHitPos);
 	const len2 = _gSeg.lengthSquared();
-	_gRel.copyFrom(point).subtractInPlace(bullet.prevWorldPos);
+	_gRel.copyFrom(point).subtractInPlace(bullet.prevHitPos);
 
 	if (!(len2 > 1e-16)) return _gRel.lengthSquared();
 
@@ -593,6 +605,29 @@ function gameSweptDistanceSq(bullet, point) {
 	t = t < 0 ? 0 : (t > 1 ? 1 : t);
 	_gRel.subtractInPlace(_gSeg.scaleInPlace(t));
 	return _gRel.lengthSquared();
+}
+
+/**
+ * Centre of the volume an agent occupies, in world space.
+ *
+ * `hitPos` is where an agent's *feet* are. A character is not a point there: it is a body
+ * standing on that spot, drawn as a marker one `markerSize` tall, and a shot through its
+ * chest has to count. So a character's centre is half a marker up. A bullet is a point and
+ * gets nothing — its glyph is decoration, not volume.
+ *
+ * The marker's cosmetic hover (MARKER_HOVER) is deliberately left out: it exists so the
+ * triangle is not coplanar with the surface, and lifting the hitbox with it would let a
+ * shot pass under a standing enemy.
+ *
+ * @param {object} a - The agent.
+ * @param {BABYLON.Vector3} out - Receives the centre.
+ * @returns {BABYLON.Vector3} `out`.
+ */
+function gameBodyCentre(a, out) {
+	out.copyFrom(a.hitPos);
+	if (a.kind === 'bullet') return out;
+	const size = a.markerSize || (a.baseEye || 1) * GAME.MARKER_SIZE;
+	return out.addInPlace(_gAim.copyFrom(a.up).scaleInPlace(0.5 * size));
 }
 
 /**
@@ -619,7 +654,7 @@ function gameCollide(info, domain) {
 			if (t === b.owner || t.team === b.team) continue;
 
 			const reach = b.radius + t.radius;
-			if (gameSweptDistanceSq(b, t.worldPos) > reach * reach) continue;
+			if (gameSweptDistanceSq(b, gameBodyCentre(t, _gCtr)) > reach * reach) continue;
 
 			// Close in space — but on a self-intersecting form that is not enough.
 			if (!GAME.hitAcrossSheets && info) {
@@ -631,7 +666,7 @@ function gameCollide(info, domain) {
 				// the step keeps the veto honest — a genuine other sheet measures tens of
 				// body heights away (37.7 on a Klein bottle), so a stride of slack costs it
 				// nothing.
-				const stride = BABYLON.Vector3.Distance(b.worldPos, b.prevWorldPos);
+				const stride = BABYLON.Vector3.Distance(b.hitPos, b.prevHitPos);
 				if (along > reach * GAME.SHEET_TOLERANCE + stride) continue;
 			}
 

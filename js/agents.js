@@ -188,6 +188,16 @@ function agentInit(a, opts = {}) {
 	 * point-to-point test misses every time.
 	 */
 	if (!a.prevWorldPos) a.prevWorldPos = new BABYLON.Vector3();
+	/**
+	 * Where the agent actually is: its ground point lifted along the normal by `height`.
+	 *
+	 * `worldPos` is the point on the surface underneath the agent, which is not where the
+	 * agent is whenever it jumps or flies. Anything measuring a real distance between two
+	 * agents wants this one — a bullet passing overhead is only overhead in `hitPos`.
+	 */
+	if (!a.hitPos) a.hitPos = new BABYLON.Vector3();
+	/** The previous step's `hitPos`, bounding the segment the agent swept. */
+	if (!a.prevHitPos) a.prevHitPos = new BABYLON.Vector3();
 	if (!a.worldTu) a.worldTu = new BABYLON.Vector3();
 	if (!a.worldTv) a.worldTv = new BABYLON.Vector3();
 	if (!a.up) a.up = new BABYLON.Vector3(0, 1, 0);
@@ -546,7 +556,11 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 	// the transformed tangents then yields the correct world normal under any affine
 	// transform, with no inverse transpose needed.
 	const world = ctx.world;
+	// Read before the step sets it: false means nothing has ever posed this agent, so the
+	// swept segment it is about to lay down has no previous end to run from.
+	const hadFrame = agent.frameReady;
 	agent.prevWorldPos.copyFrom(agent.worldPos);
+	if (hadFrame) agent.prevHitPos.copyFrom(agent.hitPos);
 	BABYLON.Vector3.TransformCoordinatesToRef(frame.position, world, agent.worldPos);
 	BABYLON.Vector3.TransformNormalToRef(frame.tangentU, world, agent.worldTu);
 	BABYLON.Vector3.TransformNormalToRef(frame.tangentV, world, agent.worldTv);
@@ -665,6 +679,11 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 
 	agentApplyDomain(agent, ctx);
 	agentApplyGravity(agent, dt);
+
+	// Last, because gravity is what settles `height` for this frame.
+	agent.hitPos.copyFrom(agent.worldPos)
+	     .addInPlace(_agB.copyFrom(agent.up).scaleInPlace(agent.height));
+	if (!hadFrame) agent.prevHitPos.copyFrom(agent.hitPos);
 }
 
 /**

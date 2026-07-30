@@ -175,7 +175,9 @@ function agentInit(a, opts = {}) {
 	a.reap = opts.reap !== undefined ? opts.reap : (a.reap ?? true);
 
 	/** Locomotion request for the coming step, filled by keys, by an AI, or by nothing. */
-	if (!a.input) a.input = { forward: 0, turn: 0, jump: false };
+	if (!a.input) a.input = { forward: 0, turn: 0, strafe: 0, jump: false };
+	// `glo.walk` is augmented in place and may predate the field.
+	if (a.input.strafe === undefined) a.input.strafe = 0;
 
 	/** Filled by every step: the agent's world pose and the local tangent basis. */
 	if (!a.worldPos) a.worldPos = new BABYLON.Vector3();
@@ -620,11 +622,15 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 	}
 
 	// --- Metric step: world displacement -> (du, dv) ------------------------------
-	const forward = agent.input.forward;
+	let forward = agent.input.forward;
+	let strafe = agent.input.strafe || 0;
 	agent.clamped = false;
 	agent.stalled = false;
-	if (forward !== 0 && !driven) {
-		const dist = forward * agent.moveSpeed * dt;
+	if ((forward !== 0 || strafe !== 0) && !driven) {
+		// Walking a diagonal must not be faster than walking straight.
+		const mag = Math.hypot(forward, strafe);
+		if (mag > 1) { forward /= mag; strafe /= mag; }
+		const dist = agent.moveSpeed * dt;
 
 		const Pu = agent.worldTu, Pv = agent.worldTv;
 		const E = BABYLON.Vector3.Dot(Pu, Pu);
@@ -632,7 +638,21 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 		const G = BABYLON.Vector3.Dot(Pv, Pv);
 		const det = E * G - F * F;
 
-		_agA.copyFrom(agent.heading).scaleInPlace(dist);
+		// Travel direction in the tangent plane. Sideways is the heading turned a quarter
+		// turn about the normal — `cross(up, heading)` is exactly that rotation, so
+		// "strafe right" and "turn right" agree on which way right is, whatever the
+		// surface is doing. Both operands are unit and orthogonal, so the result already
+		// lies in the tangent plane at unit length: nothing to re-project.
+		//
+		// The heading is deliberately untouched. Sidestepping while still facing your
+		// target is the whole point, and it costs nothing here: the step is a world
+		// displacement fed through the first fundamental form, so a sideways one is as
+		// metric-correct as a forward one, and it parallel-transports the same way.
+		_agA.copyFrom(agent.heading).scaleInPlace(forward * dist);
+		if (strafe !== 0) {
+			BABYLON.Vector3.CrossToRef(up, agent.heading, _agC);
+			_agA.addInPlace(_agC.scaleInPlace(strafe * dist));
+		}
 		const bu = BABYLON.Vector3.Dot(_agA, Pu);
 		const bv = BABYLON.Vector3.Dot(_agA, Pv);
 		let du = 0, dv = 0, solved = false;

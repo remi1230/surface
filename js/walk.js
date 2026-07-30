@@ -601,7 +601,7 @@ function walkUpdate(snap = false) {
 	}
 
 	// --- Input -------------------------------------------------------------------
-	let forward = 0, turn = 0, jump = false;
+	let forward = 0, turn = 0, strafe = 0, jump = false;
 	if (w.autopilot) {
 		w.turnPhase += dt;
 		forward = 1;
@@ -612,12 +612,20 @@ function walkUpdate(snap = false) {
 			if (w.keys.has('ArrowUp')) forward += 1;
 			if (w.keys.has('ArrowDown')) forward -= 1;
 		}
-		if (w.keys.has('ArrowLeft')) turn -= 1;
-		if (w.keys.has('ArrowRight')) turn += 1;
+		// The left and right arrows sidestep rather than turn. Turning was theirs and the
+		// mouse's both, which wasted the only pair of keys that could dodge a shot; aiming
+		// is the mouse's job, and now the feet have one of their own.
+		if (w.keys.has('ArrowLeft')) strafe -= 1;
+		if (w.keys.has('ArrowRight')) strafe += 1;
+		// Turning stays on the keyboard too: mouse look needs a click to capture the
+		// pointer, and without this there would be no way to turn round before that.
+		if (w.keys.has('a')) turn -= 1;
+		if (w.keys.has('e')) turn += 1;
 		jump = w.keys.has(' ');
 	}
 	w.input.forward = forward;
 	w.input.turn = turn;
+	w.input.strafe = strafe;
 	w.input.jump = jump;
 
 	// --- Locomotion scale ---------------------------------------------------------
@@ -743,6 +751,13 @@ function walkHandleKeyDown(e) {
 			w.keys.add(e.key);
 			e.preventDefault();
 			return true;
+		case 'a': case 'A': case 'e': case 'E':
+			// Held keys, not one-shot actions: stored folded to lower case so a Shift
+			// pressed or released mid-hold cannot strand them in the set.
+			walkDisengageAutoDrive();
+			w.keys.add(e.key.toLowerCase());
+			e.preventDefault();
+			return true;
 		case 'Escape':
 			// During a take, Escape ends the take and keeps you on the surface.
 			if (glo.walkCinema.active) stopWalkCinema(); else stopWalk();
@@ -790,6 +805,9 @@ function walkHandleKeyDown(e) {
 function walkHandleKeyUp(e) {
 	glo.walk.shiftHeld = e.shiftKey;
 	glo.walk.keys.delete(e.key);
+	// A key held down while Shift is pressed or released arrives as a different `key` on
+	// the way up than on the way down, which would leave it stuck in the set forever.
+	if (e.key.length === 1) glo.walk.keys.delete(e.key.toLowerCase());
 }
 
 /**
@@ -1343,7 +1361,8 @@ function walkShowHud() {
 	const mode = w.rail ? 'RAIL' : (w.autopilot ? 'AUTOPILOT' : 'WALK');
 	const loop = [w.closedU ? 'u' : null, w.closedV ? 'v' : null].filter(Boolean).join('+');
 	hud.innerHTML =
-		`<b>${mode}</b> &nbsp; arrows move &middot; shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
+		`<b>${mode}</b> &nbsp; &uarr;&darr; walk &middot; &larr;&rarr; sidestep &middot; A/E turn &middot; ` +
+		`shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
 		`space jump &middot; M map${glo.walkMapOn ? ' (on)' : ''} &middot; R rail &middot; ` +
 		`click for mouse look &middot; click to fire &middot; G game${_game.active ? ' (on)' : ''} &middot; ` +
 		`T trail${traceHas(w) ? ' (on)' : ''} &middot; X flip side &middot; ` +

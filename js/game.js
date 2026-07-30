@@ -141,6 +141,20 @@ const GAME = {
 	 * rather than decoration. Translucent on purpose: it says "there, but not reachable".
 	 */
 	GHOST_ALPHA: 0.55,
+	/**
+	 * How far toward white a marker washes out as its owner runs out of health.
+	 *
+	 * Paling for wear and darkening for a hit deliberately pull in opposite directions.
+	 * One is a standing condition and the other a one-off event, and they have to stay
+	 * tellable apart on the frame where both land.
+	 */
+	WEAR_TO_PALE: 0.62,
+	/** Seconds a marker blinks after its owner takes a hit. */
+	HIT_FLASH_SECONDS: 0.32,
+	/** Full blinks per second during that time — so HIT_FLASH_SECONDS buys about two. */
+	HIT_FLASH_HZ: 6,
+	/** Brightness of the blink's dark half, as a multiplier on the colour already there. */
+	HIT_FLASH_DARK: 0.3,
 	/** Entity capacity the vertex buffers start at; they grow on demand. */
 	INITIAL_MARKERS: 64,
 };
@@ -190,6 +204,8 @@ const _gSep   = new BABYLON.Vector3();
 const _gSeg   = new BABYLON.Vector3();
 const _gRel   = new BABYLON.Vector3();
 const _gCtr   = new BABYLON.Vector3();
+const _gCol   = [0, 0, 0, 1];
+const _gHid   = [0, 0, 0, 1];
 const _gStep  = { du: 0, dv: 0 };
 
 /**
@@ -467,6 +483,10 @@ function gameSpawnEnemy(u, v, ref = glo.walk) {
 	e.eyeHeight = body;
 	e.markerSize = body * GAME.MARKER_SIZE;
 	e.health = GAME.ENEMY_HEALTH;
+	// Kept alongside `health` so the marker can say how worn down this one is without
+	// reading a tunable that may not be the one it was spawned with.
+	e.maxHealth = GAME.ENEMY_HEALTH;
+	e.flash = 0;
 	e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL * Math.random();
 	// No frame yet: the first step snaps it onto the surface from scratch, which is what
 	// `flip` is for.
@@ -608,6 +628,50 @@ function gameSweptDistanceSq(bullet, point) {
 }
 
 /**
+ * A marker's colour for this frame: the palette for its kind, told what state its owner
+ * is in.
+ *
+ * Two things are layered on the base colour, and they are kept visually orthogonal so
+ * that reading one never costs you the other.
+ *
+ * *How hurt it is* washes the colour out toward white, progressively. That is a standing
+ * condition, so it has to survive being glanced at from across the surface, and losing
+ * saturation is legible at any size — a hue shift would not be, since the palette already
+ * spends red on visible and green on hidden.
+ *
+ * *Having just been hit* blinks the colour darker. It blinks whatever colour the marker
+ * currently has rather than a fixed red: an enemy behind a sheet of surface is drawn
+ * green, and a red flash there would read as it stepping into the open, which is the one
+ * thing the two palettes exist to keep separate.
+ *
+ * @param {object} a - The agent.
+ * @param {number[]} base - The palette entry for its kind, `[r, g, b, a]`.
+ * @param {number[]} out - Receives the result; reused between calls.
+ * @returns {number[]} `out`.
+ */
+function gameMarkerColor(a, base, out) {
+	out[0] = base[0]; out[1] = base[1]; out[2] = base[2]; out[3] = base[3];
+
+	// `maxHealth > 1` because with a single hit point there is no wear to show: an entity
+	// is either untouched or gone.
+	if (a.maxHealth > 1 && a.health !== undefined) {
+		const left = Math.min(1, Math.max(0, (a.health - 1) / (a.maxHealth - 1)));
+		const t = (1 - left) * GAME.WEAR_TO_PALE;
+		out[0] += (1 - out[0]) * t;
+		out[1] += (1 - out[1]) * t;
+		out[2] += (1 - out[2]) * t;
+	}
+
+	// Times two because a full blink is two half-periods, one dark and one not.
+	if (a.flash > 0 && (Math.floor(a.flash * GAME.HIT_FLASH_HZ * 2) & 1) === 1) {
+		out[0] *= GAME.HIT_FLASH_DARK;
+		out[1] *= GAME.HIT_FLASH_DARK;
+		out[2] *= GAME.HIT_FLASH_DARK;
+	}
+	return out;
+}
+
+/**
  * Centre of the volume an agent occupies, in world space.
  *
  * `hitPos` is where an agent's *feet* are. A character is not a point there: it is a body
@@ -678,6 +742,7 @@ function gameCollide(info, domain) {
 			}
 			if (t.health !== undefined) {
 				t.health -= 1;
+				t.flash = GAME.HIT_FLASH_SECONDS;
 				// The player must never be dropped from the population — the camera hangs
 				// off it — so death is a callback rather than a flag for anyone who has one.
 				if (t.health <= 0) {
@@ -705,6 +770,13 @@ function gameUpdate(dt, info, domain) {
 	// The player's hit radius is a game property, so it is set here rather than in the
 	// walk mode, and re-derived each frame because the body scale follows the mesh.
 	glo.walk.radius = (glo.walk.baseEye || 1) * GAME.BODY_RADIUS;
+
+	// Before the hits land, so one taken this frame gets its blink at full length rather
+	// than a frame short.
+	const blinking = agentsAll();
+	for (let i = 0; i < blinking.length; i++) {
+		if (blinking[i].flash > 0) blinking[i].flash = Math.max(0, blinking[i].flash - dt);
+	}
 
 	gameCollide(info, domain);
 	gameRules(dt);
@@ -775,8 +847,10 @@ function gameUpdate(dt, info, domain) {
 		P[o + 3] = _gPos.x + _gRight.x * hw; P[o + 4] = _gPos.y + _gRight.y * hw; P[o + 5] = _gPos.z + _gRight.z * hw;
 		P[o + 6] = _gPos.x + _gUp.x * size;  P[o + 7] = _gPos.y + _gUp.y * size;  P[o + 8] = _gPos.z + _gUp.z * size;
 
-		const col = GAME.COLORS[a.kind] || GAME.COLORS.bullet;
-		const hid = GAME.HIDDEN_COLORS[a.kind] || GAME.HIDDEN_COLORS.bullet || col;
+		const baseCol = GAME.COLORS[a.kind] || GAME.COLORS.bullet;
+		const baseHid = GAME.HIDDEN_COLORS[a.kind] || GAME.HIDDEN_COLORS.bullet || baseCol;
+		const col = gameMarkerColor(a, baseCol, _gCol);
+		const hid = gameMarkerColor(a, baseHid, _gHid);
 		for (let v = 0; v < 3; v++) {
 			const c = k * 12 + v * 4;
 			C[c] = col[0]; C[c + 1] = col[1]; C[c + 2] = col[2]; C[c + 3] = col[3];

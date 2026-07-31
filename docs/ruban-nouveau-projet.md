@@ -9,6 +9,14 @@ sur son propre dépôt, qui reprend le socle géométrique et le porte sur WebGP
 > existe pour qu'une session future puisse démarrer à froid sans rien savoir de
 > la conversation qui l'a produit. Tout ce qui est chiffré ici a été mesuré dans
 > le projet actuel ; tout ce qui ne l'est pas est signalé comme tel.
+>
+> **Mise à jour, même jour** — la phase 1 est écrite et mesurée. Le code vit
+> dans `ruban/`, son compte rendu dans `ruban/docs/phase-1-squelette.md`. La
+> recette annoncée au §4 est passée : le maillage coïncide avec celui de
+> l'application actuelle **au bit près sur 11 formes sur 12**, la douzième à un
+> ulp. Deux choses de ce document sont à corriger à sa lecture : le nouveau
+> projet n'a pas (encore) son propre dépôt, voir §7 ; et TypeScript a été retenu,
+> voir §3.3.
 
 ---
 
@@ -117,6 +125,12 @@ mémoire des tampons GPU — offsets des champs d'agent, alignements WGSL — so
 exactement ce que le typage attrape et que les commentaires n'attrapent pas.
 Rester en JS + JSDoc est un repli acceptable.
 
+> **Retenu en phase 1** : TypeScript + Vite. Le harnais de mesure, lui, est en
+> JS pur (`.mjs`) et lancé par Node sans build — il pilote le navigateur, il n'y
+> tourne pas. La couche maison fait ~90 lignes pour le device et les tampons,
+> loin des ~800 estimées, parce que la phase 1 n'a que deux tampons et deux
+> pipelines ; l'estimation se jugera à la phase 4.
+
 ### 3.4 Les nombres duaux
 
 Émettre la formule **deux fois** en WGSL : une version normale, une version où
@@ -161,10 +175,12 @@ que le territoire se mesure en aire réelle.
 
 Chaque phase se termine par une **mesure**, jamais par une affirmation.
 
-1. **Squelette** — init WebGPU, compilateur formule → WGSL, passe de surface,
-   rendu, caméra orbitale.
+1. ~~**Squelette**~~ — fait, mesuré (`ruban/docs/phase-1-squelette.md`).
    *Preuve : le maillage coïncide avec celui de l'application actuelle pour la
-   même formule.*
+   même formule.* → **écart 0 sur 11 formes sur 12**, 145 124 sommets, trois
+   systèmes de coordonnées ; la douzième à un ulp. Les tangentes duales sont
+   confirmées par différences finies d'ordre 4 (7 e-16 à 3 e-6) et l'élément
+   d'aire converge en O(h²) vers l'aire analytique de la sphère.
 2. **Un agent** — intégration géodésique en compute, caméra première personne par
    lecture-retour.
    *Preuve : le grand cercle se referme sur une sphère, à comparer aux 0,044 %
@@ -228,6 +244,15 @@ bugs de test, pas des résultats.
 Le nouveau projet vit sur un **nouveau dépôt**, à créer. Cette note et les deux
 précédentes sont le seul contexte nécessaire : elles se suffisent, une session
 neuve peut les lire et commencer à la phase 1.
+
+> **Ce qui a été fait à la place.** Le projet vit dans `ruban/`, un sous-dossier
+> de ce dépôt, et non sur un dépôt à part : créer un dépôt public est une action
+> qui appartient à celui qui possède le compte, pas à la session qui code. Le
+> code n'importe rien de `../js` à l'exécution — la seule dépendance au projet
+> d'origine est celle du harnais de mesure, qui **exécute** l'application
+> actuelle pour en tirer la vérité de terrain (`ruban/test/oracle.html`).
+> Extraire `ruban/` vers son propre dépôt ne demande donc que de décider quoi
+> faire de cet oracle.
 
 Ordre de lecture conseillé : `vue-premiere-personne.md` §12 et §13 (le coût de la
 sonde, la fermeture géodésique), puis `jeu-de-tir-sur-surface.md` §1 (l'agent

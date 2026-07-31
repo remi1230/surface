@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Oracle — le maillage de l'application actuelle</title>
+<!--
+  Cette page n'imite pas le projet d'origine : elle l'execute.
+
+  Elle charge les vrais fichiers `js/glo.js` et `js/GPUShaderMesh.js`, demande a
+  la vraie classe `ShaderMesh*` son vertex shader complet, pose les uniformes
+  avec sa propre methode `_setTFUniforms`, et recupere les sommets par transform
+  feedback — exactement le chemin de `extractPositionsForExport()`, qui est la
+  reference dont la sonde du projet a ete validee au bit pres
+  (vue-premiere-personne.md, paragraphe 12).
+
+  BABYLON n'est stubbe que pour ce dont ce chemin a besoin : quelques classes de
+  vecteurs et de couleurs. Aucune ligne de logique geometrique n'est simulee.
+-->
+<script>
+(function stubBabylon() {
+  class V2 { constructor(x = 0, y = 0) { this.x = x; this.y = y; }
+             set(x, y) { this.x = x; this.y = y; return this; } }
+  class V3 { constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+             set(x, y, z) { this.x = x; this.y = y; this.z = z; return this; }
+             clone() { return new V3(this.x, this.y, this.z); }
+             static Zero() { return new V3(0, 0, 0); } }
+  class V4 { constructor(x = 0, y = 0, z = 0, w = 0) { this.x = x; this.y = y; this.z = z; this.w = w; }
+             set(x, y, z, w) { this.x = x; this.y = y; this.z = z; this.w = w; return this; } }
+  class C3 { constructor(r = 0, g = 0, b = 0) { this.r = r; this.g = g; this.b = b; }
+             clone() { return new C3(this.r, this.g, this.b); } }
+  class C4 { constructor(r = 0, g = 0, b = 0, a = 1) { this.r = r; this.g = g; this.b = b; this.a = a; } }
+  const empty = () => class { constructor() {} };
+  const base = {
+    Vector2: V2, Vector3: V3, Vector4: V4, Color3: C3, Color4: C4,
+    Mesh: empty(), Scene: empty(), Engine: empty(),
+    Matrix: class { static Identity() { return {}; } },
+    Quaternion: empty(),
+    MeshBuilder: new Proxy({}, { get: () => () => ({}) }),
+    ShaderMaterial: empty(), StandardMaterial: empty(), Texture: empty(),
+    VertexBuffer: { PositionKind: 'position', NormalKind: 'normal' },
+    Effect: { ShadersStore: {} },
+    Observable: class { add() {} remove() {} },
+    TransformNode: empty(), UniversalCamera: empty(), ArcRotateCamera: empty(),
+    Tools: new Proxy({}, { get: () => () => {} }),
+    GUI: new Proxy({}, { get: () => empty() }),
+    Constants: new Proxy({}, { get: () => 0 }),
+  };
+  window.BABYLON = new Proxy(base, { get: (t, k) => (k in t ? t[k] : empty()) });
+  window.__loadErrors = [];
+  window.addEventListener('error', (e) => {
+    window.__loadErrors.push(`${e.message} @ ${(e.filename || '').split('/').pop()}:${e.lineno}`);
+  });
+})();
+</script>
+<script src="/legacy/js/ui-components.js"></script>
+<script src="/legacy/js/forms.js"></script>
+<script src="/legacy/js/prototypes.js"></script>
+<script src="/legacy/js/glo.js"></script>
+<script src="/legacy/js/GPUShaderMesh.js"></script>
+<script src="/legacy/js/ribbon.js"></script>
+<script src="/legacy/js/ui.js"></script>
+<script>
+(function () {
+  /** Remet `glo` dans l'etat neutre : ni blender, ni symetrie, ni deformation. */
+  function neutralGlo(t) {
+    glo.clock = { time: t, paused: true, speed: 0.001 };
+    glo.geometryShaderCode = null;
+    glo.slidersUVOnOneSign = { u: false, v: false };
+    glo.scaleNorm = 1;
+    glo.centerSymmetry = { x: 0, y: 0, z: 0 };
+    glo.firstPoint = { x: 1, y: 0, z: 0 };
+    glo.symmetrizeOrder = 'xyz';
+    glo.addSymmetry = false;
+    glo.inputEvalX = { text: '' };
+    glo.inputEvalY = { text: '' };
+    glo.inputSymR = { text: '' };
+    const p = glo.params;
+    p.A = p.B = p.C = p.D = p.E = p.F = p.G = 0;
+    p.H = p.I = p.J = p.K = p.L = p.M = 0;
+    p.symmetrizeX = p.symmetrizeY = p.symmetrizeZ = 0;
+    p.symmetrizeAngle = Math.PI;
+    p.blender = { u: { x: 0, y: 0, z: 0 }, O: { x: 0, y: 0, z: 0 } };
+    p.functionIt = { norm: { x: 0, nx: 0, y: 0, ny: 0, z: 0, nz: 0 } };
+    p.textInputNormalAlpha = '';
+    p.textInputNormalBeta = '';
+    p.textInputEvalX = 'u';
+    p.textInputEvalY = 'v';
+  }
+
+  function equationsFor(coords, req) {
+    const alpha = req.alpha || '';
+    const beta = req.beta || '';
+    const theta = req.theta || '';
+    if (coords === 'cartesian') {
+      return { x: req.fx, y: req.fy, z: req.fz, alpha, beta, theta };
+    }
+    // Spherique et cylindrique : fx = R, fy et fz alimentent les rotations
+    // primaires, alpha/beta/theta restent les rotations secondaires.
+    return { r: req.fx, alpha: req.fy, beta: req.fz, alpha2: alpha, beta2: beta, theta };
+  }
+
+  /**
+   * Rend les positions et normales du maillage d'origine pour une forme.
+   * @param {object} req { coords, fx, fy, fz, alpha, beta, theta,
+   *                       udef, vdef, stepsU, stepsV, t, params }
+   */
+  window.legacyProbe = function legacyProbe(req) {
+    neutralGlo(req.t || 0);
+    if (req.params) for (const [k, v] of Object.entries(req.params)) glo.params[k] = v;
+
+    const coords = req.coords || 'cartesian';
+    glo.coordsType = coords;
+    const MeshClass = getShaderMeshClass(coords);
+    const mesh = new MeshClass(
+      {
+        u: { min: -req.udef, max: req.udef, nb_steps: req.stepsU },
+        v: { min: -req.vdef, max: req.vdef, nb_steps: req.stepsV },
+      },
+      equationsFor(coords, req),
+    );
+    mesh._deformationActive = false;
+    mesh._lastDeformExpression = null;
+
+    const vertexSource = mesh.createVertexShader(null);
+    const gl = mesh.computer.gl;
+    if (!gl) throw new Error('pas de contexte WebGL2 dans le computer d origine');
+
+    const fragmentSource = `#version 300 es
+precision highp float;
+out vec4 fragColor;
+void main() { fragColor = vec4(0.0); }`;
+
+    const compile = (type, src) => {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        throw new Error('compilation: ' + gl.getShaderInfoLog(sh));
+      }
+      return sh;
+    };
+
+    const vs = compile(gl.VERTEX_SHADER, vertexSource);
+    const fs = compile(gl.FRAGMENT_SHADER, fragmentSource);
+    const program = gl.createProgram();
+    gl.attachShader(program, vs);
+    gl.attachShader(program, fs);
+    gl.transformFeedbackVaryings(program, ['vPosition', 'vNormal'], gl.SEPARATE_ATTRIBS);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      throw new Error('link: ' + gl.getProgramInfoLog(program));
+    }
+    gl.useProgram(program);
+
+    // Meme parcours de grille que createIndexMesh : j varie le plus vite.
+    const cols = req.stepsV + 1;
+    const count = (req.stepsU + 1) * cols;
+    const aIndex = new Float32Array(count * 2);
+    for (let i = 0, k = 0; i <= req.stepsU; i++) {
+      for (let j = 0; j <= req.stepsV; j++) {
+        aIndex[k++] = i;
+        aIndex[k++] = j;
+      }
+    }
+    const symId = new Float32Array(count * 3); // copie symetrisee 0
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    const attach = (name, data, size) => {
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(program, name);
+      if (loc >= 0) {
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, 0, 0);
+      }
+      return buf;
+    };
+    const bufA = attach('aIndex', aIndex, 2);
+    const bufP = attach('position', symId, 3);
+
+    mesh._setTFUniforms(gl, program, false);
+
+    const tfPos = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfPos);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, count * 3 * 4, gl.STATIC_READ);
+    const tfNrm = gl.createBuffer();
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfNrm);
+    gl.bufferData(gl.TRANSFORM_FEEDBACK_BUFFER, count * 3 * 4, gl.STATIC_READ);
+
+    const tf = gl.createTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, tfPos);
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 1, tfNrm);
+
+    gl.enable(gl.RASTERIZER_DISCARD);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.drawArrays(gl.POINTS, 0, count);
+    gl.endTransformFeedback();
+    gl.disable(gl.RASTERIZER_DISCARD);
+
+    const positions = new Float32Array(count * 3);
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfPos);
+    gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, positions);
+    const normals = new Float32Array(count * 3);
+    gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, tfNrm);
+    gl.getBufferSubData(gl.TRANSFORM_FEEDBACK_BUFFER, 0, normals);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+    gl.bindVertexArray(null);
+    gl.useProgram(null);
+    gl.deleteTransformFeedback(tf);
+    [tfPos, tfNrm, bufA, bufP].forEach((b) => gl.deleteBuffer(b));
+    gl.deleteVertexArray(vao);
+    gl.deleteShader(vs);
+    gl.deleteShader(fs);
+    gl.deleteProgram(program);
+
+    return {
+      count,
+      positions: Array.from(positions),
+      normals: Array.from(normals),
+      glsl: vertexSource,
+      minU: mesh.min_u, maxU: mesh.max_u, stepU: mesh.step_u,
+      minV: mesh.min_v, maxV: mesh.max_v, stepV: mesh.step_v,
+    };
+  };
+
+  window.__oracleReady = window.__loadErrors.length === 0 || typeof getShaderMeshClass === 'function';
+})();
+</script>
+</head>
+<body>
+<p>Oracle du projet d'origine. Utilise par le harnais de mesure, pas par un humain.</p>
+</body>
+</html>

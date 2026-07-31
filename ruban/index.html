@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ruban — phase 1</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; background: #0b0c10; color: #d7dce3;
+        font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+      #view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+      #hud { position: fixed; top: 12px; left: 12px; display: flex; gap: 10px; align-items: center;
+        background: rgba(12, 14, 20, .72); border: 1px solid #232833; border-radius: 8px;
+        padding: 8px 12px; backdrop-filter: blur(6px); }
+      #hud label { display: flex; gap: 6px; align-items: center; color: #8d97a6; }
+      select { background: #161a22; color: #d7dce3; border: 1px solid #2a3140; border-radius: 5px; padding: 3px 6px; }
+      #status { color: #7f8b9c; }
+      #status.error { color: #e8836b; max-width: 46ch; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="hud">
+      <label>forme <select id="form"></select></label>
+      <label><input id="animate" type="checkbox" /> animer</label>
+      <span id="status">initialisation…</span>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -46,6 +46,19 @@ const AGENT = {
 /** Live agents, in step order. Agent 0 is the player when walk mode is running. */
 const _agents = [];
 
+/**
+ * Extra samplers riding the same probe call.
+ *
+ * The probe costs the same for four points as for a hundred and forty-four, so anything
+ * that needs to know where a parametric position lands in the world should travel in the
+ * one call the step already makes rather than open its own. A sampler is a pair of hooks:
+ * `gather(ctx, out, offset)` writes integer grid indices and returns how many it wrote,
+ * `resolve(ctx, offset)` reads its own slice back once the probe has run.
+ *
+ * @type {Array<{gather: Function, resolve: Function}>}
+ */
+const _agSamplers = [];
+
 /** Flat (i, j) pairs for the whole population — the single probe call's input. */
 let _agentIdx = new Float32Array(AGENT.INITIAL_CAPACITY * 2);
 
@@ -162,7 +175,9 @@ function agentInit(a, opts = {}) {
 	a.reap = opts.reap !== undefined ? opts.reap : (a.reap ?? true);
 
 	/** Locomotion request for the coming step, filled by keys, by an AI, or by nothing. */
-	if (!a.input) a.input = { forward: 0, turn: 0, jump: false };
+	if (!a.input) a.input = { forward: 0, turn: 0, strafe: 0, jump: false };
+	// `glo.walk` is augmented in place and may predate the field.
+	if (a.input.strafe === undefined) a.input.strafe = 0;
 
 	/** Filled by every step: the agent's world pose and the local tangent basis. */
 	if (!a.worldPos) a.worldPos = new BABYLON.Vector3();
@@ -175,6 +190,16 @@ function agentInit(a, opts = {}) {
 	 * point-to-point test misses every time.
 	 */
 	if (!a.prevWorldPos) a.prevWorldPos = new BABYLON.Vector3();
+	/**
+	 * Where the agent actually is: its ground point lifted along the normal by `height`.
+	 *
+	 * `worldPos` is the point on the surface underneath the agent, which is not where the
+	 * agent is whenever it jumps or flies. Anything measuring a real distance between two
+	 * agents wants this one — a bullet passing overhead is only overhead in `hitPos`.
+	 */
+	if (!a.hitPos) a.hitPos = new BABYLON.Vector3();
+	/** The previous step's `hitPos`, bounding the segment the agent swept. */
+	if (!a.prevHitPos) a.prevHitPos = new BABYLON.Vector3();
 	if (!a.worldTu) a.worldTu = new BABYLON.Vector3();
 	if (!a.worldTv) a.worldTv = new BABYLON.Vector3();
 	if (!a.up) a.up = new BABYLON.Vector3(0, 1, 0);
@@ -251,6 +276,79 @@ function agentsClear(keep = null) {
 
 /** @returns {object[]} The live population. Do not mutate; use the register helpers. */
 function agentsAll() { return _agents; }
+
+/**
+ * Registers a sampler to ride the step's probe call.
+ * @param {{gather: Function, resolve: Function}} sampler - See {@link _agSamplers}.
+ * @returns {object} The same sampler.
+ */
+function agentsAddSampler(sampler) {
+	if (_agSamplers.indexOf(sampler) === -1) _agSamplers.push(sampler);
+	return sampler;
+}
+
+/**
+ * Interpolates a parametric position from a 2x2 block of probed corners.
+ *
+ * The block layout matches what {@link agentGatherCell} wrote: (i0,j0), (i0,j0+1),
+ * (i0+1,j0), (i0+1,j0+1). Position only — a sampler that wants a frame should be an agent.
+ *
+ * @param {object} ctx - The step context.
+ * @param {number} offset - Sample index the block starts at.
+ * @param {number} fu - Fractional position across the cell along u.
+ * @param {number} fv - Same along v.
+ * @param {BABYLON.Vector3} out - Receives the object-space position.
+ */
+function agentResolveCell(ctx, offset, fu, fv, out) {
+	const pos = ctx.probe.positions;
+	for (let p = 0; p < 4; p++) {
+		const s = (offset + p) * 3;
+		_agPatch[p].set(pos[s], pos[s + 1], pos[s + 2]);
+	}
+	BABYLON.Vector3.LerpToRef(_agPatch[0], _agPatch[1], fv, _agRow[0]);
+	BABYLON.Vector3.LerpToRef(_agPatch[2], _agPatch[3], fv, _agRow[1]);
+	BABYLON.Vector3.LerpToRef(_agRow[0], _agRow[1], fu, out);
+}
+
+/**
+ * Writes the four integer corners of the cell containing `(u, v)`.
+ *
+ * The companion to {@link agentResolveCell} for anything that needs a position without
+ * being an agent. Seams are identified the same way the patch gather does them, so a
+ * sample either side of a twisted seam still lands on the right vertices.
+ *
+ * @param {object} ctx - The step context.
+ * @param {number} u - Parametric u.
+ * @param {number} v - Parametric v.
+ * @param {Float32Array} out - Shared index buffer.
+ * @param {number} offset - Sample index to start writing at.
+ * @param {{fu: number, fv: number}} frac - Receives the position within the cell.
+ * @returns {number} Samples written, always 4.
+ */
+function agentGatherCell(ctx, u, v, out, offset, frac) {
+	const inst = ctx.info.inst;
+	const d = ctx.domain;
+
+	const fi = inst.step_u !== 0 ? (u - inst.min_u) / inst.step_u : 0;
+	const fj = inst.step_v !== 0 ? (v - inst.min_v) / inst.step_v : 0;
+
+	let i0 = Math.floor(fi);
+	let j0 = Math.floor(fj);
+	if (!d.closedU) i0 = Math.min(Math.max(i0, 0), ctx.info.gridU - 1);
+	if (!d.closedV) j0 = Math.min(Math.max(j0, 0), ctx.info.gridV - 1);
+	frac.fu = fi - i0;
+	frac.fv = fj - j0;
+
+	let k = offset * 2;
+	for (let a = 0; a < 2; a++) {
+		for (let b = 0; b < 2; b++) {
+			agentMapIndex(i0 + a, j0 + b, ctx, _agIdxPair);
+			out[k++] = _agIdxPair[0];
+			out[k++] = _agIdxPair[1];
+		}
+	}
+	return 4;
+}
 
 /**
  * Samples an agent takes per step.
@@ -460,7 +558,11 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 	// the transformed tangents then yields the correct world normal under any affine
 	// transform, with no inverse transpose needed.
 	const world = ctx.world;
+	// Read before the step sets it: false means nothing has ever posed this agent, so the
+	// swept segment it is about to lay down has no previous end to run from.
+	const hadFrame = agent.frameReady;
 	agent.prevWorldPos.copyFrom(agent.worldPos);
+	if (hadFrame) agent.prevHitPos.copyFrom(agent.hitPos);
 	BABYLON.Vector3.TransformCoordinatesToRef(frame.position, world, agent.worldPos);
 	BABYLON.Vector3.TransformNormalToRef(frame.tangentU, world, agent.worldTu);
 	BABYLON.Vector3.TransformNormalToRef(frame.tangentV, world, agent.worldTv);
@@ -520,11 +622,15 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 	}
 
 	// --- Metric step: world displacement -> (du, dv) ------------------------------
-	const forward = agent.input.forward;
+	let forward = agent.input.forward;
+	let strafe = agent.input.strafe || 0;
 	agent.clamped = false;
 	agent.stalled = false;
-	if (forward !== 0 && !driven) {
-		const dist = forward * agent.moveSpeed * dt;
+	if ((forward !== 0 || strafe !== 0) && !driven) {
+		// Walking a diagonal must not be faster than walking straight.
+		const mag = Math.hypot(forward, strafe);
+		if (mag > 1) { forward /= mag; strafe /= mag; }
+		const dist = agent.moveSpeed * dt;
 
 		const Pu = agent.worldTu, Pv = agent.worldTv;
 		const E = BABYLON.Vector3.Dot(Pu, Pu);
@@ -532,7 +638,21 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 		const G = BABYLON.Vector3.Dot(Pv, Pv);
 		const det = E * G - F * F;
 
-		_agA.copyFrom(agent.heading).scaleInPlace(dist);
+		// Travel direction in the tangent plane. Sideways is the heading turned a quarter
+		// turn about the normal — `cross(up, heading)` is exactly that rotation, so
+		// "strafe right" and "turn right" agree on which way right is, whatever the
+		// surface is doing. Both operands are unit and orthogonal, so the result already
+		// lies in the tangent plane at unit length: nothing to re-project.
+		//
+		// The heading is deliberately untouched. Sidestepping while still facing your
+		// target is the whole point, and it costs nothing here: the step is a world
+		// displacement fed through the first fundamental form, so a sideways one is as
+		// metric-correct as a forward one, and it parallel-transports the same way.
+		_agA.copyFrom(agent.heading).scaleInPlace(forward * dist);
+		if (strafe !== 0) {
+			BABYLON.Vector3.CrossToRef(up, agent.heading, _agC);
+			_agA.addInPlace(_agC.scaleInPlace(strafe * dist));
+		}
 		const bu = BABYLON.Vector3.Dot(_agA, Pu);
 		const bv = BABYLON.Vector3.Dot(_agA, Pv);
 		let du = 0, dv = 0, solved = false;
@@ -579,6 +699,11 @@ function agentIntegrate(agent, ctx, dt, frame, snap, drive) {
 
 	agentApplyDomain(agent, ctx);
 	agentApplyGravity(agent, dt);
+
+	// Last, because gravity is what settles `height` for this frame.
+	agent.hitPos.copyFrom(agent.worldPos)
+	     .addInPlace(_agB.copyFrom(agent.up).scaleInPlace(agent.height));
+	if (!hadFrame) agent.prevHitPos.copyFrom(agent.hitPos);
 }
 
 /**
@@ -787,6 +912,9 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 	for (let i = 0; i < _agents.length; i++) {
 		if (_agents[i].alive) total += agentPatchSize(_agents[i]);
 	}
+	for (let i = 0; i < _agSamplers.length; i++) {
+		total += _agSamplers[i].count ? _agSamplers[i].count(_agCtx) : 0;
+	}
 	if (total === 0) return false;
 	if (_agentIdx.length < total * 2) _agentIdx = new Float32Array(total * 2);
 
@@ -796,6 +924,14 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 		if (!a.alive) continue;
 		offset += agentGather(a, _agCtx, _agentIdx, offset);
 	}
+	// Samplers ride along: their indices go in the same buffer, so the population and
+	// everything watching it still cost exactly one probe call between them.
+	const samplerAt = [];
+	for (let i = 0; i < _agSamplers.length; i++) {
+		samplerAt.push(offset);
+		offset += _agSamplers[i].gather(_agCtx, _agentIdx, offset);
+	}
+	total = offset;
 
 	// --- Phase B: one probe for everyone -----------------------------------------
 	const probe = info.inst.probePoints(_agentIdx, total);
@@ -817,6 +953,10 @@ function agentsStep(info, domain, dt, snap = false, drive = null) {
 		if (!frame.valid) continue;
 		agentIntegrate(a, _agCtx, dt, frame, snap, drive);
 		a._stepped = true;
+	}
+
+	for (let i = 0; i < _agSamplers.length; i++) {
+		_agSamplers[i].resolve(_agCtx, samplerAt[i]);
 	}
 
 	// Reap what died this step, from the back so the indices stay valid.

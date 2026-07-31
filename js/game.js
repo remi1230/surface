@@ -26,8 +26,35 @@
 const GAME = {
 	/** Muzzle speed, in body heights per second. */
 	BULLET_SPEED: 22,
+	/**
+	 * Muzzle speed for an enemy, in body heights per second.
+	 *
+	 * Slower than the player's, and that is the whole difficulty knob. Dodging a shot means
+	 * leaving the hit radius while it is in the air, so what decides whether you can is
+	 * `player speed x flight time > reach`: at 1.6 body heights per second against a reach
+	 * of 0.67, a sidestep needs 0.42 s of flight. Measured at the old shared speed of 22,
+	 * an enemy at its standoff of 6 gave 0.27 s and landed 8 shots out of 8 whether the
+	 * player moved or not. At 12 that same shot takes 0.48 s and a sidestep clears all 8 —
+	 * while at 3.6, the closest an enemy will push, it still takes all 8, because being
+	 * cornered is supposed to cost something. Standing still is 8 out of 8 at every
+	 * distance either way: this buys a way out, not immunity.
+	 */
+	ENEMY_BULLET_SPEED: 12,
 	/** Seconds a bullet lives before expiring on its own. */
 	BULLET_TTL: 8,
+	/** Seconds a bullet's drawn path survives, counted from each point being laid down. */
+	BULLET_TRACE_SECONDS: 4,
+	/**
+	 * Outside a match, firing launches a geodesic probe instead of a bullet: no gravity,
+	 * a long life and a line that does not fade.
+	 *
+	 * In a match a bullet is ballistic and lands in about half a second, so its trace is a
+	 * short arc — right for a projectile, and useless for seeing what the surface does to a
+	 * straight line. The same machinery with gravity switched off draws the geodesic
+	 * itself, which on a sphere visibly wraps round and returns. That is the instrument
+	 * this application is, so it is what firing does when nothing is shooting back.
+	 */
+	TRACER_TTL: 40,
 	/**
 	 * Per-frame displacement ceiling for a bullet, in grid cells.
 	 *
@@ -62,9 +89,38 @@ const GAME = {
 	ENEMY_TURN: 1.0,
 	/** Enemy firing range and cadence. */
 	ENEMY_RANGE: 26,
-	ENEMY_FIRE_INTERVAL: 1.4,
+	/**
+	 * Seconds between an enemy's shots.
+	 *
+	 * The largest single lever on how punishing a match feels, and the one that was hiding
+	 * behind the others: three enemies at 1.4 s put about 190 shots into 90 seconds, so
+	 * even a low hit rate emptied 8 points of health many times over. Every other tunable
+	 * here changes the *fraction* that land; this one changes how many are fired at all.
+	 */
+	ENEMY_FIRE_INTERVAL: 2.0,
 	/** Cosine of the half-angle within which an enemy will take the shot. */
 	ENEMY_AIM_COS: 0.985,
+	/**
+	 * Random yaw spread on an enemy's shot, in radians either way.
+	 *
+	 * Enemies used to fire a perfect ray at the player's centre, every time. That made
+	 * dodging a matter of leaving the hit radius before the bullet arrived, and a player
+	 * stepping side to side never does: at walking speed a half-second reversal swings you
+	 * ±0.53 body heights about your mean position against a hit radius of 0.67, so you
+	 * stay inside the volume the whole time. Measured, zigzagging scored 92.7 % hits
+	 * against 95.8 % for standing perfectly still — the natural evasive move was worth
+	 * nothing, and no muzzle speed fixed that.
+	 *
+	 * Dispersion helps because it does not care how you move. At the standoff of 6 body
+	 * heights, missing by more than the hit radius takes an angular error above
+	 * atan(0.67/6) = 0.11 rad, which is why a spread of that size is barely felt — it is
+	 * the *most* it can be wrong, so only the extremes miss. Half the shots have to clear
+	 * the threshold for it to bite, hence roughly twice it. Measured over 90 s matches
+	 * against a zigzagging player: 91.7 % of shots landed at no spread, 70.8 % at 0.11,
+	 * 54.5 % at 0.18, and 51.1 % at 0.25 — past 0.18 the shots still landing are the ones
+	 * that were never going to miss, so that is where this sits.
+	 */
+	ENEMY_AIM_JITTER: 0.18,
 	/** How close an enemy tries to get, in body heights. */
 	ENEMY_STANDOFF: 6,
 	/** Hits an enemy takes before dying. */
@@ -105,6 +161,9 @@ const GAME = {
 	COLORS: {
 		bullet: [1.0, 0.85, 0.25, 1.0],
 		enemy:  [0.95, 0.3, 0.35, 1.0],
+		// A golf target is neither a threat nor a projectile, so it takes the one part of
+		// the spectrum the other two leave alone.
+		target: [0.35, 0.85, 1.0, 1.0],
 	},
 	/**
 	 * Marker colours for the part of an entity that the surface is hiding.
@@ -118,6 +177,11 @@ const GAME = {
 	HIDDEN_COLORS: {
 		bullet: [0.55, 0.8, 0.35, 1.0],
 		enemy:  [0.25, 0.95, 0.45, 1.0],
+		// The target keeps its own hue when the surface hides it, rather than turning green
+		// like a threat does. Being out of sight is the normal condition of a golf target
+		// and not a warning, and seeing it through the form is the only way to aim at all —
+		// the puzzle is which line reaches it, not where it is.
+		target: [0.3, 0.62, 0.8, 1.0],
 	},
 	/**
 	 * Opacity of the see-through pass — the silhouette an entity leaves where the surface
@@ -128,6 +192,20 @@ const GAME = {
 	 * rather than decoration. Translucent on purpose: it says "there, but not reachable".
 	 */
 	GHOST_ALPHA: 0.55,
+	/**
+	 * How far toward white a marker washes out as its owner runs out of health.
+	 *
+	 * Paling for wear and darkening for a hit deliberately pull in opposite directions.
+	 * One is a standing condition and the other a one-off event, and they have to stay
+	 * tellable apart on the frame where both land.
+	 */
+	WEAR_TO_PALE: 0.62,
+	/** Seconds a marker blinks after its owner takes a hit. */
+	HIT_FLASH_SECONDS: 0.32,
+	/** Full blinks per second during that time — so HIT_FLASH_SECONDS buys about two. */
+	HIT_FLASH_HZ: 6,
+	/** Brightness of the blink's dark half, as a multiplier on the colour already there. */
+	HIT_FLASH_DARK: 0.3,
 	/** Entity capacity the vertex buffers start at; they grow on demand. */
 	INITIAL_MARKERS: 64,
 };
@@ -176,6 +254,9 @@ const _gAim   = new BABYLON.Vector3();
 const _gSep   = new BABYLON.Vector3();
 const _gSeg   = new BABYLON.Vector3();
 const _gRel   = new BABYLON.Vector3();
+const _gCtr   = new BABYLON.Vector3();
+const _gCol   = [0, 0, 0, 1];
+const _gHid   = [0, 0, 0, 1];
 const _gStep  = { du: 0, dv: 0 };
 
 /**
@@ -328,7 +409,7 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 	if (!shooter || !shooter.frameReady) return null;
 
 	const body = shooter.baseEye || 1;
-	const speed = body * GAME.BULLET_SPEED;
+	const speed = body * (shooter.bulletSpeed || GAME.BULLET_SPEED);
 
 	const b = createSurfaceAgent({
 		patch: 'bilinear',        // no camera rides it: C1 continuity buys nothing here
@@ -363,6 +444,10 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 
 	// Fired from the eye, not from the feet.
 	b.height = (shooter.eyeHeight || 0) + shooter.height;
+	// `frameReady` above declares the bullet posed, so gameCollide will sweep it this very
+	// frame. Without seeding both ends the segment would run from the world origin.
+	b.hitPos.copyFrom(b.worldPos).addInPlace(_gAim.copyFrom(b.up).scaleInPlace(b.height));
+	b.prevHitPos.copyFrom(b.hitPos);
 	// Babylon pitches down for a positive rotation.x, so aiming down must give a
 	// downward vertical speed.
 	b.vSpeed = -speed * Math.sin(pitch);
@@ -375,7 +460,13 @@ function gameFire(shooter, pitch = 0, yaw = 0) {
 	walkTangentialize(b.heading, shooter.up, shooter.worldTu);
 
 	b.input.forward = 1;
-	return agentsRegister(b);
+	agentsRegister(b);
+
+	// The path is the point: a shot fired straight ahead follows a geodesic, and on a
+	// sphere that means it wraps round the form and comes back. Nothing said so until the
+	// line was drawn. It lingers a moment past the impact so the shape stays readable.
+	b.trace = traceAttach(b, { kind: 'bullet', lifetime: GAME.BULLET_TRACE_SECONDS, linger: GAME.BULLET_TRACE_SECONDS });
+	return b;
 }
 
 /**
@@ -391,7 +482,24 @@ function gameFirePlayer() {
 	const w = glo.walk;
 	if (glo.cameraMode !== 'walk' || _game.cooldown > 0) return null;
 	_game.cooldown = GAME.FIRE_INTERVAL;
-	return gameFire(w, w.pitch, w.viewYaw);
+
+	const b = gameFire(w, w.pitch, w.viewYaw);
+	if (b && !_game.active) {
+		// No match running: this is a geodesic probe, not a shot. Gravity off so the path
+		// is the surface's answer to "straight ahead" and nothing else, and a line that
+		// stays put long enough to walk over and look at.
+		b.gravity = 0;
+		b.vSpeed = 0;
+		b.height = 0;
+		b.ttl = GAME.TRACER_TTL;
+		// Dropping it to the ground after gameFire seeded it at eye height would leave a
+		// first swept segment that dives a whole body height.
+		b.hitPos.copyFrom(b.worldPos);
+		b.prevHitPos.copyFrom(b.hitPos);
+		if (b.trace) { b.trace.lifetime = Infinity; b.trace.linger = Infinity; }
+	}
+	if (typeof golfOnShot === 'function') golfOnShot(b);
+	return b;
 }
 
 /**
@@ -427,6 +535,11 @@ function gameSpawnEnemy(u, v, ref = glo.walk) {
 	e.eyeHeight = body;
 	e.markerSize = body * GAME.MARKER_SIZE;
 	e.health = GAME.ENEMY_HEALTH;
+	// Kept alongside `health` so the marker can say how worn down this one is without
+	// reading a tunable that may not be the one it was spawned with.
+	e.maxHealth = GAME.ENEMY_HEALTH;
+	e.flash = 0;
+	e.bulletSpeed = GAME.ENEMY_BULLET_SPEED;
 	e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL * Math.random();
 	// No frame yet: the first step snaps it onto the surface from scratch, which is what
 	// `flip` is for.
@@ -471,8 +584,31 @@ function gameEnemyThink(e, target, dt) {
 	// sideways while circling.
 	const aimed = Math.cos(angle) >= GAME.ENEMY_AIM_COS;
 	if (aimed && e.fireCooldown === 0 && dist < e.baseEye * GAME.ENEMY_RANGE) {
-		e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL;
-		gameFire(e, 0, 0);
+		// Elevate for the drop, rather than firing level and hoping.
+		//
+		// A level shot only reaches its target while the bullet is fast enough for gravity
+		// not to matter over the distance, which is why it worked at the muzzle speed the
+		// player still uses. At the enemy's slower one the bullet falls its own launch
+		// height inside the distance an enemy keeps, so firing level would spray the
+		// ground and the speed drop would read as a bug rather than as a chance to dodge.
+		//
+		// The low solution of the ballistic arc is asin(g·d / v²) / 2, and it is the
+		// *domain* of that asin that matters as much as its value: no solution means the
+		// bullet cannot physically reach, so the enemy holds fire instead of wasting the
+		// shot. Effective range is then v²/g, a consequence of the muzzle speed rather
+		// than a constant that has to be kept in step with it by hand.
+		//
+		// The target's centre sits below the muzzle, so the flat-ground solution arrives a
+		// little high — well inside the hit radius, and erring high beats erring into the
+		// dirt.
+		const v = e.baseEye * (e.bulletSpeed || GAME.BULLET_SPEED);
+		const sin2 = (e.gravity * dist) / (v * v);
+		if (sin2 <= 1) {
+			e.fireCooldown = GAME.ENEMY_FIRE_INTERVAL;
+			// Negative pitch aims up: gameFire negates it into the vertical speed.
+			gameFire(e, -0.5 * Math.asin(sin2),
+			         (Math.random() * 2 - 1) * GAME.ENEMY_AIM_JITTER);
+		}
 	}
 }
 
@@ -552,9 +688,12 @@ function gameSurfaceSeparation(a, b, inst, domain) {
  * @returns {number} Squared distance from `point` to the segment.
  */
 function gameSweptDistanceSq(bullet, point) {
-	_gSeg.copyFrom(bullet.worldPos).subtractInPlace(bullet.prevWorldPos);
+	// `hitPos`, not `worldPos`: the segment has to be the one the bullet flew, which is
+	// its ground track lifted by its height. Sweeping the ground track instead made every
+	// shot hit at any altitude — see gameBodyCentre.
+	_gSeg.copyFrom(bullet.hitPos).subtractInPlace(bullet.prevHitPos);
 	const len2 = _gSeg.lengthSquared();
-	_gRel.copyFrom(point).subtractInPlace(bullet.prevWorldPos);
+	_gRel.copyFrom(point).subtractInPlace(bullet.prevHitPos);
 
 	if (!(len2 > 1e-16)) return _gRel.lengthSquared();
 
@@ -562,6 +701,77 @@ function gameSweptDistanceSq(bullet, point) {
 	t = t < 0 ? 0 : (t > 1 ? 1 : t);
 	_gRel.subtractInPlace(_gSeg.scaleInPlace(t));
 	return _gRel.lengthSquared();
+}
+
+/**
+ * A marker's colour for this frame: the palette for its kind, told what state its owner
+ * is in.
+ *
+ * Two things are layered on the base colour, and they are kept visually orthogonal so
+ * that reading one never costs you the other.
+ *
+ * *How hurt it is* washes the colour out toward white, progressively. That is a standing
+ * condition, so it has to survive being glanced at from across the surface, and losing
+ * saturation is legible at any size — a hue shift would not be, since the palette already
+ * spends red on visible and green on hidden.
+ *
+ * *Having just been hit* blinks the colour darker. It blinks whatever colour the marker
+ * currently has rather than a fixed red: an enemy behind a sheet of surface is drawn
+ * green, and a red flash there would read as it stepping into the open, which is the one
+ * thing the two palettes exist to keep separate.
+ *
+ * @param {object} a - The agent.
+ * @param {number[]} base - The palette entry for its kind, `[r, g, b, a]`.
+ * @param {number[]} out - Receives the result; reused between calls.
+ * @returns {number[]} `out`.
+ */
+function gameMarkerColor(a, base, out) {
+	out[0] = base[0]; out[1] = base[1]; out[2] = base[2]; out[3] = base[3];
+
+	// `maxHealth > 1` because with a single hit point there is no wear to show: an entity
+	// is either untouched or gone.
+	if (a.maxHealth > 1 && a.health !== undefined) {
+		const left = Math.min(1, Math.max(0, (a.health - 1) / (a.maxHealth - 1)));
+		const t = (1 - left) * GAME.WEAR_TO_PALE;
+		out[0] += (1 - out[0]) * t;
+		out[1] += (1 - out[1]) * t;
+		out[2] += (1 - out[2]) * t;
+	}
+
+	// Times two because a full blink is two half-periods, one dark and one not.
+	if (a.flash > 0 && (Math.floor(a.flash * GAME.HIT_FLASH_HZ * 2) & 1) === 1) {
+		out[0] *= GAME.HIT_FLASH_DARK;
+		out[1] *= GAME.HIT_FLASH_DARK;
+		out[2] *= GAME.HIT_FLASH_DARK;
+	}
+	return out;
+}
+
+/**
+ * Centre of the volume an agent occupies, in world space.
+ *
+ * `hitPos` is where an agent's *feet* are. A character is not a point there: it is a body
+ * standing on that spot, drawn as a marker one `markerSize` tall, and a shot through its
+ * chest has to count. So a character's centre is half a marker up. A bullet is a point and
+ * gets nothing — its glyph is decoration, not volume.
+ *
+ * The marker's cosmetic hover (MARKER_HOVER) is deliberately left out: it exists so the
+ * triangle is not coplanar with the surface, and lifting the hitbox with it would let a
+ * shot pass under a standing enemy.
+ *
+ * @param {object} a - The agent.
+ * @param {BABYLON.Vector3} out - Receives the centre.
+ * @returns {BABYLON.Vector3} `out`.
+ */
+function gameBodyCentre(a, out) {
+	out.copyFrom(a.hitPos);
+	// A bullet is a point, and a golf target is a hole in the ground with a flag standing
+	// in it: the marker is drawn tall so it can be seen across a form, but what a shot has
+	// to reach is at its foot. Lifting it like a body put the hitbox 1.2 body heights above
+	// a shot that hugs the surface, and every stroke passed underneath.
+	if (a.kind === 'bullet' || a.kind === 'target') return out;
+	const size = a.markerSize || (a.baseEye || 1) * GAME.MARKER_SIZE;
+	return out.addInPlace(_gAim.copyFrom(a.up).scaleInPlace(0.5 * size));
 }
 
 /**
@@ -588,7 +798,7 @@ function gameCollide(info, domain) {
 			if (t === b.owner || t.team === b.team) continue;
 
 			const reach = b.radius + t.radius;
-			if (gameSweptDistanceSq(b, t.worldPos) > reach * reach) continue;
+			if (gameSweptDistanceSq(b, gameBodyCentre(t, _gCtr)) > reach * reach) continue;
 
 			// Close in space — but on a self-intersecting form that is not enough.
 			if (!GAME.hitAcrossSheets && info) {
@@ -600,7 +810,7 @@ function gameCollide(info, domain) {
 				// the step keeps the veto honest — a genuine other sheet measures tens of
 				// body heights away (37.7 on a Klein bottle), so a stride of slack costs it
 				// nothing.
-				const stride = BABYLON.Vector3.Distance(b.worldPos, b.prevWorldPos);
+				const stride = BABYLON.Vector3.Distance(b.hitPos, b.prevHitPos);
 				if (along > reach * GAME.SHEET_TOLERANCE + stride) continue;
 			}
 
@@ -612,6 +822,7 @@ function gameCollide(info, domain) {
 			}
 			if (t.health !== undefined) {
 				t.health -= 1;
+				t.flash = GAME.HIT_FLASH_SECONDS;
 				// The player must never be dropped from the population — the camera hangs
 				// off it — so death is a callback rather than a flag for anyone who has one.
 				if (t.health <= 0) {
@@ -639,6 +850,13 @@ function gameUpdate(dt, info, domain) {
 	// The player's hit radius is a game property, so it is set here rather than in the
 	// walk mode, and re-derived each frame because the body scale follows the mesh.
 	glo.walk.radius = (glo.walk.baseEye || 1) * GAME.BODY_RADIUS;
+
+	// Before the hits land, so one taken this frame gets its blink at full length rather
+	// than a frame short.
+	const blinking = agentsAll();
+	for (let i = 0; i < blinking.length; i++) {
+		if (blinking[i].flash > 0) blinking[i].flash = Math.max(0, blinking[i].flash - dt);
+	}
 
 	gameCollide(info, domain);
 	gameRules(dt);
@@ -709,8 +927,10 @@ function gameUpdate(dt, info, domain) {
 		P[o + 3] = _gPos.x + _gRight.x * hw; P[o + 4] = _gPos.y + _gRight.y * hw; P[o + 5] = _gPos.z + _gRight.z * hw;
 		P[o + 6] = _gPos.x + _gUp.x * size;  P[o + 7] = _gPos.y + _gUp.y * size;  P[o + 8] = _gPos.z + _gUp.z * size;
 
-		const col = GAME.COLORS[a.kind] || GAME.COLORS.bullet;
-		const hid = GAME.HIDDEN_COLORS[a.kind] || GAME.HIDDEN_COLORS.bullet || col;
+		const baseCol = GAME.COLORS[a.kind] || GAME.COLORS.bullet;
+		const baseHid = GAME.HIDDEN_COLORS[a.kind] || GAME.HIDDEN_COLORS.bullet || baseCol;
+		const col = gameMarkerColor(a, baseCol, _gCol);
+		const hid = gameMarkerColor(a, baseHid, _gHid);
 		for (let v = 0; v < 3; v++) {
 			const c = k * 12 + v * 4;
 			C[c] = col[0]; C[c + 1] = col[1]; C[c + 2] = col[2]; C[c + 3] = col[3];
@@ -744,6 +964,10 @@ function gameUpdate(dt, info, domain) {
  */
 function gameStart() {
 	if (glo.cameraMode !== 'walk') return false;
+	// A round and a match cannot share the surface: gameClear below would take the golf
+	// target with it, and golf needs firing to stay a geodesic probe, which it only is
+	// while no match is running.
+	if (typeof golfStop === 'function' && _golf.active) golfStop();
 	gameClear();
 	_game.active = true;
 	_game.score = 0;
@@ -920,6 +1144,9 @@ function gameOnSurfaceRebuilt() {
 	for (let i = all.length - 1; i >= 0; i--) {
 		if (all[i].kind === 'bullet') all[i].alive = false;
 	}
+	// Every trace point is a (u, v), and on new geometry those coordinates no longer
+	// describe the same places. Keeping the lines would draw a path nobody walked.
+	traceClear();
 	// The player's frame is invalidated by the rebuild, so the ring cannot be laid out
 	// until it has stepped again. Defer to the next gameRules.
 	if (_game.active) _game.replaceWave = true;
@@ -971,7 +1198,12 @@ function gameHideHud() {
 function gameClear() {
 	const all = agentsAll();
 	for (let i = all.length - 1; i >= 0; i--) {
-		if (all[i].kind !== 'player') agentsUnregister(all[i]);
+		if (all[i].kind === 'player') continue;
+		// Drop the line with the entity. Unregistering alone would leave a trace following
+		// an agent that is no longer stepped: frozen in place and never expiring, since a
+		// point is only retired by age and a stationary agent lays down no new ones.
+		traceDetach(all[i]);
+		agentsUnregister(all[i]);
 	}
 	_game.cooldown = 0;
 	_game.hits = 0;

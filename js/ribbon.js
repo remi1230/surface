@@ -56,7 +56,8 @@ function ribbonDispose(all = true){
 		// gameMarkers to the entity population; all of them outlive any single mesh,
 		// exactly like the axes and the grid.
 		const notToDispose = ['axisX', 'axisY', 'axisZ', 'gridX', 'gridY', 'gridZ', 'lineSystem', 'plane', 'TextPlane',
-		                      'walkAvatar', 'walkMapPanel', 'walkMapFrame', 'gameMarkers', 'gameMarkerGhosts'];
+		                      'walkAvatar', 'walkMapPanel', 'walkMapFrame', 'gameMarkers', 'gameMarkerGhosts',
+		                      'traceRibbon', 'traceRibbonGhost'];
 		glo.scene.meshes.forEach(mesh => {
 			if(!notToDispose.includes(mesh.name)){ mesh.dispose(); }
 		});

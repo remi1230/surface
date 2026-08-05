@@ -93,6 +93,246 @@ fragmentShaders = [
 
 `,
 `   
+    //FBM 3D Base
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    p0 = (normalize(vWorldPosition));
+
+    vec3 p = abs(p0);
+
+    col /= la(o(36.*p*fbm(p0+t/64.)));
+
+
+    col = abs(col);
+
+`,
+`   
+    //FBM 3D Base
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    p0 = (normalize(vWorldPosition));
+
+    vec3 p = abs(p0);
+
+    col /= la(o(36.*p*fbm(p0+t/64.)));
+
+
+    col = abs(col);
+
+`,
+`   
+    //Sky
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    p0 = (normalize(vWorldPosition));
+
+    vec3 p = abs(p0);
+
+    col = fbmLiquidEffect(p0);
+
+
+    col = abs(col);
+
+`,
+`   
+    //Chenese ink
+    float nb = 1.;
+
+    vec3 p0 = nb * (opt1 == 0. ? (normalize(vWorldPosition)) : vWorldPosition * .5);
+
+    vec3 p = abs(p0);
+
+    float val1 = o(p*8.+t/3.);
+    float val2 = o(p*7.7725+t/3.);
+
+    vec3 c1 = fbmLiquidEffect(p + val1);
+    vec3 c2 = fbmLiquidEffect(p + val2);
+
+    col = vec3(c1/c2);
+    col *= min(m(c1), m(c2));
+    col += max(m(c1), m(c2));
+
+`,
+`   
+    //Chenese ink II
+    float nb = 1.;
+
+    vec3 p0 = nb * (opt1 == 0. ? (normalize(vWorldPosition)) : vWorldPosition * .5);
+
+    vec3 p = abs(p0);
+
+    float val = os(8.*p+t/32.);
+
+    float val1 = o(p+.125*val, 8., t/3.);
+    float val2 = o(p+.125*val, 7.7725, t/3.);
+
+    vec3 c1 = fbmLiquidEffect(p + val1);
+    vec3 c2 = fbmLiquidEffect(p + val2);
+
+    col = vec3(c1/c2);
+    col *= min(m(c1), m(c2));
+    col += 1./3.*max(m(c1), m(c2));
+
+`,
+`   
+    //PWO
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= hce(p*pm*4./3., 1., -(t+8.*p.x));
+    col.xz /= 1.+.1875*hce(p*pm*3./3., 1., t);
+    col /= Z/PI/mp(col);
+
+    col += normalize(col);
+
+    col = la(col*1.125);
+
+    col *= absp(ccol(col*(1.+.1*pw)), -1./3.);
+
+    col = abs(col);
+
+`,
+`   
+    //PWO II
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= hce(p*pm*4./3., 1., -(t+8.*p.x));
+    col.xz /= 1.+.1875*hce(p*pm*3./3., 1., t);
+    col /= Z/PI/mp(col);
+
+    col += normalize(col);
+
+    col = la(col*1.125);
+
+    col *= absp(ccol(col*(1.+.1*pw)), -1./3.);
+
+    col = abs(col);
+
+`,
+`   
+    //PWO III
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 5./3.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(2.*p/absp(pwo, 2./3.));
+
+    col.xy += m(pm);
+    col.xz += o(pm*2.);
+    col.yz += os(pm*2.);
+
+`,
+`   
+    //PWO IV
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 8./3.);
+    vec3 pwo = wrot(pw, 0., 2., PI);
+
+    float pm = oah(2.*p/absp(pwo, 2./3.));
+
+    col /= la(oe(p-pm*2./3., 5./3., -1.));
+
+    col = abs(col);
+
+`,
+`   
+    //PWO V
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= min(m(p*8.), o(p*8.));
+    col.xy *= min(m(p*8.), o(p*8.));
+
+    col *= la(col-8.*fract(col*col));
+    col /= normalize(ea(col));
+
+
+    //col = abs(col);
+
+`,
+`   
+    //PWO V bis
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= min(m(pwo*8.), 1./3.*o(p*8.+t));
+    col.xy /= absp(.5*min(m(p*8.), o(p*8.-t)), .5);
+
+    col *= la(col-8.*fract(col*col));
+    col /= normalize(ea(col));
+
+
+    //col = abs(col);
+
+`,
+`   
+    //PWO V ter
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= min(m(pwo*8.), 1./3.*o(p*8.+t));
+    col.xy /= absp(.5*min(m(p*8.), o(p*8.-t)), .5);
+
+    col *= la(col+8.*fract(col*col));
+    col /= normalize(ea(col));
+
+`,
+`   
+    //PWO VI
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    vec3 pw  = wrap(p, 1.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(p/absp(pwo, 2./3.));
+
+    col.yz *= min(m(pwo*8.), 1./3.*o(p*8.+t));
+    col.xy /= absp(.5*min(m(p*8.), o(p*8.-t)), .5);
+
+    col *= la(col+8.*fract(col*col));
+    col /= normalize(ea(col));
+
+`,
+`   
     //Pencil
     col = .5*vec3(.1875, .25, .333);
     float n = 16.;
@@ -878,6 +1118,28 @@ fragmentShaders = [
     col *= absp(tube(col, .0));
 
     col = 1. - col;
+    
+`,
+`   
+    //Wrap double
+    vec3 p  = npos() / (opt1 == 1. ? 2. : 1.);
+    p = abs(p);
+
+    float val = m(p+2.*c(p*8.+t/3.) - o(p*6.));
+    
+    col *= .6667 + wrap(val, 2.);
+
+    col /= absp(la(col), .0);
+    col *= absp(la(col), .0);
+    col -= 1./3.*absp(la(col), .0);
+    
+`,`   
+    //FBM-things
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    float vor = voronoiPos(p*32., 0.);
+
+    col *= o(48.*p*fbm(vec2(me(p), oe(p))));
     
 `,
 `   
@@ -2665,6 +2927,11 @@ float nbTrajectory(float tm, float spd, float hld){
 float hash31(vec3 p) {
     return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);
 }
+float hash312(vec3 p) {
+    p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+    p += dot(p, p.yxz + 33.33);
+    return fract((p.x + p.y) * p.z);
+}
 
 // Hash 3D → 3D, déterministe par cellule
 vec3 hash33(vec3 pt) {
@@ -3142,6 +3409,65 @@ vec3 fbmLiquidEffect(vec2 uv) {
     return color;
 }
 
+float noise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+
+    float c000 = hash31(i + vec3(0.0, 0.0, 0.0));
+    float c100 = hash31(i + vec3(1.0, 0.0, 0.0));
+    float c010 = hash31(i + vec3(0.0, 1.0, 0.0));
+    float c110 = hash31(i + vec3(1.0, 1.0, 0.0));
+    float c001 = hash31(i + vec3(0.0, 0.0, 1.0));
+    float c101 = hash31(i + vec3(1.0, 0.0, 1.0));
+    float c011 = hash31(i + vec3(0.0, 1.0, 1.0));
+    float c111 = hash31(i + vec3(1.0, 1.0, 1.0));
+
+    return mix(
+        mix(mix(c000, c100, f.x), mix(c010, c110, f.x), f.y),
+        mix(mix(c001, c101, f.x), mix(c011, c111, f.x), f.y),
+        f.z
+    );
+}
+
+float fbm(vec3 p) {
+    float value = 0.0;
+    float amplitude = 0.5;
+    float frequency = 1.0;
+
+    for (int i = 0; i < 5; i++) {
+        value += amplitude * noise(p * frequency);
+        frequency *= 2.0;
+        amplitude *= 0.5;
+    }
+    return value;
+}
+
+vec3 fbmLiquidEffect(vec3 p) {
+    float t = time * 0.3;
+
+    vec3 flow = vec3(
+        fbm(p * 2.0 + vec3(t, 0.0, 0.0)),
+        fbm(p * 2.0 + vec3(0.0, t, 0.0) + 5.2),
+        fbm(p * 2.0 + vec3(0.0, 0.0, t) + 11.7)
+    );
+
+    vec3 distorted = p + flow * 0.3;
+    float n = fbm(distorted * 3.0 + time * 0.2);
+
+    float liquid = smoothstep(0.4, 0.6, n);
+
+    vec3 color = mix(
+        vec3(0.0, 0.3, 0.6),
+        vec3(0.2, 0.8, 1.0),
+        liquid
+    );
+
+    color += vec3(pow(n, 4.0) * 2.0);
+
+    return color;
+}
+
 float sdHexagon(vec2 p, float r) {
     const vec3 k = vec3(-0.866025404, 0.5, 0.577350269);
     p = abs(p);
@@ -3242,6 +3568,10 @@ float truchet(vec2 uv, float index, float rad, float thickness){
     return pattern;
 }
 
+vec3 h3(vec3 v1, vec3 v2){
+    return sqrt(v1*v1 + v2*v2);
+}
+
 float maxv(vec3 p){
     return max(p.x, max(p.y, p.z));
 }
@@ -3285,6 +3615,25 @@ float m(float coeff, float phase){
     p = abs(p) * coeff + phase;
     return cos(p.x) * cos(p.y) * cos(p.z);
 }
+
+vec3 mcol(vec3 val, float nb){
+    return vec3(
+        mix(0., val.x, val.x > nb),
+        mix(0., val.x, val.y > val.x),
+        mix(0., val.z, val.z > val.y)
+    );
+}
+vec3 mcol(vec3 val, float nb, vec3 bg){
+    vec3 res = vec3(
+        mix(0., val.x, val.x > nb),
+        mix(0., val.x, val.y > val.x),
+        mix(0., val.z, val.z > val.y)
+    );
+    if(res == vec3(0.)){ return bg; }
+
+    return res;
+}
+
 float o(){
     vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
     p = abs(p);
@@ -4201,7 +4550,10 @@ precision highp float;
 #define pmRel(x) (1. + sqrt(x*x + 0.02))
 #define minf(f1, f2, p, nb) (min(f1(p*nb), f2(p*nb)))
 #define maxf(f1, f2, p, nb) (max(f1(p*nb), f2(p*nb)))
+#define minft(f1, p, t) (min(f1(p), f1(p+t)))
+#define maxft(f1, p, t) (max(f1(p), f1(p+t)))
 #define ptmt(p, f, c1, c2) (f(p*c1 + t*c2)*f(p*c1 - t*c2))
+#define fi(p, f, v, t) (vec3(f(p*v.x + t), f(p*v.y + t), f(p*v.z + t)))
 
 
 // Varyings received from the vertex shader

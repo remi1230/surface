@@ -33,7 +33,7 @@ const TRACE = {
 	 * great circle. A shorter window cuts the line off before it comes back, which is
 	 * exactly the moment worth seeing.
 	 */
-	MAX_POINTS: 260,
+	MAX_POINTS: 26000,
 	/** Distance an agent must cover before another point is recorded. */
 	SPACING: 0.45,
 	/** Half-width of the drawn ribbon. */

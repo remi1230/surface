@@ -1116,9 +1116,10 @@ precision highp float;
 #define pmRel(x) (1. + sqrt(x*x + 0.02))
 #define minf(f1, f2, p, nb) (min(f1(p*nb), f2(p*nb)))
 #define maxf(f1, f2, p, nb) (max(f1(p*nb), f2(p*nb)))
-#define minft(f1, f2, p, nb, t) (min(f1(p*nb+t), f2(p*nb+t)))
-#define maxft(f1, f2, p, nb, t) (max(f1(p*nb+t), f2(p*nb+t)))
+#define minft(f1, p, t) (min(f1(p), f1(p+t)))
+#define maxft(f1, p, t) (max(f1(p), f1(p+t)))
 #define ptmt(p, f, c1, c2) (f(p*c1 + t*c2)*f(p*c1 - t*c2))
+#define fi(p, f, v, t) (vec3(f(p*v.x + t), f(p*v.y + t), f(p*v.z + t)))
 
 in vec3 vPosition;
 in vec3 vWorldPosition;

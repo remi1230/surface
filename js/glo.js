@@ -1134,7 +1134,7 @@ var glo = {
 		 */
 		heightScale: 1,
 		/** @type {number} User speed multiplier (PageUp / PageDown). */
-		speedScale: 1,
+		speedScale: 10,
 		/** @type {boolean} Whether Shift is currently held, tracked live from the events. */
 		shiftHeld: false,
 		/** @type {number} Bounding-box diagonal of the surface, measured on entry. */
@@ -1250,7 +1250,7 @@ var glo = {
 	mainTopShift: 6.66,
 	shiftLineDim: 0.33,
 	shiftRadios: 0.88,
-	resolutionCoeff: 4,
+	resolutionCoeff: 1,
 	buttonsColor: "#e1cdb7",
 	labelGridColor: "white",
 	buttonsRadius: 6.33,

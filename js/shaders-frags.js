@@ -2856,6 +2856,119 @@ fragmentShaders = [
     col = pow(col, vec3(1.0 / 2.2));
 
 `,
+`
+    //Chenese ink Claude
+    // Encre de Chine (水墨). Le principe : la forme ne fabrique pas des ombres, elle
+    // réclame de l'encre ; le pinceau la pose en traits, le papier la boit.
+    //   opt1 : domaine du geste — sphère unité (défaut) ou espace objet, traits plus serrés
+    //   opt2 : pinceau sec 枯筆 au lieu du lavis mouillé 濕筆
+    //   opt3 : encre fraîche — la diffusion continue de travailler
+    //   S : échelle du geste | T : charge d'encre | P : grain du papier | Q : nombre de tons
+
+    // ---------- 1. Repère ----------
+    vec3 Vw = normalize(cameraPosition - vWorldPosition);
+    vec3 Nw = normalize(vNormal);
+    if (dot(Nw, Vw) < 0.0) Nw = -Nw;
+    vec3 Lw = normalize(lampPosition - vWorldPosition);
+
+    vec3 p = npos();
+
+    float gesture   = max(abs(S), 1.0) * 0.17;   // échelle des lavis
+    float brushFreq = gesture * 9.0;             // largeur des traits
+    float grainFreq = max(abs(P), 8.0);          // finesse du papier
+    float tones     = clamp(floor(abs(Q) / 12.0), 3.0, 8.0);
+
+    // ---------- 2. Diffusion capillaire ----------
+    // Le domaine est déplacé par un bruit : toute frontière d'encre se digite au lieu de
+    // rester nette, comme un trait qui remonte dans les fibres du papier.
+    float flow = t * (opt3 == 1.0 ? 0.05 : 0.0);
+    vec3  bled = p + 0.24 * (vec3(inkTurbulence(p * 2.6 + flow,       3.0),
+                                  inkTurbulence(p * 2.6 + 7.1 + flow, 3.0),
+                                  inkTurbulence(p * 2.6 + 3.3 + flow, 3.0)) - 0.4);
+
+    // ---------- 3. La carte du geste ----------
+    // Deux coordonnées orthogonales dont l'orientation dérive lentement : leurs lignes de
+    // niveau restent localement parallèles, comme des passages de pinceau. Elles sont
+    // prises sur p et non sur bled — déformer la carte elle-même ferait tourner les traits
+    // sur eux-mêmes et marbrerait tout. La bavure n'intervient qu'à l'échelle du bord.
+    float ang = 1.3 * (inkFbm(p * 0.28, 2.0) - 0.5);
+    vec3  q   = rotAxis(vec3(0.35, 1.0, 0.20), ang) * p;
+
+    // Une ondulation large — plus large qu'un trait, sinon on marbre — courbe toute la
+    // famille de traits d'un seul mouvement.
+    float across = q.y + 0.30 * inkFbm(p * 0.55,        2.0) + 0.72 * (bled.y - p.y);
+    float along  = q.x + 0.30 * inkFbm(p * 0.55 + 41.7, 2.0) + 0.72 * (bled.x - p.x);
+
+    // ---------- 4. Ce que la forme réclame ----------
+    // Le peintre ne dégrade pas la lumière : il charge le cœur de l'ombre, les replis et
+    // le contour, et laisse respirer tout le reste (留白).
+    float shade   = 1.0 - clamp(0.5 + 0.5 * dot(Nw, Lw), 0.0, 1.0);
+    float core    = smoothstep(0.42, 1.0, shade);
+    float cavity  = smoothstep(0.05, -0.4, inkCurvature(vWorldPosition, Nw));
+    float contour = pow(1.0 - max(dot(Nw, Vw), 0.0), 4.0);              // 骨法用筆, le trait d'ossature
+
+    // Le lavis porte la composition : c'est lui qui décide des grandes réserves de papier.
+    float wash   = inkContrast(inkBleed(bled * gesture, 1.6, 3.0), 1.8);
+    float weight = 0.62 * wash * (0.35 + 0.50 * core + 0.90 * cavity);
+    weight = clamp(weight + 0.55 * T, 0.0, 1.0);
+
+    // ---------- 5. Le geste ----------
+    // Le pinceau ne dilue pas son encre : pour foncer, le peintre pose PLUS de traits,
+    // plus serrés. C'est donc le seuil qui descend quand la forme réclame, et les traits
+    // se rejoignent d'eux-mêmes en masse noire — sans jamais devenir un dégradé.
+    float band = inkContrast(inkStroke(across, along, 6.0, brushFreq, 3.0), 2.3);
+
+    // Pression du poignet : elle varie vite LE LONG du trait et lentement en travers, donc
+    // chaque trait enfle, s'amincit, puis se lève du papier. C'est l'attaque et la sortie
+    // du geste, au lieu d'un ruban d'épaisseur constante.
+    float press = inkFbm(vec2(across * brushFreq * 0.30, along * brushFreq * 1.10), 2.0);
+    float load  = clamp(weight * (0.40 + 1.30 * press), 0.0, 1.0);
+
+    // En vue rasante la période d'un trait tombe sous le pixel. Plutôt que de laisser le
+    // motif grésiller, on le fond vers son propre taux de couverture : c'est ce que voit
+    // l'œil qui recule devant une peinture.
+    float crisp = 1.0 - smoothstep(0.35, 1.0, fwidth(across) * brushFreq);
+    float thr   = mix(0.97, 0.26, load);
+    float touch = mix(load, smoothstep(thr, thr + 0.18, band), crisp);
+
+    float density = touch * (0.30 + 0.80 * load);
+    density += 0.30 * weight * wash;                    // le lavis dormant sous les traits
+
+    // 焦墨, l'encre brûlée : quelques traits partent au noir franc. Sans eux tout reste en
+    // demi-teinte et le dessin perd son ossature.
+    density += 0.60 * smoothstep(0.86, 0.98, band) * smoothstep(0.12, 0.50, load);
+    density += 0.85 * contour * (0.30 + 0.70 * band);   // le contour est peint, pas calculé
+    density += 0.14 * (inkTurbulence(bled * gesture * 2.6, 3.0) - 0.4);
+
+    // ---------- 6. Les cinq tons et les auréoles de séchage ----------
+    // Quantifier à fond donnerait une sérigraphie : on mélange le lavis continu et sa
+    // version en paliers, juste assez pour que les bords de ton existent.
+    float raw = clamp(density, 0.0, 1.0);
+    float rim;
+    float tone = mix(raw, inkTones(raw, tones, 0.17, rim), 0.42);
+    tone += 0.20 * rim * smoothstep(0.05, 0.30, raw);    // pas d'auréole sur le papier nu
+
+    // ---------- 7. Le blanc volant ----------
+    float dryness = opt2 == 1.0 ? 0.90 : 0.38;
+    float white   = inkFlyingWhite(across, along, dryness, brushFreq * 2.2) * crisp;
+    tone *= 1.0 - white * smoothstep(0.02, 0.45, tone) * (opt2 == 1.0 ? 0.85 : 0.45);
+
+    // ---------- 8. Le papier xuan ----------
+    float grain = inkPaperGrain(p, grainFreq);
+    vec3  paper = mix(vec3(0.960, 0.936, 0.870), meshBg, 0.26);
+    paper *= 0.96 + 0.08 * grain;
+    paper  = mix(paper, paper * vec3(1.03, 0.99, 0.93), inkFbm(p * 0.6, 3.0));  // plages jaunies
+    tone  *= 0.93 + 0.14 * grain;                                               // la fibre boit inégalement
+
+    // ---------- 9. Le pigment ----------
+    // stick garde sa composante maximale à 1 : la couleur choisie teinte le bâton d'encre
+    // sans l'éclaircir. L'absorption, elle, fait le reste.
+    vec3 stick   = meshFg / max(max(meshFg.r, max(meshFg.g, meshFg.b)), 1e-3);
+    vec3 pigment = inkPigment(tone) * mix(vec3(1.0), stick, 0.28);
+
+    col = inkAbsorb(paper, pigment, clamp(tone, 0.0, 1.3));
+
+`,
 
 ];
 
@@ -2870,6 +2983,11 @@ fragmentShaders = [
  * (rainbow, heatmap, HSV), 2D rotation, tile rotation patterns, SDF primitives
  * (hexagon, circle), Voronoi, Truchet arcs, Fractal Brownian Motion (FBM),
  * starfield layers, checkerboard, and various math shorthands (m, o, f, hc, cpow).
+ *
+ * The `ink*` family (used by the "Chenese ink Claude" shader) models Chinese ink wash:
+ * capillary bleeding, brush strokes laid out in a gesture chart, the five ink tones and
+ * their drying halos, dry-brush reserves, xuan paper grain, ink pigment colour and
+ * Beer-Lambert absorption into the paper.
  *
  * @returns {string} A GLSL source code string containing all shared utility functions.
  */
@@ -4513,6 +4631,138 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 specular = spec * vec3(0.3) * att;
 
     return ambient + diffuse + specular;
+}
+
+// ============================================================
+//  Encre de Chine (水墨) — briques de rendu
+//  Utilisées par le shader "Chenese ink Claude".
+// ============================================================
+
+// FBM à nombre d'octaves libre : base commune de tous les champs d'encre.
+// La lacunarité non entière évite que les octaves ne se réalignent sur la grille du bruit.
+float inkFbm(vec3 p, float oct){
+    float v = 0.0, amp = 0.5, nrm = 0.0;
+    for (float i = 0.0; i < oct; i += 1.0){
+        v   += amp * noise(p);
+        nrm += amp;
+        p   *= 2.03;
+        amp *= 0.5;
+    }
+    return v / max(nrm, 1e-5);
+}
+float inkFbm(vec2 p, float oct){
+    float v = 0.0, amp = 0.5, nrm = 0.0;
+    for (float i = 0.0; i < oct; i += 1.0){
+        v   += amp * noise(p);
+        nrm += amp;
+        p   *= 2.03;
+        amp *= 0.5;
+    }
+    return v / max(nrm, 1e-5);
+}
+
+// FBM turbulent : les plis restent nets là où le FBM lisse s'arrondit.
+// Sert aux nervures du papier et aux franges laissées par le pinceau.
+float inkTurbulence(vec3 p, float oct){
+    float v = 0.0, amp = 0.5, nrm = 0.0;
+    for (float i = 0.0; i < oct; i += 1.0){
+        v   += amp * abs(2.0 * noise(p) - 1.0);
+        nrm += amp;
+        p   *= 2.03;
+        amp *= 0.5;
+    }
+    return v / max(nrm, 1e-5);
+}
+
+// Un FBM se tasse autour de 0.5 : ses octaves s'additionnent et la somme se concentre
+// sur sa moyenne. On rouvre la dynamique avant de seuiller, sinon le seuil ne mord
+// que sur une frange étroite du bruit et le trait ne sort pas.
+float inkContrast(float v, float k){
+    return clamp((v - 0.5) * k + 0.5, 0.0, 1.0);
+}
+
+// Diffusion capillaire (渗化) : le domaine est déformé par lui-même, si bien que la
+// frontière du lavis se digite au lieu de rester lisse — c'est l'encre qui remonte
+// dans les fibres du papier. amp règle la violence de la bavure.
+float inkBleed(vec3 p, float amp, float oct){
+    vec3 q = vec3(inkFbm(p,                       oct),
+                  inkFbm(p + vec3(4.7, 1.3, 8.2), oct),
+                  inkFbm(p + vec3(9.4, 6.1, 2.5), oct));
+    return inkFbm(p + amp * (q - 0.5), oct + 1.0);
+}
+
+// Trace de pinceau : bruit étiré dans le sens du geste.
+//
+// Sur une surface, étirer directement l'espace 3D le long d'une direction tangente ne
+// donne rien : cette direction est perpendiculaire au rayon, donc dot(p, dir) reste
+// quasi constant et l'étirement s'annule. On travaille donc dans une carte du geste,
+// portée par deux champs scalaires lisses : "across" varie en travers du trait,
+// "along" le suit. Les lignes de niveau de "across" sont les trajectoires du pinceau,
+// et elles restent cohérentes sur toute la longueur d'un trait.
+// elong = 1 -> isotrope ; elong grand -> longues traînées.
+float inkStroke(float across, float along, float elong, float freq, float oct){
+    return inkFbm(vec2(across * freq, along * freq / max(elong, 1.0)), oct);
+}
+
+// Les cinq tons de l'encre (焦濃重淡清) : quantification douce du lavis.
+// rim culmine sur la frontière entre deux tons : c'est l'auréole plus sombre
+// que laisse un lavis en séchant (水痕).
+float inkTones(float v, float levels, float soft, out float rim){
+    float s = v * levels;
+    float i = floor(s);
+    float f = fract(s);
+    float w = clamp(soft, 0.02, 0.5);
+    float d = (f - 0.5) / w;
+    rim = exp(-d * d);
+    return (i + smoothstep(0.5 - w, 0.5 + w, f)) / levels;
+}
+
+// 飛白 « blanc volant » : réserves de papier laissées par un pinceau presque sec.
+// Très étirées dans le sens du geste, ce sont les poils du pinceau qui se séparent.
+// dryness = 0 pinceau chargé, 1 pinceau sec.
+float inkFlyingWhite(float across, float along, float dryness, float freq){
+    float s   = inkContrast(inkStroke(across, along, 26.0, freq, 3.0), 2.4);
+    float thr = mix(0.80, 0.30, clamp(dryness, 0.0, 1.0));
+    return smoothstep(thr, thr + 0.12, s);
+}
+
+// Grain du papier xuan : un feutrage (fibres emmêlées, sans trame) plus une moucheture.
+// Le grain s'éteint quand il descend sous la taille du pixel, sinon il fourmille.
+float inkPaperGrain(vec3 p, float freq){
+    float f1 = noise(p * freq);
+    float f2 = noise(p * freq * 1.9 + 31.7);
+    float sp = noise(p * freq * 4.3 + 11.3);
+    float g  = 0.50 * f1 + 0.34 * f2 + 0.16 * sp;
+    float px = length(fwidth(p)) * freq;
+    return mix(g, 0.5, smoothstep(0.4, 1.2, px));
+}
+
+// L'encre n'est pas un noir neutre : diluée elle tire vers le sépia chaud,
+// concentrée elle vire au bleu-noir du bâton de suie de pin (松烟墨).
+vec3 inkPigment(float d){
+    vec3 pale = vec3(0.740, 0.710, 0.660);
+    vec3 mid  = vec3(0.330, 0.330, 0.345);
+    vec3 deep = vec3(0.045, 0.052, 0.078);
+    d = clamp(d, 0.0, 1.0);
+    return d < 0.5 ? mix(pale, mid, d * 2.0) : mix(mid, deep, (d - 0.5) * 2.0);
+}
+
+// Beer–Lambert : l'encre est bue par le papier, elle ne le recouvre pas.
+// À densité 1 on retrouve exactement pigment * papier ; en dessous la décroissance
+// est exponentielle, ce qui donne aux lavis leur transparence.
+vec3 inkAbsorb(vec3 paper, vec3 pigment, float density){
+    vec3 od = -log(max(pigment, vec3(0.002)));
+    return paper * exp(-od * max(density, 0.0));
+}
+
+// Courbure moyenne approchée en espace écran, signée : négative dans les creux.
+// Sert à faire stagner l'encre là où la forme se replie.
+float inkCurvature(vec3 P, vec3 N){
+    vec3 dPx = dFdx(P), dPy = dFdy(P);
+    vec3 dNx = dFdx(N), dNy = dFdy(N);
+    float kx = dot(dNx, dPx) / max(dot(dPx, dPx), 1e-9);
+    float ky = dot(dNy, dPy) / max(dot(dPy, dPy), 1e-9);
+    return -0.5 * (kx + ky);
 }
 `;
 }

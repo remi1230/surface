@@ -175,6 +175,92 @@ fragmentShaders = [
 
 `,
 `   
+    //Chenese ink III
+    float nb = 1.;
+
+    vec3 p0 = nb * (opt1 == 0. ? (normalize(vWorldPosition)) : vWorldPosition * .5);
+
+    vec3 p = abs(p0);
+
+    float val = os(p*2.+t/64.);
+
+    float val1 = o(val*p*8.+t/3.);
+    float val2 = o(val*p*7.7725+t/3.);
+
+    vec3 c1 = fbmLiquidEffect(p + val1);
+    vec3 c2 = fbmLiquidEffect(p + val2);
+
+    col = vec3(c1/c2);
+    col *= min(m(c1), m(c2));
+    col += max(m(c1), m(c2));
+
+    col -= 4./3.*inkBleed(col, 8., 0.);
+
+`,
+`   
+    //Ink functions
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p0 = p;
+    p = abs(p);
+
+    float t = t*PI/5.;
+    
+    col = vec3(.5);
+
+    float v1 = o(p*6.+.5*t);
+    float v2 = o(p*12.+.5*t);
+
+    float vv = v1*v2;
+
+    float val1 = inkTurbulence(p+t/32., 12.);
+    float val2 = inkContrast(vv, .125);
+    float val3 = inkFbm(p*vv, 3.);
+    float val4 = inkBleed(p*vv, 3., 3.);
+    float val5 = inkStroke(vv, 1., 1., 1., 1.);
+    float val6 = inkTones(vv, 1., 1., val5);
+    float val7 = inkFlyingWhite(vv, 1., 1., 3.);
+    float val8 = inkPaperGrain(p*vv, 1.);
+    vec3  val9 = inkPigment(val2);
+    vec3 val10 = inkAbsorb(val9/absp(p, 1./16.), val9*p, 1./3.);
+    float val11 = inkCurvature(mp(p*vv*2.), mp(p*vv));
+
+    
+    col *= o(p*12.);
+
+    float lcol = length(col);
+
+    //col = inkAbsorb(col, col, 1./6.);
+    //col = inkPigment(lcol);
+    //col += inkPaperGrain(col, lcol);
+    //col += inkFlyingWhite(lcol, 1., 1., 7./12.);
+    //col += inkFbm(col, 3.);
+    //col -= inkBleed(col, 3., 3.);
+    //col -= inkStroke(lcol, 1., 1., 1.333, 6.);
+    //col -= inkTones(lcol, 1., 1./32., val5);
+    //col *= absp(inkTurbulence(col, 16.*val5), 1./2.);
+    //col /= absp(inkContrast(lcol, lcol));
+    //col += inkCurvature(col, s(col*2.))/3.;
+    
+
+    //col /= absp(palette(lcol*c(lcol*E)) / 4., 1./3.);
+
+`,
+`   
+    //InkDeco Patter
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p0 = p;
+    p = abs(p);
+
+    float t = t*PI/5.;
+    float val = oe(p*3., o(p*12.+t/3.), t);
+
+    col = hueRotateYIQ(col*val, val);
+    col -= inkDeco(col*m(col*8.));
+
+    col -= 1. + edge(col, val*E)/64.;
+
+`,
+`   
     //PWO
     vec3 p = npos() * (opt1 == 0. ? 1. : .5);
 
@@ -185,17 +271,104 @@ fragmentShaders = [
 
     float pm = oah(p/absp(pwo, 2./3.));
 
-    col.yz *= hce(p*pm*4./3., 1., -(t+8.*p.x));
+    col.yz *= hce(p*pm*4./3., 1., -(t+0.*p.x));
     col.xz /= 1.+.1875*hce(p*pm*3./3., 1., t);
     col /= Z/PI/mp(col);
 
     col += normalize(col);
 
     col = la(col*1.125);
+    col = inkDeco(col, col*p, 2./3.);
 
     col *= absp(ccol(col*(1.+.1*pw)), -1./3.);
 
     col = abs(col);
+
+`,
+`   
+    //PWO Art
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float t = t*PI/5.;
+
+    vec3 pw  = wrap(p, 5./3.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm = oah(2.*p/absp(pwo, 2./3.));
+    vec3 ppm = p*pm;
+
+    col.xy += m(ppm+t*1.2);
+    col.xz += o(ppm*2.-t*.8);
+    col.yz += os(ppm*2.+t*.7);
+    
+    col -= inkBleed(ppm, 12., 12.);
+    col -= inkBleed(col, 12., 12.);
+
+    col *= absp(sdec(vec3(6.666), 2./12., 2./3.), -.5);
+
+    col -= inkDeco(col);
+
+    col = hueRotateYIQ(col, radians(E*96.*absp(v/6.)));
+
+`,
+`   
+    //PWO Art II
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p0 = p;
+    p = abs(p);
+
+    float t = t*PI/5.;
+
+    vec3 pw  = wrap(p, 5./3.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm   = oah(2.*p/absp(pwo, 2./3.));
+    vec3 ppm   = p*pm;
+
+    col.xy += m(ppm+t*1.2);
+    col.xz += o(ppm*2.-t*.8);
+    col.yz += os(ppm*2.+t*.7);
+
+    float vor = voronoiPos(p*48., 1.);
+    
+    col -= inkBleed(col, vor*16., vor*12.);
+    col += inkBleed(col*pm, vor*6., vor*12.);
+
+    col = hueRotateYIQ(c(col*E), E*vor*vor);
+
+    col = abs(col);
+
+`,
+`   
+    //PWO Art III
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p0 = p;
+    p = abs(p);
+
+    float t = t*PI/5.;
+
+    vec3 pw  = wrap(p, 5./3.);
+    vec3 pwo = wrot(pw, 0., 1., PI);
+
+    float pm   = m(p/absp(pwo, .25)/E);
+    vec3 ppm   = p*pm;
+
+    //float vor = voronoiPos(p*128., 1.);
+    
+    col = vec3(.5);
+
+    float v1 = o(p*6.+.5*t);
+    float v2 = o(p*12.+.5*t);
+
+    float val1 = inkTurbulence(p*v2*v1, 12.);
+    float val2 = inkContrast(v2*v1, .125);
+    float val3 = inkFbm(p*v2*v1, 3.);
+
+    col *= val3;
+
+    col /= absp(rainbop(length(col), p), 1./3.);
 
 `,
 `   
@@ -963,11 +1136,12 @@ fragmentShaders = [
 `,
 `   
     //Art
+    float t = t * PI / 6.;
     vec3 p = npos();
     float pl = length(p);
     for (float i = 70.; i < 120.; i+=25.) {
         p = fract(p*1.067)-.5;
-        col *= .333-oe(.29*c(p*.58333)*p*i*.25);
+        col *= .333-oe(.29*c(p*.58333)*p*i*.25, 1., -t);
         col += .1875*spec(cos(p), 1.);
         col += W*tube(col, W);
     }
@@ -1136,8 +1310,6 @@ fragmentShaders = [
 `,`   
     //FBM-things
     vec3 p = npos() * (opt1 == 0. ? 1. : .5);
-
-    float vor = voronoiPos(p*32., 0.);
 
     col *= o(48.*p*fbm(vec2(me(p), oe(p))));
     
@@ -4607,6 +4779,16 @@ vec2 iSphere(vec3 ro, vec3 rd, vec3 center, float radius) {
     return vec2(-b - h, -b + h);
 }
 
+vec3 sdec(vec3 col, float val){
+    return la(E*hueRotateYIQ(col*val, val*12.));
+}
+vec3 sdec(vec3 col, float val, float k){
+    return la(E*hueRotateYIQ(col*val, val*k));
+}
+vec3 sdec(vec3 col, float val, float k, float n){
+    return la(n*hueRotateYIQ(col*val, val*k));
+}
+
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 N = normalize(normal);
     vec3 V = normalize(cameraPosition - pos);
@@ -4764,6 +4946,28 @@ float inkCurvature(vec3 P, vec3 N){
     float ky = dot(dNy, dPy) / max(dot(dPy, dPy), 1e-9);
     return -0.5 * (kx + ky);
 }
+
+vec3 inkDeco(vec3 col){
+    vec3 p = npos();
+    col *= 1./3. + inkPigment(length(col));
+    col *= 1./3. + inkAbsorb(p, col, length(col));
+    return col / inkContrast(length(col), length(col));
+}
+
+vec3 inkDeco(vec3 col, vec3 p){
+    col *= 1./3. + inkPigment(length(col));
+    col *= 1./3. + inkAbsorb(p, col, length(col));
+    return col / inkContrast(length(col), length(col));
+}
+
+vec3 inkDeco(vec3 col, vec3 p, float k){
+    col *= k + inkPigment(length(col));
+    col *= k + inkAbsorb(p, col, length(col));
+    return col / inkContrast(length(col), length(col));
+}
+
+
+
 `;
 }
 

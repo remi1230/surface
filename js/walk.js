@@ -16,7 +16,11 @@
 
 /** Tunables for the walk mode. Distances are expressed as fractions of the mesh scale. */
 const WALK = {
-	/** Eye height above the surface, as a fraction of the mesh bounding-box diagonal. */
+	/**
+	 * Eye height above the surface, as a fraction of the mesh bounding-box diagonal, at
+	 * the default body size. Multiplied by {@link glo.walk.bodyScale} — see
+	 * {@link walkApplyScale} for why that knob has to exist.
+	 */
 	EYE_RATIO: 0.02,
 	/** Walking speed in eye-heights per second. */
 	SPEED_EYES: 1.6,
@@ -50,6 +54,31 @@ const WALK = {
 	/** Bounds on the viewpoint height multiplier. */
 	HEIGHT_MIN_SCALE: 0.02,
 	HEIGHT_MAX_SCALE: 150,
+	/** Body size factor per press of Shift + PageUp / PageDown. Halving or doubling. */
+	BODY_STEP: 2,
+	/**
+	 * Bounds on the body size multiplier — i.e. on how giant a surface can be made to feel,
+	 * since `1 / bodyScale` *is* the apparent size of the world.
+	 *
+	 * The lower bound is set by float32, not by taste. Vertex positions come back from the
+	 * probe (and go through the GPU) in single precision, so they are quantized to about
+	 * 6e-8 of the form's own size; the eye sits at `EYE_RATIO * bodyScale` of it. At
+	 * 1e-3 the quantization is 0.3% of an eye height — invisible. A decade lower it is 3%,
+	 * and the ground under a tiny walker visibly shimmers.
+	 *
+	 * The upper bound is set by the grid: a stride is capped at {@link MAX_CELLS_PER_FRAME}
+	 * cells, so a character much bigger than this walks into the throttle (`agent.clamped`)
+	 * instead of going faster. Raise the mesh resolution to go further.
+	 */
+	BODY_MIN_SCALE: 1e-3,
+	BODY_MAX_SCALE: 8,
+	/**
+	 * Largest far/near ratio allowed on the walking camera. A 24-bit depth buffer resolves
+	 * roughly this much; past it the surface z-fights with itself. It is the far plane that
+	 * gives way, never the near one — raising the near plane instead would clip the ground
+	 * at the character's own feet, which is worse than a horizon.
+	 */
+	DEPTH_RANGE: 1e5,
 	/** Mini-map side, as a fraction of the view height. */
 	MAP_SIZE: 0.26,
 	/** Gap between the mini-map and the edge of the view, same units. */
@@ -310,18 +339,58 @@ function initWalkRig(scene) {
 }
 
 /**
- * Recomputes the body and eye heights from the measured mesh size.
+ * Recomputes the body size, the eye height and the camera's depth range from the measured
+ * mesh size and the two user multipliers.
  *
  * `baseEye` is the character's own size and drives speed, gravity and jump; `eyeHeight`
  * is where the camera sits and is the only one the viewpoint setting touches. Keeping
  * them apart means raising the viewpoint reframes the shot without quietly making the
  * character walk faster and jump higher.
+ *
+ * **Why `bodyScale` has to exist.** Everything else here is *measured*: `scale` is the
+ * bounding-box diagonal of whatever is on screen, and the body is a fixed fraction of it.
+ * That makes every form walkable with no tuning — but it also makes the walk exactly
+ * scale-invariant, so the two obvious ways to get a bigger surface do nothing at all.
+ * Multiply the equations by 10, or widen the u/v domain: the diagonal grows by 10 and so
+ * does the walker, along with its speed, its gravity, its jump and the camera planes. The
+ * view is identical, pixel for pixel. Writing `glo.walk.scale` by hand does not work
+ * either — it is a measurement, overwritten by the next survey.
+ *
+ * A surface is therefore not made giant by enlarging the mesh. It is made giant by
+ * shrinking the character, which is what this multiplier does; `1 / bodyScale` is the
+ * factor the world grows by. It is stored as a multiplier, like `heightScale` and
+ * `speedScale`, so it survives a change of form or of resolution.
+ *
+ * Called every frame from {@link walkUpdate}, so poking `bodyScale`, `heightScale` — or
+ * even `scale` — from the console takes effect on the next frame rather than at the next
+ * rebuild.
  */
-function walkApplyEyeHeight() {
+function walkApplyScale() {
 	const w = glo.walk;
-	w.baseEye = w.scale * WALK.EYE_RATIO;
+	w.bodyScale = Math.min(Math.max(w.bodyScale || 1, WALK.BODY_MIN_SCALE), WALK.BODY_MAX_SCALE);
 	w.heightScale = Math.min(Math.max(w.heightScale || 1, WALK.HEIGHT_MIN_SCALE), WALK.HEIGHT_MAX_SCALE);
+	w.baseEye = w.scale * WALK.EYE_RATIO * w.bodyScale;
 	w.eyeHeight = w.baseEye * w.heightScale;
+
+	const cam = glo.walkCamera;
+	if (!cam) return;
+	// The near plane follows the eye, the far plane the form — capped so the two never
+	// spread wider than the depth buffer can tell apart. At the default body size the cap
+	// is exactly the old `scale * 20`; it only bites once the character is small, where it
+	// trades the far half of the form for a clean picture of the ground it stands on.
+	cam.minZ = Math.max(w.eyeHeight * 0.01, 1e-5);
+	cam.maxZ = Math.min(w.scale * 20, cam.minZ * WALK.DEPTH_RANGE);
+}
+
+/**
+ * Changes the character's size by a factor, and with it the apparent size of the surface.
+ * Bound to Shift + PageUp / PageDown.
+ * @param {number} factor - Multiplier on the body size; below 1 the world grows.
+ */
+function walkScaleBody(factor) {
+	const w = glo.walk;
+	w.bodyScale = (w.bodyScale || 1) * factor;
+	walkApplyScale();
 }
 
 /**
@@ -347,7 +416,8 @@ function startWalk(autopilot = false) {
 	w.closedV = survey.closedV;
 	w.twistedU = survey.twistedU;
 	w.twistedV = survey.twistedV;
-	walkApplyEyeHeight();
+	// Sets the body size, the eye height and the camera's near/far planes together.
+	walkApplyScale();
 
 	// Drop the character in the middle of the domain, at rest.
 	const inst = info.inst;
@@ -387,15 +457,11 @@ function startWalk(autopilot = false) {
 	w.heading.copyFrom(_wWorldTu);
 	walkTangentialize(w.heading, w.smoothNormal, _wWorldTv);
 
-	const cam = glo.walkCamera;
-	cam.minZ = Math.max(w.eyeHeight * 0.01, 1e-4);
-	cam.maxZ = w.scale * 20;
-
 	if (glo.cameraMode === 'travelling') stopTravelling();
 	if (glo.orbitCamera) glo.orbitCamera.detachControl(glo.canvas);
 
-	glo.scene.activeCamera = cam;
-	glo.camera = cam;
+	glo.scene.activeCamera = glo.walkCamera;
+	glo.camera = glo.walkCamera;
 	glo.cameraMode = 'walk';
 
 	traceSurveySurface();
@@ -544,13 +610,9 @@ function walkOnSurfaceRebuilt(info) {
 		w.closedV = survey.closedV;
 		w.twistedU = survey.twistedU;
 		w.twistedV = survey.twistedV;
-		walkApplyEyeHeight();
-
-		const cam = glo.walkCamera;
-		if (cam) {
-			cam.minZ = Math.max(w.eyeHeight * 0.01, 1e-4);
-			cam.maxZ = w.scale * 20;
-		}
+		// The new form has a new size; the body multiplier is deliberately kept, so a
+		// character shrunk to explore a giant surface stays that size across a rebuild.
+		walkApplyScale();
 		if (glo.walkMapOn) walkAimMapCamera();
 	}
 
@@ -597,10 +659,12 @@ function walkUpdate(snap = false) {
 		if (dir !== 0) {
 			heightHeld = true;
 			w.heightScale *= Math.exp(dir * WALK.HEIGHT_RATE * dt);
-			walkApplyEyeHeight();
 			walkShowHud();
 		}
 	}
+	// The multipliers become world units here, once, whether they were changed by the ramp
+	// above, by a key, by a rebuild — or written straight into `glo.walk` from elsewhere.
+	walkApplyScale();
 
 	// --- Input -------------------------------------------------------------------
 	let forward = 0, turn = 0, strafe = 0, jump = false;
@@ -794,13 +858,19 @@ function walkHandleKeyDown(e) {
 			w.smoothNormal.scaleInPlace(-1);
 			return true;
 		case 'PageUp':
-			w.speedScale = Math.min(w.speedScale * 1.4, 40);
+		case 'PageDown': {
+			const up = e.key === 'PageUp';
+			// Shift turns the same pair into the size control. Not a third pair of keys: the
+			// two settings answer the same question — how big is this surface to me — and
+			// pairing them keeps that visible. Discrete steps, unlike the height ramp, since
+			// halving or doubling is the unit one actually thinks in.
+			if (e.shiftKey) walkScaleBody(up ? WALK.BODY_STEP : 1 / WALK.BODY_STEP);
+			else if (up) w.speedScale = Math.min(w.speedScale * 1.4, 40);
+			else w.speedScale = Math.max(w.speedScale / 1.4, 0.05);
 			walkShowHud();
+			e.preventDefault();
 			return true;
-		case 'PageDown':
-			w.speedScale = Math.max(w.speedScale / 1.4, 0.05);
-			walkShowHud();
-			return true;
+		}
 		default:
 			return false;
 	}
@@ -1347,6 +1417,21 @@ function walkShowRecIndicator(rail, animated = false) {
 
 // ==================== HUD ====================
 
+/**
+ * Formats a multiplier for the HUD. Two decimals near 1, plain integers once large, and
+ * significant digits rather than a row of zeros once small — these knobs span five orders
+ * of magnitude, and `0.00` is not a reading.
+ * @param {number} x - The multiplier.
+ * @returns {string} Short human-readable form.
+ */
+function walkFormatScale(x) {
+	if (!isFinite(x) || x <= 0) return '1';
+	if (x >= 100) return String(Math.round(x));
+	if (x >= 10) return String(Math.round(x * 10) / 10);
+	if (x >= 0.01) return x.toFixed(2);
+	return String(Number(x.toPrecision(2)));
+}
+
 /** Creates (once) and refreshes the small overlay listing the walk controls. */
 function walkShowHud() {
 	if (glo.walkCinema.active) return;   // nothing on screen during a take
@@ -1368,14 +1453,18 @@ function walkShowHud() {
 	const w = glo.walk;
 	const mode = w.rail ? 'RAIL' : (w.autopilot ? 'AUTOPILOT' : 'WALK');
 	const loop = [w.closedU ? 'u' : null, w.closedV ? 'v' : null].filter(Boolean).join('+');
+	// The body multiplier is shown together with the world it implies: nobody wants a
+	// character 1/64 of a size they never chose, they want a surface 64 times bigger.
+	const size = `&times;${walkFormatScale(w.bodyScale)} &rarr; world &times;${walkFormatScale(1 / w.bodyScale)}`;
 	hud.innerHTML =
 		`<b>${mode}</b> &nbsp; &uarr;&darr; walk &middot; &larr;&rarr; sidestep &middot; A/E turn &middot; ` +
-		`shift+&uarr;&darr; height (&times;${w.heightScale.toFixed(2)}) &middot; ` +
+		`shift+&uarr;&darr; height (&times;${walkFormatScale(w.heightScale)}) &middot; ` +
 		`space jump &middot; M map${glo.walkMapOn ? ' (on)' : ''} &middot; R rail &middot; ` +
 		`click for mouse look &middot; click to fire &middot; G game${_game.active ? ' (on)' : ''} &middot; ` +
 		`P golf${_golf.active ? ' (on)' : ''} &middot; ` +
 		`T trail${traceHas(w) ? ' (on)' : ''} &middot; X flip side &middot; ` +
-		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; Esc exit` +
+		`PgUp/PgDn speed (&times;${w.speedScale.toFixed(2)}) &middot; ` +
+		`shift+PgUp/PgDn size (${size}) &middot; Esc exit` +
 		(loop ? ` &nbsp;|&nbsp; looping on ${loop}` : '');
 	hud.style.display = 'block';
 }

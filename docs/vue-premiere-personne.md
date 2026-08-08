@@ -9,8 +9,10 @@ l'insérer dans la boucle existante sans casser le mode 100 % GPU.
 > vitesse métrique, saut, autopilote, bouclage/rebond aux bords, rig prêt pour la
 > VR. Mesures et écarts au plan : §12. Deux défauts remontés à l'usage et leurs
 > corrections (saccades, retournement de la vue) : §13. Le mode vidéo plein écran
-> avec boucle parfaite sur rail, la mini-carte et l'avatar : §14. Restent ouverts
-> la trace, la lampe frontale, le HUD de courbure, WebXR, et les pistes B/C.
+> avec boucle parfaite sur rail, la mini-carte et l'avatar : §14. Le réglage
+> d'échelle — pourquoi agrandir le maillage ne change rien, et comment se promener
+> sur une selle géante : §16. Restent ouverts la trace, la lampe frontale, le HUD
+> de courbure, WebXR, et les pistes B/C.
 
 ---
 
@@ -755,3 +757,108 @@ de fond.
 - Changer d'équation ou de domaine pendant qu'on marche relocalise réellement le
   personnage ; il est simplement redéposé au même (u, v). Un changement de
   résolution seul, non.
+
+---
+
+## 16. L'échelle : marcher sur une selle géante
+
+Défaut remonté à l'usage, et le plus instructif de la série : **il n'y avait
+aucun moyen de régler l'échelle**. Ni en multipliant `x`, `y`, `z` par 10 dans
+les équations, ni en élargissant le domaine `u`/`v`, ni en écrivant
+`glo.walk.scale` à la main. La vue restait rigoureusement identique.
+
+### Ce n'est pas un bug, c'est une invariance
+
+Tout est *mesuré* ici. `walkSurveySurface()` relève la diagonale de la boîte
+englobante, et le corps vaut une fraction fixe de cette diagonale
+(`EYE_RATIO = 0,02`). Vitesse, gravité, hauteur de saut, plans de la caméra,
+carte, largeur de la trace, taille des ennemis : tout descend de `baseEye`.
+
+Donc multiplier la forme par 10 multiplie aussi le marcheur par 10. Vérifié à la
+sortie de `walkApplyScale`, `scale` 10 → 100 :
+
+| Grandeur | Rapport |
+|---|---|
+| hauteur d'œil, gravité, vitesse, saut | ×10,000 |
+| plans near / far | ×10,000 |
+| **temps pour traverser la forme** | **3,125 s → 3,125 s** |
+
+C'est cette invariance qui rend n'importe quelle forme jouable sans réglage — un
+tore de rayon 1 et une hypoténuse de 40 unités se marchent pareil, sans une
+constante à retoucher. Mais elle a une conséquence que rien ne disait :
+**on ne rend pas une surface géante en agrandissant le maillage.** Le seul degré
+de liberté restant, c'est le rapport entre le marcheur et la forme.
+
+Quant à `glo.walk.scale`, l'écrire à la main ne pouvait pas marcher : c'est une
+*mesure*, réécrite par le relevé suivant — à l'entrée dans le mode, et à chaque
+reconstruction du maillage (`walkOnSurfaceRebuilt`).
+
+### La correction : `bodyScale`
+
+Un multiplicateur sur la taille du personnage, `Shift` + `PgUp`/`PgDn`, pas ×2
+par appui. `1 / bodyScale` est exactement le facteur d'agrandissement du monde,
+et le HUD affiche les deux (`×0.02 → world ×64`) : personne ne veut un
+personnage 64 fois plus petit, tout le monde veut une surface 64 fois plus
+grande.
+
+Trois décisions, les mêmes que pour la hauteur du point de vue (§14) :
+
+- **Multiplicatif et stocké en multiplicateur.** Il survit donc à un changement
+  de forme ou de résolution, là où une taille absolue serait écrasée au relevé
+  suivant. Rétrécir pour explorer une selle géante, puis changer de forme, garde
+  le personnage à sa taille.
+- **En amont de `baseEye`, pas à côté.** Vitesse, gravité, saut, portée des
+  tirs, largeur de la trace suivent sans une ligne de code supplémentaire :
+  c'est le corps qui rétrécit, pas seulement la caméra. Mesuré à `1/64` sur une
+  selle de 10 unités : traversée **3,12 s → 200 s**, largeur **50 → 3 200
+  hauteurs d'œil**, et durée du saut **inchangée** (0,856 s — le saut vaut
+  `2v/g`, invariant d'échelle, l'insecte saute aussi longtemps que le géant).
+- **Distinct de `heightScale` et de `speedScale`.** La hauteur ne recadre que la
+  caméra, la vitesse ne fait que doser la marche ; `bodyScale` change la taille
+  du monde. Vérifié : point de vue ×20, vitesse identique au bit près.
+
+### Le vrai plafond n'est pas le goût, c'est le float32
+
+Les bornes ne sont pas arbitraires.
+
+**En bas, `1e-3`.** Les positions sortent de la sonde — et passent dans le GPU —
+en simple précision : elles sont quantifiées à environ `6e-8` de la taille de la
+forme, alors que l'œil est à `0,02 × bodyScale` de cette même taille. Le rapport
+vaut `3e-6 / bodyScale` : à `1e-3` la quantification fait 0,3 % d'une hauteur
+d'œil, invisible ; une décade plus bas, 3 %, et le sol scintille sous les pieds
+du marcheur. `1e-3`, c'est déjà un monde 1 000 fois plus grand — une selle de
+10 unités fait 10 000 hauteurs d'œil de large, soit ~17 km pour un œil humain.
+
+**En haut, `8`.** Ce n'est plus la précision mais la grille : un pas est plafonné
+à `MAX_CELLS_PER_FRAME` cellules (le patch de sonde doit rester valide), donc un
+personnage beaucoup plus gros entre dans l'étranglement (`agent.clamped`) au lieu
+d'aller plus vite. Pour aller plus loin, il faut monter la résolution (`u`).
+
+### Un effet de bord à assumer : l'horizon
+
+Le tampon de profondeur, lui, ne suit pas. Le plan near est calé sur l'œil
+(`eyeHeight × 0,01`) et le far sur la forme (`scale × 20`) : à taille par défaut
+leur rapport vaut déjà `1e5`, ce qu'un tampon 24 bits sait tout juste séparer. À
+`bodyScale = 1e-3` le rapport voudrait valoir `1e8`, et la surface se battrait
+avec elle-même en z.
+
+`walkApplyScale` plafonne donc le rapport à `DEPTH_RANGE = 1e5`, et **c'est le
+far qui cède**, jamais le near : relever le near reviendrait à couper le sol sous
+les pieds du personnage, ce qui est pire qu'un horizon. Conséquence : rétréci, on
+ne voit plus toute la forme mais au moins 1 000 hauteurs d'œil devant soi — ce
+qui, pour une caméra à hauteur d'homme, ferait 1,7 km. Le plafond ne se déclenche
+jamais à taille par défaut : `min(scale × 20, near × 1e5)` y vaut exactement
+`scale × 20`, l'ancienne règle, au bit près.
+
+Reste ouvert : un brouillard de distance rendrait la coupure du far franchement
+plus douce qu'un bord net. Le matériau du maillage est un `ShaderMaterial`
+maison, donc le brouillard de Babylon ne s'y applique pas tout seul — c'est une
+poignée de lignes dans le fragment, à faire quand le besoin se fera sentir.
+
+### Une note d'usage
+
+Une selle géante, c'est aussi une selle *lisse* : à `1/1000`, on passe très
+longtemps à l'intérieur d'une seule cellule de la grille, et le sol vient du
+patch bicubique, pas de l'équation. La selle par défaut est en 16 × 64 — monter
+la résolution avec `u` donne à la marche du relief à se mettre sous les pieds.
+Et `PgUp` reste là pour ne pas traverser 200 secondes de selle au pas.

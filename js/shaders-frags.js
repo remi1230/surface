@@ -107,17 +107,94 @@ fragmentShaders = [
 
 `,
 `   
-    //FBM 3D Base
-    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    //PN Base
+    float nb = 1.;
+    vec3 p0 = npos(-1.) * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
 
-    p0 = (normalize(vWorldPosition));
+    vec3 n  = abs(vNormal);
+    vec3 pn = p*n;
 
-    vec3 p = abs(p0);
+    float val1 = o(oi(pn+t/16., 4., 2.)*9.);
+    float val2 = m(mi(pn+t/16., 4., 2.)*9.);
 
-    col /= la(o(36.*p*fbm(p0+t/64.)));
+    float val = max(val2, val2);
 
+    col = vec3(.5);
 
-    col = abs(col);
+    col *= val;
+
+`,
+`   
+    //PN Ink
+    float nb = 1.;
+    vec3 p0 = npos(-1.) * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
+
+    vec3 n  = abs(vNormal);
+    vec3 pn = p*n;
+
+    float val1 = o(oi(pn+t/16., 4., 2.)*9.);
+    float val2 = m(mi(pn-t/16., 4., 2.)*9.);
+
+    float val = max(val2, val2);
+
+    col = vec3(.5);
+
+    col *= val;
+
+    col /= inkBleed(p, 12., 12.);
+    col /= inkPigment(.5);
+    col *= inkPigment(val*.5);
+
+`,
+`   
+    //PN Ink Color
+    float nb = 1.;
+    vec3 p0 = npos(-1.) * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
+
+    vec3 n  = abs(vNormal);
+    vec3 pn = p*n;
+
+    float val1 = o(.5*oi(pn-t/16., 4., 2.)*9.);
+    float val2 = m(.5*oi(pn+t/16., 4., 2.)*9.);
+
+    float val = val1*absp(val2, 1./6.);
+
+    col = vec3(.5);
+
+    col *= val;
+
+    col /= inkBleed(p, 128., 12.);
+    col /= inkPigment(.5);
+    col -= inkAbsorb(p/val, col, 1.)/3.;
+
+`,
+`   
+    //PN Chenese Ink
+    float nb = 1.;
+    vec3 p0 = npos(-1.) * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
+
+    vec3 n  = abs(vNormal);
+    vec3 pn = p*n;
+
+    float val1 = ms(.5*msi(pn-t/16., 4., 2.)*9.);
+    float val2 = os(.5*osi(pn-t/16., 4., 2.)*9.);
+
+    float val = val1*absp(val2, 1./6.);
+
+    col = vec3(.5);
+
+    col += val;
+
+    col /= inkBleed(p, 64., 12.);
+    col /= inkPigment(val);
+
+    col /= ea(col);
+
+    if(length(col) > 1.){ col.x *= Z; }
 
 `,
 `   
@@ -300,11 +377,11 @@ fragmentShaders = [
     vec3 ppm = p*pm;
 
     col.xy += m(ppm+t*1.2);
-    col.xz += o(ppm*2.-t*.8);
+    col.xz += o(ppm*2.+t*.8);
     col.yz += os(ppm*2.+t*.7);
     
     col -= inkBleed(ppm, 12., 12.);
-    col -= inkBleed(col, 12., 12.);
+    col /= 1./6. + inkBleed(col, 12., 12.);
 
     col *= absp(sdec(vec3(6.666), 2./12., 2./3.), -.5);
 
@@ -355,9 +432,7 @@ fragmentShaders = [
     float pm   = m(p/absp(pwo, .25)/E);
     vec3 ppm   = p*pm;
 
-    //float vor = voronoiPos(p*128., 1.);
-    
-    col = vec3(.5);
+    col = fi(p*12.+t, o, col, 1.);
 
     float v1 = o(p*6.+.5*t);
     float v2 = o(p*12.+.5*t);
@@ -369,6 +444,181 @@ fragmentShaders = [
     col *= val3;
 
     col /= absp(rainbop(length(col), p), 1./3.);
+
+`,
+`   
+    //PWO Art IV
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float ti = t;
+
+    if(ti < 1e3){ ti += 1e3; }
+
+    float t = ti/E;
+
+    vec3 pw  = wrap(p+t/64., 2.);
+    vec3 pwo = wrot(pw+t/64., 0., 2., PI);
+
+    float pm = oah(p*absp(pwo, 3./3.));
+    vec3 ppm = p*absp(pm, -1./3.);
+
+    col.xy += 2.*m(ppm*.5+t*1.2);
+    col.xz += o(ppm*2.+t*.8);
+    col.yz += .5*os(ppm*2.+t*.7);
+    
+    col -= inkBleed(ppm, 12., 12.);
+    col /= 1. + inkBleed(col, 12., 12.);
+
+    col *= absp(sdec(vec3(6.666), 2./12., 2./3.), -.5);
+
+    col -= .25*min(col, .25*ea(col));
+
+    col *= absp(E*inkDeco(p));
+
+    col = hueRotateYIQ(col, radians(E*96.*absp(v/6.)));
+
+`,
+`   
+    //PWO Art BLA
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float ti = t;
+
+    if(ti < 1e3){ ti += 1e3; }
+
+    float t = ti/E;
+
+    vec3 pw  = wrap(p+t/64., 1.);
+    vec3 pwo = 8.*wrot(pw+t/64., 0., 2., PI);
+
+    float pm = oah(p*absp(pwo, 3./3.));
+    vec3 ppm = p*absp(pm, -1./3.);
+
+    vec3 paint = col;
+    float scale = 1.;
+    float coverage = 1./5.;
+    vec3 geoTint = vNormal;
+    float warpAmp = 1.;
+    float speed  = 1.;
+
+    paint = brushLayerAnim(paint, ppm, scale, coverage,
+                    geoTint, warpAmp, speed);
+
+    paint = inkDeco(paint, ppm, 1.);
+
+    col.xy += 2.*m(paint*.5+t*1.2);
+    col.xz += o(paint*2.+t*.8);
+    col.yz += .5*os(paint*2.+t*.7);
+
+`,
+`   
+    //PWO Art BLA II
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float ti = t;
+
+    if(ti < 1e3){ ti += 1e3; }
+
+    float t = ti/E;
+
+    vec3 pw  = wrap(p+t/64., 1.);
+    vec3 pwo = 8.*wrot(pw+t/64., 0., 2., PI);
+
+    float pm = oah(p*absp(pwo, 3./3.));
+    vec3 ppm = p*absp(pm, -1./3.);
+
+    vec3 paint = col;
+    float scale = 1./3.;
+    float coverage = 1./5.;
+    vec3 geoTint = .1*mp(p*8.);
+    float warpAmp = 24.;
+    float speed  = 1.;
+
+    paint = brushLayerAnim(paint, ppm, scale, coverage, geoTint, warpAmp, speed);
+    paint = brushLayerAnim(paint, ppm, scale, coverage*5., geoTint, warpAmp/24., speed);
+
+    paint = inkDeco(paint, ppm, 1.);
+
+    col.xy += 2.*m(paint*.5+t*1.2);
+    col.xz += o(paint*2.+t*.8);
+    col.yz += .5*os(paint*2.+t*.7);
+
+`,
+`   
+    //PWO Art BLA III
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float ti = t;
+
+    if(ti < 1e3){ ti += 1e3; }
+
+    float t = -ti/E;
+
+    vec3 pw  = wrap(p+t/64., 1.);
+    vec3 pwo = 8.*wrot(pw+t/64., 0., 2., PI);
+
+    float pm = oah(p*absp(pwo, 3./3.));
+    vec3 ppm = p*absp(pm, -1./3.);
+
+    vec3 paint = col;
+    float scale = 1./3.;
+    float coverage = 1./5.;
+    vec3 geoTint = .1*mp(p*8.);
+    float warpAmp = 24.;
+    float speed  = 1.;
+
+    paint = brushLayerAnim(paint, ppm, scale, coverage, geoTint, warpAmp, speed);
+    paint = brushLayerAnim(paint, ppm, scale*3., coverage*2., geoTint, warpAmp/24., speed);
+
+    float vor = voronoiPos(ppm, 1.);
+
+    paint = inkDeco(paint+vor/6., ppm, 1.);
+
+    col.xy += 2.*m(paint*.5+t*1.2);
+    col.xz += o(paint*2.+t*.8);
+    col.yz += .5*os(paint*2.+t*.7);
+
+`,
+`   
+    //PWO Art BLA IV
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+
+    p = abs(p);
+
+    float ti = t;
+
+    ti += 1e3;
+
+    float t = ti/E;
+
+    vec3 pw  = wrap(p+t/64., 2.);
+    vec3 pwo = wrot(pw+t/64., 0., 2., PI);
+
+    float pm = oah(p*absp(pwo, 3./3.));
+    vec3 ppm = p*absp(pm, -1./3.);
+
+    col.xy += 2.*m(ppm*.5+t*1.2);
+    col.xz += o(ppm*2.+t*.8);
+    col.yz += .5*os(ppm*2.+t*.7);
+    
+    col -= inkBleed(ppm, 12., 12.);
+    col /= 1. + inkBleed(col, 12., 12.);
+
+    col *= absp(sdec(vec3(6.666), 2./12., 2./3.), -.5);
+
+    col -= .25*min(col, .25*ea(col));
+
+    col *= absp(E*inkDeco(p));
+
+    col = hueRotateYIQ(col, radians(E*96.*absp(v/6.)));
 
 `,
 `   
@@ -1678,6 +1928,37 @@ fragmentShaders = [
 
         col += color * d;
     }
+    
+`,
+`   
+    //Disco II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    vec3 p = abs(p0);
+
+    vec3 pb = p / baseColor(p);
+
+    col -= baseColor(c(col*p*8.));
+    col *= ms(p*8.+t);
+    col /= absp(ms(pb*8.+t), .125);
+
+
+    col = abs(col);
+    
+`,
+`   
+    //Disco III
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    vec3 p = abs(p0);
+
+    vec3 pb0 = p0 / baseColor(p0);
+    vec3 pb = p / baseColor(p);
+
+    float vor = voronoiPos(os(pb0)*pb0*12., 1.);
+
+    col = vor-baseColor(pb*E*vor);
+    col += inkPigment(1.);
     
 `,
 `
@@ -4814,6 +5095,8 @@ vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
 
     return ambient + diffuse + specular;
 }
+
+
 
 // ============================================================
 //  Encre de Chine (水墨) — briques de rendu

@@ -1121,12 +1121,25 @@ var glo = {
 		 */
 		eyeHeight: 1,
 		/**
-		 * @type {number} Body height in world units, straight from the mesh size and
-		 * untouched by the viewpoint setting. Walking speed, gravity and jump height are
-		 * scaled by this rather than by `eyeHeight`, so raising the viewpoint reframes the
-		 * shot without secretly changing how fast the character moves.
+		 * @type {number} Body height in world units, from the mesh size and
+		 * {@link glo.walk.bodyScale}, untouched by the viewpoint setting. Walking speed,
+		 * gravity and jump height are scaled by this rather than by `eyeHeight`, so raising
+		 * the viewpoint reframes the shot without secretly changing how fast the character
+		 * moves.
 		 */
 		baseEye: 1,
+		/**
+		 * @type {number} Character size multiplier (Shift + PageUp/PageDown) — and hence the
+		 * apparent size of the surface, which grows by `1 / bodyScale`.
+		 *
+		 * This is the only scale knob the walk has, because every other one is measured: the
+		 * body is a fixed fraction of the bounding-box diagonal, so enlarging the mesh — by
+		 * multiplying the equations or by widening the u/v domain — enlarges the character
+		 * by the same factor and changes nothing that can be seen. Walking a *giant* saddle
+		 * means being a small walker on it, not building a bigger saddle. See
+		 * {@link walkApplyScale}.
+		 */
+		bodyScale: 1,
 		/**
 		 * @type {number} Viewpoint height multiplier (Shift + up/down arrows). Kept as a
 		 * multiplier rather than an absolute height so the setting survives a mesh rebuild

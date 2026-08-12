@@ -86,10 +86,11 @@ function switchCoords(normalSens = true){
  */
 function switchShader(normalSens = true, edit = glo.editor){
 	  genInTwoWays(glo.numShaderMove, 'numShaderSelect', normalSens);
-      fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+      fragmentShader = buildEditorShaderSource(fragmentShaders[glo.numShaderSelect]);
 
       if(edit){
 		edit.setValue(fragmentShader);
+		revealEditableZone(edit);
 	  }
 
 	  getById('shaderSelect').value = glo.numShaderSelect;

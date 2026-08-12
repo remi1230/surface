@@ -304,8 +304,8 @@ const History = {
 					if (typeof ShaderCRUD.updateSelectValue === 'function') { ShaderCRUD.updateSelectValue(); }
 				}
 				if (state.shaderCode) { fragmentShaders[state.shaderIndex] = state.shaderCode; }
-				if (typeof fragmentShaderHeader !== 'undefined' && typeof fragmentShaderFooter !== 'undefined') {
-					fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+				if (typeof buildEditorShaderSource === 'function') {
+					fragmentShader = buildEditorShaderSource(fragmentShaders[glo.numShaderSelect]);
 				}
 				if (glo.editor) { glo.editor.setValue(fragmentShader); }
 			}

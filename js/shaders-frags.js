@@ -8,6 +8,8 @@
  *   Voronoi, Perlin noise, starfield, Truchet patterns, hexagons, etc.).
  * - {@link fragmentShaderHeader} - The common GLSL header (version, precision, uniforms,
  *   varyings, and utility functions) prepended to every fragment shader.
+ * - {@link buildEditorShaderSource} - Assembles what the Monaco editor displays, including
+ *   the free zone where the user writes their own GLSL functions, just before `main()`.
  * - {@link fragmentShaderFooter} - The common GLSL footer (color inversion, tint, lighting)
  *   appended to every fragment shader.
  * - {@link normalShaders} - An array of GLSL normal-deformation shader body snippets.
@@ -19,15 +21,18 @@
  *   for syntax errors.
  *
  * The final composed shader is assembled as:
- *   `fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter`
+ *   `buildEditorShaderSource(fragmentShaders[index])`
+ * i.e. header + user functions + `main()` body + footer, the user functions being the
+ * part of the entry stored after {@link USER_FUNCTIONS_TAG}.
  */
 
 /**
  * Array of GLSL fragment shader body snippets.
  *
  * Each entry is a template literal string containing GLSL code that computes a `col` (vec3)
- * value. The code is inserted between {@link fragmentShaderHeader} and
- * {@link fragmentShaderFooter} to form a complete fragment shader.
+ * value. The code is inserted between the header and {@link fragmentShaderFooter} to form
+ * a complete fragment shader. An entry may also carry the user's own GLSL functions, after
+ * {@link USER_FUNCTIONS_TAG}; those are emitted before `main()` rather than inside it.
  *
  * Available shaders (by index):
  *  0 - Default grid overlay
@@ -5255,17 +5260,170 @@ vec3 inkDeco(vec3 col, vec3 p, float k){
 }
 
 /**
- * Common GLSL header prepended to every fragment shader.
+ * Marker separating the `main()` body from the user's own GLSL functions inside a
+ * stored shader entry.
+ *
+ * A shader is persisted, exported, merged and undone as a *single string*
+ * (`fragmentShaders[i]`), everywhere in the application. Custom functions cannot live
+ * in that string as-is — GLSL has no nested functions, so they must be emitted before
+ * `main()`, not inside it — but giving them their own array would mean teaching
+ * localStorage, the server merge, the .js export, the scene JSON and the undo history
+ * about a second field. Keeping them in the same string behind a marker leaves all of
+ * that untouched: only the two ends care, the composer that splits it and the editor
+ * that shows it.
+ *
+ * The block is appended *after* the body so that {@link ShaderCRUD.getShaderName} still
+ * finds the shader's name in the first `//` comment, and the marker is written only when
+ * there is something to write — a shader without custom functions stays byte-identical
+ * to what the server serves, so it is not mistaken for a local edit by the merge.
+ *
+ * @type {string}
+ */
+const USER_FUNCTIONS_TAG = '// __USER_FUNCTIONS__';
+
+/** @type {string} Opening marker of the editable custom-function zone in the editor. */
+const USER_FUNCTIONS_START = '// __USER_FUNCTIONS_START__';
+
+/** @type {string} Closing marker of the editable custom-function zone in the editor. */
+const USER_FUNCTIONS_END = '// __USER_FUNCTIONS_END__';
+
+/** @type {string} Marker where the read-only footer begins in the editor. */
+const FRAGMENT_FOOTER_TAG = '// __FOOTER_START__';
+
+/** @type {string} Statement the editable `main()` body starts after, in the editor. */
+const FRAGMENT_BODY_TAG = 'vec3 col = meshBg;';
+
+/**
+ * Splits a stored shader entry into its `main()` body and its custom-function block.
+ * An entry written before this feature (no marker) is all body, no functions.
+ *
+ * @param {string} entry - A `fragmentShaders[i]` entry.
+ * @returns {{body: string, funcs: string}} The two halves.
+ */
+function splitShaderUserFunctions(entry) {
+    const src = entry || '';
+    const pos = src.indexOf(USER_FUNCTIONS_TAG);
+
+    if (pos === -1) { return { body: src, funcs: '' }; }
+
+    return {
+        // The newline {@link joinShaderUserFunctions} inserted to put the marker on its
+        // own line belongs to the marker, not to the body: dropping it here makes the two
+        // functions exact inverses of each other.
+        body:  src.slice(0, pos).replace(/\n$/, ''),
+        funcs: src.slice(pos + USER_FUNCTIONS_TAG.length).trim()
+    };
+}
+
+/**
+ * Rebuilds a stored shader entry from a `main()` body and a custom-function block.
+ * Without functions the entry is the body alone — no marker is added.
+ *
+ * @param {string} body - The `main()` body code.
+ * @param {string} [funcs=''] - The user's own GLSL functions.
+ * @returns {string} The entry to store in `fragmentShaders`.
+ */
+function joinShaderUserFunctions(body, funcs = '') {
+    const trimmedFuncs = (funcs || '').trim();
+
+    if (!trimmedFuncs) { return body || ''; }
+
+    return (body || '') + '\n' + USER_FUNCTIONS_TAG + '\n' + trimmedFuncs + '\n';
+}
+
+/**
+ * Builds the custom-function zone shown in the editor: an explanatory banner, then the
+ * user's functions between the two markers.
+ *
+ * The banner sits *outside* the markers on purpose — only what lies between them is kept
+ * with the shader, so an untouched zone extracts as the empty string rather than as a
+ * block of comments.
+ *
+ * @param {string} [funcs=''] - The user's own GLSL functions.
+ * @returns {string} The GLSL block to insert just before `main()`.
+ */
+function buildUserFunctionsZone(funcs = '') {
+    return `
+// ============================================================
+// VOS FONCTIONS — zone libre, compilée avec le shader (Ctrl+S).
+// Tout ce qui est écrit entre les deux repères ci-dessous est conservé avec le
+// shader (sauvegarde, export, historique, annulation) et appelable depuis main()
+// comme depuis les autres fonctions de la zone. Exemple :
+//     float ring(float d, float w){ return smoothstep(w, 0.0, abs(d)); }
+// Les uniforms, les macros et les utilitaires ci-dessus y sont disponibles.
+// ============================================================
+${USER_FUNCTIONS_START}
+${(funcs || '').trim()}
+${USER_FUNCTIONS_END}
+`;
+}
+
+/**
+ * Reads back the two editable regions from the full text of the Monaco editor:
+ * the custom-function zone and the `main()` body.
+ *
+ * The body is searched *after* the closing function marker, so a custom function that
+ * happens to contain `vec3 col = meshBg;` cannot be taken for the start of `main()`.
+ *
+ * The newline and indentation the footer opens with are given back to the footer rather
+ * than kept in the body: an entry displayed and read back unchanged then comes out
+ * byte-for-byte identical, so merely opening and compiling a shader never rewrites it —
+ * which would otherwise make the server merge take it for a local edit and freeze it.
+ *
+ * @param {string} fullText - The complete editor content.
+ * @returns {{body: string, funcs: string, ok: boolean}} The regions, `ok` being `false`
+ *   when the body markers are missing (header damaged beyond recovery).
+ */
+function extractEditorShaderParts(fullText) {
+    const src = fullText || '';
+
+    let funcs = '';
+    const funcsStart = src.indexOf(USER_FUNCTIONS_START);
+    const funcsEnd   = src.indexOf(USER_FUNCTIONS_END);
+    if (funcsStart !== -1 && funcsEnd > funcsStart) {
+        funcs = src.slice(funcsStart + USER_FUNCTIONS_START.length, funcsEnd).trim();
+    }
+
+    const bodyStart = src.indexOf(FRAGMENT_BODY_TAG, funcsEnd !== -1 ? funcsEnd : 0);
+    const bodyEnd   = bodyStart === -1 ? -1 : src.indexOf(FRAGMENT_FOOTER_TAG, bodyStart);
+    const ok        = bodyStart !== -1 && bodyEnd > bodyStart;
+
+    return {
+        funcs: funcs,
+        body:  ok ? src.slice(bodyStart + FRAGMENT_BODY_TAG.length, bodyEnd).replace(/\n[ \t]*$/, '') : '',
+        ok:    ok
+    };
+}
+
+/**
+ * Assembles the text shown in the Monaco editor for a stored shader entry:
+ * read-only header, the user's function zone, `main()` opening, the body, footer.
+ *
+ * @param {string} entry - A `fragmentShaders[i]` entry.
+ * @returns {string} The full GLSL source to display.
+ */
+function buildEditorShaderSource(entry) {
+    const { body, funcs } = splitShaderUserFunctions(entry);
+
+    return fragmentShaderHeaderTop
+         + buildUserFunctionsZone(funcs)
+         + fragmentShaderMainOpen
+         + body
+         + fragmentShaderFooter;
+}
+
+/**
+ * Common GLSL header prepended to every fragment shader, up to (but excluding) the
+ * custom-function zone and the opening of `main()`.
  *
  * Declares the GLSL ES 3.0 version, precision, all varyings received from the
  * vertex shader (position, world position, normal, UVs), the fragment output,
  * all custom uniforms (time, camera, grid parameters, colors, lighting), and
  * inlines the shared utility functions from {@link getFragmentUtilsGLSL}.
- * Opens the `main()` function and initializes `col` to `meshBg`.
  *
  * @type {string}
  */
-fragmentShaderHeader = `#version 300 es
+fragmentShaderHeaderTop = `#version 300 es
 precision highp float;
 
 #define PI       3.14159265358979
@@ -5350,15 +5508,31 @@ vec3 eqPos(float u, float v) { return vec3(0.0); }
 float eqX(float u, float v) { return 0.0; }
 float eqY(float u, float v) { return 0.0; }
 float eqZ(float u, float v) { return 0.0; }
+`;
 
+/**
+ * Opening of `main()`, inserted after the custom-function zone: spherical coordinates,
+ * parametric coordinates and the `col` initialization the editable body starts from.
+ *
+ * @type {string}
+ */
+fragmentShaderMainOpen = `
 void main(){
     vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
     // Coordonnées paramétriques du fragment courant, exposées au code couleur.
     float u = vUVParams.x;
     float v = vUVParams.y;
 
-    vec3 col = meshBg;
-`;
+    ${FRAGMENT_BODY_TAG}`;
+
+/**
+ * Common GLSL header prepended to every fragment shader, with an empty custom-function
+ * zone. Kept for callers that compose a shader without a stored entry to read functions
+ * from; the editor itself goes through {@link buildEditorShaderSource}.
+ *
+ * @type {string}
+ */
+fragmentShaderHeader = fragmentShaderHeaderTop + buildUserFunctionsZone('') + fragmentShaderMainOpen;
 
 /**
  * Common GLSL footer appended to every fragment shader.
@@ -5373,7 +5547,7 @@ void main(){
  * @type {string}
  */
 fragmentShaderFooter = `
-    // __FOOTER_START__
+    ${FRAGMENT_FOOTER_TAG}
     //Checkerboard
     if(U < 2.0 && length(col) > U){ discard; }
 
@@ -5399,13 +5573,13 @@ fragmentShaderFooter = `
 glo.numShaderMove = glo.numShaderMove();
 
 /**
- * The fully composed GLSL fragment shader source, assembled from
- * {@link fragmentShaderHeader}, the currently selected entry in
- * {@link fragmentShaders}, and {@link fragmentShaderFooter}.
+ * The fully composed GLSL fragment shader source shown in the editor, assembled by
+ * {@link buildEditorShaderSource} from the currently selected entry in
+ * {@link fragmentShaders}.
  *
  * @type {string}
  */
-fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+fragmentShader = buildEditorShaderSource(fragmentShaders[glo.numShaderSelect]);
 
 // ==================== NORMAL DEFORMATION SHADERS ====================
 // The editable code is injected into computeDeformation() and must assign to float result.

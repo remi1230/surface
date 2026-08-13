@@ -104,6 +104,12 @@ defaultTheme.apply = function() {
 /** @type {M.Modal} Materialize modal instance for the shader editor. */
 let shaderModalInstance, fragmentShader, fragmentShaderHeader;
 
+/**
+ * @type {string} The two halves of the header the custom-function zone is inserted
+ * between: everything up to that zone, and the opening of `main()` that follows it.
+ */
+let fragmentShaderHeaderTop, fragmentShaderMainOpen;
+
 /** @type {string[]} Array of fragment shader source code snippets (one per color shader). */
 let fragmentShaders = [];
 

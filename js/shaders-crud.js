@@ -50,12 +50,16 @@ const ShaderCRUD = {
     /**
      * Extrait le nom du shader depuis le commentaire de première ligne
      * Format attendu : // Nom du shader
+     *
+     * Le nom est cherché dans le corps seul : sans cela, un shader dont le corps ne
+     * porte pas de commentaire prendrait pour nom le repère des fonctions
+     * personnalisées, qui le suit dans l'entrée stockée.
      */
     getShaderName: function(shaderCode, index) {
         if (!shaderCode) return `Shader ${index}`;
 
         // Chercher un commentaire en première ligne (après les espaces/sauts de ligne)
-        const trimmed = shaderCode.trim();
+        const trimmed = splitShaderUserFunctions(shaderCode).body.trim();
         const match = trimmed.match(/\/\/\s*(.+)/);
 
         if (match && match[1]) {
@@ -231,30 +235,24 @@ const ShaderCRUD = {
      */
     loadShaderInEditor: function(index) {
         if (typeof glo.editor !== 'undefined' && glo.editor) {
-            const fullShader = fragmentShaderHeader + fragmentShaders[index] + fragmentShaderFooter;
+            const fullShader = buildEditorShaderSource(fragmentShaders[index]);
             glo.editor.setValue(fullShader);
+            revealEditableZone(glo.editor);
             updateStatus(this.getShaderName(fragmentShaders[index], index) + ' chargé');
         }
     },
 
     /**
-     * Extrait uniquement le fragment depuis l'éditeur
+     * Extrait depuis l'éditeur les deux zones éditables — les fonctions personnalisées
+     * et le corps de main() — réunies en une seule entrée de shader.
      */
     extractFragmentCode: function() {
         if (typeof glo.editor === 'undefined' || !glo.editor) return '';
 
-        const fullCode = glo.editor.getValue();
+        const parts = extractEditorShaderParts(glo.editor.getValue());
+        if (!parts.ok) return '';
 
-        const startTag = 'vec3 col = meshBg;';
-        const startPos = fullCode.indexOf(startTag);
-        if (startPos === -1) return '';
-
-        const afterStart = fullCode.substring(startPos + startTag.length);
-
-        const footerPos = afterStart.indexOf('// __FOOTER_START__');
-        if (footerPos === -1) return '';
-
-        return afterStart.substring(0, footerPos);
+        return joinShaderUserFunctions(parts.body, parts.funcs);
     },
 
     /**
@@ -278,8 +276,9 @@ const ShaderCRUD = {
         this.populateSelect();
 
         if (typeof glo.editor !== 'undefined' && glo.editor) {
-            const fullShader = fragmentShaderHeader + newFragment + fragmentShaderFooter;
+            const fullShader = buildEditorShaderSource(newFragment);
             glo.editor.setValue(fullShader);
+            revealEditableZone(glo.editor);
             updateStatus('Mode création - Modifier et sauvegarder');
         }
     },
@@ -407,7 +406,7 @@ const ShaderCRUD = {
      * Compile le shader actuel
      */
     compileCurrentShader: function() {
-        fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+        fragmentShader = buildEditorShaderSource(fragmentShaders[glo.numShaderSelect]);
 
         const compileBtn = getById('compileBtn');
         if (compileBtn) {

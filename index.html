@@ -360,6 +360,23 @@
               <li><kbd>meshBg</kbd> &ndash; default mesh background color</li>
             </ul>
 
+            <h4>Your own functions</h4>
+            <p>A second editable zone sits just before <kbd>void main()</kbd>, between
+               <kbd>// __USER_FUNCTIONS_START__</kbd> and <kbd>// __USER_FUNCTIONS_END__</kbd>.
+               Write any GLSL function there &mdash; GLSL forbids nesting them inside
+               <kbd>main()</kbd>, which is why they need a place of their own. The editor opens
+               directly on this zone.</p>
+            <pre class="help-code">// __USER_FUNCTIONS_START__
+float ring(float d, float w){ return smoothstep(w, 0.0, abs(d)); }
+vec3  tint(vec3 c, float k){ return mix(c, meshFg, ring(k, 0.3)); }
+// __USER_FUNCTIONS_END__</pre>
+            <ul>
+              <li>Compiled with the shader on <kbd>Ctrl+S</kbd>, callable from <kbd>main()</kbd> and from each other</li>
+              <li>All uniforms, macros and built-in utilities of the header are available inside them</li>
+              <li>Kept with the shader: Save, Export/Import, scene files and undo/redo all carry them</li>
+              <li>An error inside a function is reported on its own line, like any other</li>
+            </ul>
+
             <h4>Normal Deformation Shader</h4>
             <p>Displaces vertices along their normals. The editable zone is between <kbd>float result = 0.0;</kbd> and <kbd>return result;</kbd>.</p>
             <ul>

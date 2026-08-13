@@ -1089,13 +1089,20 @@ float eqZ(float u, float v) { return 0.0; }
 	 * inserting an equation-accessor block (after the utility functions) and an
 	 * init snippet (at the top of `main()`, right after `col` is initialized).
 	 *
+	 * The shader entry may carry the user's own GLSL functions after
+	 * {@link USER_FUNCTIONS_TAG}; they are emitted just before `main()` — GLSL has no
+	 * nested functions — and after the equation accessors, so they may call `eqPos`
+	 * and friends. The body alone goes inside `main()`.
+	 *
 	 * @private
-	 * @param {string} mainFrag - User color/pattern code injected into `main()`.
+	 * @param {string} mainFrag - Shader entry: color/pattern code, plus any custom functions.
 	 * @param {string} [accessorsGLSL=''] - GLSL block defining `eqPos`/`eqX`/`eqY`/`eqZ`.
 	 * @param {string} [eqInit=''] - GLSL statements run at the start of `main()`.
 	 * @returns {string} Full fragment shader GLSL source.
 	 */
 	_composeFragmentShader(mainFrag, accessorsGLSL = '', eqInit = '') {
+		const { body, funcs } = splitShaderUserFunctions(mainFrag);
+
 		return `#version 300 es
 precision highp float;
 
@@ -1120,6 +1127,7 @@ precision highp float;
 #define maxft(f1, p, t) (max(f1(p), f1(p+t)))
 #define ptmt(p, f, c1, c2) (f(p*c1 + t*c2)*f(p*c1 - t*c2))
 #define fi(p, f, v, t) (vec3(f(p*v.x + t), f(p*v.y + t), f(p*v.z + t)))
+#define sf(x, y) ( x + y * step(x*y, 0.0) )
 
 in vec3 vPosition;
 in vec3 vWorldPosition;
@@ -1166,6 +1174,9 @@ uniform float U;
 
 ${getFragmentUtilsGLSL()}
 ${accessorsGLSL}
+// Fonctions écrites par l'utilisateur dans l'éditeur (zone libre avant main()).
+${funcs}
+
 void main() {
 	vSpherePos = vec3(length(vPosition), atan(vPosition.y, length(vPosition.xz)), atan(vPosition.z, vPosition.x));
 	// Coordonnées paramétriques du fragment courant, exposées au code couleur.
@@ -1173,7 +1184,7 @@ void main() {
 	float v = vUVParams.y;
 	vec3 col = meshBg;
 ${eqInit}
-	${mainFrag}
+	${body}
 
 	${fragmentShaderFooter}
 `;

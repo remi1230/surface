@@ -54,24 +54,34 @@ getById('renderCanvas').addEventListener('pointermove', onCanvasPointerMove);
 
 /**
  * Compiles the fragment shader from the Monaco editor.
- * On success, extracts the user code between markers, updates the active shader,
- * and recompiles the GPU material. On failure, parses the GLSL error to highlight
- * the offending line in the editor and display a toast notification.
+ * On success, extracts both editable regions — the user's own GLSL functions and the
+ * `main()` body — updates the active shader, and recompiles the GPU material. On failure,
+ * parses the GLSL error to highlight the offending line in the editor and display a toast
+ * notification.
  */
 getById('compileBtn')?.addEventListener('click', () => {
     monaco.editor.setModelMarkers(glo.editor.getModel(), 'glsl', []);
-    
+
     fragmentShader   = glo.editor.getValue();
     const validation = validateShader(fragmentShader);
 
     if(validation.valid){
+      const parts = extractEditorShaderParts(fragmentShader);
+
+      if(!parts.ok){
+         // The header markers delimiting the body are gone: there is nothing to store
+         // that would not be garbage, and the shader on screen stays as it was.
+         M.toast({
+            html: `❌ Repères de l'éditeur introuvables :<br><small>rechargez le shader depuis la liste</small>`,
+            classes: 'red darken-2',
+            displayLength: 8000
+         });
+         updateStatus(`Repères introuvables`, true);
+         return;
+      }
+
       updateStatus(`Prêt`, false);
-      const startTag = "vec3 col = meshBg;";
-      const endTag = "// __FOOTER_START__";
-      const startIndex = fragmentShader.indexOf(startTag);
-      const endIndex   = fragmentShader.indexOf(endTag);
-      const finalCode  = fragmentShader.slice(startIndex + startTag.length, endIndex).trim();
-      fragmentShaders[glo.numShaderSelect] = finalCode;
+      fragmentShaders[glo.numShaderSelect] = joinShaderUserFunctions(parts.body, parts.funcs);
       glo.ribbon.shaderMeshInstance.updateFragmentShader(fragmentShaders[glo.numShaderSelect]);
    }
     else{

@@ -182,7 +182,7 @@ function applyImportedJSON(fileContent) {
 		}
 
 		// Recompose the full shader and update the editor if open
-		fragmentShader = fragmentShaderHeader + fragmentShaders[glo.numShaderSelect] + fragmentShaderFooter;
+		fragmentShader = buildEditorShaderSource(fragmentShaders[glo.numShaderSelect]);
 		if(glo.editor){
 			glo.editor.setValue(fragmentShader);
 		}
@@ -770,8 +770,35 @@ function initMonacoEditor(container = getById('editor-container'), target = glo,
             }
         });
 
+        // Only the color editor carries a custom-function zone; elsewhere this is a no-op.
+        revealEditableZone(target[key]);
+
         updateStatus('Ready', false, statusEl);
     });
+}
+
+/**
+ * Scrolls a fragment shader editor to the region the user actually writes in: the
+ * custom-function zone and, immediately below it, the opening of `main()`.
+ *
+ * The read-only header runs to some nineteen hundred lines of uniforms, macros and
+ * utility functions, so an editor left at line 1 opens on nothing that can be edited —
+ * and the function zone would be found by scrolling, or not at all.
+ *
+ * @param {Object} editor - A Monaco editor instance (ignored when absent).
+ */
+function revealEditableZone(editor) {
+    if (!editor || typeof USER_FUNCTIONS_START === 'undefined') { return; }
+
+    const model = editor.getModel();
+    if (!model) { return; }
+
+    const found = model.findMatches(USER_FUNCTIONS_START, false, false, true, null, false, 1);
+    if (!found || !found.length) { return; }
+
+    const line = found[0].range.startLineNumber;
+    editor.revealLineNearTop(line);
+    editor.setPosition({ lineNumber: line + 1, column: 1 });
 }
 
 /**

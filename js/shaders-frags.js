@@ -3602,12 +3602,14 @@ fragmentShaders = [
     // opt1 : p normalisé, cellules angulaires (off) / p brut (on)
     // opt2 : ancré sur l'équation via eqPos — le motif ne glisse plus sous déformation
     // opt3 : colorer les frontières par la paire de cellules qu'elles séparent
-    // P : densité des cellules | S : désordre des germes | T : épaisseur des murs
+    // P : densité des cellules | Q : vitesse d'animation (0 = figé)
+    // S : désordre des germes   | T : épaisseur des murs
     float scl = max(abs(P), 1.) / 16.;
     float jit = clamp(abs(S) / 24., 0., 1.);
+    float spd = Q / 128.;
 
     vec3 p = npos();
-    vec4 vor = opt2 == 1. ? eqVorSurf(u, v, scl, jit) : voronoiF12(p * scl, jit);
+    vec4 vor = opt2 == 1. ? eqVorSurf(u, v, scl, jit, spd) : voronoiF12(p * scl, jit, spd);
 
     // F2 - F1 s'annule sur les murs. fwidth() donne un trait d'épaisseur constante à
     // l'écran, quelle que soit l'échelle du maillage.
@@ -5908,10 +5910,24 @@ vec3 inkDeco(vec3 col, vec3 p, float k){
 // La paire (z, w) identifie une frontière : deux fragments d'un même mur la partagent,
 // ce qui permet de tester quelles cellules sont adjacentes.
 // jit ∈ [0,1] : 0 = grille régulière, 1 = germe libre dans sa cellule.
-vec4 voronoiF12(vec3 pt, float jit) {
-    vec3  base = floor(pt);
-    vec3  frc  = fract(pt);
-    float jt   = clamp(jit, 0.0, 1.0);
+// speed : vitesse d'animation, 0 = motif figé (voir voronoiSeed).
+
+// Position du germe d'une cellule, en coordonnées locales [0,1]^3.
+// Figé, le germe est tiré au hasard dans sa maille ; animé, il y décrit une courbe de
+// Lissajous dont la phase dépend de la cellule. Dans les deux cas l'écart au centre
+// reste borné par la demi-maille : le germe ne sort JAMAIS de sa cellule, sans quoi des
+// cellules plus lointaines entreraient en concurrence, le voisinage 3x3x3 cesserait de
+// garantir le germe le plus proche et le motif claquerait d'une image à l'autre.
+// C'est cette borne, et non la vitesse, qui rend l'animation sûre.
+vec3 voronoiSeed(vec3 cel, float jit, float speed) {
+    vec3 rnd = hash33(cel);
+    vec3 off = speed == 0.0 ? 2.0 * rnd - 1.0 : sin(speed * time + TWO_PI * rnd);
+    return 0.5 + clamp(jit, 0.0, 1.0) * 0.5 * off;
+}
+
+vec4 voronoiF12(vec3 pt, float jit, float speed) {
+    vec3 base = floor(pt);
+    vec3 frc  = fract(pt);
 
     float d1 = 1e9, d2 = 1e9, id1 = 0.0, id2 = 0.0;
 
@@ -5920,7 +5936,7 @@ vec4 voronoiF12(vec3 pt, float jit) {
     for (int ii = -1; ii <= 1; ii++) {
         vec3  gg   = vec3(float(ii), float(jj), float(kk));
         vec3  cel  = base + gg;
-        vec3  seed = gg + 0.5 + jt * (hash33(cel) - 0.5);   // germe centré : jit=0 -> réseau régulier
+        vec3  seed = gg + voronoiSeed(cel, jit, speed);
         float dd   = length(seed - frc);
         float cid  = hash31(cel);
 
@@ -5930,7 +5946,8 @@ vec4 voronoiF12(vec3 pt, float jit) {
     return vec4(d1, d2, id1, id2);
 }
 
-vec4 voronoiF12(vec3 pt) { return voronoiF12(pt, 0.9); }
+vec4 voronoiF12(vec3 pt, float jit) { return voronoiF12(pt, jit, 0.0); }
+vec4 voronoiF12(vec3 pt)            { return voronoiF12(pt, 0.9, 0.0); }
 
 // Le même Voronoï, mais ancré sur l'ÉQUATION plutôt que sur la position affichée.
 // eqPos(u, v) ignore le blender, la symétrie et la déformation : le motif reste donc
@@ -5939,11 +5956,12 @@ vec4 voronoiF12(vec3 pt) { return voronoiF12(pt, 0.9); }
 // donc le voisinage 3x3x3 reste exact (pas de problème aux pôles).
 // Si le bloc d'accesseurs retombe sur son stub, eqPos vaut 0 et le motif s'aplatit :
 // vérifier avec col = vec3(length(eqPos(u, v)) * .3), qui doit varier.
-vec4 eqVorSurf(float uu, float vv, float scale, float jit) {
-    return voronoiF12(eqPos(uu, vv) * scale, jit);
+vec4 eqVorSurf(float uu, float vv, float scale, float jit, float speed) {
+    return voronoiF12(eqPos(uu, vv) * scale, jit, speed);
 }
 
-vec4 eqVorSurf(float uu, float vv, float scale) { return eqVorSurf(uu, vv, scale, 0.9); }
+vec4 eqVorSurf(float uu, float vv, float scale, float jit) { return eqVorSurf(uu, vv, scale, jit, 0.0); }
+vec4 eqVorSurf(float uu, float vv, float scale)            { return eqVorSurf(uu, vv, scale, 0.9, 0.0); }
 
 
 

@@ -61,6 +61,14 @@
  * 23 - Liquid
  * 24 - Porcelain
  *
+ * (the list above only names the first entries; the array has grown well past it —
+ *  {@link ShaderCRUD.getShaderName} reads each shader's name from its first `//` comment)
+ *
+ * The last entry, "Voronoi cells", is the reference example of a color shader driving
+ * the shared utilities from the mesh equation: {@link eqVorSurf} anchors a 3D Voronoi on
+ * `eqPos(u, v)` instead of `vPosition`, which is why the equation accessors have to be
+ * declared before {@link getFragmentUtilsGLSL} — see {@link getEquationPrototypesGLSL}.
+ *
  * @type {string[]}
  */
 fragmentShaders = [
@@ -3586,10 +3594,69 @@ fragmentShaders = [
     col = inkAbsorb(paper, pigment, clamp(tone, 0.0, 1.3));
 
 `,
+`
+    //Voronoi cells
+    // Voronoï dont la grille de cellules vit dans l'ESPACE, pas dans (u, v) : le
+    // voisinage 3x3x3 garantit le germe le plus proche, donc aucune dégénérescence là
+    // où la paramétrisation se pince (pôles) ni couture au raccord du domaine.
+    // opt1 : p normalisé, cellules angulaires (off) / p brut (on)
+    // opt2 : ancré sur l'équation via eqPos — le motif ne glisse plus sous déformation
+    // opt3 : colorer les frontières par la paire de cellules qu'elles séparent
+    // P : densité des cellules | S : désordre des germes | T : épaisseur des murs
+    float scl = max(abs(P), 1.) / 16.;
+    float jit = clamp(abs(S) / 24., 0., 1.);
+
+    vec3 p = npos();
+    vec4 vor = opt2 == 1. ? eqVorSurf(u, v, scl, jit) : voronoiF12(p * scl, jit);
+
+    // F2 - F1 s'annule sur les murs. fwidth() donne un trait d'épaisseur constante à
+    // l'écran, quelle que soit l'échelle du maillage.
+    float gap  = vor.y - vor.x;
+    float wall = smoothstep(0., max(fwidth(gap) * (2.5 + 2. * T), 1e-5), gap);
+
+    vec3 cell = palette(vor.z * 3. + t * .05);
+    vec3 seam = palette(fract(vor.z + vor.w) * 3.);
+
+    col = opt3 == 1. ? mix(seam, cell, wall)
+                     : mix(meshFg, mix(meshBg, cell, .85), wall);
+`,
 
 ];
 
 
+
+/**
+ * Returns the forward declarations of the mesh-equation accessors.
+ *
+ * GLSL has no forward references: a function must be declared before it is called.
+ * The shared utilities ({@link getFragmentUtilsGLSL}) contain helpers that sample the
+ * surface at an arbitrary `(u, v)` — `eqVorSurf` and friends — so the prototypes have to
+ * be emitted *before* them, while the definitions (real equation or neutral stub) are
+ * injected *after*, next to the uniforms they read. Without this split, adding a helper
+ * that calls `eqPos()` to the shared utilities fails to compile with
+ * `'eqPos' : no matching overloaded function found`.
+ *
+ * Emitted unconditionally by both composers, so `eqPos()` is callable from the shared
+ * utilities as well as from the editor's custom-function zone. `eqx`/`eqy`/`eqz` are
+ * variables, which GLSL cannot forward-declare, so they are defined here outright.
+ *
+ * @returns {string} GLSL block of forward declarations.
+ */
+function getEquationPrototypesGLSL() {
+return `
+// ============================================================
+// ÉQUATION DU MAILLAGE — DÉCLARATIONS AVANCÉES
+// Les définitions (équation réelle ou stub neutre) sont émises plus bas, après les
+// utilitaires : ceux-ci appellent eqPos(), et GLSL exige qu'une fonction soit déclarée
+// avant d'être appelée.
+// ============================================================
+float eqx, eqy, eqz;
+vec3  eqPos(float u, float v);
+float eqX(float u, float v);
+float eqY(float u, float v);
+float eqZ(float u, float v);
+`;
+}
 
 /**
  * Returns the shared GLSL utility functions used by both GPUShaderMesh.js
@@ -5828,6 +5895,56 @@ vec3 inkDeco(vec3 col, vec3 p, float k){
     return col / inkContrast(length(col), length(col));
 }
 
+// ============================================================
+// VORONOÏ 3D AVEC SECONDE DISTANCE ET IDENTIFIANTS
+// La grille de cellules vit dans l'ESPACE, pas dans (u, v) : le voisinage 3x3x3 suffit
+// à garantir le germe le plus proche, donc pas de dégénérescence là où la
+// paramétrisation se pince (pôles) ni de couture sur les bords du domaine.
+// ============================================================
+
+// .x = F1 (distance au germe le plus proche)
+// .y = F2 (distance au deuxième) — F2 - F1 s'annule sur les frontières
+// .z = identifiant de la cellule gagnante, .w = identifiant de sa voisine la plus proche
+// La paire (z, w) identifie une frontière : deux fragments d'un même mur la partagent,
+// ce qui permet de tester quelles cellules sont adjacentes.
+// jit ∈ [0,1] : 0 = grille régulière, 1 = germe libre dans sa cellule.
+vec4 voronoiF12(vec3 pt, float jit) {
+    vec3  base = floor(pt);
+    vec3  frc  = fract(pt);
+    float jt   = clamp(jit, 0.0, 1.0);
+
+    float d1 = 1e9, d2 = 1e9, id1 = 0.0, id2 = 0.0;
+
+    for (int kk = -1; kk <= 1; kk++)
+    for (int jj = -1; jj <= 1; jj++)
+    for (int ii = -1; ii <= 1; ii++) {
+        vec3  gg   = vec3(float(ii), float(jj), float(kk));
+        vec3  cel  = base + gg;
+        vec3  seed = gg + 0.5 + jt * (hash33(cel) - 0.5);   // germe centré : jit=0 -> réseau régulier
+        float dd   = length(seed - frc);
+        float cid  = hash31(cel);
+
+        if      (dd < d1) { d2 = d1; id2 = id1; d1 = dd; id1 = cid; }
+        else if (dd < d2) { d2 = dd; id2 = cid; }
+    }
+    return vec4(d1, d2, id1, id2);
+}
+
+vec4 voronoiF12(vec3 pt) { return voronoiF12(pt, 0.9); }
+
+// Le même Voronoï, mais ancré sur l'ÉQUATION plutôt que sur la position affichée.
+// eqPos(u, v) ignore le blender, la symétrie et la déformation : le motif reste donc
+// collé au maillage quand celui-ci s'anime, au lieu de le voir glisser dessous.
+// Un seul appel à eqPos par fragment ; les cellules restent des cellules de l'espace,
+// donc le voisinage 3x3x3 reste exact (pas de problème aux pôles).
+// Si le bloc d'accesseurs retombe sur son stub, eqPos vaut 0 et le motif s'aplatit :
+// vérifier avec col = vec3(length(eqPos(u, v)) * .3), qui doit varier.
+vec4 eqVorSurf(float uu, float vv, float scale, float jit) {
+    return voronoiF12(eqPos(uu, vv) * scale, jit);
+}
+
+vec4 eqVorSurf(float uu, float vv, float scale) { return eqVorSurf(uu, vv, scale, 0.9); }
+
 
 
 `;
@@ -6073,16 +6190,28 @@ uniform float lampRadius;
 uniform float lampSpecularIntensity;
 uniform float lampSpecularPower;
 
+${getEquationPrototypesGLSL()}
 ${getFragmentUtilsGLSL()}
 
 // Accès à l'équation du maillage. Stub neutre pour la validation dans l'éditeur :
 // les vraies valeurs (eqPos/eqX/eqY/eqZ et eqx/eqy/eqz) sont injectées à la
 // compilation par createFragmentShader(), à partir de l'équation paramétrique courante.
-float eqx, eqy, eqz;
 vec3 eqPos(float u, float v) { return vec3(0.0); }
 float eqX(float u, float v) { return 0.0; }
 float eqY(float u, float v) { return 0.0; }
 float eqZ(float u, float v) { return 0.0; }
+
+// Uniforms que le bloc d'accesseurs déclare lui aussi : repris ici pour que la
+// validation de l'éditeur accepte le code couleur qui les utilise. Ils sont déjà
+// envoyés par updateAllUniforms(), il n'y a rien à faire de plus côté CPU.
+// Ici 'E' désigne le coefficient (uniform), pas la constante e : on suspend la macro
+// #define E le temps de les déclarer, puis on la restaure pour le code utilisateur.
+#undef E
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float uStepU, uStepV;
+uniform float uStepsU, uStepsV;
+uniform vec3 uFirstPoint;
+#define E 2.71828182845904
 `;
 
 /**

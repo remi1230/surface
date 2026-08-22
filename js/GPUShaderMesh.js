@@ -960,14 +960,19 @@ void main() {
 	/**
 	 * Builds the complete fragment shader source (GLSL ES 3.0) for the given color code.
 	 *
-	 * When the color code references the mesh equation (`eqPos`, `eqX`/`eqY`/`eqZ`, or the
-	 * `eqx`/`eqy`/`eqz` shorthands), the parametric equation is exposed in the fragment
-	 * stage via {@link getEquationAccessorsGLSL} so distance functions can sample the
-	 * surface at any `(u, v)`. The compact equation is translated to GLSL exactly like the
-	 * vertex shader (`cu` -> `cos(u)`, etc.), since both reuse {@link getPositionGLSL}.
-	 * If the equation cannot be expressed in the fragment stage, a neutral stub is used so
-	 * the color shader never fails to compile. Color code that does not reference the
-	 * equation produces the exact same shader as before (zero added cost).
+	 * When the color code references the mesh equation (`eqPos`, `eqX`/`eqY`/`eqZ`, the
+	 * `eqx`/`eqy`/`eqz` shorthands, or an `eqVor*` utility built on them), the parametric
+	 * equation is exposed in the fragment stage via {@link getEquationAccessorsGLSL} so
+	 * distance functions can sample the surface at any `(u, v)`. The compact equation is
+	 * translated to GLSL exactly like the vertex shader (`cu` -> `cos(u)`, etc.), since
+	 * both reuse {@link getPositionGLSL}. If the equation cannot be expressed in the
+	 * fragment stage, a neutral stub is used so the color shader never fails to compile.
+	 *
+	 * A definitions block is always emitted, stub included: the shared utilities declare
+	 * `eqPos()` through {@link getEquationPrototypesGLSL} and call it, so leaving it
+	 * undefined would be a link error. Color code that does not reference the equation
+	 * only pays for a constant function the compiler drops, plus a handful of unused
+	 * uniform declarations.
 	 *
 	 * @param {string} [mainFrag=fragmentShaders[glo.numShaderSelect]] - The body of the
 	 *   fragment shader (user-editable color/pattern code).
@@ -976,9 +981,12 @@ void main() {
 	createFragmentShader(mainFrag = fragmentShaders[glo.numShaderSelect]) {
 		const code = mainFrag || '';
 
-		// Voie courante : le code couleur n'accède pas à l'équation -> shader inchangé.
-		if (!/\beq(?:Pos|[xyzXYZ])\b/.test(code)) {
-			return this._composeFragmentShader(code, '', '');
+		// Voie courante : le code couleur n'accède pas à l'équation -> stub neutre.
+		// Le bloc de définitions est émis dans tous les cas, car les utilitaires
+		// partagés déclarent puis appellent eqPos() : sans définition, le lien échoue.
+		// Un stub constant ne coûte rien, le compilateur l'élimine s'il n'est pas appelé.
+		if (!/\beq(?:Pos|Vor[A-Za-z]*|[xyzXYZ])\b/.test(code)) {
+			return this._composeFragmentShader(code, this.getEquationAccessorsStubGLSL(), '');
 		}
 
 		// Pré-calcul des raccourcis eqx/eqy/eqz au fragment courant : une seule
@@ -1004,10 +1012,12 @@ void main() {
 	 * stage. Mirrors the vertex-side `computePosition` minus blender/symmetry/deformation
 	 * (the pure equation), so the surface point can be sampled at any `(u, v)`.
 	 *
-	 * Provides `vec3 eqPos(float u, float v)`, the components `eqX`/`eqY`/`eqZ`, and the
-	 * globals `eqx`/`eqy`/`eqz` (current-fragment value, filled in `main()` on demand).
-	 * Only declares uniforms not already present in the fragment header; they are already
-	 * uploaded by {@link updateAllUniforms}, so no extra CPU work is required.
+	 * Defines `vec3 eqPos(float u, float v)` and the components `eqX`/`eqY`/`eqZ`, whose
+	 * prototypes — along with the `eqx`/`eqy`/`eqz` globals, filled in `main()` on demand —
+	 * come from {@link getEquationPrototypesGLSL}, emitted earlier so the shared utilities
+	 * can call them. Only declares uniforms not already present in the fragment header;
+	 * they are already uploaded by {@link updateAllUniforms}, so no extra CPU work is
+	 * required.
 	 *
 	 * @returns {string} GLSL definitions block.
 	 */
@@ -1040,8 +1050,6 @@ mat3 rotateAxis(vec3 axis, float angle) {
 	);
 }
 
-float eqx, eqy, eqz;
-
 vec3 eqPos(float u, float v) {
 	// Reconstruction des indices de grille pour rester cohérent avec le sommet.
 	float i = uStepU != 0.0 ? (u - uMinU) / uStepU : 0.0;
@@ -1067,16 +1075,26 @@ float eqZ(float u, float v) { return eqPos(u, v).z; }
 	}
 
 	/**
-	 * Neutral fallback for {@link getEquationAccessorsGLSL}: same symbols, but the
-	 * equation always evaluates to `vec3(0.0)`. Used when the live equation cannot be
-	 * compiled in the fragment stage so the color shader still works (eq* = 0).
+	 * Neutral fallback for {@link getEquationAccessorsGLSL}: same symbols and the same
+	 * uniform declarations, but the equation always evaluates to `vec3(0.0)`. Used when
+	 * the live equation cannot be compiled in the fragment stage, and for every color
+	 * shader that does not reference the equation — the prototypes are unconditional, so
+	 * a definition must always follow.
 	 *
 	 * @returns {string} GLSL definitions block.
 	 */
 	getEquationAccessorsStubGLSL() {
 		return `
 // Accès équation (stub neutre — la valeur réelle est injectée à la compilation).
-float eqx, eqy, eqz;
+// Les uniforms sont déclarés comme dans le bloc réel : le code couleur qui les utilise
+// compile donc à l'identique, que l'équation soit disponible ou non.
+#undef E
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float uStepU, uStepV;
+uniform float uStepsU, uStepsV;
+uniform vec3 uFirstPoint;
+#define E 2.71828182845904
+
 vec3 eqPos(float u, float v) { return vec3(0.0); }
 float eqX(float u, float v) { return 0.0; }
 float eqY(float u, float v) { return 0.0; }
@@ -1172,6 +1190,7 @@ uniform float U;
 
 #define time t
 
+${getEquationPrototypesGLSL()}
 ${getFragmentUtilsGLSL()}
 ${accessorsGLSL}
 // Fonctions écrites par l'utilisateur dans l'éditeur (zone libre avant main()).

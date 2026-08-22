@@ -98,6 +98,112 @@ fragmentShaders = [
 
 `,
 `   
+    //brushMaker
+    col = E*vec3(2./3., 1./6., 1./4.);
+    float n = 8.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0  = ((npos()) * nb);
+
+    vec3 p = abs(p0);
+
+    vec3 paint = col;
+
+    paint = brushMaker(col, p0*os(p*.5+t/3.), 1., 17./12., col, .2, 0., 10., 1.0667, 1e-2);
+
+    col = paint;
+
+`,
+`   
+    //licq-nice
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    col = liqc(p + baseColor(os(p*3.)*p*3.+t/6.)+.1, 0.);
+
+`,
+`   
+    //licq-nice II
+    float n = 1.;
+    float nb = opt1 == 0. ? n : n*.5;
+    vec3 p0  = npos() * nb;
+    vec3 p   = abs(p0);
+
+    vec3 val = p*8. + t/3.;
+    
+    col = vec3(
+        o(vec3(o(val), m(val), os(val)))
+    );
+
+    col = liqc(col*p*5./12., 0.);
+
+`,
+`   
+    //alive
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    float val = os(p*3.+t/6.);
+
+    col = liqc(5./3. * (p + baseColor(val*p*3.+t/6.)), 0.);
+
+`,
+`   
+    //alive II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    float val = o(p*6., 1., -t/9.);
+
+    col = vec3(.5);
+    col = liqc((p * baseColor(1.*val*p*1.+t/9.)), .1/o(p*.5));
+
+    col /= absp(la(os(col*p*32.+t/9.)), .5);
+
+`,
+`   
+    //Planet
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    vec3 v1 = vec3(inkAbsorb(E+p0*W*col, col*1./8., 1./8.));
+    vec3 v2 = vec3(inkBleed(64.+p0*PI*col, 1./8., 1./8.));
+
+    col = liqc(v1*v2, 1./8.);
+
+`,
+`   
+    //Planet II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    vec3 v1 = vec3(inkAbsorb(2.*E+p0*W*col, col*.666e2, 1./12.));
+    vec3 v2 = vec3(inkBleed(p0*4.*col, 1./8., 3.));
+
+    col = liqc(v1*v2*vortex(.25*liqc(p0*col, -1./9.), 0., 0., 0., 0.), 1./6.);
+`,
+`   
+    //Planet III
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    vec3 v1 = vec3(inkAbsorb(2.*E+p0*W*col, col*.666e2, 1./12.));
+    vec3 v2 = vec3(inkBleed(p0*4.*col, 1./8., 3.));
+
+    col = liqc(v1*v2*vortex(.25*liqc(p0*col, -1./9.), 0., 0., 0., 0.), 1./6.);
+`,
+`   
+    //VM
+    col = E*vec3(2./3., 1./6., 1./4.);
+    float n = 8.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0  = ((npos()) * nb);
+
+    vec3 p = abs(p0);
+
+    col *= vm(p, p*o(p));
+
+`,
+`   
     //FBM 3D Base
     vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
 
@@ -1451,19 +1557,21 @@ fragmentShaders = [
     col = E*vec3(2./3., 1./6., 1./4.);
     float n = 8.;
     float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = ((npos()) * nb);
+    vec3 p0  = ((npos()) * nb);
 
-    p = abs(p);
+    vec3 p = abs(p0);
 
     float ti = t * .125;
 
     p  = go(p, pm(m(p+t*.125)), .125);
 
-    col *= .25*o(.5*p*pm(o(p*2.)));
+    col *= o(p+t/2.);
 
-    float vor = voronoiPos(.2*col+p*4., 2.);
-    col *= pm(1.*spec(pm(col), pm(vor)));
-    col -= .5*(tube((col), (vor*.25)));
+    vec3 paint = baseColor(col);
+
+    paint = brushMaker(paint, 2.*p0+.5, 1., 2., col, 2./3., 1., 10., 1.125, 1e-2);
+
+    col = paint;
     
     
 `,
@@ -1696,32 +1804,7 @@ fragmentShaders = [
 
     col *= c(p.z*8.);          // frontières nettes (touche zéro)
 
-    // ---------- VORTEX LOCALISÉ ----------
-    vec3 pn = normalize(p);
-
-    // centre qui dérive le long de sa bande (orbite autour de Z)
-    float a = t*.1;
-    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
-
-    // enveloppe gaussienne de la tache
-    float dist = distance(pn, center);
-    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
-
-    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
-    vec3 up = vec3(0.,0.,1.);
-    vec3 tx = normalize(cross(up, center));
-    vec3 ty = cross(center, tx);
-    float lx = dot(pn - center, tx);
-    float ly = dot(pn - center, ty);
-
-    float ang = atan(ly, lx);
-    float rad = length(vec2(lx, ly));
-    float swirl = blob * s(ang*2. - rad*40. + t*3.);     // spirale à 2 bras, tournante
-
-    // couleur du vortex (rouge-orangé) + volutes internes
-    vec3 spotColor = vec3(.7, .25, .15);
-    col = mix(col, spotColor, blob*.8);
-    col += .18*swirl;
+    col = vortex(col);
 
     // ---------- FINITION ----------
     col += .1*tube(col, 12.);
@@ -2096,6 +2179,28 @@ fragmentShaders = [
 `,
 `
     //Simple
+
+`,
+`
+    //Liqc
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    col = liqc(o(p*12.));
+
+
+`,
+`
+    //Liqc II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    float val1 = m(p*8. + t/3.);
+    float val2 = o(p*12. + t/3.);
+
+    float val = min(val1, val2);
+    col = liqc(p*o(o(p*.5)+val-p*8.-t/3.), .5);
+
 
 `,
 `
@@ -3218,6 +3323,60 @@ fragmentShaders = [
 
 `,
 `
+    //Liquid II
+    vec3 pL = vec3(.125, .75, .5) + (vPosition - vec3(.125, .75, .5)) * .03;
+    float T = time * .25;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 16.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    vec3 p = npos();
+    p = abs(p);
+
+    float vor = voronoiPos(p*32., 1.);
+
+    col = min(c0, c0+2./3.*o(vor+p*12.+t));
+
+`,
+`
     //Porcelain
     // =======================================================
     // 1. Vecteurs de base
@@ -3634,6 +3793,38 @@ vec3 brushLayerAnim(vec3 paint, vec3 pt, float scale, float coverage,
 
     float mask = smoothstep(0.45, 0.25, cell.w) * coverage;
     return mix(paint, strokeColor, mask);
+}
+
+vec3 brushMaker(vec3 paint, vec3 pt, float scale, float coverage,
+                    vec3 geoTint, float warpAmp, float speed, float it){
+    for(float i = 1.; i <= it; i++){
+        paint = brushLayerAnim(paint, pt + i, scale, coverage,
+                    geoTint, warpAmp, speed);
+    }
+                
+    return paint;
+}
+
+vec3 brushMaker(vec3 paint, vec3 pt, float scale, float coverage,
+                    vec3 geoTint, float warpAmp, float speed, float it, float scit){
+    for(float i = 1.; i <= it; i++){
+        paint = brushLayerAnim(paint, pt + i, scale, coverage,
+                    geoTint, warpAmp, speed);
+        scale *= scit;
+    }
+                
+    return paint;
+}
+
+vec3 brushMaker(vec3 paint, vec3 pt, float scale, float coverage,
+                    vec3 geoTint, float warpAmp, float speed, float it, float scit, float sci){
+    for(float i = 1.; i <= it; i++){
+        paint = brushLayerAnim(paint, pt + i/sci, scale, coverage,
+                    geoTint, warpAmp, speed);
+        scale *= scit;
+    }
+                
+    return paint;
 }
 
 float tubeRel(vec3 pt, float nb, float cWidthPx){
@@ -4124,6 +4315,10 @@ float voronoiPos(vec3 x){
     return sqrt(md);
 }
 
+float vl(vec3 p, vec3 col, vec3 vk){
+    return voronoiPos(p*vk.x+col*vk.y, vk.z);
+}
+
 float truchet(vec2 uv, float index, float rad, float thickness){
     vec2 center1, center2;
     if (index < 0.5) {
@@ -4142,6 +4337,198 @@ float truchet(vec2 uv, float index, float rad, float thickness){
     float pattern = max(arc1, arc2);
 
     return pattern;
+}
+
+vec3 liqc(){
+    vec3 pL = vec3(.125, .75, .5) + (npos() - vec3(.125, .75, .5)) * .03;
+    float T = time / 3.;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 12.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
+}
+
+vec3 liqc(float k){
+    vec3 pL = vec3(.125, .75, .5) + (k*npos() - vec3(.125, .75, .5)) * .03;
+    float T = time / 3.;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 12.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
+}
+
+vec3 liqc(vec3 p){
+    vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
+    float T = time / 3.;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 12.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
+}
+
+vec3 liqc(vec3 p, float kt){
+    vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
+    float T = time * kt;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 12.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
 }
 
 vec3 h3(vec3 v1, vec3 v2){
@@ -4190,6 +4577,10 @@ float m(float coeff, float phase){
     vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
     p = abs(p) * coeff + phase;
     return cos(p.x) * cos(p.y) * cos(p.z);
+}
+
+float vm(vec3 v1, vec3 v2){
+    return cos(v1.x*v2.x) * cos(v1.y*v2.y) * cos(v1.z*v2.z); 
 }
 
 vec3 mcol(vec3 val, float nb){
@@ -5073,6 +5464,189 @@ vec3 sdec(vec3 col, float val, float k){
 }
 vec3 sdec(vec3 col, float val, float k, float n){
     return la(n*hueRotateYIQ(col*val, val*k));
+}
+
+vec3 vortex(vec3 col){
+    vec3 pn = npos();
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*.1;
+    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*2. - rad*92. + t*3.);
+
+    vec3 spotColor = vec3(.7, .25, .15);
+    col = mix(col, spotColor, blob);
+    col += .18*swirl;
+
+    return col;
+}
+
+vec3 vortex(vec3 col, float timeCoeff, float angleCoeff, float radCoeff, float tCoeff){
+    vec3 pn = npos();
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*timeCoeff;
+    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*angleCoeff - rad*radCoeff + t*tCoeff);
+
+    vec3 spotColor = vec3(.7, .25, .15);
+    col = mix(col, spotColor, blob);
+    col += .18*swirl;
+
+    return col;
+}
+
+vec3 vortex(vec3 col, vec3 spotColor){
+    vec3 pn = npos();
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*.1;
+    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*2. - rad*40. + t*3.);
+
+    col = mix(col, spotColor, blob);
+    col += .18*swirl;
+
+    return col;
+}
+
+vec3 vortex(vec3 center, vec3 col, vec3 spotColor){
+    vec3 pn = npos();
+
+    center = normalize(center);
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*.0;
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*2. - rad*92. + t*3.);
+
+    col = mix(col, spotColor, blob);
+    col += .18*swirl;
+
+    return col;
+}
+
+vec3 vortex6(vec3 col, vec3 spotColor, float dec){
+    col = vortex(vec3(dec, 1., 1.), col, spotColor);
+    col = vortex(vec3(-dec, 1., 1.), col, spotColor);
+    col = vortex(vec3(1., dec, 1.), col, spotColor);
+    col = vortex(vec3(1., -dec, 1.), col, spotColor);
+    col = vortex(vec3(1., 1., dec), col, spotColor);
+    col = vortex(vec3(1., 1., -dec), col, spotColor);
+
+    return col;
+}
+
+vec3 vortex(vec3 col, float swirlCoeff){
+    vec3 pn = npos();
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*.1;
+    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*2. - rad*40. + t*3.);
+
+    vec3 spotColor = vec3(.7, .25, .15);
+    col = mix(col, spotColor, blob);
+    col += swirlCoeff*swirl;
+
+    return col;
+}
+
+vec3 vortex(vec3 col, vec3 spotColor, float swirlCoeff){
+    vec3 pn = npos();
+
+    // centre qui dérive le long de sa bande (orbite autour de Z)
+    float a = t*.1;
+    vec3 center = normalize(vec3(cos(a), sin(a), -.25));   // .4 = latitude du vortex
+
+    // enveloppe gaussienne de la tache
+    float dist = distance(pn, center);
+    float blob = exp(-dist*dist*8.);                     // 8. = taille (plus grand = plus petit)
+
+    // repère tangent local au centre -> rotation interne sûre (pas de moiré polaire)
+    vec3 up = vec3(0.,0.,1.);
+    vec3 tx = normalize(cross(up, center));
+    vec3 ty = cross(center, tx);
+    float lx = dot(pn - center, tx);
+    float ly = dot(pn - center, ty);
+
+    float ang = atan(ly, lx);
+    float rad = length(vec2(lx, ly));
+    float swirl = blob * s(ang*2. - rad*40. + t*3.);
+
+    col = mix(col, spotColor, blob);
+    col += swirlCoeff*swirl;
+
+    return col;
 }
 
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {

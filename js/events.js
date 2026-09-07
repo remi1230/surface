@@ -4,15 +4,18 @@
 
 /**
  * Main application bootstrap.
- * Waits for fonts to load, then initializes GUI controls, modals, form radios,
- * renders the startup surface, and starts the intro animation.
+ * Gives the fonts a bounded chance to load, then initializes GUI controls, modals,
+ * form radios, renders the startup surface, and starts the intro animation.
+ *
+ * The font step must never decide whether the rest runs. It used to `await` three
+ * `document.fonts.load()` calls bare: a font file that 404s or errors rejects that
+ * promise, the rejection aborts this handler, and the interface is then never built at
+ * all. `AppFonts.load()` swallows the failure and caps the wait; if the fonts were not
+ * there in time, `AppFonts.whenAvailable()` re-fetches them and re-styles the GUI
+ * instead of leaving it in the fallback font until the next reload.
  */
 document.addEventListener('DOMContentLoaded', async function() {
-   await Promise.all([
-      document.fonts.load('300 1em Poppins'),
-      document.fonts.load('400 1em Poppins'),
-      document.fonts.load('600 1em Poppins'),
-   ]);
+   const fontsReady = await AppFonts.load();
 
    addGuiControls();
 
@@ -31,6 +34,13 @@ document.addEventListener('DOMContentLoaded', async function() {
    otherDesigns();
    paramRadios();
    styleUI();
+
+   if(!fontsReady){
+      console.warn('[SURFACE] Poppins indisponible au démarrage : interface dessinée avec la ' +
+                   'police de repli, nouvelle tentative en cours.');
+      AppFonts.whenAvailable(refreshGuiFonts);
+   }
+
    // Pre-load Monaco modules in the background so they are ready before the user opens an editor
    ensureMonacoLoaded();
 });

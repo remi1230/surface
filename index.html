@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>SURFACE</title>
   <link rel="icon" type="image/png" href="logo.png">
+
+  <!-- The GUI is painted into a canvas, and a canvas only uses fonts the document has
+       already loaded. Without these hints the font files are only requested at
+       DOMContentLoaded, i.e. behind the several MB of engine code below — long enough for
+       BabylonJS to measure and draw the panels with the fallback font. -->
+  <link rel="preload" href="fonts/poppins/Poppins-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/poppins/Poppins-SemiBold.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/material-icons/MaterialIcons-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
   <link rel="stylesheet" href="css/materialize-icons.css">
   <link rel="stylesheet" href="css/monaco.css">
   <link rel="stylesheet" href="css/surface.css">
@@ -18,6 +27,7 @@
   <script src="cdn/js/monaco/loader.min.js" defer></script>
   
 
+  <script src="js/fonts.js" defer></script>
   <script src="js/ui-components.js" defer></script>
   <script src="js/forms.js" defer></script>
   <script src="js/prototypes.js" defer></script>

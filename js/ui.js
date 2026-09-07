@@ -1519,3 +1519,32 @@ function styleUI(fontSizeToAdd = -1){
     applyFontStyleToTitle();
     customSlidersBar("6px", "21px");
 }
+
+/**
+ * Re-applies the interface font after Poppins turned up late.
+ *
+ * Two things stand in the way of a plain `styleUI()` call here: BabylonJS caches the text
+ * metrics it measured with the fallback font, and its `fontFamily` setter returns early when
+ * the value does not change — so re-assigning 'Poppins' over 'Poppins' would repaint nothing.
+ * Toggling the family makes every control drop its cached metrics and lay out again.
+ *
+ * Called by the bootstrap through `AppFonts.whenAvailable()`; harmless if the GUI is not
+ * built yet.
+ */
+function refreshGuiFonts(){
+	if(!glo.advancedTexture || !glo.allControls){ return; }
+
+	// 0, not the default -1: the sizes were already shifted once by the boot-time call.
+	styleUI(0);
+
+	glo.allControls.forEach(control => {
+		const target = control.textBlock || control;
+		if(!target || target.fontFamily === undefined){ return; }
+
+		const family = target.fontFamily;
+		target.fontFamily = family === 'sans-serif' ? 'serif' : 'sans-serif';
+		target.fontFamily = family;
+	});
+
+	glo.advancedTexture.markAsDirty();
+}

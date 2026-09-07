@@ -1,9 +1,15 @@
-/* fallback */
+/* Self-hosted: the icon font is part of the interface, so it must not depend on a
+   third-party origin being reachable when the app starts. The Google copy is kept as a
+   second source, used only if the local file is missing. */
 @font-face {
   font-family: 'Material Icons';
   font-style: normal;
   font-weight: 400;
-  src: url(https://fonts.gstatic.com/s/materialicons/v145/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
+  /* block, not swap: the fallback would paint the raw ligature names ("undo", "redo")
+     as plain text in the buttons. */
+  font-display: block;
+  src: url('../fonts/material-icons/MaterialIcons-Regular.woff2') format('woff2'),
+       url(https://fonts.gstatic.com/s/materialicons/v145/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2) format('woff2');
 }
 
 .material-icons {

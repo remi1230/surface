@@ -61,6 +61,14 @@
  * 23 - Liquid
  * 24 - Porcelain
  *
+ * (the list above only names the first entries; the array has grown well past it —
+ *  {@link ShaderCRUD.getShaderName} reads each shader's name from its first `//` comment)
+ *
+ * The last entry, "Voronoi cells", is the reference example of a color shader driving
+ * the shared utilities from the mesh equation: {@link eqVorSurf} anchors a 3D Voronoi on
+ * `eqPos(u, v)` instead of `vPosition`, which is why the equation accessors have to be
+ * declared before {@link getFragmentUtilsGLSL} — see {@link getEquationPrototypesGLSL}.
+ *
  * @type {string[]}
  */
 fragmentShaders = [
@@ -138,6 +146,39 @@ fragmentShaders = [
 
 `,
 `   
+    //mwmi
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? .5 : .25); 
+    vec3 p  = abs(p0);
+
+    p = go(p, .25*ol(p), 1./3.);
+
+    float val1 = mwmi(p*8., 3., 1./16., t/2.);
+    float val2 = E*mwmi(p*12., 3., 1./16., t);
+    float val  = (val1 * val2); 
+
+    col = vec3(1.);
+    col *= val;
+
+    col *= liqc(col*p, 0.);
+
+    col = normalize(col);
+
+`,
+`   
+    //Static
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? .5 : .25); 
+    vec3 p  = abs(p0);
+
+    p = wrot(p, 0., 1., PI);
+
+    col *= ml(p*3., 0., 0.);
+
+    col = 2./3.-liqc(col/absp(p, 1./3.), 0.);
+
+`,
+`   
     //alive
     vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
     vec3 p  = abs(p0);
@@ -190,6 +231,28 @@ fragmentShaders = [
     vec3 v2 = vec3(inkBleed(p0*4.*col, 1./8., 3.));
 
     col = liqc(v1*v2*vortex(.25*liqc(p0*col, -1./9.), 0., 0., 0., 0.), 1./6.);
+`,
+`   
+    //Planet liqc(liqc)
+    float nb = 1.;
+    vec3 p = npos() * nb * (opt1 == 0. ? 1. : .5);
+
+    col = liqc(liqc(p, .1+m(p)*.001) / 6., 0.);
+
+    col *= col*m3(col);
+`,
+`   
+    //A wrot
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
+
+    vec3 pw = wrot(p, 0., 1., PI);
+
+    col = vec3(m((pw)*8.));
+    col = max(col, 20.*m((pw)*12.));
+
+    if(length(col) > .6667){ col *=  vec3(1.125); }
 `,
 `   
     //VM
@@ -3586,10 +3649,119 @@ fragmentShaders = [
     col = inkAbsorb(paper, pigment, clamp(tone, 0.0, 1.3));
 
 `,
+`
+    //Voronoi cells
+    // Voronoï dont la grille de cellules vit dans l'ESPACE, pas dans (u, v) : le
+    // voisinage 3x3x3 garantit le germe le plus proche, donc aucune dégénérescence là
+    // où la paramétrisation se pince (pôles) ni couture au raccord du domaine.
+    // opt1 : p normalisé, cellules angulaires (off) / p brut (on)
+    // opt2 : ancré sur l'équation via eqPos — le motif ne glisse plus sous déformation
+    // opt3 : colorer les frontières par la paire de cellules qu'elles séparent
+    // P : densité des cellules | Q : vitesse d'animation (0 = figé)
+    // S : désordre des germes   | T : épaisseur des murs
+    float scl = max(abs(P), 1.) / 16.;
+    float jit = clamp(abs(S) / 24., 0., 1.);
+    float spd = Q / 128.;
+
+    vec3 p = npos();
+    vec4 vor = opt2 == 1. ? eqVorSurf(u, v, scl, jit, spd) : voronoiF12(p * scl, jit, spd);
+
+    // F2 - F1 s'annule sur les murs. fwidth() donne un trait d'épaisseur constante à
+    // l'écran, quelle que soit l'échelle du maillage.
+    float gap  = vor.y - vor.x;
+    float wall = smoothstep(0., max(fwidth(gap) * (2.5 + 2. * T), 1e-5), gap);
+
+    vec3 cell = palette(vor.z * 3. + t * .05);
+    vec3 seam = palette(fract(vor.z + vor.w) * 3.);
+
+    col = opt3 == 1. ? mix(seam, cell, wall)
+                     : mix(meshFg, mix(meshBg, cell, .85), wall);
+`,
+`
+    //voronoiF12
+    vec3 p = npos();
+
+    vec3 pm = vec3(
+        p.x + 4.*cos(t/128.),
+        p.y + 5.*sin(t/256.),
+        p.z - 3.*cos(t/128.)*sin(t/256.)
+    );
+
+    vec4 vor = voronoiF12((pm*6.66667), 1.);
+
+    vec3 cell = cpalette(vor.x / vor.y - t * .0, col*vor.y);
+
+    col = cell;
+`,
+`
+    //voronoiF12 II
+    vec3 p = npos();
+
+    vec4 vor = voronoiF12((p*36.), 1., 1.);
+
+    col = vec3(vor.x*.125);
+
+    col = liqc(palette(length(col))*o(abs(p)*8.+t/3.), 0.);
+
+    col = hueRotateYIQ(col, radians(PI*100.));
+
+
+`,
+`
+    //voronoiF12 Mozaïc
+    vec3 p = npos();
+    vec3 pa = abs(p);
+
+    vec4 vor = voronoiF12((pa*24.), 1., 1.);
+
+    col = vec3((vor.x/(1./12.+vor.y))/24.);
+
+    
+    float val = oi(pa*8. + t/6., 2., 2.);
+
+    col = liqc(palette(length(col))*val, 0.);
+
+    col = hueRotateYIQ(col, radians(PI*100.));
+
+    
+`,
 
 ];
 
 
+
+/**
+ * Returns the forward declarations of the mesh-equation accessors.
+ *
+ * GLSL has no forward references: a function must be declared before it is called.
+ * The shared utilities ({@link getFragmentUtilsGLSL}) contain helpers that sample the
+ * surface at an arbitrary `(u, v)` — `eqVorSurf` and friends — so the prototypes have to
+ * be emitted *before* them, while the definitions (real equation or neutral stub) are
+ * injected *after*, next to the uniforms they read. Without this split, adding a helper
+ * that calls `eqPos()` to the shared utilities fails to compile with
+ * `'eqPos' : no matching overloaded function found`.
+ *
+ * Emitted unconditionally by both composers, so `eqPos()` is callable from the shared
+ * utilities as well as from the editor's custom-function zone. `eqx`/`eqy`/`eqz` are
+ * variables, which GLSL cannot forward-declare, so they are defined here outright.
+ *
+ * @returns {string} GLSL block of forward declarations.
+ */
+function getEquationPrototypesGLSL() {
+return `
+// ============================================================
+// ÉQUATION DU MAILLAGE — DÉCLARATIONS AVANCÉES
+// Les définitions (équation réelle ou stub neutre) sont émises plus bas, après les
+// utilitaires : ceux-ci appellent eqPos(), et GLSL exige qu'une fonction soit déclarée
+// avant d'être appelée.
+// ============================================================
+float eqx, eqy, eqz;
+vec3  eqPos(float u, float v);
+float eqX(float u, float v);
+float eqY(float u, float v);
+float eqZ(float u, float v);
+`;
+}
 
 /**
  * Returns the shared GLSL utility functions used by both GPUShaderMesh.js
@@ -3634,6 +3806,82 @@ float absp(float val){
 }
 float absp(float val1, float val2){
     return val2 + abs(val1);
+}
+
+vec3 wrap(vec3 p){
+    return fract(p)-.5;
+}
+vec3 wrap(vec3 p, float f){
+    return fract(p*f)-.5;
+}
+vec3 wrap(vec3 p, vec3 f){
+    return fract(p*f)-.5;
+}
+vec2 wrap(vec2 p){
+    return fract(p)-.5;
+}
+vec2 wrap(vec2 p, float f){
+    return fract(p*f)-.5;
+}
+vec2 wrap(vec2 p, vec2 f){
+    return fract(p*f)-.5;
+}
+float wrap(float p){
+    return fract(p)-.5;
+}
+float wrap(float p, float f){
+    return fract(p*f)-.5;
+}
+
+vec3 wrap2(vec3 p, float f){
+    return .5 * sin(6.2831853 * f * p);
+}
+
+vec3 go(vec3 p, float delta, float ct){
+    return p * (1. + delta*(.5*cos(t*ct)+.5));
+}
+
+mat3 rotAxis(vec3 axis, float a) {
+    axis = normalize(axis);
+    float c = cos(a), s = sin(a);
+    float t = 1.0 - c;
+    float x = axis.x, y = axis.y, z = axis.z;
+    return mat3(
+        t*x*x + c,    t*x*y + s*z,  t*x*z - s*y,
+        t*x*y - s*z,  t*y*y + c,    t*y*z + s*x,
+        t*x*z + s*y,  t*y*z - s*x,  t*z*z + c
+    );
+}
+
+vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
+  return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle);
+}
+
+mat3 rotX(float a) {
+    float c = cos(a), s = sin(a);
+    return mat3(
+        1.0, 0.0, 0.0,
+        0.0,   c,   s,
+        0.0,  -s,   c
+    );
+}
+
+mat3 rotY(float a) {
+    float c = cos(a), s = sin(a);
+    return mat3(
+          c, 0.0,  -s,
+        0.0, 1.0, 0.0,
+          s, 0.0,   c
+    );
+}
+
+mat3 rotZ(float a) {
+    float c = cos(a), s = sin(a);
+    return mat3(
+          c,   s, 0.0,
+         -s,   c, 0.0,
+        0.0, 0.0, 1.0
+    );
 }
 
 // k = raideur du palier : 1. = linéaire (aucun palier), grand = paliers longs
@@ -4617,6 +4865,19 @@ float o(float coeff, float phase){
     return cos(p.x) + cos(p.y) + cos(p.z);
 }
 
+float mss(){
+    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
+    p = abs(p);
+    return sin(p.x) * sin(p.y) * sin(p.z);
+}
+float mss(float coeff){
+    vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
+    p = abs(p * coeff);
+    return sin(p.x) * sin(p.y) * sin(p.z);
+}
+float mss(vec3 p){
+    return sin(p.x) * sin(p.y) * sin(p.z);
+}
 float ms(){
     vec3 p = opt1 == 0. ? normalize(vPosition) : vPosition;
     p = abs(p);
@@ -4666,6 +4927,14 @@ float m(float x, float y, float z){
 }
 float m(float x, float y, float z, float coeff){
     return cos(coeff*x) * cos(coeff*y) * cos(coeff*z);
+}
+
+float md(vec3 p){
+    return cos(p.x) / cos(p.y) / cos(p.z);
+}
+
+float mmss(vec3 p){
+    return mss(p) + m(p);
 }
 
 float ms(vec3 p){
@@ -4806,7 +5075,7 @@ float ml(vec3 p, float coeff){
     return cos(coeff*log(abs(p.x))) * cos(coeff*log(abs(p.y))) * cos(coeff*log(abs(p.z)));
 }
 float ml(vec3 p, float coeff, float phase){
-    return cos(coeff*log(phase + abs(p.x))) * cos(coeff*log(phase + abs(p.y))) * cos(coeff*log(phase + abs(p.z)));
+    return cos(coeff*log(abs(p.x)) + phase) * cos(coeff*log(abs(p.y)) + phase) * cos(coeff*log(abs(p.z)) + phase);
 }
 float ml(vec3 p, float coeff, vec3 phase){
     return cos(coeff*log(phase.x + abs(p.x))) * cos(coeff*log(phase.y + abs(p.y))) * cos(coeff*log(phase.z + abs(p.z)));
@@ -4865,39 +5134,6 @@ float o(float x, float y, float z){
 }
 float o(float x, float y, float z, float coeff){
     return cos(coeff*x) + cos(coeff*y) + cos(coeff*z);
-}
-
-vec3 wrap(vec3 p){
-    return fract(p)-.5;
-}
-vec3 wrap(vec3 p, float f){
-    return fract(p*f)-.5;
-}
-vec3 wrap(vec3 p, vec3 f){
-    return fract(p*f)-.5;
-}
-vec2 wrap(vec2 p){
-    return fract(p)-.5;
-}
-vec2 wrap(vec2 p, float f){
-    return fract(p*f)-.5;
-}
-vec2 wrap(vec2 p, vec2 f){
-    return fract(p*f)-.5;
-}
-float wrap(float p){
-    return fract(p)-.5;
-}
-float wrap(float p, float f){
-    return fract(p*f)-.5;
-}
-
-vec3 wrap2(vec3 p, float f){
-    return .5 * sin(6.2831853 * f * p);
-}
-
-vec3 go(vec3 p, float delta, float ct){
-    return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
 
 float oe(vec3 p){
@@ -5113,6 +5349,96 @@ float oi(vec3 p, float it, float np){
     float res = 0.;
     for(float i = 0.; i < it; i += 1.){
         res += o(p);
+        p *= np;
+    }
+    return res;
+}
+
+float owi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res += o(p);
+        p = wrot(p, 0., np, PI);
+    }
+    return res;
+}
+
+float owmi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res = min(o(p), res);
+        p = wrot(p, 0., np, PI);
+    }
+    return res;
+}
+
+float owmi(vec3 p, float it, float np, float t){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        p = wrot(p, 0., np, PI);
+        res = min(o(p+t), res);
+    }
+    return res;
+}
+
+float owmi(vec3 p, float it, float np, float t, float tw){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        p = wrot(p, 0., np, tw);
+        res = min(o(p+t), res);
+    }
+    return res;
+}
+
+float mwmi(vec3 p, float it, float np, float t){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        p = wrot(p, 0., np, PI);
+        res = min(m(p+t), res);
+    }
+    return res;
+}
+
+float mwmi(vec3 p, float it, float np, float t, float tw){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        p = wrot(p, 0., np, tw);
+        res = min(m(p+t), res);
+    }
+    return res;
+}
+
+float owmai(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res = max(o(p), res);
+        p = wrot(p, 0., np, PI);
+    }
+    return res;
+}
+
+float owmai(vec3 p, float it, float np, float t){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res = max(o(p+t), res);
+        p = wrot(p, 0., np, PI);
+    }
+    return res;
+}
+
+float omi(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res = min(res, o(p));
+        p *= np;
+    }
+    return res;
+}
+
+float omai(vec3 p, float it, float np){
+    float res = 0.;
+    for(float i = 0.; i < it; i += 1.){
+        res = max(res, o(p));
         p *= np;
     }
     return res;
@@ -5362,49 +5688,6 @@ vec3 hdr(vec3 col, float val){
     return pow(col, vec3(val));
 }
 
-mat3 rotAxis(vec3 axis, float a) {
-    axis = normalize(axis);
-    float c = cos(a), s = sin(a);
-    float t = 1.0 - c;
-    float x = axis.x, y = axis.y, z = axis.z;
-    return mat3(
-        t*x*x + c,    t*x*y + s*z,  t*x*z - s*y,
-        t*x*y - s*z,  t*y*y + c,    t*y*z + s*x,
-        t*x*z + s*y,  t*y*z - s*x,  t*z*z + c
-    );
-}
-
-vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
-  return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle);
-}
-
-mat3 rotX(float a) {
-    float c = cos(a), s = sin(a);
-    return mat3(
-        1.0, 0.0, 0.0,
-        0.0,   c,   s,
-        0.0,  -s,   c
-    );
-}
-
-mat3 rotY(float a) {
-    float c = cos(a), s = sin(a);
-    return mat3(
-          c, 0.0,  -s,
-        0.0, 1.0, 0.0,
-          s, 0.0,   c
-    );
-}
-
-mat3 rotZ(float a) {
-    float c = cos(a), s = sin(a);
-    return mat3(
-          c,   s, 0.0,
-         -s,   c, 0.0,
-        0.0, 0.0, 1.0
-    );
-}
-
 float relief(float dLin, float cWidthPx){        // dLin : distance écran en PIXELS (sortie de tube ou de lin)
     const float cAspect = 0.55;
     const float cRelief = 1.0;
@@ -5649,6 +5932,10 @@ vec3 vortex(vec3 col, vec3 spotColor, float swirlCoeff){
     return col;
 }
 
+mat3 m3(vec3 col){
+    return mat3(col, col, col);
+}
+
 vec3 calculateLighting(vec3 pos, vec3 normal, vec3 baseColor) {
     vec3 N = normalize(normal);
     vec3 V = normalize(cameraPosition - pos);
@@ -5827,6 +6114,72 @@ vec3 inkDeco(vec3 col, vec3 p, float k){
     col *= k + inkAbsorb(p, col, length(col));
     return col / inkContrast(length(col), length(col));
 }
+
+// ============================================================
+// VORONOÏ 3D AVEC SECONDE DISTANCE ET IDENTIFIANTS
+// La grille de cellules vit dans l'ESPACE, pas dans (u, v) : le voisinage 3x3x3 suffit
+// à garantir le germe le plus proche, donc pas de dégénérescence là où la
+// paramétrisation se pince (pôles) ni de couture sur les bords du domaine.
+// ============================================================
+
+// .x = F1 (distance au germe le plus proche)
+// .y = F2 (distance au deuxième) — F2 - F1 s'annule sur les frontières
+// .z = identifiant de la cellule gagnante, .w = identifiant de sa voisine la plus proche
+// La paire (z, w) identifie une frontière : deux fragments d'un même mur la partagent,
+// ce qui permet de tester quelles cellules sont adjacentes.
+// jit ∈ [0,1] : 0 = grille régulière, 1 = germe libre dans sa cellule.
+// speed : vitesse d'animation, 0 = motif figé (voir voronoiSeed).
+
+// Position du germe d'une cellule, en coordonnées locales [0,1]^3.
+// Figé, le germe est tiré au hasard dans sa maille ; animé, il y décrit une courbe de
+// Lissajous dont la phase dépend de la cellule. Dans les deux cas l'écart au centre
+// reste borné par la demi-maille : le germe ne sort JAMAIS de sa cellule, sans quoi des
+// cellules plus lointaines entreraient en concurrence, le voisinage 3x3x3 cesserait de
+// garantir le germe le plus proche et le motif claquerait d'une image à l'autre.
+// C'est cette borne, et non la vitesse, qui rend l'animation sûre.
+vec3 voronoiSeed(vec3 cel, float jit, float speed) {
+    vec3 rnd = hash33(cel);
+    vec3 off = speed == 0.0 ? 2.0 * rnd - 1.0 : sin(speed * time + TWO_PI * rnd);
+    return 0.5 + clamp(jit, 0.0, 1.0) * 0.5 * off;
+}
+
+vec4 voronoiF12(vec3 pt, float jit, float speed) {
+    vec3 base = floor(pt);
+    vec3 frc  = fract(pt);
+
+    float d1 = 1e9, d2 = 1e9, id1 = 0.0, id2 = 0.0;
+
+    for (int kk = -1; kk <= 1; kk++)
+    for (int jj = -1; jj <= 1; jj++)
+    for (int ii = -1; ii <= 1; ii++) {
+        vec3  gg   = vec3(float(ii), float(jj), float(kk));
+        vec3  cel  = base + gg;
+        vec3  seed = gg + voronoiSeed(cel, jit, speed);
+        float dd   = length(seed - frc);
+        float cid  = hash31(cel);
+
+        if      (dd < d1) { d2 = d1; id2 = id1; d1 = dd; id1 = cid; }
+        else if (dd < d2) { d2 = dd; id2 = cid; }
+    }
+    return vec4(d1, d2, id1, id2);
+}
+
+vec4 voronoiF12(vec3 pt, float jit) { return voronoiF12(pt, jit, 0.0); }
+vec4 voronoiF12(vec3 pt)            { return voronoiF12(pt, 0.9, 0.0); }
+
+// Le même Voronoï, mais ancré sur l'ÉQUATION plutôt que sur la position affichée.
+// eqPos(u, v) ignore le blender, la symétrie et la déformation : le motif reste donc
+// collé au maillage quand celui-ci s'anime, au lieu de le voir glisser dessous.
+// Un seul appel à eqPos par fragment ; les cellules restent des cellules de l'espace,
+// donc le voisinage 3x3x3 reste exact (pas de problème aux pôles).
+// Si le bloc d'accesseurs retombe sur son stub, eqPos vaut 0 et le motif s'aplatit :
+// vérifier avec col = vec3(length(eqPos(u, v)) * .3), qui doit varier.
+vec4 eqVorSurf(float uu, float vv, float scale, float jit, float speed) {
+    return voronoiF12(eqPos(uu, vv) * scale, jit, speed);
+}
+
+vec4 eqVorSurf(float uu, float vv, float scale, float jit) { return eqVorSurf(uu, vv, scale, jit, 0.0); }
+vec4 eqVorSurf(float uu, float vv, float scale)            { return eqVorSurf(uu, vv, scale, 0.9, 0.0); }
 
 
 
@@ -6073,16 +6426,28 @@ uniform float lampRadius;
 uniform float lampSpecularIntensity;
 uniform float lampSpecularPower;
 
+${getEquationPrototypesGLSL()}
 ${getFragmentUtilsGLSL()}
 
 // Accès à l'équation du maillage. Stub neutre pour la validation dans l'éditeur :
 // les vraies valeurs (eqPos/eqX/eqY/eqZ et eqx/eqy/eqz) sont injectées à la
 // compilation par createFragmentShader(), à partir de l'équation paramétrique courante.
-float eqx, eqy, eqz;
 vec3 eqPos(float u, float v) { return vec3(0.0); }
 float eqX(float u, float v) { return 0.0; }
 float eqY(float u, float v) { return 0.0; }
 float eqZ(float u, float v) { return 0.0; }
+
+// Uniforms que le bloc d'accesseurs déclare lui aussi : repris ici pour que la
+// validation de l'éditeur accepte le code couleur qui les utilise. Ils sont déjà
+// envoyés par updateAllUniforms(), il n'y a rien à faire de plus côté CPU.
+// Ici 'E' désigne le coefficient (uniform), pas la constante e : on suspend la macro
+// #define E le temps de les déclarer, puis on la restaure pour le code utilisateur.
+#undef E
+uniform float A, B, C, D, E, F, G, H, I, J, K, L, M;
+uniform float uStepU, uStepV;
+uniform float uStepsU, uStepsV;
+uniform vec3 uFirstPoint;
+#define E 2.71828182845904
 `;
 
 /**

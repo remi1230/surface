@@ -3871,8 +3871,21 @@ vec3 go(vec3 p, float delta, float ct){
     return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
 
-mat3 rotAxis(vec3 axis, float a) {
-    axis = normalize(axis);
+// Axe normalisé, avec plancher sur la longueur.
+// Au-dessus de minLen, c'est exactement normalize(axis). En dessous, on divise par minLen au
+// lieu de la longueur réelle : le vecteur raccourcit vers zéro au lieu d'être amplifié. Aucune
+// direction de repli n'est choisie à sa place, donc rien de discontinu n'est introduit — c'est
+// justement l'amplification d'un axe quasi nul qui fabrique les taches et le bruit.
+vec3 axisFloor(vec3 axis, float minLen){
+    return length(axis) > minLen ? normalize(axis) : axis / max(minLen, 1e-20);
+}
+
+// Rotation de a autour de axis, avec plancher explicite.
+// Un axe plus court que minLen fait dégénérer la matrice continûment vers cos(a) * I : à
+// rotAngle = PI, la rotation devient -I, c'est-à-dire p -> -p. Pas de saut, pas de NaN.
+// L'échelle naturelle des wrap* étant .5, quelques centièmes suffisent à voir l'effet.
+mat3 rotAxis(vec3 axis, float a, float minLen) {
+    axis = axisFloor(axis, minLen);
     float c = cos(a), s = sin(a);
     float t = 1.0 - c;
     float x = axis.x, y = axis.y, z = axis.z;
@@ -3881,6 +3894,14 @@ mat3 rotAxis(vec3 axis, float a) {
         t*x*y - s*z,  t*y*y + c,    t*y*z + s*x,
         t*x*z + s*y,  t*y*z - s*x,  t*z*z + c
     );
+}
+
+// 1e-20 : garde-fou seul. length(axis) == 0. laissait normalize() indéfini, donc des NaN à
+// l'écran ; au-delà de ce seuil le résultat est celui d'avant, à l'identique. Pour lisser une
+// zone d'axe faible plutôt que seulement éviter la singularité, appeler la version à trois
+// arguments avec un minLen plus grand.
+mat3 rotAxis(vec3 axis, float a) {
+    return rotAxis(axis, a, 1e-20);
 }
 
 vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
@@ -3897,6 +3918,18 @@ vec3 wrotTri(vec3 p, float ofs, float nbWraps, float rotAngle){
 }
 vec3 wrotSin(vec3 p, float ofs, float nbWraps, float rotAngle){
   return p * rotAxis(wrap2(p + ofs, nbWraps), rotAngle);
+}
+
+// Mêmes fonctions avec le plancher d'axe exposé, pour adoucir les zones où l'onde s'annule sur
+// les trois composantes à la fois : l'axe y devient minuscule et sa direction, arbitraire.
+vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle, minLen);
+}
+vec3 wrotTri(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrapTri(p + ofs, nbWraps), rotAngle, minLen);
+}
+vec3 wrotSin(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrap2(p + ofs, nbWraps), rotAngle, minLen);
 }
 
 mat3 rotX(float a) {

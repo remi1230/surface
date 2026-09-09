@@ -3725,6 +3725,104 @@ fragmentShaders = [
 
     
 `,
+`
+    //Triskèle
+    // Motif dessiné dans le plan paramétrique (u, v), normalisé par la seule étendue de v :
+    // les deux axes gardent ainsi la même échelle. Normaliser chaque axe séparément
+    // écraserait le triskèle du simple au double sur une sphère, dont u couvre l'équateur
+    // et v seulement un demi-méridien.
+    vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
+
+    // NB : nombre de motifs par unité paramétrique. opt3 n'en garde qu'un, centré.
+    float nb = 1.;
+    q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
+
+    // opt2 : le triskèle tourne sur lui-même.
+    float spin = opt2 == 0. ? 0. : t*.35;
+
+    vec2  tk = triskele(q, spin);
+    float d  = tk.x;
+
+    // fwidth explose au centre, où l'angle polaire est singulier : sans plafond, le fondu
+    // s'étale sur tout le moyeu et noie le motif dans un halo.
+    float aa   = clamp(fwidth(d)*1.2, 2e-4, .012);
+    float fill = smoothstep(aa, -aa, d);
+    float edge = smoothstep(aa, -aa, abs(d) - .018);
+
+    // Dégradé le long du bras, du coeur vers la pointe.
+    vec3 body = mix(meshFg, palette(.12 + .55*tk.y), .6);
+
+    col = mix(meshBg, body, fill);
+    col = mix(col, palette(.62), edge*.9);
+
+// __USER_FUNCTIONS__
+// Un bras du triskèle : spirale logarithmique r = R0*exp(B*theta), theta de 0 a THMAX.
+// La largeur suit r — la spirale est auto-similaire — puis se referme sur la pointe. D'ou
+// la virgule caracteristique : filiforme au coeur, pleine au milieu, effilee au bout.
+// Renvoie .x = distance signee approchee, .y = avancee le long du bras (0 au coeur, 1 a la pointe).
+vec2 triskeleArm(vec2 q){
+    const float R0    = .07;      // rayon a la naissance du bras
+    const float B     = .34;      // serrage de la spirale
+    const float THMAX = TWO_PI;   // un tour complet par bras
+    const float WK    = .46;      // demi-largeur, en fraction du rayon courant
+    const float TIP   = .70;      // fraction du bras parcourue avant que la pointe ne se referme
+
+    float r   = length(q);
+    float phi = atan(q.y, q.x);
+    phi = phi < 0. ? phi + TWO_PI : phi;
+
+    vec2 best = vec2(1e9, 0.);
+
+    // La spirale repasse au meme angle a chaque tour : on teste les tours atteignables.
+    for(int k = 0; k < 2; k++){
+        float th = phi + TWO_PI*float(k);
+
+        if(th <= THMAX){
+            float rs = R0*exp(B*th);
+            float s  = th/THMAX;
+            float w  = WK*rs*pow(clamp((1. - s)/TIP, 0., 1.), .85);
+            // Ecart radial ramene a une distance perpendiculaire : la spirale logarithmique
+            // monte avec une pente B, d'ou le facteur 1/sqrt(1+B*B).
+            float dd = abs(r - rs)*inversesqrt(1. + B*B) - w;
+
+            best = dd < best.x ? vec2(dd, s) : best;
+        }
+    }
+
+    // Bouchons aux deux extremites. Celui du depart donne au bras une naissance ronde ;
+    // celui de la pointe rend le champ continu au-dela du bout du bras, sans quoi la distance
+    // saute la ou la spirale se referme sur elle-meme et le contour y trace un faux trait.
+    float tipR = R0*exp(B*THMAX);
+    float cap  = length(q - vec2(R0, 0.)) - WK*R0;
+    float capT = length(q - vec2(tipR*cos(THMAX), tipR*sin(THMAX)));
+
+    best = cap  < best.x ? vec2(cap,  0.) : best;
+    best = capT < best.x ? vec2(capT, 1.) : best;
+
+    return best;
+}
+
+// Les trois bras a 120 degres, plus le moyeu qui les relie.
+vec2 triskele(vec2 q, float spin){
+    const float SCALE = 1.55;     // le motif occupe environ +/- .85 de la cellule
+
+    q /= SCALE;
+    vec2 best = vec2(1e9, 0.);
+
+    for(int i = 0; i < 3; i++){
+        float a = spin + float(i)*TWO_PI/3.;
+        float c = cos(a), s = sin(a);
+        vec2  arm = triskeleArm(vec2(c*q.x + s*q.y, -s*q.x + c*q.y));
+
+        best = arm.x < best.x ? arm : best;
+    }
+
+    float hub = length(q) - .055;
+    best = hub < best.x ? vec2(hub, 0.) : best;
+
+    return vec2(best.x*SCALE, best.y);
+}
+`,
 
 ];
 

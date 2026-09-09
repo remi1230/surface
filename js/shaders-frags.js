@@ -3837,6 +3837,36 @@ vec3 wrap2(vec3 p, float f){
     return .5 * sin(6.2831853 * f * p);
 }
 
+// Variantes continues de wrap().
+// fract(x) saute de 1. à chaque entier : l'axe donné à rotAxis() bascule d'un coup et dessine
+// une couture sur chaque plan où (p+ofs)*nbWraps vaut un entier. Aucune constante soustraite
+// ne retire ce saut — elle ne fait que déplacer le champ, donc changer la visibilité de la
+// couture, pas son existence. Il faut une fonction périodique continue.
+// wrapTri garde la rampe linéaire de wrap() en repliant une cellule sur deux ; wrap2 (juste
+// au-dessus) est la version sinusoïdale, plus douce encore. Les deux ont la même période
+// (1./f) et la même amplitude ([-.5, .5]) que wrap() : ce sont des échanges directs.
+vec3 wrapTri(vec3 p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+vec3 wrapTri(vec3 p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+vec3 wrapTri(vec3 p, vec3 f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+vec2 wrapTri(vec2 p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+vec2 wrapTri(vec2 p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+float wrapTri(float p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+float wrapTri(float p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+
 vec3 go(vec3 p, float delta, float ct){
     return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
@@ -3855,6 +3885,18 @@ mat3 rotAxis(vec3 axis, float a) {
 
 vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
   return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle);
+}
+
+// Mêmes rôles que wrot(), mais avec un axe de rotation continu : plus de couture, quelle que
+// soit la valeur de nbWraps. wrotTri garde l'allure anguleuse de wrot(), wrotSin adoucit tout.
+// Contrepartie inévitable : une cellule sur deux est le miroir de la précédente, puisqu'une
+// fonction périodique continue ne peut pas revenir de +.5 à -.5 sans repasser par le chemin
+// inverse. Le motif n'est donc plus une simple translation d'une cellule à l'autre.
+vec3 wrotTri(vec3 p, float ofs, float nbWraps, float rotAngle){
+  return p * rotAxis(wrapTri(p + ofs, nbWraps), rotAngle);
+}
+vec3 wrotSin(vec3 p, float ofs, float nbWraps, float rotAngle){
+  return p * rotAxis(wrap2(p + ofs, nbWraps), rotAngle);
 }
 
 mat3 rotX(float a) {

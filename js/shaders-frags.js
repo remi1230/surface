@@ -245,14 +245,53 @@ fragmentShaders = [
     //A wrot
     float nb = 1.;
     vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
-    vec3 p  = abs(p0);
+    vec3 p  = absp(p0);
 
-    vec3 pw = wrot(p, 0., 1., PI);
+    float t = t * PI / 3.;
 
-    col = vec3(m((pw)*8.));
-    col = max(col, 20.*m((pw)*12.));
+    vec3 pw = absp(p)/absp(wrot(p, 0., 1., hcs(p*E)-t/9.), 9./3.);
+    
+    vec3 vcol = vec3(oe(absp(pw*2.+ol(p*2.)), 1., t));
+    col = (W*vcol/p);
 
-    if(length(col) > .6667){ col *=  vec3(1.125); }
+    col /= absp(liqc(.1667*col, 0.) / .5);
+
+    col = min(col, col-inkAbsorb(p, col, 1.));
+`,
+`   
+    //A other wrot
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = absp(p0);
+
+    float t = t * PI / 3.;
+
+    vec3 pw = absp(p)/absp(wrot(p, 0., 1., hcs(p*E)-t/9.), 9./3.);
+    
+    vec3 vcol = vec3(oe(absp(pw*2.+ol(p*2.)), 1., t));
+    col = (W*vcol/p);
+
+    col /= absp(liqc(.1667*col, 0.) / .5);
+
+    col = min(col, col-inkAbsorb(p, col, 1.));
+`,
+`   
+    //A other wrot II
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = absp(p0);
+
+    float t = t * PI / 3.;
+
+    vec3 pw = max(wrot(p, 0., .25, PI), wrot(p, 0., .5, PI));
+    
+    vec3 vcol = vec3(o(p/pw*24.+t));
+    col = inkAbsorb(.5*vcol, .125*vcol, 1./6.);
+
+    col *= absp(liqc(.1667*col, 0.), -W);
+
+
+    col = min(2.*col, m(p/pw*24.+t));
 `,
 `   
     //VM

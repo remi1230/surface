@@ -3727,32 +3727,56 @@ fragmentShaders = [
 `,
 `
     //Triskèle
-    // Motif dessiné dans le plan paramétrique (u, v), normalisé par la seule étendue de v :
-    // les deux axes gardent ainsi la même échelle. Normaliser chaque axe séparément
-    // écraserait le triskèle du simple au double sur une sphère, dont u couvre l'équateur
-    // et v seulement un demi-méridien.
-    vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
+    // Deux façons de poser le motif, au choix par opt1.
+    //
+    // opt1 = 0 : plan paramétrique (u, v), normalisé par la seule étendue de v pour que les
+    //   deux axes gardent la même échelle — normaliser chaque axe sur sa propre plage
+    //   écraserait le triskèle du simple au double sur une sphère, dont u couvre l'équateur
+    //   quand v ne couvre qu'un demi-méridien. Impeccable sur le Plan, mais le motif subit
+    //   l'étirement de la paramétrisation : sur un tore il s'étale en bandes.
+    //
+    // opt1 = 1 : triplanaire depuis vPosition. Le motif est projeté selon les trois plans de
+    //   base et les trois versions mélangées d'après la normale. Là où la surface devient
+    //   tangente à un plan — le seul endroit où une projection simple s'étire en traînées —
+    //   un autre plan prend le relais. Taille homogène sur n'importe quelle forme, au prix
+    //   de trois évaluations du motif au lieu d'une.
 
-    // NB : nombre de motifs par unité paramétrique. opt3 n'en garde qu'un, centré.
-    float nb = .5;
-    q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
+    float spin = opt2 == 0. ? 0. : t*.35;   // opt2 : le triskèle tourne sur lui-même
+    float nb   = .5;                        // nombre de motifs par unité
 
-    // opt2 : le triskèle tourne sur lui-même.
-    float spin = opt2 == 0. ? 0. : t*.35;
+    vec2 msk;
 
-    vec2  tk = triskele(q, spin);
-    float d  = tk.x;
+    // opt1 est un uniform : la branche est la même pour tous les fragments, donc les dérivées
+    // que tkMask prend avec fwidth restent définies.
+    if(opt1 == 0.){
+        vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
 
-    // fwidth explose au centre de chaque spirale, où l'angle polaire est singulier : sans
-    // plafond, le fondu s'étale sur tout l'oeil et noie le motif dans un halo.
-    float aa   = clamp(fwidth(d)*1.2, 2e-4, .010);
-    float fill = smoothstep(aa, -aa, d);
+        // opt3 n'en garde qu'un, centré.
+        q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
+
+        msk = tkMask(q, spin);
+    }
+    else{
+        vec3 p = vPosition;
+        vec3 n = abs(normalize(vNormal));
+
+        // Exposant élevé : le mélange se resserre sur le plan le plus frontal, sinon les
+        // trois projections se superposent en fantômes sur les faces obliques.
+        n = pow(n, vec3(6.));
+        n /= (n.x + n.y + n.z);
+
+        vec2 mx = tkMask(fract(p.zy*nb + .5)*2. - 1., spin);
+        vec2 my = tkMask(fract(p.xz*nb + .5)*2. - 1., spin);
+        vec2 mz = tkMask(fract(p.xy*nb + .5)*2. - 1., spin);
+
+        msk = n.x*mx + n.y*my + n.z*mz;
+    }
 
     // Trait franc : le dessin ne tient qu'au contraste avec le fond, un dégradé marqué le
     // ferait perdre. Juste un assombrissement vers l'oeil, qui donne la profondeur du creux.
-    vec3 body = meshFg*(.72 + .28*tk.y);
+    vec3 body = meshFg*(.72 + .28*msk.y);
 
-    col = mix(meshBg, body, fill);
+    col = mix(meshBg, body, msk.x);
 
 // __USER_FUNCTIONS__
 // Spirale d'Archimede r = r0 + b*phi, trait d'epaisseur constante 2w, bouts arrondis.
@@ -3861,6 +3885,19 @@ vec2 triskele(vec2 q, float spin){
     }
 
     return vec2(best.x*SCALE, best.y);
+}
+
+// Couverture du motif en un point : .x = 1 dans le trait, 0 dehors, avec l'antialiasing ;
+// .y = avancee le long du trait. Isolee pour que le triplanaire puisse melanger trois
+// projections d'un seul coup, masque et parcours ensemble.
+//
+// fwidth explose au centre de chaque spirale, ou l'angle polaire est singulier : sans
+// plafond, le fondu s'etale sur tout l'oeil et noie le motif dans un halo.
+vec2 tkMask(vec2 q, float spin){
+    vec2  tk = triskele(q, spin);
+    float aa = clamp(fwidth(tk.x)*1.2, 2e-4, .010);
+
+    return vec2(smoothstep(aa, -aa, tk.x), tk.y);
 }
 `,
 

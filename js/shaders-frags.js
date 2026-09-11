@@ -3734,7 +3734,7 @@ fragmentShaders = [
     vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
 
     // NB : nombre de motifs par unité paramétrique. opt3 n'en garde qu'un, centré.
-    float nb = 1.;
+    float nb = .5;
     q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
 
     // opt2 : le triskèle tourne sur lui-même.
@@ -3743,82 +3743,122 @@ fragmentShaders = [
     vec2  tk = triskele(q, spin);
     float d  = tk.x;
 
-    // fwidth explose au centre, où l'angle polaire est singulier : sans plafond, le fondu
-    // s'étale sur tout le moyeu et noie le motif dans un halo.
-    float aa   = clamp(fwidth(d)*1.2, 2e-4, .012);
+    // fwidth explose au centre de chaque spirale, où l'angle polaire est singulier : sans
+    // plafond, le fondu s'étale sur tout l'oeil et noie le motif dans un halo.
+    float aa   = clamp(fwidth(d)*1.2, 2e-4, .010);
     float fill = smoothstep(aa, -aa, d);
-    float edge = smoothstep(aa, -aa, abs(d) - .018);
 
-    // Dégradé le long du bras, du coeur vers la pointe.
-    vec3 body = mix(meshFg, palette(.12 + .55*tk.y), .6);
+    // Trait franc : le dessin ne tient qu'au contraste avec le fond, un dégradé marqué le
+    // ferait perdre. Juste un assombrissement vers l'oeil, qui donne la profondeur du creux.
+    vec3 body = meshFg*(.72 + .28*tk.y);
 
     col = mix(meshBg, body, fill);
-    col = mix(col, palette(.62), edge*.9);
 
 // __USER_FUNCTIONS__
-// Un bras du triskèle : spirale logarithmique r = R0*exp(B*theta), theta de 0 a THMAX.
-// La largeur suit r — la spirale est auto-similaire — puis se referme sur la pointe. D'ou
-// la virgule caracteristique : filiforme au coeur, pleine au milieu, effilee au bout.
-// Renvoie .x = distance signee approchee, .y = avancee le long du bras (0 au coeur, 1 a la pointe).
-vec2 triskeleArm(vec2 q){
-    const float R0    = .07;      // rayon a la naissance du bras
-    const float B     = .34;      // serrage de la spirale
-    const float THMAX = TWO_PI;   // un tour complet par bras
-    const float WK    = .46;      // demi-largeur, en fraction du rayon courant
-    const float TIP   = .70;      // fraction du bras parcourue avant que la pointe ne se referme
-
+// Spirale d'Archimede r = r0 + b*phi, trait d'epaisseur constante 2w, bouts arrondis.
+// Renvoie .x = distance signee, .y = avancee le long du trait (0 a l'oeil, 1 a la sortie).
+vec2 sdSpiral(vec2 q, float r0, float b, float phimax, float w){
     float r   = length(q);
-    float phi = atan(q.y, q.x);
-    phi = phi < 0. ? phi + TWO_PI : phi;
+    float ph0 = atan(q.y, q.x);
+    ph0 = ph0 < 0. ? ph0 + TWO_PI : ph0;
 
     vec2 best = vec2(1e9, 0.);
 
-    // La spirale repasse au meme angle a chaque tour : on teste les tours atteignables.
-    for(int k = 0; k < 2; k++){
-        float th = phi + TWO_PI*float(k);
+    // Le trait repasse au meme angle a chaque tour : on teste les tours atteignables.
+    for(int k = 0; k < 3; k++){
+        float ph = ph0 + TWO_PI*float(k);
 
-        if(th <= THMAX){
-            float rs = R0*exp(B*th);
-            float s  = th/THMAX;
-            float w  = WK*rs*pow(clamp((1. - s)/TIP, 0., 1.), .85);
-            // Ecart radial ramene a une distance perpendiculaire : la spirale logarithmique
-            // monte avec une pente B, d'ou le facteur 1/sqrt(1+B*B).
-            float dd = abs(r - rs)*inversesqrt(1. + B*B) - w;
+        if(ph <= phimax){
+            float rs = r0 + b*ph;
+            // Ecart radial ramene a une distance perpendiculaire. La normale d'une spirale
+            // d'Archimede s'ecarte d'autant plus du radial que rs est petit : sans ce
+            // facteur le trait epaissit visiblement en approchant de l'oeil.
+            float dd = abs(r - rs)*rs*inversesqrt(rs*rs + b*b) - w;
 
-            best = dd < best.x ? vec2(dd, s) : best;
+            best = dd < best.x ? vec2(dd, ph/phimax) : best;
         }
     }
 
-    // Bouchons aux deux extremites. Celui du depart donne au bras une naissance ronde ;
-    // celui de la pointe rend le champ continu au-dela du bout du bras, sans quoi la distance
-    // saute la ou la spirale se referme sur elle-meme et le contour y trace un faux trait.
-    float tipR = R0*exp(B*THMAX);
-    float cap  = length(q - vec2(R0, 0.)) - WK*R0;
-    float capT = length(q - vec2(tipR*cos(THMAX), tipR*sin(THMAX)));
+    // Bouchons ronds : l'oeil au depart, et la sortie qui recevra le pont vers la voisine.
+    float re = r0 + b*phimax;
+    float c0 = length(q - vec2(r0, 0.)) - w;
+    float c1 = length(q - vec2(re*cos(phimax), re*sin(phimax))) - w;
 
-    best = cap  < best.x ? vec2(cap,  0.) : best;
-    best = capT < best.x ? vec2(capT, 1.) : best;
+    best = c0 < best.x ? vec2(c0, 0.) : best;
+    best = c1 < best.x ? vec2(c1, 1.) : best;
 
     return best;
 }
 
-// Les trois bras a 120 degres, plus le moyeu qui les relie.
+// Capsule : distance au segment [a, b] epaissi de w.
+float sdSegment(vec2 p, vec2 a, vec2 b, float w){
+    vec2  pa = p - a, ba = b - a;
+    float h  = clamp(dot(pa, ba)/dot(ba, ba), 0., 1.);
+
+    return length(pa - h*ba) - w;
+}
+
+// Union adoucie, pour que les ponts se fondent dans le trait au lieu de s'y greffer.
+float sminTk(float a, float b, float k){
+    float h = clamp(.5 + .5*(b - a)/k, 0., 1.);
+
+    return mix(b, a, h) - k*h*(1. - h);
+}
+
+// Rotation de +a, pour ramener chaque copie sur la premiere.
+vec2 tkRot(vec2 p, float a){
+    float c = cos(a), s = sin(a);
+
+    return vec2(c*p.x - s*p.y, s*p.x + c*p.y);
+}
+
+// Le triskèle : trois spirales enroulees chacune sur son propre oeil, posees aux sommets
+// d'un triangle equilateral, et reliees deux a deux par leur sortie — ce ne sont pas trois
+// bras partant d'un centre commun. La sortie de chaque spirale vise sa voisine : la corde
+// qui joint deux centres fait 150 degres avec le rayon, d'ou la phase psi qui oriente le
+// repere local. Le pont est alors court et se fond dans le trait.
+//
+// Le motif ayant une symetrie d'ordre 3, on tourne le point de 120 degres a chaque tour de
+// boucle plutot que de recalculer une copie : une seule spirale et un seul pont sont decrits.
+// Aucun tableau GLSL ici, volontairement : une declaration de tableau referme son crochet
+// juste avant le point-virgule, et ShaderLoader.parseShaderFile tronque le tableau des
+// shaders sur cette sequence-la.
 vec2 triskele(vec2 q, float spin){
-    const float SCALE = 1.55;     // le motif occupe environ +/- .85 de la cellule
+    const float SCALE = 1.06;     // cadrage du motif dans la cellule
+    const float RC    = .46;      // rayon ou sont posés les trois oeils
+    const float R0    = .035;     // rayon de l'oeil
+    const float PITCH = .0385;    // ecartement entre deux tours
+    const float TURNS = 1.75;     // nombre de tours par spirale
+    const float THK   = .055;     // demi-epaisseur du trait
+    // W et B sont déjà pris : W est une macro du header, B un uniform d'équation.
+    const float KB    = .035;     // adoucissement des jonctions
+
+    float phimax = TWO_PI*TURNS;
+    float psi    = radians(150.) - phimax;
 
     q /= SCALE;
+    q.x = -q.x;                   // sens d'enroulement du triskèle breton
+
+    float cs = cos(spin), ss = sin(spin);
+    q = vec2(cs*q.x + ss*q.y, -ss*q.x + cs*q.y);
+
+    // Centre et phase de la premiere spirale, puis sa sortie et celle de sa voisine.
+    float a0 = HALF_PI + psi;
+    float re = R0 + PITCH*phimax;
+    vec2  c0 = RC*vec2(cos(HALF_PI), sin(HALF_PI));
+    vec2  e0 = c0 + tkRot(re*vec2(cos(phimax), sin(phimax)), a0);
+    vec2  e1 = tkRot(e0, TWO_PI/3.);
+
     vec2 best = vec2(1e9, 0.);
 
     for(int i = 0; i < 3; i++){
-        float a = spin + float(i)*TWO_PI/3.;
-        float c = cos(a), s = sin(a);
-        vec2  arm = triskeleArm(vec2(c*q.x + s*q.y, -s*q.x + c*q.y));
+        vec2 qq = tkRot(q, -float(i)*TWO_PI/3.);
 
-        best = arm.x < best.x ? arm : best;
+        vec2 sp = sdSpiral(tkRot(qq - c0, -a0), R0, PITCH, phimax, THK);
+        best = sp.x < best.x ? sp : best;
+
+        best.x = sminTk(best.x, sdSegment(qq, e0, e1, THK), KB);
     }
-
-    float hub = length(q) - .055;
-    best = hub < best.x ? vec2(hub, 0.) : best;
 
     return vec2(best.x*SCALE, best.y);
 }

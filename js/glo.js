@@ -14,6 +14,11 @@ const getById = function (id) { return document.getElementById(id); };
  * Accumulates elapsed time via delta-time so that pause/resume works seamlessly
  * (no time jump on resume, time freezes exactly where it was on pause).
  * Cost: one performance.now() call per .time access — same as before.
+ *
+ * While a video take runs, the clock is locked to frames ({@link AnimationClock#lockToFrames}):
+ * wall-clock time stops flowing and the recorder advances the clock by exactly one frame's
+ * worth per captured frame ({@link AnimationClock#tickFrame}), so `t` in a recording depends
+ * only on the frame index, never on how fast the machine renders or encodes.
  */
 class AnimationClock {
 	constructor(baseSpeed = 0.001) {
@@ -21,6 +26,7 @@ class AnimationClock {
 		this._lastTick = performance.now();
 		this._speed = baseSpeed;
 		this._paused = false;
+		this._frameLocked = false;
 	}
 
 	/** @returns {number} Current accumulated time (auto-updates on each access). */
@@ -32,17 +38,41 @@ class AnimationClock {
 	/** @returns {boolean} Whether the clock is paused. */
 	get paused() { return this._paused; }
 
+	/** @returns {boolean} Whether time only advances through {@link AnimationClock#tickFrame}. */
+	get frameLocked() { return this._frameLocked; }
+
 	/** @returns {number} Current speed multiplier. */
 	get speed() { return this._speed; }
 	set speed(s) { this._update(); this._speed = s; }
 
-	/** @private Flush accumulated wall-clock delta into _elapsed. */
+	/** @private Flush accumulated wall-clock delta into _elapsed (no-op while frame-locked). */
 	_update() {
 		const now = performance.now();
-		if (!this._paused) {
+		if (!this._paused && !this._frameLocked) {
 			this._elapsed += (now - this._lastTick) * this._speed;
 		}
 		this._lastTick = now;
+	}
+
+	/** Stops wall-clock time from flowing; from now on only {@link AnimationClock#tickFrame} moves the clock. */
+	lockToFrames() {
+		this._update();
+		this._frameLocked = true;
+	}
+
+	/** Lets wall-clock time flow again, from now rather than from the moment of the lock. */
+	unlockFromFrames() {
+		this._frameLocked = false;
+		this._lastTick = performance.now();
+	}
+
+	/**
+	 * Advances a frame-locked clock by `ms` milliseconds of wall-clock equivalent (scaled by
+	 * the speed, like real time is), unless paused. No-op when the clock is not frame-locked.
+	 * @param {number} ms - Duration of one frame in milliseconds.
+	 */
+	tickFrame(ms) {
+		if (this._frameLocked && !this._paused) this._elapsed += ms * this._speed;
 	}
 
 	pause() {
@@ -1024,21 +1054,25 @@ var glo = {
 			rotation: 0,
 		}
 	},
-	/** @type {Object} Video recording state (canvas, stream, MediaRecorder, chunks). */
+	/** @type {Object} Video recording state. */
 	video:{
-		canvas: null,
-		stream: null,
+		/** @type {?object} Active recorder, see createMeshRecorder in ui.js. */
 		recorder: null,
-		meshRecorder: null,
-		chunks: [],
 		recording: false,
 		loopActive: false,
 		loopPendingStop: false,
-		loopRotAccum: 0,
-		loopRotTarget: 0,
 		loopPrevRotateType: null,
 		/** @type {boolean} Capture the whole canvas instead of the centred square crop. */
 		fullFrame: false,
+		/**
+		 * State of the take being captured, or null outside one. Owned by the recorder from
+		 * the first captured frame to the stop, and read by everything that steps the
+		 * simulation (see frameDeltaSeconds in bab.js): `dt` is the fixed duration of one
+		 * frame, `stepping` is false on frames the recorder holds while the encoder catches
+		 * up, and the loop fields carry the exact per-turn step of a perfect-loop take.
+		 * @type {?{fps: number, dt: number, frameIndex: number, stepping: boolean, loop: boolean, framesPerTurn: number, rotStep: number, stopRequested: boolean}}
+		 */
+		take: null,
 	},
 	/**
 	 * Fullscreen take from the orbit camera: the classic shot, filling a 16:9 screen
@@ -1238,7 +1272,8 @@ var glo = {
 	 * Tunable parameters control rotation speed, in/out breathing and vertical wobble.
 	 */
 	travelling: {
-		startTime: 0,
+		/** Simulation seconds since the travelling started; advanced by frameDeltaSeconds(). */
+		elapsed: 0,
 		/** Pivot of the spiral — set to the orbit camera's target on entry. */
 		center: null,
 		/** Snapshot of (camera.position − target) at entry; rotated each frame. */

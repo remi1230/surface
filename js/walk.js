@@ -645,7 +645,7 @@ function walkUpdate(snap = false) {
 	// The mesh can be rebuilt under the character at any time; re-measure when it is.
 	if (w._lastInst !== info.inst) walkOnSurfaceRebuilt(info);
 
-	const dt = Math.min(Math.max(glo.engine.getDeltaTime() / 1000, 0), 0.1);
+	const dt = Math.min(Math.max(frameDeltaSeconds(), 0), 0.1);
 
 	// --- Viewpoint height: Shift + up/down -----------------------------------------
 	// Read from a live Shift flag rather than baked into the key at press time: holding
@@ -1278,8 +1278,9 @@ function startWalkCinema() {
 
 	cinemaWhenResized(fsRequest, () => {
 		if (!cinema.active) return;
-		cinema.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60,
-			cinemaFullFrameOptions('surface-walk'));
+		const recorderOptions = cinemaFullFrameOptions('surface-walk');
+		recorderOptions.onFailed = () => stopWalkCinema();
+		cinema.recorder = createMeshRecorder(glo.ribbon, glo.scene, VIDEO_FPS, recorderOptions);
 		cinema.recorder.start(() => {
 			// Reset the lap and the clock at the true first recorded frame, so the loop
 			// is measured from what the viewer actually sees.

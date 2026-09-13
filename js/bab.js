@@ -125,7 +125,7 @@ function startTravelling() {
   t.initialOffset = offset.clone();
   t.baseRadius    = offset.length();
   t.up            = orbit.upVector.clone();
-  t.startTime     = performance.now();
+  t.elapsed       = 0;
 
   trav.upVector = t.up.clone();
 
@@ -165,7 +165,8 @@ function stopTravelling() {
  */
 function updateTravellingCamera() {
   const s  = glo.travelling;
-  const dt = (performance.now() - s.startTime) / 1000;
+  s.elapsed += frameDeltaSeconds();
+  const dt = s.elapsed;
 
   const angle = dt * s.angSpeed;
   const rot   = BABYLON.Quaternion.RotationAxis(s.up, angle);
@@ -190,7 +191,7 @@ function updateTravellingCamera() {
 }
 
 /**
- * Bootstraps the BabylonJS engine, scene, video capture, player, and render loop.
+ * Bootstraps the BabylonJS engine, scene, player, and render loop.
  * Instantiating this constructor starts the application.
  * @constructor
  * @param {string} canvasId - DOM ID of the canvas element (e.g. "renderCanvas").
@@ -211,13 +212,6 @@ Game = function(canvasId) {
   var _this = this;
 
   this.scene = this._initScene(engine);
-
-  glo.video.canvas   = engine.getRenderingCanvas();
-  glo.video.stream   = glo.video.canvas.captureStream(60); // 60 fps
-  glo.video.recorder = new MediaRecorder(glo.video.stream, {
-      mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 8000000
-  });
 
   var _player = new Player(_this, canvas);
   _this.scene.executeWhenReady(function() {
@@ -260,9 +254,30 @@ Game.prototype = {
 g = new Game('renderCanvas');
 
 /**
+ * Seconds the simulation advances by this frame.
+ *
+ * Outside a take this is the engine's measured frame delta. During a take (see
+ * createMeshRecorder in ui.js) every captured frame stands for exactly 1/fps s whatever
+ * the wall clock says, and on a frame the recorder holds while the encoder catches up it
+ * is 0, so nothing moves in a frame that is not recorded. The rotation, the travelling
+ * camera and the walk all step through here, which makes a recording a pure function of
+ * its frame index: no measured delta, no dropped or late frame can reach the file.
+ * @returns {number} Delta time in seconds.
+ */
+function frameDeltaSeconds() {
+  const take = glo.video.take;
+  if (take) return take.stepping ? take.dt : 0;
+  return glo.engine.getDeltaTime() / 1000;
+}
+
+/**
  * Applies automatic camera rotation around the selected axis each frame.
  * Temporarily zeroes inertia offsets so the programmatic rotation does not
  * interfere with the user's mouse-drag inertia, then restores them.
+ *
+ * The step is `rotateSpeed` per 1/60 s of simulation time, i.e. exactly `rotateSpeed`
+ * per frame in a 60 fps take. A perfect-loop take overrides it with the take's own step,
+ * fixed at capture start so that a whole turn spans an exact number of frames.
  */
 function rotateCamera() {
     const savedAlpha = glo.camera.inertialAlphaOffset;
@@ -270,36 +285,9 @@ function rotateCamera() {
     glo.camera.inertialAlphaOffset = 0;
     glo.camera.inertialBetaOffset  = 0;
 
-    // Rotation toujours basée sur le temps réel (wall-clock), y compris pendant
-    // l'enregistrement. Le flux vidéo (captureStream) horodate chaque frame en
-    // temps réel : un pas fixe par frame ralentirait la rotation dès que le rendu
-    // descend sous 60 fps, ce qui arrive pendant la capture car la résolution est
-    // doublée. En normalisant par dt, la vitesse perçue reste identique qu'on
-    // enregistre ou non, quel que soit le fps réel. La boucle parfaite reste
-    // assurée par l'accumulation d'angle ci-dessous (loopRotAccum).
-    const dt = glo.engine.getDeltaTime() / 1000; // en secondes
-    let speed = glo.rotateSpeed * dt * 60;        // normalise pour ~60fps
-
-    const axis = glo.rotateType.current;
-    const rotates = axis === 'alpha' || axis === 'beta' || axis === 'teta';
-
-    let finishLoop = false;
-    if (glo.video.loopActive && rotates) {
-        const newAccum = glo.video.loopRotAccum + speed;
-        if (glo.video.loopPendingStop) {
-            const target = glo.video.loopRotTarget;
-            const reached = speed >= 0 ? newAccum >= target : newAccum <= target;
-            if (reached) {
-                speed = target - glo.video.loopRotAccum;
-                glo.video.loopRotAccum = target;
-                finishLoop = true;
-            } else {
-                glo.video.loopRotAccum = newAccum;
-            }
-        } else {
-            glo.video.loopRotAccum = newAccum;
-        }
-    }
+    const take = glo.video.take;
+    let speed = glo.rotateSpeed * frameDeltaSeconds() * 60;
+    if (take && take.loop) speed = take.stepping ? take.rotStep : 0;
 
     switch (glo.rotateType.current) {
       case 'alpha':
@@ -316,6 +304,4 @@ function rotateCamera() {
 
     glo.camera.inertialAlphaOffset = savedAlpha;
     glo.camera.inertialBetaOffset  = savedBeta;
-
-    if (finishLoop) finishLoopRecording();
 }

@@ -879,13 +879,110 @@ function getFixedExportBounds(margin = 20, correction = 1) {
     };
 }
 
+// =====================================================================================
+// VIDEO TAKES
+//
+// A take is rendered offline, one frame at a time, and never in real time. Each captured
+// frame stands for exactly 1/VIDEO_FPS s of simulation: the rotation, the animation clock
+// `t`, the travelling camera and the walk all advance by that fixed step through
+// frameDeltaSeconds() (bab.js), the frame is then handed to a WebCodecs VideoEncoder with
+// the timestamp frameIndex / VIDEO_FPS, and mediabunny writes the MP4 or WebM container.
+// Rendering or encoding slower than real time only makes the take longer to record; it
+// cannot change a single frame of the file. When the encoder falls behind, the take holds
+// (nothing moves, nothing is captured) until it has caught up.
+//
+// This replaces canvas.captureStream + MediaRecorder, whose timer-driven sampling, real-time
+// timestamps and dropped frames were what made every recorded rotation stutter.
+// =====================================================================================
+
+/** Frame rate of every take: one captured frame stands for exactly 1/VIDEO_FPS s. */
+const VIDEO_FPS = 60;
+
 /**
- * Creates a video recorder that captures a cropped region of the BabylonJS canvas each frame.
- * Doubles the hardware resolution during recording for higher quality output.
- * Returns an object with `start()`, `stop()`, and `isRecording` members.
- * @param {BABYLON.Mesh} mesh - The mesh being recorded (used for context).
- * @param {BABYLON.Scene} scene - The BabylonJS scene to observe for after-render callbacks.
- * @param {number} [fps=60] - The target frames per second for the recording.
+ * Whether this browser can record: WebCodecs for the encoder, mediabunny for the container.
+ * @returns {boolean}
+ */
+function videoRecordingSupported() {
+	return typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined'
+		&& typeof Mediabunny !== 'undefined';
+}
+
+/**
+ * Shows a short message about a take, through the app's toast when it is available.
+ * @param {string} html - The message.
+ */
+function videoNotify(html) {
+	if (typeof M !== 'undefined' && M.toast) M.toast({ html, displayLength: 4000 });
+	else console.warn('[Video]', html);
+}
+
+/**
+ * Target bitrate for a take, from its pixel rate: about 0.15 bit per pixel and frame keeps a
+ * finely shaded mesh clean at 60 fps. Clamped so a small crop is not starved and a 4K
+ * fullscreen take does not balloon.
+ * @param {number} width - Frame width in pixels.
+ * @param {number} height - Frame height in pixels.
+ * @param {number} fps - Frame rate.
+ * @returns {number} Bits per second.
+ */
+function videoBitrate(width, height, fps) {
+	return Math.round(Math.min(60e6, Math.max(6e6, width * height * fps * 0.15)));
+}
+
+/**
+ * Picks the codec and container for a take: H.264 in MP4 when the browser can encode it
+ * (hardware-accelerated on most machines, plays everywhere), otherwise VP9 or AV1 in WebM.
+ * @param {number} width - Frame width in pixels.
+ * @param {number} height - Frame height in pixels.
+ * @param {object} quality - The mediabunny Quality the take will use.
+ * @returns {Promise<?{codec: string, format: object, extension: string, mime: string}>} Null
+ *   when nothing can be encoded.
+ */
+async function pickVideoCodec(width, height, quality) {
+	const MB = Mediabunny;
+	const probe = { width, height, quality };
+	if (await MB.getFirstEncodableVideoCodec(['avc'], probe)) {
+		return { codec: 'avc', format: new MB.Mp4OutputFormat(), extension: 'mp4', mime: 'video/mp4' };
+	}
+	const webm = await MB.getFirstEncodableVideoCodec(['vp9', 'av1'], probe);
+	if (webm) {
+		return { codec: webm, format: new MB.WebMOutputFormat(), extension: 'webm', mime: 'video/webm' };
+	}
+	return null;
+}
+
+/**
+ * Hands a finished file to the browser's download.
+ * @param {ArrayBuffer} buffer - The file bytes.
+ * @param {string} mime - Its media type.
+ * @param {string} fileName - The name to save under.
+ */
+function downloadVideoBuffer(buffer, mime, fileName) {
+	const blob = new Blob([buffer], { type: mime });
+	const url  = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = fileName;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	// Revoking straight away can cancel the download in some browsers.
+	setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+/**
+ * Creates a video recorder that captures a region of the BabylonJS canvas, one frame per
+ * rendered frame, into an MP4 (H.264) or WebM (VP9/AV1) file through WebCodecs.
+ *
+ * The take is deterministic: while it runs, {@link glo.video.take} is set and every part
+ * of the simulation steps by exactly `1/fps` s per captured frame (see frameDeltaSeconds in
+ * bab.js). On a frame the encoder has not caught up with, the recorder holds: nothing steps
+ * and nothing is captured, so the file is the same whatever the machine's speed.
+ *
+ * Doubles the hardware resolution during a cropped take for higher quality output.
+ * @param {BABYLON.Mesh} mesh - The mesh being recorded (unused, kept for the call sites).
+ * @param {BABYLON.Scene} scene - The BabylonJS scene to observe for render callbacks.
+ * @param {number} [fps=VIDEO_FPS] - Frames per second of the file; also the simulation step.
  * @param {object} [options] - Overrides for takes that are not the centred square crop.
  * @param {Function} [options.bounds] - Returns the crop rectangle to capture. Defaults to
  *   the centred square driven by {@link glo.videoBoxRange}.
@@ -894,157 +991,296 @@ function getFixedExportBounds(margin = 20, correction = 1) {
  *   most of the frame is cropped away. A full-frame take already keeps every pixel, so it
  *   passes 1 and avoids rendering four times the fragments for nothing.
  * @param {string} [options.filePrefix='mesh'] - Leading part of the downloaded file name.
- * @returns {{start: Function, stop: Function, isRecording: boolean}} The recorder control object.
+ * @param {Function} [options.onLoopClosed] - Called instead of `stop()` when a perfect-loop
+ *   take has completed its turns after {@link requestStop}; it is expected to stop the
+ *   recorder and restore the app's state.
+ * @param {Function} [options.onFailed] - Called with the error when the take breaks down
+ *   (encoder failure, unsupported codec); the recorder has already stopped itself.
+ * @returns {{start: Function, stop: Function, requestStop: Function, isRecording: boolean, take: ?object}}
+ *   The recorder control object.
  */
-function createMeshRecorder(mesh, scene, fps = 60, options = {}) {
-    const sourceCanvas = glo.engine.getRenderingCanvas();
-    const captureCanvas = document.createElement('canvas');
-    const ctx = captureCanvas.getContext('2d');
+function createMeshRecorder(mesh, scene, fps = VIDEO_FPS, options = {}) {
+	const sourceCanvas  = glo.engine.getRenderingCanvas();
+	const captureCanvas = document.createElement('canvas');
+	const ctx = captureCanvas.getContext('2d');
 
-    const scaling    = options.hardwareScaling !== undefined ? options.hardwareScaling : 1 / 2;
-    const filePrefix = options.filePrefix || 'mesh';
+	const scaling    = options.hardwareScaling !== undefined ? options.hardwareScaling : 1 / 2;
+	const filePrefix = options.filePrefix || 'mesh';
 
-    let mediaRecorder = null;
-    let chunks = [];
-    let observer = null;
-    let bounds = null;
+	/** 'idle' → 'warmup' → 'starting' → 'recording' → 'stopping' → 'done' */
+	let phase = 'idle';
+	let scalingApplied = false;
+	let stopRequested = false;
+	let take = null;
+	let bounds = null;
+	let output = null;
+	let source = null;
+	let container = null;
+	let beforeObserver = null;
+	let afterObserver = null;
+	let pending = null;     // promise of the last add(): the encoder's backpressure
+	let busy = false;       // true until that promise settles
+	let failure = null;
+	let stopPromise = null;
 
-    /**
-     * Computes the centered square crop bounds based on the source canvas dimensions
-     * and the current video box range setting. Clamps values to canvas boundaries.
-     * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box.
-     */
-    function computeBounds() {
-        const sw = sourceCanvas.width;
-        const sh = sourceCanvas.height;
+	/**
+	 * Computes the centered square crop bounds based on the source canvas dimensions
+	 * and the current video box range setting. Clamps values to canvas boundaries.
+	 * @returns {{x: number, y: number, width: number, height: number}} The crop bounding box.
+	 */
+	function computeBounds() {
+		const sw = sourceCanvas.width;
+		const sh = sourceCanvas.height;
 
-        const coeff = 0.5 * glo.videoBoxRange;
-        const baseSize = Math.min(sw, sh);
-        const size = baseSize * coeff + 20 * coeff;
+		const coeff = 0.5 * glo.videoBoxRange;
+		const baseSize = Math.min(sw, sh);
+		const size = baseSize * coeff + 20 * coeff;
 
-        return {
-            x: Math.max(0, sw / 2 - size / 2),
-            y: Math.max(0, sh / 2 - size / 2),
-            width: Math.min(size, sw),
-            height: Math.min(size, sh)
-        };
-    }
-
-    /**
-     * Initializes and starts the MediaRecorder, sets up the capture canvas,
-     * and registers an after-render observer to copy frames from the source canvas.
-     * On stop, downloads the recorded video as a file.
-     * @param {Function} [onCaptureStart] - Called once at the true start of capture
-     *   (after the resolution-doubling warmup), just before the recorder begins.
-     *   Used to zero the loop sync references so the recorded span starts here.
-     */
-    function startRecording(onCaptureStart) {
-		bounds = (options.bounds || computeBounds)();
-		captureCanvas.width = bounds.width;
-		captureCanvas.height = bounds.height;
-
-		chunks = [];
-
-		let mimeType;
-		if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-			mimeType = 'video/webm;codecs=vp9';
-		} else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264')) {
-			mimeType = 'video/webm;codecs=h264';
-		} else if (MediaRecorder.isTypeSupported('video/webm')) {
-			mimeType = 'video/webm';
-		} else {
-			mimeType = 'video/mp4';
-		}
-
-		const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-
-		const stream = captureCanvas.captureStream(fps);
-		mediaRecorder = new MediaRecorder(stream, {
-			mimeType,
-			videoBitsPerSecond: 20_000_000
-		});
-
-		mediaRecorder.ondataavailable = e => {
-			if (e.data.size > 0) chunks.push(e.data);
+		return {
+			x: Math.max(0, sw / 2 - size / 2),
+			y: Math.max(0, sh / 2 - size / 2),
+			width: Math.min(size, sw),
+			height: Math.min(size, sh)
 		};
-
-		mediaRecorder.onstop = () => {
-			if (chunks.length === 0) return;
-			const blob = new Blob(chunks, { type: mimeType });
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `${filePrefix}-${Date.now()}.${extension}`;
-			a.click();
-			URL.revokeObjectURL(url);
-		};
-
-		mediaRecorder.onerror = e => console.error('Recorder error:', e);
-
-		observer = scene.onAfterRenderObservable.add(() => {
-			ctx.drawImage(
-				sourceCanvas,
-				bounds.x, bounds.y, bounds.width, bounds.height,
-				0, 0, captureCanvas.width, captureCanvas.height
-			);
-		});
-
-		// Zero the loop sync references at the true capture start (after the
-		// warmup), so the very first recorded frame is the loop reference.
-		if (typeof onCaptureStart === 'function') onCaptureStart();
-
-		mediaRecorder.start(1000);
 	}
 
-    return {
-        /**
-         * Starts mesh recording by doubling hardware resolution and beginning capture after 2 frames.
-         * @param {Function} [onCaptureStart] - Forwarded to {@link startRecording}; called
-         *   once when capture actually begins (after the warmup frames).
-         */
-        start(onCaptureStart) {
-            if (scaling !== 1) {
-                // Anchor the GUI space to the displayed CSS size before doubling
-                // the hardware resolution, to prevent control misalignment.
-                glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
-                glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
-                glo.engine.setHardwareScalingLevel(scaling);
-            }
+	/** Codecs want even dimensions; a frame is at least 2×2. */
+	function evenSize(v) {
+		return Math.max(2, Math.floor(v / 2) * 2);
+	}
 
-            // Wait 2 frames for the resize to stabilize
-            scene.onAfterRenderObservable.addOnce(() => {
-                scene.onAfterRenderObservable.addOnce(() => {
-                    startRecording(onCaptureStart);
-                });
-            });
-        },
+	function applyScaling() {
+		if (scaling === 1 || scalingApplied) return;
+		// Anchor the GUI space to the displayed CSS size before doubling
+		// the hardware resolution, to prevent control misalignment.
+		glo.advancedTexture.idealWidth  = sourceCanvas.clientWidth;
+		glo.advancedTexture.idealHeight = sourceCanvas.clientHeight;
+		glo.engine.setHardwareScalingLevel(scaling);
+		scalingApplied = true;
+	}
 
-        /**
-         * Stops the active media recording and restores normal scaling.
-         */
-        stop() {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                if (observer) {
-                    scene.onAfterRenderObservable.remove(observer);
-                    observer = null;
-                }
-                if (scaling !== 1) {
-                    glo.engine.setHardwareScalingLevel(1);
-                    glo.advancedTexture.idealWidth  = 0;
-                    glo.advancedTexture.idealHeight = 0;
-                }
-            }
-        },
+	function restoreScaling() {
+		if (!scalingApplied) return;
+		glo.engine.setHardwareScalingLevel(1);
+		glo.advancedTexture.idealWidth  = 0;
+		glo.advancedTexture.idealHeight = 0;
+		scalingApplied = false;
+	}
 
-        /**
-         * Returns whether the media recorder is currently recording.
-         * @returns {boolean}
-         */
-        get isRecording() {
-            return mediaRecorder?.state === 'recording';
-        }
-    };
+	/** Ends the take's hold on the simulation: no more stepping, no more capture. */
+	function detach() {
+		if (beforeObserver) { scene.onBeforeRenderObservable.remove(beforeObserver); beforeObserver = null; }
+		if (afterObserver)  { scene.onAfterRenderObservable.remove(afterObserver);   afterObserver  = null; }
+		if (take) take.stepping = false;
+		if (glo.video.take === take) glo.video.take = null;
+		if (glo.clock.frameLocked) glo.clock.unlockFromFrames();
+		restoreScaling();
+	}
+
+	/** What the caller wants when the take ends on its own (loop closed, or not loopable). */
+	function closeTake() {
+		if (typeof options.onLoopClosed === 'function') options.onLoopClosed();
+		else api.stop();
+	}
+
+	/** Breaks the take down after an error and tells the caller. */
+	function abort(err) {
+		if (failure) return;
+		failure = err || new Error('Video take failed.');
+		console.error('[Video] Take aborted:', failure);
+		videoNotify('Échec de l\'enregistrement vidéo : ' + (failure.message || failure));
+		api.stop();
+		if (typeof options.onFailed === 'function') options.onFailed(failure);
+	}
+
+	/**
+	 * Runs first in the frame: decides whether this frame is part of the take. Then the
+	 * rotation, the clock-driven shaders and the walk see the same decision through
+	 * frameDeltaSeconds().
+	 */
+	function onBeforeFrame() {
+		if (phase !== 'recording') return;
+
+		// A perfect loop ends once a whole number of turns is on file: the pose about to be
+		// rendered is then exactly the first frame's, and recording it again would show as a
+		// stutter on replay. A take that cannot loop ends as soon as it is asked to.
+		const atTurn = take.frameIndex > 0 && take.frameIndex % take.framesPerTurn === 0;
+		if (take.stopRequested && (!take.loop || atTurn)) {
+			take.stepping = false;
+			closeTake();
+			return;
+		}
+
+		take.stepping = !busy && !failure;
+		if (take.stepping) glo.clock.tickFrame(take.dt * 1000);
+	}
+
+	/** Runs after the frame is drawn: copies it out and hands it to the encoder. */
+	function onAfterFrame() {
+		if (phase !== 'recording' || !take.stepping) return;
+
+		ctx.drawImage(
+			sourceCanvas,
+			bounds.x, bounds.y, bounds.width, bounds.height,
+			0, 0, captureCanvas.width, captureCanvas.height
+		);
+
+		const index = take.frameIndex++;
+		busy = true;
+		pending = source.add(index / fps, 1 / fps)
+			.then(() => { busy = false; })
+			.catch(err => { busy = false; abort(err); });
+	}
+
+	/**
+	 * Sets the encoder and the container up, then takes over the simulation. Called after the
+	 * warmup frames so the crop is measured on the canvas at its recording resolution.
+	 * @param {Function} [onCaptureStart] - Called with the take state once, before the first
+	 *   frame, so the caller can zero its loop references and decorate the take.
+	 */
+	async function beginCapture(onCaptureStart) {
+		phase = 'starting';
+
+		bounds = (options.bounds || computeBounds)();
+		captureCanvas.width  = evenSize(bounds.width);
+		captureCanvas.height = evenSize(bounds.height);
+
+		const MB = Mediabunny;
+		const quality = new MB.Quality({ bitrate: videoBitrate(captureCanvas.width, captureCanvas.height, fps) });
+		container = await pickVideoCodec(captureCanvas.width, captureCanvas.height, quality);
+		if (phase !== 'starting') return;
+		if (!container) throw new Error('aucun codec vidéo encodable dans ce navigateur (WebCodecs).');
+
+		output = new MB.Output({ format: container.format, target: new MB.BufferTarget() });
+		source = new MB.CanvasSource(captureCanvas, {
+			codec: container.codec,
+			quality,
+			keyFrameInterval: 2,
+			latencyMode: 'quality',
+		});
+		output.addVideoTrack(source, { frameRate: fps });
+		await output.start();
+		if (phase !== 'starting') { await output.cancel(); return; }
+
+		take = {
+			fps,
+			dt: 1 / fps,
+			frameIndex: 0,
+			stepping: false,
+			loop: false,
+			framesPerTurn: 0,
+			rotStep: 0,
+			stopRequested,
+		};
+		glo.video.take = take;
+		glo.clock.lockToFrames();
+		if (typeof onCaptureStart === 'function') onCaptureStart(take);
+
+		// First in line, so that everything else in the frame sees the take's decision.
+		beforeObserver = scene.onBeforeRenderObservable.add(onBeforeFrame, undefined, true);
+		afterObserver  = scene.onAfterRenderObservable.add(onAfterFrame);
+		phase = 'recording';
+	}
+
+	/** Flushes the encoder, writes the container and downloads it. */
+	async function finish() {
+		try {
+			if (pending) await pending.catch(() => {});
+			if (!output) return;
+			if (failure || !take || take.frameIndex === 0) {
+				await output.cancel();
+				return;
+			}
+			await output.finalize();
+			downloadVideoBuffer(output.target.buffer, container.mime,
+				`${filePrefix}-${Date.now()}.${container.extension}`);
+		} catch (err) {
+			console.error('[Video] Finalizing the take failed:', err);
+			videoNotify('Échec de l\'écriture de la vidéo : ' + (err && err.message || err));
+			try { if (output) await output.cancel(); } catch (_) { /* already closed */ }
+		} finally {
+			phase = 'done';
+		}
+	}
+
+	const api = {
+		/**
+		 * Starts the take: doubles the hardware resolution, waits two frames for the resize
+		 * to settle, then sets the encoder up and begins capturing.
+		 * @param {Function} [onCaptureStart] - Forwarded to {@link beginCapture}; called with
+		 *   the take state once when capture actually begins (after the warmup frames).
+		 */
+		start(onCaptureStart) {
+			if (phase !== 'idle') return;
+			if (!videoRecordingSupported()) {
+				phase = 'done';
+				abort(new Error('WebCodecs indisponible dans ce navigateur.'));
+				return;
+			}
+			phase = 'warmup';
+			applyScaling();
+
+			// Wait 2 frames for the resize to stabilize
+			scene.onAfterRenderObservable.addOnce(() => {
+				scene.onAfterRenderObservable.addOnce(() => {
+					if (phase !== 'warmup') return;
+					beginCapture(onCaptureStart).catch(abort);
+				});
+			});
+		},
+
+		/**
+		 * Asks a perfect-loop take to end at its next whole turn. A take that cannot loop
+		 * (no rotation) ends at once. Before capture has begun, the request is kept and
+		 * honoured once it has: at least one full turn then goes on file.
+		 */
+		requestStop() {
+			stopRequested = true;
+			if (take) take.stopRequested = true;
+			if (take && phase === 'recording' && !take.loop) closeTake();
+		},
+
+		/**
+		 * Stops the take, releases the simulation and restores normal scaling at once, then
+		 * finalizes and downloads the file in the background.
+		 * @returns {Promise<void>} Settles once the file has been handed to the download.
+		 */
+		stop() {
+			if (phase === 'done' || phase === 'stopping') return stopPromise || Promise.resolve();
+			if (phase === 'idle') { phase = 'done'; return Promise.resolve(); }
+			if (phase === 'warmup') {
+				// Capture never began: nothing to write.
+				phase = 'done';
+				restoreScaling();
+				return Promise.resolve();
+			}
+			if (phase === 'starting') {
+				// beginCapture is mid-setup; it sees the phase change and backs out.
+				phase = 'done';
+				restoreScaling();
+				return Promise.resolve();
+			}
+			phase = 'stopping';
+			detach();
+			stopPromise = finish();
+			return stopPromise;
+		},
+
+		/**
+		 * Returns whether frames are being captured.
+		 * @returns {boolean}
+		 */
+		get isRecording() {
+			return phase === 'recording';
+		},
+
+		/** @returns {?object} The take state while capturing, see {@link glo.video.take}. */
+		get take() {
+			return phase === 'recording' ? take : null;
+		}
+	};
+
+	return api;
 }
 
 /**
@@ -1293,49 +1529,67 @@ function toggleFullscreenTake() {
  * and begins capturing. When stopping, finalizes and downloads the recorded video.
  *
  * When {@link glo.loopRecordMode} is enabled, starting also kicks off mesh
- * rotation, and stopping is deferred until the rotation has accumulated an
- * integer number of full turns so the resulting video loops perfectly.
+ * rotation, and stopping is deferred until the rotation has completed an
+ * integer number of full turns so the resulting video loops perfectly. The turn is
+ * cut into a whole number of frames at capture start, so the frame after the last
+ * one on file is exactly the first: no shortened step, no repeated pose at the wrap.
  */
 function switchRecordingVideo(){
 	if (glo.video.loopPendingStop) return;
 
 	if (!glo.video.recording) {
+		if (!videoRecordingSupported()) {
+			videoNotify('Enregistrement vidéo indisponible : ce navigateur n\'a pas WebCodecs.');
+			if (glo.orbitCinema.active) orbitCinemaTeardown();
+			return;
+		}
 		glo.video.recording = true;
-		// A fullscreen take keeps the whole frame; the default take crops the centred
-		// square driven by the video box range.
-		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene, 60,
-			glo.video.fullFrame ? cinemaFullFrameOptions('surface-orbit') : {});
-		glo.video.recorder.start(() => {
-			// Vrai début de capture (après le warmup qui double la résolution) :
-			// on remet à zéro toutes les références de synchro pour que la boucle
-			// soit mesurée à partir de la première frame réellement enregistrée.
-			// Sinon la rotation et le temps t accumulés pendant le warmup
-			// décalent la boucle de quelques frames.
-			if (glo.video.loopActive) {
-				glo.video.loopRotAccum = 0;
-				glo.clock.reset();
-			}
-		});
+
+		// The intro rotation (startAnim) is a BabylonJS animation on the camera, driven by
+		// the wall clock: it runs until the mouse first moves, and would keep turning the
+		// camera between the take's frames. A take owns the camera.
+		stopAllCameraAnims();
 
 		if (glo.loopRecordMode) {
 			glo.video.loopActive = true;
 			glo.video.loopPendingStop = false;
-			glo.video.loopRotAccum = 0;
 			glo.video.loopPrevRotateType = glo.rotateType;
 			if (glo.rotateType === 'none' || glo.rotateType?.current === 'none') {
 				glo.rotateType = { current: 'alpha', next: 'beta' };
 			}
 		}
+
+		// A fullscreen take keeps the whole frame; the default take crops the centred
+		// square driven by the video box range.
+		const recorderOptions = glo.video.fullFrame ? cinemaFullFrameOptions('surface-orbit') : {};
+		recorderOptions.onLoopClosed = finishLoopRecording;
+		recorderOptions.onFailed     = recordingFailed;
+
+		glo.video.recorder = createMeshRecorder(glo.ribbon, glo.scene, VIDEO_FPS, recorderOptions);
+		glo.video.recorder.start((take) => {
+			// Vrai début de capture (après le warmup qui double la résolution).
+			if (glo.video.loopActive) {
+				// Un tour doit tenir en un nombre entier de frames : le pas est figé ici,
+				// au plus près de rotateSpeed, et le tour se ferme exactement sur la
+				// première frame. Changer la vitesse pendant la prise n'a donc pas d'effet.
+				const perFrame = glo.rotateSpeed * take.dt * 60;
+				const framesPerTurn = Math.round(2 * Math.PI / Math.abs(perFrame));
+				if (Number.isFinite(framesPerTurn) && framesPerTurn >= 2) {
+					take.loop = true;
+					take.framesPerTurn = framesPerTurn;
+					take.rotStep = Math.sign(perFrame) * 2 * Math.PI / framesPerTurn;
+				}
+				// Le temps t repart de zéro sur la première frame réellement enregistrée.
+				glo.clock.reset();
+			}
+		});
 	}
 	else {
 		if (glo.video.loopActive) {
-			const TWO_PI = 2 * Math.PI;
-			const accum = glo.video.loopRotAccum;
-			const speedSign = glo.rotateSpeed >= 0 ? 1 : -1;
-			glo.video.loopRotTarget = speedSign > 0
-				? (Math.floor(accum / TWO_PI) + 1) * TWO_PI
-				: (Math.ceil(accum / TWO_PI) - 1) * TWO_PI;
+			// Only arms the stop: the take ends on its own at the next whole turn, and
+			// finishLoopRecording then takes over.
 			glo.video.loopPendingStop = true;
+			glo.video.recorder.requestStop();
 		}
 		else {
 			glo.video.recording = false;
@@ -1347,9 +1601,8 @@ function switchRecordingVideo(){
 
 /**
  * Finalizes a loop-mode recording: stops the recorder, restores the rotation
- * type that was active before the take, and resets loop state. Called from
- * {@link rotateCamera} when the accumulated rotation reaches an integer
- * number of full turns.
+ * type that was active before the take, and resets loop state. Called by the
+ * recorder once the take has completed an integer number of full turns.
  */
 function finishLoopRecording(){
 	if (glo.video.recorder) glo.video.recorder.stop();
@@ -1363,6 +1616,19 @@ function finishLoopRecording(){
 	if (btn) btn.textBlock.text = videoButtonText();
 
 	// A fullscreen take ends here too when the loop closes on its own.
+	if (glo.orbitCinema.active) orbitCinemaTeardown();
+}
+
+/**
+ * Puts the app back in order when a take breaks down (the recorder has already stopped
+ * itself). A loop take restores its rotation like a finished one; a plain take only
+ * clears the recording state.
+ */
+function recordingFailed(){
+	if (glo.video.loopActive) { finishLoopRecording(); return; }
+	glo.video.recording = false;
+	const btn = glo.advancedTexture?.getControlByName('videoButton');
+	if (btn) btn.textBlock.text = videoButtonText();
 	if (glo.orbitCinema.active) orbitCinemaTeardown();
 }
 

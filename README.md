@@ -34,7 +34,7 @@ SURFACE is a browser-based tool for creating, exploring and exporting parametric
 - **Color system** &mdash; Theme randomization, UI/mesh color pickers, color addition and tint
 - **Time animation** &mdash; Animated surfaces with play/pause, speed control, and the `t` variable
 - **Import / Export** &mdash; JSON (full scene), OBJ and STL formats; shader import/export as .js files
-- **Video recording** &mdash; Record the canvas as WebM video with crop box
+- **Video recording** &mdash; Frame-exact MP4 (H.264) or WebM takes through WebCodecs: crop box, fullscreen takes, perfect loops on whole turns
 - **Fully client-side** &mdash; No server required, runs entirely in the browser
 
 ## Getting Started
@@ -62,7 +62,7 @@ npx serve .
 
 Then open [http://localhost:8000](http://localhost:8000).
 
-> No build step or dependencies to install &mdash; all libraries are loaded from CDN.
+> No build step or dependencies to install &mdash; BabylonJS is loaded from a CDN, Monaco and mediabunny are bundled under `cdn/`.
 
 ## Usage
 
@@ -151,6 +151,9 @@ surface/
 │   ├── shaders-frags.js    # Fragment shader code and definitions
 │   ├── shaders-crud.js     # Shader CRUD system (create, save, delete, import/export)
 │   └── shaders-loader.js   # Shader loading from server/localStorage
+├── cdn/js/
+│   ├── monaco/             # Bundled Monaco editor
+│   └── mediabunny/         # Bundled MP4/WebM muxer used by the video recorder
 ├── json/
 │   └── import-exemples/    # Example surfaces (JSON)
 └── fonts/                  # Bundled fonts
@@ -162,6 +165,7 @@ surface/
 - [BabylonJS GUI](https://doc.babylonjs.com/features/featuresDeepDive/gui) &mdash; In-canvas UI controls
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) &mdash; Code editor for GLSL shaders
 - WebGL2 / GLSL &mdash; GPU-accelerated rendering and custom shaders
+- [WebCodecs](https://developer.mozilla.org/docs/Web/API/WebCodecs_API) + [mediabunny](https://mediabunny.dev/) &mdash; Offline, frame-exact video encoding and MP4/WebM muxing
 
 ## License
 

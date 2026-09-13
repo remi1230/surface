@@ -177,6 +177,28 @@ fragmentShaders = [
 
     col = 2./3.-liqc(col/absp(p, 1./3.), 0.);
 
+    col += la(col) / 36.;
+    col += ea(col) / 6.;
+
+`,
+`   
+    //Static II
+    float nb = 1.;
+    vec3 p0  = npos() * nb * (opt1 == 0. ? .5 : .25); 
+    vec3 p   = abs(p0);
+
+    
+    vec3 pw = wrot(p, 0., 3., PI);
+    vec3 ps = wrotSin(p, 0., 4., PI);
+    vec3 pt = wrotTri(p, 0., 3., PI);
+
+    vec3 pm = max(ps, pt);
+    float mpm = maxv(pm);
+
+    col = vec3(os(p*mpm*24.+t/9.));
+
+    col *= 1./E + liq(inkAbsorb(col, p, 1./6.), -4./3.);
+
 `,
 `   
     //alive
@@ -245,53 +267,14 @@ fragmentShaders = [
     //A wrot
     float nb = 1.;
     vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
-    vec3 p  = absp(p0);
+    vec3 p  = abs(p0);
 
-    float t = t * PI / 3.;
+    vec3 pw = wrot(p, 0., 1., PI);
 
-    vec3 pw = absp(p)/absp(wrot(p, 0., 1., hcs(p*E)-t/9.), 9./3.);
-    
-    vec3 vcol = vec3(oe(absp(pw*2.+ol(p*2.)), 1., t));
-    col = (W*vcol/p);
+    col = vec3(m((pw)*8.));
+    col = max(col, 20.*m((pw)*12.));
 
-    col /= absp(liqc(.1667*col, 0.) / .5);
-
-    col = min(col, col-inkAbsorb(p, col, 1.));
-`,
-`   
-    //A other wrot
-    float nb = 1.;
-    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
-    vec3 p  = absp(p0);
-
-    float t = t * PI / 3.;
-
-    vec3 pw = absp(p)/absp(wrot(p, 0., 1., hcs(p*E)-t/9.), 9./3.);
-    
-    vec3 vcol = vec3(oe(absp(pw*2.+ol(p*2.)), 1., t));
-    col = (W*vcol/p);
-
-    col /= absp(liqc(.1667*col, 0.) / .5);
-
-    col = min(col, col-inkAbsorb(p, col, 1.));
-`,
-`   
-    //A other wrot II
-    float nb = 1.;
-    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
-    vec3 p  = absp(p0);
-
-    float t = t * PI / 3.;
-
-    vec3 pw = max(wrot(p, 0., .25, PI), wrot(p, 0., .5, PI));
-    
-    vec3 vcol = vec3(o(p/pw*24.+t));
-    col = inkAbsorb(.5*vcol, .125*vcol, 1./6.);
-
-    col *= absp(liqc(.1667*col, 0.), -W);
-
-
-    col = min(2.*col, m(p/pw*24.+t));
+    if(length(col) > .6667){ col *=  vec3(1.125); }
 `,
 `   
     //VM
@@ -3764,6 +3747,181 @@ fragmentShaders = [
 
     
 `,
+`
+    //Triskèle
+    // Deux façons de poser le motif, au choix par opt1.
+    //
+    // opt1 = 0 : plan paramétrique (u, v), normalisé par la seule étendue de v pour que les
+    //   deux axes gardent la même échelle — normaliser chaque axe sur sa propre plage
+    //   écraserait le triskèle du simple au double sur une sphère, dont u couvre l'équateur
+    //   quand v ne couvre qu'un demi-méridien. Impeccable sur le Plan, mais le motif subit
+    //   l'étirement de la paramétrisation : sur un tore il s'étale en bandes.
+    //
+    // opt1 = 1 : triplanaire depuis vPosition. Le motif est projeté selon les trois plans de
+    //   base et les trois versions mélangées d'après la normale. Là où la surface devient
+    //   tangente à un plan — le seul endroit où une projection simple s'étire en traînées —
+    //   un autre plan prend le relais. Taille homogène sur n'importe quelle forme, au prix
+    //   de trois évaluations du motif au lieu d'une.
+
+    float spin = opt2 == 0. ? 0. : t*.35;   // opt2 : le triskèle tourne sur lui-même
+    float nb   = .5;                        // nombre de motifs par unité
+
+    vec2 msk;
+
+    // opt1 est un uniform : la branche est la même pour tous les fragments, donc les dérivées
+    // que tkMask prend avec fwidth restent définies.
+    if(opt1 == 0.){
+        vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
+
+        // opt3 n'en garde qu'un, centré.
+        q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
+
+        msk = tkMask(q, spin);
+    }
+    else{
+        vec3 p = vPosition;
+        vec3 n = abs(normalize(vNormal));
+
+        // Exposant élevé : le mélange se resserre sur le plan le plus frontal, sinon les
+        // trois projections se superposent en fantômes sur les faces obliques.
+        n = pow(n, vec3(6.));
+        n /= (n.x + n.y + n.z);
+
+        vec2 mx = tkMask(fract(p.zy*nb + .5)*2. - 1., spin);
+        vec2 my = tkMask(fract(p.xz*nb + .5)*2. - 1., spin);
+        vec2 mz = tkMask(fract(p.xy*nb + .5)*2. - 1., spin);
+
+        msk = n.x*mx + n.y*my + n.z*mz;
+    }
+
+    // Trait franc : le dessin ne tient qu'au contraste avec le fond, un dégradé marqué le
+    // ferait perdre. Juste un assombrissement vers l'oeil, qui donne la profondeur du creux.
+    vec3 body = meshFg*(.72 + .28*msk.y);
+
+    col = mix(meshBg, body, msk.x);
+
+// __USER_FUNCTIONS__
+// Spirale d'Archimede r = r0 + b*phi, trait d'epaisseur constante 2w, bouts arrondis.
+// Renvoie .x = distance signee, .y = avancee le long du trait (0 a l'oeil, 1 a la sortie).
+vec2 sdSpiral(vec2 q, float r0, float b, float phimax, float w){
+    float r   = length(q);
+    float ph0 = atan(q.y, q.x);
+    ph0 = ph0 < 0. ? ph0 + TWO_PI : ph0;
+
+    vec2 best = vec2(1e9, 0.);
+
+    // Le trait repasse au meme angle a chaque tour : on teste les tours atteignables.
+    for(int k = 0; k < 3; k++){
+        float ph = ph0 + TWO_PI*float(k);
+
+        if(ph <= phimax){
+            float rs = r0 + b*ph;
+            // Ecart radial ramene a une distance perpendiculaire. La normale d'une spirale
+            // d'Archimede s'ecarte d'autant plus du radial que rs est petit : sans ce
+            // facteur le trait epaissit visiblement en approchant de l'oeil.
+            float dd = abs(r - rs)*rs*inversesqrt(rs*rs + b*b) - w;
+
+            best = dd < best.x ? vec2(dd, ph/phimax) : best;
+        }
+    }
+
+    // Bouchons ronds : l'oeil au depart, et la sortie qui recevra le pont vers la voisine.
+    float re = r0 + b*phimax;
+    float c0 = length(q - vec2(r0, 0.)) - w;
+    float c1 = length(q - vec2(re*cos(phimax), re*sin(phimax))) - w;
+
+    best = c0 < best.x ? vec2(c0, 0.) : best;
+    best = c1 < best.x ? vec2(c1, 1.) : best;
+
+    return best;
+}
+
+// Capsule : distance au segment [a, b] epaissi de w.
+float sdSegment(vec2 p, vec2 a, vec2 b, float w){
+    vec2  pa = p - a, ba = b - a;
+    float h  = clamp(dot(pa, ba)/dot(ba, ba), 0., 1.);
+
+    return length(pa - h*ba) - w;
+}
+
+// Union adoucie, pour que les ponts se fondent dans le trait au lieu de s'y greffer.
+float sminTk(float a, float b, float k){
+    float h = clamp(.5 + .5*(b - a)/k, 0., 1.);
+
+    return mix(b, a, h) - k*h*(1. - h);
+}
+
+// Rotation de +a, pour ramener chaque copie sur la premiere.
+vec2 tkRot(vec2 p, float a){
+    float c = cos(a), s = sin(a);
+
+    return vec2(c*p.x - s*p.y, s*p.x + c*p.y);
+}
+
+// Le triskèle : trois spirales enroulees chacune sur son propre oeil, posees aux sommets
+// d'un triangle equilateral, et reliees deux a deux par leur sortie — ce ne sont pas trois
+// bras partant d'un centre commun. La sortie de chaque spirale vise sa voisine : la corde
+// qui joint deux centres fait 150 degres avec le rayon, d'ou la phase psi qui oriente le
+// repere local. Le pont est alors court et se fond dans le trait.
+//
+// Le motif ayant une symetrie d'ordre 3, on tourne le point de 120 degres a chaque tour de
+// boucle plutot que de recalculer une copie : une seule spirale et un seul pont sont decrits.
+// Aucun tableau GLSL ici, volontairement : une declaration de tableau referme son crochet
+// juste avant le point-virgule, et ShaderLoader.parseShaderFile tronque le tableau des
+// shaders sur cette sequence-la.
+vec2 triskele(vec2 q, float spin){
+    const float SCALE = 1.06;     // cadrage du motif dans la cellule
+    const float RC    = .46;      // rayon ou sont posés les trois oeils
+    const float R0    = .035;     // rayon de l'oeil
+    const float PITCH = .0385;    // ecartement entre deux tours
+    const float TURNS = 1.75;     // nombre de tours par spirale
+    const float THK   = .055;     // demi-epaisseur du trait
+    // W et B sont déjà pris : W est une macro du header, B un uniform d'équation.
+    const float KB    = .035;     // adoucissement des jonctions
+
+    float phimax = TWO_PI*TURNS;
+    float psi    = radians(150.) - phimax;
+
+    q /= SCALE;
+    q.x = -q.x;                   // sens d'enroulement du triskèle breton
+
+    float cs = cos(spin), ss = sin(spin);
+    q = vec2(cs*q.x + ss*q.y, -ss*q.x + cs*q.y);
+
+    // Centre et phase de la premiere spirale, puis sa sortie et celle de sa voisine.
+    float a0 = HALF_PI + psi;
+    float re = R0 + PITCH*phimax;
+    vec2  c0 = RC*vec2(cos(HALF_PI), sin(HALF_PI));
+    vec2  e0 = c0 + tkRot(re*vec2(cos(phimax), sin(phimax)), a0);
+    vec2  e1 = tkRot(e0, TWO_PI/3.);
+
+    vec2 best = vec2(1e9, 0.);
+
+    for(int i = 0; i < 3; i++){
+        vec2 qq = tkRot(q, -float(i)*TWO_PI/3.);
+
+        vec2 sp = sdSpiral(tkRot(qq - c0, -a0), R0, PITCH, phimax, THK);
+        best = sp.x < best.x ? sp : best;
+
+        best.x = sminTk(best.x, sdSegment(qq, e0, e1, THK), KB);
+    }
+
+    return vec2(best.x*SCALE, best.y);
+}
+
+// Couverture du motif en un point : .x = 1 dans le trait, 0 dehors, avec l'antialiasing ;
+// .y = avancee le long du trait. Isolee pour que le triplanaire puisse melanger trois
+// projections d'un seul coup, masque et parcours ensemble.
+//
+// fwidth explose au centre de chaque spirale, ou l'angle polaire est singulier : sans
+// plafond, le fondu s'etale sur tout l'oeil et noie le motif dans un halo.
+vec2 tkMask(vec2 q, float spin){
+    vec2  tk = triskele(q, spin);
+    float aa = clamp(fwidth(tk.x)*1.2, 2e-4, .010);
+
+    return vec2(smoothstep(aa, -aa, tk.x), tk.y);
+}
+`,
 
 ];
 
@@ -3821,6 +3979,9 @@ float eqZ(float u, float v);
  */
 function getFragmentUtilsGLSL() {
 return `
+vec3 v3(float val){ return vec3(val); }
+
+
 vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
 vec3 npos(float inv){ return opt1+inv == 0.0 ? normalize(vPosition) : vPosition; }
 
@@ -3876,12 +4037,55 @@ vec3 wrap2(vec3 p, float f){
     return .5 * sin(6.2831853 * f * p);
 }
 
+// Variantes continues de wrap().
+// fract(x) saute de 1. à chaque entier : l'axe donné à rotAxis() bascule d'un coup et dessine
+// une couture sur chaque plan où (p+ofs)*nbWraps vaut un entier. Aucune constante soustraite
+// ne retire ce saut — elle ne fait que déplacer le champ, donc changer la visibilité de la
+// couture, pas son existence. Il faut une fonction périodique continue.
+// wrapTri garde la rampe linéaire de wrap() en repliant une cellule sur deux ; wrap2 (juste
+// au-dessus) est la version sinusoïdale, plus douce encore. Les deux ont la même période
+// (1./f) et la même amplitude ([-.5, .5]) que wrap() : ce sont des échanges directs.
+vec3 wrapTri(vec3 p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+vec3 wrapTri(vec3 p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+vec3 wrapTri(vec3 p, vec3 f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+vec2 wrapTri(vec2 p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+vec2 wrapTri(vec2 p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+float wrapTri(float p){
+    return 2.*abs(fract(p)-.5)-.5;
+}
+float wrapTri(float p, float f){
+    return 2.*abs(fract(p*f)-.5)-.5;
+}
+
 vec3 go(vec3 p, float delta, float ct){
     return p * (1. + delta*(.5*cos(t*ct)+.5));
 }
 
-mat3 rotAxis(vec3 axis, float a) {
-    axis = normalize(axis);
+// Axe normalisé, avec plancher sur la longueur.
+// Au-dessus de minLen, c'est exactement normalize(axis). En dessous, on divise par minLen au
+// lieu de la longueur réelle : le vecteur raccourcit vers zéro au lieu d'être amplifié. Aucune
+// direction de repli n'est choisie à sa place, donc rien de discontinu n'est introduit — c'est
+// justement l'amplification d'un axe quasi nul qui fabrique les taches et le bruit.
+vec3 axisFloor(vec3 axis, float minLen){
+    return length(axis) > minLen ? normalize(axis) : axis / max(minLen, 1e-20);
+}
+
+// Rotation de a autour de axis, avec plancher explicite.
+// Un axe plus court que minLen fait dégénérer la matrice continûment vers cos(a) * I : à
+// rotAngle = PI, la rotation devient -I, c'est-à-dire p -> -p. Pas de saut, pas de NaN.
+// L'échelle naturelle des wrap* étant .5, quelques centièmes suffisent à voir l'effet.
+mat3 rotAxis(vec3 axis, float a, float minLen) {
+    axis = axisFloor(axis, minLen);
     float c = cos(a), s = sin(a);
     float t = 1.0 - c;
     float x = axis.x, y = axis.y, z = axis.z;
@@ -3892,8 +4096,40 @@ mat3 rotAxis(vec3 axis, float a) {
     );
 }
 
+// 1e-20 : garde-fou seul. length(axis) == 0. laissait normalize() indéfini, donc des NaN à
+// l'écran ; au-delà de ce seuil le résultat est celui d'avant, à l'identique. Pour lisser une
+// zone d'axe faible plutôt que seulement éviter la singularité, appeler la version à trois
+// arguments avec un minLen plus grand.
+mat3 rotAxis(vec3 axis, float a) {
+    return rotAxis(axis, a, 1e-20);
+}
+
 vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle){
   return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle);
+}
+
+// Mêmes rôles que wrot(), mais avec un axe de rotation continu : plus de couture, quelle que
+// soit la valeur de nbWraps. wrotTri garde l'allure anguleuse de wrot(), wrotSin adoucit tout.
+// Contrepartie inévitable : une cellule sur deux est le miroir de la précédente, puisqu'une
+// fonction périodique continue ne peut pas revenir de +.5 à -.5 sans repasser par le chemin
+// inverse. Le motif n'est donc plus une simple translation d'une cellule à l'autre.
+vec3 wrotTri(vec3 p, float ofs, float nbWraps, float rotAngle){
+  return p * rotAxis(wrapTri(p + ofs, nbWraps), rotAngle);
+}
+vec3 wrotSin(vec3 p, float ofs, float nbWraps, float rotAngle){
+  return p * rotAxis(wrap2(p + ofs, nbWraps), rotAngle);
+}
+
+// Mêmes fonctions avec le plancher d'axe exposé, pour adoucir les zones où l'onde s'annule sur
+// les trois composantes à la fois : l'axe y devient minuscule et sa direction, arbitraire.
+vec3 wrot(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrap(p + ofs, nbWraps), rotAngle, minLen);
+}
+vec3 wrotTri(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrapTri(p + ofs, nbWraps), rotAngle, minLen);
+}
+vec3 wrotSin(vec3 p, float ofs, float nbWraps, float rotAngle, float minLen){
+  return p * rotAxis(wrap2(p + ofs, nbWraps), rotAngle, minLen);
 }
 
 mat3 rotX(float a) {
@@ -4773,6 +5009,54 @@ vec3 liqc(vec3 p){
 vec3 liqc(vec3 p, float kt){
     vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
     float T = time * kt;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    const float N = 12.;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
+}
+
+vec3 liq(vec3 p, float kt){
+    vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
+    float T = kt;
 
     vec3 c = clamp(1. - .7 * vec3(
         length(pL - vec3(.1, 0, .5)),

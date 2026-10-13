@@ -130,6 +130,18 @@ fragmentShaders = [
 
 `,
 `   
+    //licq-new
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p  = abs(p0);
+
+    p = wrot(p, 0., 4./5., PI);
+
+    col = v3(hc(p*6.+t/3.));
+
+    col = liq(col, t/6., 2.);
+
+`,
+`   
     //licq-nice II
     float n = 1.;
     float nb = opt1 == 0. ? n : n*.5;
@@ -201,6 +213,24 @@ fragmentShaders = [
 
 `,
 `   
+    //Static III
+    float nb = 1.;
+    vec3 p0  = npos() * nb * (opt1 == 0. ? .5 : .25); 
+    vec3 p   = abs(p0*.888);
+
+    vec3 pw  = wrotSin(p, 0., 2.*os(p*2.+t/32.), PI);
+    vec3 pw2 = wrotSin(p, 0., 3., PI);
+
+    vec3 pww = min(pw, pw2);
+
+    col = vec3(oe(pww*5., 2., 0.));
+
+    col += liq(inkAbsorb(col, col, .5), -E) / 3.;
+
+    col = 1. - abs(col);
+
+`,
+`   
     //alive
     vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
     vec3 p  = abs(p0);
@@ -264,7 +294,7 @@ fragmentShaders = [
     col *= col*m3(col);
 `,
 `   
-    //A wrot
+    //Simple wrot
     float nb = 1.;
     vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
     vec3 p  = abs(p0);
@@ -277,6 +307,30 @@ fragmentShaders = [
     if(length(col) > .6667){ col *=  vec3(1.125); }
 `,
 `   
+    //Simple wrot II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    vec3 p = abs(p0);
+    
+    col = v3(.5);
+
+    p = wrot(p, 0., 1./3., PI);
+    col = min(col, mon(col*p, 24., 48.));
+
+    col += .25*liq(col*p, 0., 2., 2.);
+`,
+`   
+    //Max & time
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
+
+    vec3 pw = wrot(p, 0., 1., PI);
+    col = max(liqc(v3(m((pw)*2.-t/8.))), liqc(v3(m((pw)*2.-t/24.))));
+
+    col = 1. - abs(col);
+`,
+`   
     //VM
     col = E*vec3(2./3., 1./6., 1./4.);
     float n = 8.;
@@ -286,6 +340,31 @@ fragmentShaders = [
     vec3 p = abs(p0);
 
     col *= vm(p, p*o(p));
+
+`,
+`   
+    //Strange flower
+    col = E*vec3(2./3., 1./6., 1./4.);
+    float n = 7.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0  = ((npos()) * nb);
+
+    vec3 p = abs(p0);
+
+    p = wrotSin(p, -t/64., 1./18., PI);
+
+    p = min(v3(me(p*5./12., 1., t/64.)), .5*m(p+t));
+
+    col = inkAbsorb(p, p, 0.125);
+
+    col -= 8.*normalize(col);
+
+    col = .5*liq(col, 1., 3.);
+    col -= .5*tube(col, .25);
+
+    col += la(col, 1.);
+
+    col = hueRotateYIQ(col, radians(96.*ol(p*.25)));
 
 `,
 `   
@@ -843,18 +922,26 @@ fragmentShaders = [
 `,
 `   
     //PWO III
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
 
-    p = abs(p);
+    vec3 p = abs(p0);
 
-    vec3 pw  = wrap(p, 5./3.);
-    vec3 pwo = wrot(pw, 0., 1., PI);
+    vec3 pw  = wrapTri(p0, 1./1.);
+    vec3 pwo = wrotTri(pw, 0., 1./2., PI);
 
-    float pm = oah(2.*p/absp(pwo, 2./3.));
+    vec3 center; vec3 toNuc;
 
-    col.xy += m(pm);
-    col.xz += o(pm*2.);
-    col.yz += os(pm*2.);
+    float val = hceS(pwo*4., 1., t/3.);
+
+    vec4 vor = gemVor(12.*pwo+v3(val), 1./W, center, toNuc);
+
+    col = v3(vor.x) - val;
+
+    col += toNuc*2./3.;
+
+    col += .2*liq(col, 1., 1., 1.);
+
+    col = 1. - col;
 
 `,
 `   
@@ -874,24 +961,42 @@ fragmentShaders = [
 
 `,
 `   
-    //PWO V
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    //A wrotSin
+    float nb = 5./3.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
 
-    p = abs(p);
+    vec3 pw = wrotSin(p, 0., 5./12., m(p+o(4.*p+t/3.)));
 
-    vec3 pw  = wrap(p, 1.);
-    vec3 pwo = wrot(pw, 0., 1., PI);
+    vec3 vcol1 = vec3(me(pw*5./3.));
+    vec3 vcol2 = vec3(me(pw*6./3.));
 
-    float pm = oah(p/absp(pwo, 2./3.));
+    col = min(vcol1, vcol2);
 
-    col.yz *= min(m(p*8.), o(p*8.));
-    col.xy *= min(m(p*8.), o(p*8.));
+    col *= absp(liq(maxv(p*pw)+col, 12.), 1.);
 
-    col *= la(col-8.*fract(col*col));
-    col /= normalize(ea(col));
+    col = .5 - abs(col);
 
+`,
+`   
+    //mat3 pattern
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? 1. : .5); 
+    vec3 p  = abs(p0);
 
-    //col = abs(col);
+    mat3 m3 = mat3(
+        c(p*8.),
+        la(c(p*2.5)),
+        ea(s(p*2.))
+    );
+
+    p *= m3;
+
+    vec3 pw = wrotTri(p, 0., 0., PI);
+
+    col = v3(hce(p*pw));
+
+    col *= liq(col, 12.);
 
 `,
 `   
@@ -934,21 +1039,22 @@ fragmentShaders = [
 
 `,
 `   
-    //PWO VI
-    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
+    //liq&wrot
+    float nb = 1.;
+    vec3 p0 = npos() * nb * (opt1 == 0. ? .5 : .25); 
+    vec3 p  = abs(p0);
 
-    p = abs(p);
+    vec3 pw1 = wrotTri(p, 0., 3./3., PI);
 
-    vec3 pw  = wrap(p, 1.);
-    vec3 pwo = wrot(pw, 0., 1., PI);
+    float val = oe(min(p, pw1) * 5.5, 1., t/3.);
+    vec3 vcol = v3(val);
 
-    float pm = oah(p/absp(pwo, 2./3.));
+    col = vcol;
 
-    col.yz *= min(m(pwo*8.), 1./3.*o(p*8.+t));
-    col.xy /= absp(.5*min(m(p*8.), o(p*8.-t)), .5);
+    col = .5*liq(5./12.*vcol, t/9., 1., 8.888);
+    col += .25*W*liq(vcol*.125, t/9., 2., 8.888);
 
-    col *= la(col+8.*fract(col*col));
-    col /= normalize(ea(col));
+    col *= absp(tube(col, W/2.), W/2.);
 
 `,
 `   
@@ -1144,6 +1250,33 @@ fragmentShaders = [
     vec3 p  = abs(p0);
 
     col *= log(absp(m(p*8.)*8., .5));
+
+`,
+`   
+    //Tcol
+    float n = 1.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0 = npos() * nb;
+    vec3 p  = abs(p0);
+
+    float t = t/E;
+
+    float ti = t;
+
+    vec3 pw = wrotTri(p, m(p+ti/64.), .5+.25*m(p*.5+ti/4.), PI*oe(p, 1., ti/16.));
+
+    float val = o(pw*12.+t*2.)*o(pw*6.-t*2.);
+
+    col = tcol(v3(1./3.+val/12.), val, E, 1./E);
+
+    if(length(col) > m(p*256.+t*8.)){
+        col = max(col, v3(-1.));
+    }
+    else{
+        col = min(col, col*2.);
+    }
+
+    col += liq(p+val*.125, 2., 2., 2.) / 12.;
 
 `,
 `   
@@ -1610,16 +1743,25 @@ fragmentShaders = [
 `,
 `   
     //Art III
-    vec3 p  = npos() / (opt1 == 1. ? 2. : 1.);
-    vec3 n  = vNormal / (opt1 == 1. ? .25 : .125);
+    float n = E;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0 = ((npos()) * nb);
+    vec3 p  = abs(p0);
 
-    col = 1.+1./3.*(c(p*8.));
-    for(float i = 1.; i < 3.; i+=.75){
-		p *= rotAxis(wrap(p, 2.-i), -t/(i+4.));
-		col += m(2.*p*p);
-	}
+    float t = t + 1e3;
 
-    col = 1. - col;
+    vec3 pw = wrotTri(p/E, t/256., 1.125, t/256.);
+
+    float val = hcS(pw*16. + t);
+    vec3 vval = v3(hcS(pw*16. + t));
+
+    col = vval;
+
+    col += .2*liq(pw*col, 1., 6., 12.);
+
+    col *= 1./6. + tube(col*pw, W);
+
+    col += minvv(col) / 3.;
     
 `,
 `   
@@ -1755,11 +1897,180 @@ fragmentShaders = [
     col *= absp(la(col), .0);
     col -= 1./3.*absp(la(col), .0);
     
-`,`   
+`,
+`   
     //FBM-things
     vec3 p = npos() * (opt1 == 0. ? 1. : .5);
 
     col *= o(48.*p*fbm(vec2(me(p), oe(p))));
+    
+`,
+`   
+    //Black&Colors
+    vec3 p = abs(npos()) * (opt1 == 0. ? 1. : .5);
+
+    col *= hcsS(t+48.*p*fbm(vec2(me(p), oe(p))));
+    col += .5*hcsS(t+64.*p*fbm(vec2(me(p), oe(p))));
+
+    col += .41667*liq(col, 3.41667, 3.);
+
+    col = min(col, 1./3.*col-normalize(col));
+
+    col = hueRotateYIQ(col, 8.*m(p*8.+t/3.));
+    
+`,
+`   
+    //Black&Colors II
+    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+
+    vec3 p = abs(p0);
+
+    vec3 pw  = wrapTri(p0, 1./1.);
+    vec3 pwo = wrotTri(pw, t/64., 1./2., PI);
+
+    vec3 center; vec3 toNuc;
+
+    float val = hceS(pwo*W+W, 1., -t/3.);
+
+    vec4 vor = gemVor(12.*pwo+v3(val), 1./W, center, toNuc);
+
+    col = v3(vor.y/vor.x) - val;
+
+    col += toNuc*2./3.;
+
+    col += .125*liq(col, 6., c(val*6.), .888);
+
+    vec3 scol = col;
+    col = 1. - col;
+
+    col += scol * .125;
+
+    if(bool(isnan(col))){
+        col = 2.*liq(pwo-2.*val, 6., 2., .888);
+        //col += .5*tube(col, 0.);
+    }
+    else{
+        col -= absp(la(col), .0);
+    }
+
+    col = smoothstep(-W, PI, col);
+
+    if(length(col) == .0){
+        col = .333*pwo*(val);
+        col += tube(col, 12.);
+    }
+    
+`,
+`   
+    //Black&Colors III
+    float n = 12.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0 = npos() * nb;
+    vec3 p  = abs(p0);
+
+    float ti = t * .125;
+
+    vec3 pw = wrapTri(p, 3./4.);
+
+    vec3 p1 = wrotSin(p, t/16., 1./48., PI);
+    vec3 p2 = wrotSin(p, t/16., 1./16., PI*t/16.);
+
+    float val = m(p2+t);
+
+    col = v3(val);
+    col = max(col*p1, v3(val) * fbm(vec2(m(p), o(p))));
+    col *= absp(.125*liq(v3(col*pw), 2., 2., 2.));
+
+    col -= la(col) / 6.;
+    
+`,
+`   
+    //3cols
+    vec3 p0 = npos(-1.) / (opt1 == 0. ? 2. : 1.);
+    vec3 p  = abs(p0*21./12.);
+
+    float t = t / 3.;
+
+    vec3 pw = wrotSin(p+s(p)/3., t/64., 1./E, o(p*5.+t));
+
+    col = v3(m(pw*4.+t));
+    col.x = 1.;
+
+    vec3 col2 = v3(ms(pw*4.-t));
+    col2.z = 0.;
+
+    vec3 col3 = v3(o(pw*4.-t));
+    col3.x = 1.;
+
+    col = min((min(col, col3)), col2);
+
+    col += .125*liq(col, 8., 0.75);
+
+    col -= .5*tan(normalize(col));
+
+    col += 1./E*tube(col, E*length(col));
+
+    col = hueRotateYIQ(
+        col,
+        t
+    );
+    
+`,
+`   
+    //3cols II
+    vec3 p0 = npos(-1.) / (opt1 == 0. ? 2. : 1.);
+    vec3 p  = abs(p0*21./12.);
+
+    float t = t / 3. / absp(.125*o(p + t / 16.), 2.);
+
+    vec3 pw = wrotSin(p+s(p)/3., t/64., 1./E, o(p*5.+t));
+
+    col = v3(o(pw*4.+t));
+    col.x = 1.;
+
+    vec3 col2 = v3(o(pw*5.-t));
+    col2.z = 0.;
+
+    vec3 col3 = v3(o(pw*6.-t));
+    col3.x = 1.;
+
+    col = min((min(col, col3)), col2);
+
+    col += .125*liq(col, 8., 0.75);
+
+    col -= .5*tan(normalize(col));
+
+    col.xz -= 1./E*tube(col, E*length(col));
+
+    col = hueRotateYIQ(
+        col,
+        t
+    );
+    
+`,
+`   
+    //3cols III
+    vec3 p0 = npos(-1.) / (opt1 == 0. ? 2. : 1.);
+    vec3 p  = abs(p0*21./12.);
+
+    float t = t/4.;
+
+    vec3 pw = wrotSin(p, -t/64., 1./3., t);
+
+    vec3 col1 = v3(o(pw*4. + t));
+    vec3 col2 = v3(o(pw*6. - t));
+    vec3 col3 = v3(o(pw*8. - t*3.));
+
+    col1.x += -W;
+    col2.y += -1.;
+    col3.z += -2.;
+
+    col = min(min(col1, col2), col3);
+
+    col *= absp(tube(col, .25), 1./32.);
+
+    col /= la(col);
+    col *= absp(.5*la(col));
     
 `,
 `   
@@ -2105,18 +2416,27 @@ fragmentShaders = [
 `,
 `   
     //Disco II
-    vec3 p0 = npos() * (opt1 == 0. ? 1. : .5);
+    vec3 p = npos();
 
-    vec3 p = abs(p0);
+    vec3 p0  = p;
 
-    vec3 pb = p / baseColor(p);
+    p = abs(p0);
 
-    col -= baseColor(c(col*p*8.));
-    col *= ms(p*8.+t);
-    col /= absp(ms(pb*8.+t), .125);
+    col = vec3(0);
+    for (float i = 0.0; i < 4.0; i++) {
+        p = fract(p * 1.5) - 0.5;
 
+        float d = length(p) / absp(oe(1.*abs(p0)), 1./4.);
 
-    col = abs(col);
+        vec3 color = palette(length(p0) + i*.4 - time*.4);
+
+        d = sin(d*8. + time)/8.;
+        d = abs(d);
+
+        d = pow(0.012 / d, 1.25);
+
+        col += color * d;
+    }
     
 `,
 `   
@@ -3298,17 +3618,42 @@ fragmentShaders = [
     col = E*vec3(2./3., 1./6., 1./4.);
     float n = 8.;
     float nb = opt1 == 1. ? n*.5 : n*1.;
-    vec3 p  = abs((npos()) * nb);
+    vec3 p0 = npos() * nb;
+    vec3 p  = abs(p0);
 
     float ti = t * .125;
 
+    p = wrot(p, 0., 0.125, PI);
     p = go(p, m(p+t*.125), .125);
 
     col *= o(p);
 
-    float vor = voronoiPos(p*5., 2.);
-    col *= pm(1.*tube(col, 6.*vor));
-    col *= pm(1.*spec(col, E*vor));
+    float vor = voronoiPos(p0*8., 2.);
+    col *= pm(2.*tube(col, vor));
+
+    vec3 col2 = v3(1./4., 1./6., 2./3.) * m(p);
+    col2 *= pm(2.*tube(col, vor));
+
+    col = min(col, col2);
+
+
+`,
+`
+    //Triketra
+    col = E*vec3(2./3., 1./6., 1./4.);
+    float n = 8.;
+    float nb = opt1 == 1. ? n*.5 : n*1.;
+    vec3 p0 = npos() * nb;
+    vec3 p  = abs(p0);
+
+    float ti = t * .125;
+
+    vec3 p1 = wrotSin(p, t/24., 1./48., PI);
+    vec3 p2 = wrotSin(p, t/24., 1./24., PI);
+
+    col = v3(os(-t/3.+3.*p2*maxv(p1/6.)));
+
+    col += .25*liq(inkAbsorb(col, p/8., 1.), 1./3., 2., 2.);
 
 
 `,
@@ -3731,196 +4076,21 @@ fragmentShaders = [
 `,
 `
     //voronoiF12 Mozaïc
-    vec3 p = npos();
+    vec3 p = npos() * (opt1 == 0. ? 1. : .5);
     vec3 pa = abs(p);
 
-    vec4 vor = voronoiF12((pa*24.), 1., 1.);
+    vec3 pw  = wrotSin(p, 0., 1./6., t/8.);
+    vec3 pwa = wrotTri(pa, 0., 1., PI);
 
-    col = vec3((vor.x/(1./12.+vor.y))/24.);
+    vec4 vor = voronoiF12((p*32.), 1., 1.);
+
+    col = vec3(1. + (vor.x/(1./12.+vor.y))/24.);
+
+    float val = m(pwa*8. + t/5.);
+
+    col *= liq(cpalette(length(col), col)*val, 5.5, 2., 1e3);
 
     
-    float val = oi(pa*8. + t/6., 2., 2.);
-
-    col = liqc(palette(length(col))*val, 0.);
-
-    col = hueRotateYIQ(col, radians(PI*100.));
-
-    
-`,
-`
-    //Triskèle
-    // Deux façons de poser le motif, au choix par opt1.
-    //
-    // opt1 = 0 : plan paramétrique (u, v), normalisé par la seule étendue de v pour que les
-    //   deux axes gardent la même échelle — normaliser chaque axe sur sa propre plage
-    //   écraserait le triskèle du simple au double sur une sphère, dont u couvre l'équateur
-    //   quand v ne couvre qu'un demi-méridien. Impeccable sur le Plan, mais le motif subit
-    //   l'étirement de la paramétrisation : sur un tore il s'étale en bandes.
-    //
-    // opt1 = 1 : triplanaire depuis vPosition. Le motif est projeté selon les trois plans de
-    //   base et les trois versions mélangées d'après la normale. Là où la surface devient
-    //   tangente à un plan — le seul endroit où une projection simple s'étire en traînées —
-    //   un autre plan prend le relais. Taille homogène sur n'importe quelle forme, au prix
-    //   de trois évaluations du motif au lieu d'une.
-
-    float spin = opt2 == 0. ? 0. : t*.35;   // opt2 : le triskèle tourne sur lui-même
-    float nb   = .5;                        // nombre de motifs par unité
-
-    vec2 msk;
-
-    // opt1 est un uniform : la branche est la même pour tous les fragments, donc les dérivées
-    // que tkMask prend avec fwidth restent définies.
-    if(opt1 == 0.){
-        vec2 q = vec2(u, v) / ((uMaxV - uMinV)*.5);
-
-        // opt3 n'en garde qu'un, centré.
-        q = opt3 != 0. ? q : fract(q*nb + .5)*2. - 1.;
-
-        msk = tkMask(q, spin);
-    }
-    else{
-        vec3 p = vPosition;
-        vec3 n = abs(normalize(vNormal));
-
-        // Exposant élevé : le mélange se resserre sur le plan le plus frontal, sinon les
-        // trois projections se superposent en fantômes sur les faces obliques.
-        n = pow(n, vec3(6.));
-        n /= (n.x + n.y + n.z);
-
-        vec2 mx = tkMask(fract(p.zy*nb + .5)*2. - 1., spin);
-        vec2 my = tkMask(fract(p.xz*nb + .5)*2. - 1., spin);
-        vec2 mz = tkMask(fract(p.xy*nb + .5)*2. - 1., spin);
-
-        msk = n.x*mx + n.y*my + n.z*mz;
-    }
-
-    // Trait franc : le dessin ne tient qu'au contraste avec le fond, un dégradé marqué le
-    // ferait perdre. Juste un assombrissement vers l'oeil, qui donne la profondeur du creux.
-    vec3 body = meshFg*(.72 + .28*msk.y);
-
-    col = mix(meshBg, body, msk.x);
-
-// __USER_FUNCTIONS__
-// Spirale d'Archimede r = r0 + b*phi, trait d'epaisseur constante 2w, bouts arrondis.
-// Renvoie .x = distance signee, .y = avancee le long du trait (0 a l'oeil, 1 a la sortie).
-vec2 sdSpiral(vec2 q, float r0, float b, float phimax, float w){
-    float r   = length(q);
-    float ph0 = atan(q.y, q.x);
-    ph0 = ph0 < 0. ? ph0 + TWO_PI : ph0;
-
-    vec2 best = vec2(1e9, 0.);
-
-    // Le trait repasse au meme angle a chaque tour : on teste les tours atteignables.
-    for(int k = 0; k < 3; k++){
-        float ph = ph0 + TWO_PI*float(k);
-
-        if(ph <= phimax){
-            float rs = r0 + b*ph;
-            // Ecart radial ramene a une distance perpendiculaire. La normale d'une spirale
-            // d'Archimede s'ecarte d'autant plus du radial que rs est petit : sans ce
-            // facteur le trait epaissit visiblement en approchant de l'oeil.
-            float dd = abs(r - rs)*rs*inversesqrt(rs*rs + b*b) - w;
-
-            best = dd < best.x ? vec2(dd, ph/phimax) : best;
-        }
-    }
-
-    // Bouchons ronds : l'oeil au depart, et la sortie qui recevra le pont vers la voisine.
-    float re = r0 + b*phimax;
-    float c0 = length(q - vec2(r0, 0.)) - w;
-    float c1 = length(q - vec2(re*cos(phimax), re*sin(phimax))) - w;
-
-    best = c0 < best.x ? vec2(c0, 0.) : best;
-    best = c1 < best.x ? vec2(c1, 1.) : best;
-
-    return best;
-}
-
-// Capsule : distance au segment [a, b] epaissi de w.
-float sdSegment(vec2 p, vec2 a, vec2 b, float w){
-    vec2  pa = p - a, ba = b - a;
-    float h  = clamp(dot(pa, ba)/dot(ba, ba), 0., 1.);
-
-    return length(pa - h*ba) - w;
-}
-
-// Union adoucie, pour que les ponts se fondent dans le trait au lieu de s'y greffer.
-float sminTk(float a, float b, float k){
-    float h = clamp(.5 + .5*(b - a)/k, 0., 1.);
-
-    return mix(b, a, h) - k*h*(1. - h);
-}
-
-// Rotation de +a, pour ramener chaque copie sur la premiere.
-vec2 tkRot(vec2 p, float a){
-    float c = cos(a), s = sin(a);
-
-    return vec2(c*p.x - s*p.y, s*p.x + c*p.y);
-}
-
-// Le triskèle : trois spirales enroulees chacune sur son propre oeil, posees aux sommets
-// d'un triangle equilateral, et reliees deux a deux par leur sortie — ce ne sont pas trois
-// bras partant d'un centre commun. La sortie de chaque spirale vise sa voisine : la corde
-// qui joint deux centres fait 150 degres avec le rayon, d'ou la phase psi qui oriente le
-// repere local. Le pont est alors court et se fond dans le trait.
-//
-// Le motif ayant une symetrie d'ordre 3, on tourne le point de 120 degres a chaque tour de
-// boucle plutot que de recalculer une copie : une seule spirale et un seul pont sont decrits.
-// Aucun tableau GLSL ici, volontairement : une declaration de tableau referme son crochet
-// juste avant le point-virgule, et ShaderLoader.parseShaderFile tronque le tableau des
-// shaders sur cette sequence-la.
-vec2 triskele(vec2 q, float spin){
-    const float SCALE = 1.06;     // cadrage du motif dans la cellule
-    const float RC    = .46;      // rayon ou sont posés les trois oeils
-    const float R0    = .035;     // rayon de l'oeil
-    const float PITCH = .0385;    // ecartement entre deux tours
-    const float TURNS = 1.75;     // nombre de tours par spirale
-    const float THK   = .055;     // demi-epaisseur du trait
-    // W et B sont déjà pris : W est une macro du header, B un uniform d'équation.
-    const float KB    = .035;     // adoucissement des jonctions
-
-    float phimax = TWO_PI*TURNS;
-    float psi    = radians(150.) - phimax;
-
-    q /= SCALE;
-    q.x = -q.x;                   // sens d'enroulement du triskèle breton
-
-    float cs = cos(spin), ss = sin(spin);
-    q = vec2(cs*q.x + ss*q.y, -ss*q.x + cs*q.y);
-
-    // Centre et phase de la premiere spirale, puis sa sortie et celle de sa voisine.
-    float a0 = HALF_PI + psi;
-    float re = R0 + PITCH*phimax;
-    vec2  c0 = RC*vec2(cos(HALF_PI), sin(HALF_PI));
-    vec2  e0 = c0 + tkRot(re*vec2(cos(phimax), sin(phimax)), a0);
-    vec2  e1 = tkRot(e0, TWO_PI/3.);
-
-    vec2 best = vec2(1e9, 0.);
-
-    for(int i = 0; i < 3; i++){
-        vec2 qq = tkRot(q, -float(i)*TWO_PI/3.);
-
-        vec2 sp = sdSpiral(tkRot(qq - c0, -a0), R0, PITCH, phimax, THK);
-        best = sp.x < best.x ? sp : best;
-
-        best.x = sminTk(best.x, sdSegment(qq, e0, e1, THK), KB);
-    }
-
-    return vec2(best.x*SCALE, best.y);
-}
-
-// Couverture du motif en un point : .x = 1 dans le trait, 0 dehors, avec l'antialiasing ;
-// .y = avancee le long du trait. Isolee pour que le triplanaire puisse melanger trois
-// projections d'un seul coup, masque et parcours ensemble.
-//
-// fwidth explose au centre de chaque spirale, ou l'angle polaire est singulier : sans
-// plafond, le fondu s'etale sur tout l'oeil et noie le motif dans un halo.
-vec2 tkMask(vec2 q, float spin){
-    vec2  tk = triskele(q, spin);
-    float aa = clamp(fwidth(tk.x)*1.2, 2e-4, .010);
-
-    return vec2(smoothstep(aa, -aa, tk.x), tk.y);
-}
 `,
 
 ];
@@ -3979,7 +4149,10 @@ float eqZ(float u, float v);
  */
 function getFragmentUtilsGLSL() {
 return `
+vec3 v3(vec3 val){ return vec3(val); }
 vec3 v3(float val){ return vec3(val); }
+vec3 v3(float val1, float val2){ return vec3(val1, val2, val2); }
+vec3 v3(float val1, float val2, float val3){ return vec3(val1, val2, val3); }
 
 
 vec3 npos(){ return opt1 == 0.0 ? normalize(vPosition) : vPosition; }
@@ -4157,6 +4330,135 @@ mat3 rotZ(float a) {
          -s,   c, 0.0,
         0.0, 0.0, 1.0
     );
+}
+
+float cpow(float val, float p) {
+    return sign(val) * pow(abs(val), p);
+}
+vec2 cpow(vec2 val, vec2 p) {
+    return sign(val) * pow(abs(val), p);
+}
+vec2 cpow(vec2 val, float p) {
+    return sign(val) * pow(abs(val), vec2(p));
+}
+vec3 cpow(vec3 val, vec3 p) {
+    return sign(val) * pow(abs(val), p);
+}
+vec3 cpow(vec3 val, float p) {
+    return sign(val) * pow(abs(val), vec3(p));
+}
+vec4 cpow(vec4 val, vec4 p) {
+    return sign(val) * pow(abs(val), p);
+}
+vec4 cpow(vec4 val, float p) {
+    return sign(val) * pow(abs(val), vec4(p));
+}
+
+float cp(float val, float n){
+    return cpow(cos(val), n);
+}
+
+float ccp(float val, float n){
+    return cos(cpow(val, n));
+}
+
+vec3 cp(vec3 p, float n){
+    return cpow(cos(p), n);
+}
+
+vec3 ccp(vec3 p, float n){
+    return cos(cpow(p, n));
+}
+
+vec3 h3(vec3 v1, vec3 v2){
+    return sqrt(v1*v1 + v2*v2);
+}
+
+vec3 hn3(vec3 v1, vec3 v2){
+    return cpow(cpow(v1, 2.) + cpow(v2, 2.), .5);
+}
+
+float lengthS(vec3 vect){
+    return cpow(cpow(vect.x, 2.) + cpow(vect.y, 2.) + cpow(vect.z, 2.), .5);
+}
+
+float maxv(vec3 p){
+    return max(p.x, max(p.y, p.z));
+}
+float minv(vec3 p){
+    return min(p.x, max(p.y, p.z));
+}
+
+vec3 maxvv(vec3 p){
+    float max = maxv(p);
+
+    if(max == p.x){ p.x *= p.x; return p; }
+    if(max == p.y){ p.y *= p.y; return p; }
+
+    p.z *= p.z;
+    return p;
+}
+
+vec3 minvv(vec3 p){
+    float min = minv(p);
+
+    if(min == p.x){ p.x *= p.x; return p; }
+    if(min == p.y){ p.y *= p.y; return p; }
+
+    p.z *= p.z;
+    return p;
+}
+
+float mina(float val1, float val2){
+    if(abs(val1) < abs(val2)){ return val1; }
+
+    return val2;
+}
+
+float maxa(float val1, float val2){
+    if(abs(val1) > abs(val2)){ return val1; }
+
+    return val2;
+}
+
+vec3 mina(vec3 val1, vec3 val2){
+    float laval1 = cpow(cpow(val1.x, 2.) + cpow(val1.y, 2.) + cpow(val1.z, 2.), .5);
+    float laval2 = cpow(cpow(val2.x, 2.) + cpow(val2.y, 2.) + cpow(val2.z, 2.), .5);
+
+    if(abs(laval1) < abs(laval2)){ return val1; }
+
+    return val2;
+}
+
+vec3 maxa(vec3 val1, vec3 val2){
+    float laval1 = cpow(cpow(val1.x, 2.) + cpow(val1.y, 2.) + cpow(val1.z, 2.), .5);
+    float laval2 = cpow(cpow(val2.x, 2.) + cpow(val2.y, 2.) + cpow(val2.z, 2.), .5);
+
+    if(abs(laval1) > abs(laval2)){ return val1; }
+
+    return val2;
+}
+
+vec3 mina(vec3 val1, float val2){
+    float laval1 = cpow(cpow(val1.x, 2.) + cpow(val1.y, 2.) + cpow(val1.z, 2.), .5);
+
+    if(abs(laval1) < abs(val2)){ return val1; }
+
+    return vec3(val2);
+}
+
+vec3 maxa(vec3 val1, float val2){
+    float laval1 = cpow(cpow(val1.x, 2.) + cpow(val1.y, 2.) + cpow(val1.z, 2.), .5);
+
+    if(abs(laval1) > abs(val2)){ return val1; }
+
+    return vec3(val2);
+}
+
+float maxr(float val1, float val2, float n1, float n2){
+    if(val1 * n1 > val2 * n2){ return val1; }
+
+    return val2;
 }
 
 // k = raideur du palier : 1. = linéaire (aucun palier), grand = paliers longs
@@ -4487,28 +4789,6 @@ float noise_perlin (vec3 p) {
                 mix( c, e, u.x), u.y),
             mix(mix( d, f, u.x),
                 mix( g, h, u.x), u.y), u.z);
-}
-
-float cpow(float val, float p) {
-    return sign(val) * pow(abs(val), p);
-}
-vec2 cpow(vec2 val, vec2 p) {
-    return sign(val) * pow(abs(val), p);
-}
-vec2 cpow(vec2 val, float p) {
-    return sign(val) * pow(abs(val), vec2(p));
-}
-vec3 cpow(vec3 val, vec3 p) {
-    return sign(val) * pow(abs(val), p);
-}
-vec3 cpow(vec3 val, float p) {
-    return sign(val) * pow(abs(val), vec3(p));
-}
-vec4 cpow(vec4 val, vec4 p) {
-    return sign(val) * pow(abs(val), p);
-}
-vec4 cpow(vec4 val, float p) {
-    return sign(val) * pow(abs(val), vec4(p));
 }
 
 vec3 rainbow(float t) {
@@ -5102,15 +5382,109 @@ vec3 liq(vec3 p, float kt){
     return c0;
 }
 
-vec3 h3(vec3 v1, vec3 v2){
-    return sqrt(v1*v1 + v2*v2);
+vec3 liq(vec3 p, float kt, float nb){
+    if(nb > 100.){ discard; }
+
+    vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
+    float T = kt;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    float N = nb;
+    for (float i = 0.; i < N; i++)
+    {
+        float wt = (i * i / N / N - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
 }
 
-float maxv(vec3 p){
-    return max(p.x, max(p.y, p.z));
+vec3 liq(vec3 p, float kt, float nb1, float nb2){
+    if(nb1 > 100.){ discard; }
+
+    vec3 pL = vec3(.125, .75, .5) + (p - vec3(.125, .75, .5)) * .03;
+    float T = kt;
+
+    vec3 c = clamp(1. - .7 * vec3(
+        length(pL - vec3(.1, 0, .5)),
+        length(pL - vec3(.9, 0, .5)),
+        length(pL - vec3(.5, 1, .5))
+        ), 0., 1.) * 2. - 1.;
+
+    vec3 c0 = vec3(0);
+    float w0 = 0.;
+    float N1 = nb1;
+    float N2 = nb2;
+    for (float i = 0.; i < N1; i++)
+    {
+        float wt = (i * i / N2 / N2 - .2) * .3;
+        float wp = 0.5 + (i + 1.) * (i + 1.5) * 0.001;
+        float wb = .05 + i / N2 * 0.1;
+
+        // Trois directions tournantes dans l'espace 3D, différentes par itération
+        float a1 = i * 2.399;          // angle 1 (~137°, golden angle pour décorréler)
+        float a2 = i * 1.733 + 1.0;    // angle 2
+        float a3 = i * 3.111 + 2.0;    // angle 3
+        vec3 d1 = vec3(cos(a1), sin(a1) * cos(a2), sin(a1) * sin(a2));
+        vec3 d2 = vec3(sin(a2) * cos(a3), cos(a2), sin(a2) * sin(a3));
+        vec3 d3 = vec3(sin(a3), sin(a1) * sin(a3), cos(a3));
+
+        float g1 = dot(pL, d1) * 23. * wp;
+        float g2 = dot(pL, d2) * 15. * wp;
+        float g3 = dot(pL, d3) * 17. * wp;
+
+        c.zx = rotL(c.zx, 1.6 + T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 + T * wt + g2);
+        c.yz = rotL(c.yz, c.x * c.y * wb + 2.4 - T * 0.79 * wt + g3);
+        c.zx = rotL(c.zx, c.y * c.z * wb + 1.6 - T * 0.65 * wt + g1);
+        c.xy = rotL(c.xy, c.z * c.x * wb + 1.7 - T * wt + g2);
+
+        float w = (1.5 - i / N2);
+        c0 += c * w;
+        w0 += w;
+    }
+    c0 = c0 / w0 * 2. + .5;
+    c0 *= .5 + dot(c0, vec3(1, 1, 1)) / sqrt(3.) * .5;
+    c0 += .25*pow(length(sin(c0 * PI * 4.)) / sqrt(3.) * 1.0, 20.) * (.3 + .7 * c0);
+
+    return c0;
 }
-float minv(vec3 p){
-    return min(p.x, max(p.y, p.z));
+
+vec3 liq(vec3 col){
+    return liq(col, 1., 1., 1.);
 }
 
 vec3 est(vec3 col){
@@ -5132,6 +5506,22 @@ vec3 est(vec3 col, float e, float s, float t){
     col /= pm(edge(col, e));
     col *= pm(spec(col, s));
     return col *= pm(tube(col, t));
+}
+
+vec3 tcol(vec3 col, float val){
+    col *= log(absp(val*8., .5));
+
+    return col;
+}
+vec3 tcol(vec3 col, float val, float val2){
+    col *= log(absp(val*val2, .5));
+
+    return col;
+}
+vec3 tcol(vec3 col, float val, float val2, float val3){
+    col *= log(absp(val*val2, val3));
+
+    return col;
 }
 
 float m(){
@@ -5372,7 +5762,7 @@ float me(vec3 p, float coeff){
     return cos(coeff*exp(abs(p.x))) * cos(coeff*exp(abs(p.y))) * cos(coeff*exp(abs(p.z)));
 }
 float me(vec3 p, float coeff, float phase){
-    return cos(coeff*exp(abs(p.x + phase))) * cos(coeff*exp(abs(p.y + phase))) * cos(coeff*exp(abs(p.z + phase)));
+    return cos(coeff*exp(abs(p.x)) + phase) * cos(coeff*exp(abs(p.y)) + phase) * cos(coeff*exp(abs(p.z)) + phase);
 }
 float me(vec3 p, float coeff, vec3 phase){
     return cos(coeff*exp(abs(p.x + phase.x))) * cos(coeff*exp(abs(p.y + phase.y))) * cos(coeff*exp(abs(p.z + phase.z)));
@@ -5527,8 +5917,36 @@ float hc(float x, float y, float z, float coeff){
     return length(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
 }
 
+float hcS(vec3 p){
+    return lengthS(cos(p));
+}
+float hcS(vec3 p, float coeff){
+    return lengthS(vec3(cos(coeff*p.x), cos(coeff*p.y), cos(coeff*p.z)));
+}
+float hcS(vec3 p, float coeff, float phase){
+    return lengthS(vec3(cos(coeff*p.x + phase), cos(coeff*p.y + phase), cos(coeff*p.z + phase)));
+}
+float hcS(vec3 p, float coeff, vec3 phase){
+    return lengthS(vec3(cos(coeff*p.x + phase.x), cos(coeff*p.y + phase.y), cos(coeff*p.z + phase.z)));
+}
+float hcS(float x, float y, float z){
+    return lengthS(vec3(cos(x), cos(y), cos(z)));
+}
+float hcS(float x, float y, float z, float coeff){
+    return lengthS(vec3(cos(coeff*x), cos(coeff*y), cos(coeff*z)));
+}
+
 float hcs(vec3 p){
     return length(cos(p)+sin(p));
+}
+float hcss(vec3 p){
+    return length(cos(p)*sin(p));
+} 
+float hcsS(vec3 p){
+    return lengthS(cos(p)+sin(p));
+}
+float hcSS(vec3 p){
+    return lengthS(cos(p)*sin(p));
 }
 float hce(vec3 p){
     return length(cos(abs(exp(p))));
@@ -5536,17 +5954,37 @@ float hce(vec3 p){
 float hces(vec3 p){
     return length(cos(abs(exp(p))) + sin(abs(exp(p))));
 }
-
 float hcl(vec3 p){
     return length(cos(log(pm(p))));
 }
 float hcls(vec3 p){
     return length(cos(log(pm(p))) + sin(log(pm(p))));
 }
+float hceS(vec3 p){
+    return lengthS(cos(abs(exp(p))));
+}
+float hcesS(vec3 p){
+    return lengthS(cos(abs(exp(p))) + sin(abs(exp(p))));
+}
+float hclS(vec3 p){
+    return lengthS(cos(log(pm(p))));
+}
+float hclsS(vec3 p){
+    return lengthS(cos(log(pm(p))) + sin(log(pm(p))));
+}
 
 
+float hcl(vec3 p, float coeff, float ph){
+    return length(vec3(cos(log(abs(p.x)) * coeff + ph), cos(log(abs(p.y)) * coeff + ph), cos(log(abs(p.z)) * coeff + ph)));
+}
+float hclS(vec3 p, float coeff, float ph){
+    return lengthS(vec3(cos(log(abs(p.x)) * coeff + ph), cos(log(abs(p.y)) * coeff + ph), cos(log(abs(p.z)) * coeff + ph)));
+}
 float hce(vec3 p, float coeff, float ph){
     return length(vec3(cos(exp(abs(p.x)) * coeff + ph), cos(exp(abs(p.y)) * coeff + ph), cos(exp(abs(p.z)) * coeff + ph)));
+}
+float hceS(vec3 p, float coeff, float ph){
+    return lengthS(vec3(cos(exp(abs(p.x)) * coeff + ph), cos(exp(abs(p.y)) * coeff + ph), cos(exp(abs(p.z)) * coeff + ph)));
 }
 
 float hch(vec3 p){
@@ -5642,6 +6080,33 @@ float gps(vec3 p){
 }
 float gps(vec3 p, float phase){
     return sin((p.x + p.y + p.z) + phase);
+}
+
+float mox(vec3 p, float val1){
+    return max(m(p*val1), o(p*val1));
+}
+float mox(vec3 p, float val1, float val2){
+    return max(m(p*val1), o(p*val2));
+}
+float mon(vec3 p, float val1){
+    return min(m(p*val1), o(p*val1));
+}
+float mon(vec3 p, float val1, float val2){
+    return min(m(p*val1), o(p*val2));
+}
+
+float mmx(vec3 p, float val1, float val2){
+    return max(m(p*val1), m(p*val2));
+}
+float mmn(vec3 p, float val1, float val2){
+    return min(m(p*val1), m(p*val2));
+}
+
+float oox(vec3 p, float val1, float val2){
+    return max(o(p*val1), o(p*val2));
+}
+float oon(vec3 p, float val1, float val2){
+    return min(o(p*val1), o(p*val2));
 }
 
 float h(float x, float y){
@@ -6255,6 +6720,10 @@ vec3 vortex(vec3 col, vec3 spotColor, float swirlCoeff){
     return col;
 }
 
+vec3 wmod(vec3 p, float val1, float val2, float val3, float val4){
+    return wrotTri(p, 0., mod(val1, val2) == 0. ? val3 : val4, PI);
+}
+
 mat3 m3(vec3 col){
     return mat3(col, col, col);
 }
@@ -6504,7 +6973,47 @@ vec4 eqVorSurf(float uu, float vv, float scale, float jit, float speed) {
 vec4 eqVorSurf(float uu, float vv, float scale, float jit) { return eqVorSurf(uu, vv, scale, jit, 0.0); }
 vec4 eqVorSurf(float uu, float vv, float scale)            { return eqVorSurf(uu, vv, scale, 0.9, 0.0); }
 
+vec3 gemHash(vec3 p){
+    p = vec3(dot(p, vec3(127.1, 311.7,  74.7)),
+             dot(p, vec3(269.5, 183.3, 246.1)),
+             dot(p, vec3(113.5, 271.9, 124.6)));
+    return fract(sin(p) * 43758.5453123);
+}
 
+// Voronoi 3D : x=F1, y=F2, z=id, w=distance au bord ; center = point de la cellule, toNuc = vecteur vers le noyau
+vec4 gemVor(vec3 x, float speed, out vec3 center, out vec3 toNuc){
+    vec3 ip = floor(x);
+    vec3 fp = fract(x);
+    float f1 = 8.0, f2 = 8.0, id = 0.0;
+    vec3 rN = vec3(0.0);
+    center = vec3(0.0);
+    for(int k = -1; k <= 1; k++)
+    for(int j = -1; j <= 1; j++)
+    for(int i = -1; i <= 1; i++){
+        vec3 g = vec3(float(i), float(j), float(k));
+        vec3 h = gemHash(ip + g);
+        vec3 o = 0.5 + 0.5 * sin(time * speed + 6.28318 * h);
+        vec3 r = g + o - fp;
+        float d = dot(r, r);
+        if(d < f1){ f2 = f1; f1 = d; id = h.x + h.y * 0.37 + h.z * 0.11; rN = r; center = ip + g + o; }
+        else if(d < f2){ f2 = d; }
+    }
+    float edge = 8.0;
+    for(int k = -2; k <= 2; k++)
+    for(int j = -2; j <= 2; j++)
+    for(int i = -2; i <= 2; i++){
+        vec3 g = vec3(float(i), float(j), float(k));
+        vec3 h = gemHash(ip + g);
+        vec3 o = 0.5 + 0.5 * sin(time * speed + 6.28318 * h);
+        vec3 r = g + o - fp;
+        vec3 dv = r - rN;
+        if(dot(dv, dv) > 0.00001){
+            edge = min(edge, dot(0.5 * (rN + r), normalize(dv)));
+        }
+    }
+    toNuc = rN;
+    return vec4(sqrt(f1), sqrt(f2), fract(id), edge);
+}
 
 `;
 }
